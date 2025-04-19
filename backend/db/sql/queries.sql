@@ -152,12 +152,7 @@ WHERE
 
 -- name: getUserByAnilist :one
 SELECT
-    users.user_id,
-    users.quote,
-    users.date AS roll_date,
-    users.favorite,
-    users.tokens,
-    users.anilist_url
+    *
 FROM
     users
 WHERE

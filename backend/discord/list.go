@@ -39,9 +39,3 @@ func (b *Bot) list(ctx context.Context, w corde.ResponseWriter, i *corde.Interac
 
 	w.Respond(corde.NewResp().Embeds(embed).Ephemeral())
 }
-
-func list(chars []Character) []corde.Field {
-	f := make([]corde.Field, 0, len(chars))
-
-	return f
-}

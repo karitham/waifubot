@@ -182,7 +182,7 @@ func (dc *discordCmd) register(c *cli.Context) error {
 }
 
 func (dc *discordCmd) run(c *cli.Context) error {
-	db, err := db.NewDB(c.Context, dc.dbURL)
+	db, err := db.NewStore(c.Context, dc.dbURL)
 	if err != nil {
 		return fmt.Errorf("error connecting to db %v", err)
 	}
@@ -223,7 +223,7 @@ func (r *dbCmd) update(c *cli.Context) error {
 		return fmt.Errorf("no character name provided")
 	}
 
-	DB, err := db.NewDB(c.Context, r.dbURL)
+	DB, err := db.NewStore(c.Context, r.dbURL)
 	if err != nil {
 		return fmt.Errorf("error connecting to db %v", err)
 	}

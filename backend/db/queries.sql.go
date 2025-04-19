@@ -429,34 +429,21 @@ func (q *Queries) getUser(ctx context.Context, userID uint64) (User, error) {
 
 const getUserByAnilist = `-- name: getUserByAnilist :one
 SELECT
-    users.user_id,
-    users.quote,
-    users.date AS roll_date,
-    users.favorite,
-    users.tokens,
-    users.anilist_url
+    id, user_id, quote, date, favorite, tokens, anilist_url
 FROM
     users
 WHERE
     users.anilist_url = $1
 `
 
-type getUserByAnilistRow struct {
-	UserID     uint64
-	Quote      string
-	RollDate   pgtype.Timestamp
-	Favorite   pgtype.Int8
-	Tokens     int32
-	AnilistUrl string
-}
-
-func (q *Queries) getUserByAnilist(ctx context.Context, anilistUrl string) (getUserByAnilistRow, error) {
+func (q *Queries) getUserByAnilist(ctx context.Context, anilistUrl string) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByAnilist, anilistUrl)
-	var i getUserByAnilistRow
+	var i User
 	err := row.Scan(
+		&i.ID,
 		&i.UserID,
 		&i.Quote,
-		&i.RollDate,
+		&i.Date,
 		&i.Favorite,
 		&i.Tokens,
 		&i.AnilistUrl,

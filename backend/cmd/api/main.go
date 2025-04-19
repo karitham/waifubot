@@ -28,12 +28,14 @@ func main() {
 	}
 
 	url := os.Getenv("DB_URL")
-	d, err := db.NewDB(context.Background(), url)
+	db, err := db.NewStore(context.Background(), url)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Could not connect to database")
 	}
+	defer db.Close(context.Background())
+
 	api := &APIContext{
-		db: d,
+		db: db,
 	}
 
 	r := chi.NewRouter()
@@ -134,7 +136,7 @@ func (a *APIContext) findUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = json.NewEncoder(w).Encode(resp{
-		ID: user.UserID,
+		ID: uint64(user.UserID),
 	}); err != nil {
 		log.Err(err).Msg("encoding request")
 	}
