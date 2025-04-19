@@ -47,6 +47,11 @@ func (q *Store) Tx(ctx context.Context, fn func(s discord.Store) error) error {
 }
 
 func (q *Store) asTx(ctx context.Context, fn func(q *Store) error) error {
+	// already in tx
+	if q.conn == nil {
+		return fn(q)
+	}
+
 	tx, err := q.conn.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return err
