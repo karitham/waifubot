@@ -1,21 +1,24 @@
 {
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    flake-utils.url = "github:numtide/flake-utils/main";
   };
-  outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = import nixpkgs { inherit system; };
+  outputs = {nixpkgs, ...}: let
+    forSystems = nixpkgs.lib.genAttrs ["x86_64-linux" "aarch64-linux"];
+  in {
+    devShells = forSystems (
+      system: let
+        pkgs = import nixpkgs {inherit system;};
       in {
-        devShell = pkgs.mkShell {
-          name = "waifubot";
+        default = pkgs.mkShell {
           packages = with pkgs; [
-            go_1_23
+            go
             usql
             dbmate
             sqlc
+            bun
           ];
         };
-      });
+      }
+    );
+  };
 }

@@ -4,11 +4,7 @@
 
 Waifu bot is discord waifu/husbando gacha bot.
 
-It also has a read-only API to get data from. See [go-waifubot/API](https://github.com/go-waifubot/API).
-
-There is also a website linked to the API & the bot at [go-waifubot/WaifuGUI](https://github.com/go-waifubot/WaifuGUI).
-
-View your list at [waifugui.karitham.dev](https://waifugui.karitham.dev) and retrieve any data you need at [waifuapi.karitham.dev](https://waifuapi.karitham.dev) (see repo for more information).
+View your list at [waifugui.karitham.dev](https://waifugui.karitham.dev) and retrieve any data you need at [waifuapi.karitham.dev](https://waifuapi.karitham.dev).
 
 ## Commands
 

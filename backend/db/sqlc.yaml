@@ -1,0 +1,17 @@
+version: "2"
+sql:
+  - name: db
+    queries: ./sql/queries.sql
+    schema: ./sql/schema.sql
+    engine: "postgresql"
+    gen:
+      go:
+        package: db
+        sql_package: "pgx/v5"
+        out: ./
+
+overrides:
+  go:
+    overrides:
+      - { column: users.user_id, go_type: uint64 }
+      - { column: characters.user_id, go_type: uint64 }
