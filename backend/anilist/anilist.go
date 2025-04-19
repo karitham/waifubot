@@ -11,9 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/karitham/waifubot/discord"
 	"github.com/Khan/genqlient/graphql"
 	"github.com/rs/zerolog/log"
+
+	"github.com/karitham/waifubot/discord"
 )
 
 // github.com/Khan/genqlient

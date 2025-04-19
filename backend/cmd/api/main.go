@@ -39,7 +39,6 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Timeout(5 * time.Second))
 	r.Use(loggerMiddleware(&log.Logger))
-	r.Use(middleware.SetHeader("Content-Type", "application/json"))
 	r.Use(middleware.Compress(5))
 
 	// CORS
@@ -53,6 +52,7 @@ func main() {
 
 	// Implement GET /user/123
 	r.Route("/user", func(r chi.Router) {
+		r.Use(middleware.SetHeader("Content-Type", "application/json"))
 		r.Use(middleware.SetHeader("Cache-Control", "public, max-age="+cacheAge))
 		r.Get("/find", api.findUser)
 		r.Get("/{userID}", api.getUser)

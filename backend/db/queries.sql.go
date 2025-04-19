@@ -276,56 +276,26 @@ func (q *Queries) getCharsWhoseIDStartWith(ctx context.Context, arg getCharsWhos
 	return items, nil
 }
 
-const getProfile = `-- name: getProfile :many
+const getList = `-- name: getList :many
 SELECT
-    users.user_id,
-    users.quote,
-    users.date AS roll_date,
-    users.favorite,
-    users.tokens,
-    users.anilist_url,
-    characters.id,
-    characters.image,
-    characters.name,
-    characters.date,
-    characters.type
+    user_id, id, image, name, date, type
 FROM
-    users
-    INNER JOIN characters ON characters.user_id = users.user_id
+    characters
 WHERE
-    users.user_id = $1
+    user_id = $1
 `
 
-type getProfileRow struct {
-	UserID     uint64
-	Quote      string
-	RollDate   pgtype.Timestamp
-	Favorite   pgtype.Int8
-	Tokens     int32
-	AnilistUrl string
-	ID         int64
-	Image      string
-	Name       string
-	Date       pgtype.Timestamp
-	Type       string
-}
-
-func (q *Queries) getProfile(ctx context.Context, userID uint64) ([]getProfileRow, error) {
-	rows, err := q.db.Query(ctx, getProfile, userID)
+func (q *Queries) getList(ctx context.Context, userID uint64) ([]Character, error) {
+	rows, err := q.db.Query(ctx, getList, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []getProfileRow
+	var items []Character
 	for rows.Next() {
-		var i getProfileRow
+		var i Character
 		if err := rows.Scan(
 			&i.UserID,
-			&i.Quote,
-			&i.RollDate,
-			&i.Favorite,
-			&i.Tokens,
-			&i.AnilistUrl,
 			&i.ID,
 			&i.Image,
 			&i.Name,
@@ -340,6 +310,43 @@ func (q *Queries) getProfile(ctx context.Context, userID uint64) ([]getProfileRo
 		return nil, err
 	}
 	return items, nil
+}
+
+const getProfile = `-- name: getProfile :one
+SELECT
+    users.user_id,
+    users.quote,
+    users.date AS roll_date,
+    users.favorite,
+    users.tokens,
+    users.anilist_url
+FROM
+    users
+WHERE
+    users.user_id = $1
+`
+
+type getProfileRow struct {
+	UserID     uint64
+	Quote      string
+	RollDate   pgtype.Timestamp
+	Favorite   pgtype.Int8
+	Tokens     int32
+	AnilistUrl string
+}
+
+func (q *Queries) getProfile(ctx context.Context, userID uint64) (getProfileRow, error) {
+	row := q.db.QueryRow(ctx, getProfile, userID)
+	var i getProfileRow
+	err := row.Scan(
+		&i.UserID,
+		&i.Quote,
+		&i.RollDate,
+		&i.Favorite,
+		&i.Tokens,
+		&i.AnilistUrl,
+	)
+	return i, err
 }
 
 const getProfileOverview = `-- name: getProfileOverview :one

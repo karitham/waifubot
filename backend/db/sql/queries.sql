@@ -129,24 +129,26 @@ WHERE
 RETURNING
     *;
 
--- name: getProfile :many
+-- name: getProfile :one
 SELECT
     users.user_id,
     users.quote,
     users.date AS roll_date,
     users.favorite,
     users.tokens,
-    users.anilist_url,
-    characters.id,
-    characters.image,
-    characters.name,
-    characters.date,
-    characters.type
+    users.anilist_url
 FROM
     users
-    INNER JOIN characters ON characters.user_id = users.user_id
 WHERE
     users.user_id = $1;
+
+-- name: getList :many
+SELECT
+    *
+FROM
+    characters
+WHERE
+    user_id = $1;
 
 -- name: getUserByAnilist :one
 SELECT

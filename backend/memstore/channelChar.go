@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/karitham/waifubot/discord"
 	"github.com/Karitham/corde"
 	"github.com/fxamacker/cbor/v2"
 	"github.com/go-redis/redis/v8"
+
+	"github.com/karitham/waifubot/discord"
 )
 
 // Client is a cache client. It is currently implemented through redis.

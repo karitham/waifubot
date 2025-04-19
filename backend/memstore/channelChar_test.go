@@ -5,9 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/karitham/waifubot/discord"
 	"github.com/Karitham/corde"
 	"github.com/go-redis/redis/v8"
+
+	"github.com/karitham/waifubot/discord"
 )
 
 func TestClient_Char(t *testing.T) {

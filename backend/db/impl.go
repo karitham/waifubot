@@ -398,11 +398,14 @@ func (q *Store) Profile(ctx context.Context, userID uint64) (*Profile, error) {
 	p, err := q.getProfile(ctx, userID)
 	if err != nil {
 		return nil, err
-	} else if len(p) == 0 {
-		return nil, errors.New("nothing found")
 	}
 
-	return mapUser(p...), nil
+	chars, err := q.getList(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return mapUser(p, chars), nil
 }
 
 func (q *Store) UserByAnilistURL(ctx context.Context, anilistURL string) (*User, error) {
@@ -421,21 +424,17 @@ func (q *Store) UserByAnilistURL(ctx context.Context, anilistURL string) (*User,
 	}, nil
 }
 
-func mapUser(userRows ...getProfileRow) *Profile {
-	if len(userRows) < 1 {
-		return nil
-	}
-
+func mapUser(user getProfileRow, list []Character) *Profile {
 	p := &Profile{
-		ID:         userRows[0].UserID,
-		Quote:      userRows[0].Quote,
-		Tokens:     userRows[0].Tokens,
-		AnilistURL: userRows[0].AnilistUrl,
-		Waifus:     make([]Char, 0, len(userRows)),
+		ID:         user.UserID,
+		Quote:      user.Quote,
+		Tokens:     user.Tokens,
+		AnilistURL: user.AnilistUrl,
+		Waifus:     make([]Char, len(list)),
 	}
 
-	for _, u := range userRows {
-		if u.Favorite.Int64 == u.ID {
+	for i, u := range list {
+		if user.Favorite.Int64 == u.ID {
 			p.Favorite = Char{
 				ID:    u.ID,
 				Name:  u.Name,
@@ -445,13 +444,13 @@ func mapUser(userRows ...getProfileRow) *Profile {
 			}
 		}
 
-		p.Waifus = append(p.Waifus, Char{
+		p.Waifus[i] = Char{
 			ID:    u.ID,
 			Name:  u.Name,
 			Image: u.Image,
 			Type:  u.Type,
 			Date:  u.Date.Time,
-		})
+		}
 	}
 
 	return p
