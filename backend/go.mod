@@ -8,7 +8,6 @@ require (
 	github.com/Khan/genqlient v0.8.0
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/fxamacker/cbor/v2 v2.8.0
-	github.com/go-chi/chi v1.5.5
 	github.com/go-chi/chi/v5 v5.2.1
 	github.com/go-chi/cors v1.2.1
 	github.com/go-redis/redis/v8 v8.11.5
@@ -33,7 +32,7 @@ require (
 	github.com/vektah/gqlparser/v2 v2.5.25 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
-	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/crypto v0.37.0 // indirect
 	golang.org/x/sys v0.32.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/text v0.24.0 // indirect
 )

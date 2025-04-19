@@ -5,7 +5,7 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
 )
 
@@ -35,7 +35,7 @@ func loggerMiddleware(logger *zerolog.Logger) func(next http.Handler) http.Handl
 				log.Info().
 					Str("type", "access").
 					Timestamp().
-					Fields(map[string]interface{}{
+					Fields(map[string]any{
 						"remote_ip":  r.RemoteAddr,
 						"url":        r.URL.Path,
 						"proto":      r.Proto,
