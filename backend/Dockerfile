@@ -11,7 +11,7 @@ COPY . .
 RUN CGO_ENABLED=0 go build -ldflags="-w -s" -o /build/bot ./cmd/bot
 RUN CGO_ENABLED=0 go build -ldflags="-w -s" -o /build/api ./cmd/api
 
-FROM alpine:3.20
+FROM alpine:3.21
 COPY --from=builder /build /bin
 
 CMD ["/bin/bot"]
