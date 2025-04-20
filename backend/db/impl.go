@@ -11,6 +11,7 @@ import (
 	"github.com/Karitham/corde"
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -20,41 +21,51 @@ import (
 	"github.com/karitham/waifubot/discord"
 )
 
+type TXer interface {
+	Begin(context.Context) (pgx.Tx, error)
+	users.DBTX
+}
+
 type Store struct {
 	UserStore      *users.Queries
 	CharacterStore *characters.Queries
-
-	pgxdb  *pgx.Conn
-	execer users.DBTX
+	db             TXer
 }
 
 func NewStore(ctx context.Context, url string) (*Store, error) {
-	cfg, err := pgx.ParseConfig(url)
+	cfg, err := pgxpool.ParseConfig(url)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't parse connect url: %w", err)
 	}
 
-	cfg.Tracer = &tracelog.TraceLog{
+	cfg.ConnConfig.Tracer = &tracelog.TraceLog{
 		Logger:   newLogger(log.Logger),
 		LogLevel: tracelog.LogLevelDebug,
 	}
 
-	conn, err := pgx.ConnectConfig(ctx, cfg)
+	conn, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't connect to db: %w", err)
 	}
 
 	if err := conn.Ping(ctx); err != nil {
-		_ = conn.Close(ctx)
+		conn.Close()
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	return &Store{
 		UserStore:      users.New(conn),
 		CharacterStore: characters.New(conn),
-		pgxdb:          conn,
-		execer:         conn,
+		db:             conn,
 	}, nil
+}
+
+func (s *Store) withTx(tx pgx.Tx) *Store {
+	return &Store{
+		UserStore:      s.UserStore.WithTx(tx),
+		CharacterStore: s.CharacterStore.WithTx(tx),
+		db:             tx,
+	}
 }
 
 type Logger struct {
@@ -88,14 +99,6 @@ func (pl *Logger) Log(ctx context.Context, level tracelog.LogLevel, msg string, 
 	pgxlog.WithLevel(zlevel).Msg(msg)
 }
 
-func (s *Store) Close(ctx context.Context) error {
-	if s.pgxdb != nil {
-		return s.pgxdb.Close(ctx)
-	}
-
-	return nil
-}
-
 func (s *Store) Tx(ctx context.Context, fn func(store discord.Store) error) error {
 	return s.asTx(ctx, func(q *Store) error {
 		return fn(q)
@@ -103,28 +106,17 @@ func (s *Store) Tx(ctx context.Context, fn func(store discord.Store) error) erro
 }
 
 func (s *Store) asTx(ctx context.Context, fn func(q *Store) error) error {
-	if s.pgxdb == nil {
-		return fn(s)
-	}
-
-	tx, err := s.pgxdb.BeginTx(ctx, pgx.TxOptions{})
+	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
-	txStore := &Store{
-		UserStore:      s.UserStore.WithTx(tx),
-		CharacterStore: s.CharacterStore.WithTx(tx),
-		pgxdb:          nil,
-		execer:         tx,
-	}
-
-	queriesErr := fn(txStore)
-	if queriesErr != nil {
-		if rollbackErr := tx.Rollback(ctx); rollbackErr != nil {
-			return fmt.Errorf("transaction function failed: %w (rollback also failed: %v)", queriesErr, rollbackErr)
+	if err := fn(s.withTx(tx)); err != nil {
+		if rerr := tx.Rollback(context.Background()); rerr != nil {
+			return fmt.Errorf("transaction function failed: %w (rollback also failed: %v)", err, rerr)
 		}
-		return queriesErr
+
+		return err
 	}
 
 	return tx.Commit(ctx)
@@ -163,6 +155,7 @@ func (s *Store) PutChar(ctx context.Context, userID corde.Snowflake, c discord.C
 	if err != nil {
 		return fmt.Errorf("failed to insert char %d for user %d: %w", c.ID, userID, err)
 	}
+
 	return nil
 }
 
@@ -199,7 +192,7 @@ func (s *Store) updateUser(ctx context.Context, userID corde.Snowflake, opts ...
 		return fmt.Errorf("failed to build update query for user %d: %w", userID, err)
 	}
 
-	if _, err := s.execer.Exec(ctx, sqlStr, args...); err != nil {
+	if _, err := s.db.Exec(ctx, sqlStr, args...); err != nil {
 		return fmt.Errorf("failed to execute update for user %d: %w", userID, err)
 	}
 

@@ -32,7 +32,6 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Could not connect to database")
 	}
-	defer db.Close(context.Background())
 
 	api := &APIContext{
 		db: db,

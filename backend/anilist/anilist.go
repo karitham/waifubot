@@ -105,7 +105,7 @@ two:
 	}
 
 	if len(c.cache) < 100 {
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			go func() {
 				ch, err := a.randomChar(context.Background(), notIn...)
 				if err != nil {
@@ -234,7 +234,7 @@ func ColorUint(s string) uint32 {
 }
 
 func (a *Anilist) randomCache(c querier) {
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		time.Sleep(500 * time.Millisecond)
 		go func() {
 			ch, err := a.randomChar(context.Background())
