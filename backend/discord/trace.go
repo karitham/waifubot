@@ -21,6 +21,6 @@ func trace[T corde.InteractionDataConstraint](next func(ctx context.Context, w c
 		ctx = l.WithContext(ctx)
 		next(ctx, w, i)
 
-		l.Debug().Str("took", time.Since(start).String()).Send()
+		l.Info().Str("took", time.Since(start).String()).Send()
 	}
 }

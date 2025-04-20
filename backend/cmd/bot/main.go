@@ -14,6 +14,7 @@ import (
 
 	"github.com/karitham/waifubot/anilist"
 	"github.com/karitham/waifubot/db"
+	"github.com/karitham/waifubot/db/characters"
 	"github.com/karitham/waifubot/discord"
 	"github.com/karitham/waifubot/memstore"
 )
@@ -28,7 +29,6 @@ func main() {
 	app := &cli.App{
 		Name:        "waifubot",
 		Usage:       "Run the bot, and use utils",
-		Version:     "v0.7.2",
 		Description: "A discord gacha bot",
 		Commands: []*cli.Command{
 			{
@@ -63,7 +63,7 @@ func main() {
 					&cli.StringFlag{
 						Name:        "DB_URL",
 						EnvVars:     []string{"DB_URL"},
-						Destination: &d.dbURL,
+						Destination: &d.DatabaseURL,
 						Required:    true,
 					},
 				},
@@ -167,8 +167,6 @@ type discordCmd struct {
 }
 
 func (dc *discordCmd) register(c *cli.Context) error {
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-
 	bot := &discord.Bot{
 		AppID:    corde.SnowflakeFromString(dc.appID),
 		BotToken: dc.botToken,
@@ -182,7 +180,7 @@ func (dc *discordCmd) register(c *cli.Context) error {
 }
 
 func (dc *discordCmd) run(c *cli.Context) error {
-	db, err := db.NewStore(c.Context, dc.dbURL)
+	s, err := db.NewStore(c.Context, dc.dbURL)
 	if err != nil {
 		return fmt.Errorf("error connecting to db %v", err)
 	}
@@ -196,7 +194,7 @@ func (dc *discordCmd) run(c *cli.Context) error {
 	defer redis.Close()
 
 	disc := discord.New(&discord.Bot{
-		Store:             db,
+		Store:             s,
 		AnimeService:      anilist.New(anilist.MaxChar(dc.anilistMaxChars)),
 		AppID:             corde.SnowflakeFromString(dc.appID),
 		GuildID:           dc.guildID,
@@ -212,18 +210,16 @@ func (dc *discordCmd) run(c *cli.Context) error {
 }
 
 type dbCmd struct {
-	dbURL string
+	DatabaseURL string
 }
 
 func (r *dbCmd) update(c *cli.Context) error {
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-
 	a := c.Args()
 	if a.Len() < 1 {
 		return fmt.Errorf("no character name provided")
 	}
 
-	DB, err := db.NewStore(c.Context, r.dbURL)
+	s, err := db.NewStore(c.Context, r.DatabaseURL)
 	if err != nil {
 		return fmt.Errorf("error connecting to db %v", err)
 	}
@@ -236,7 +232,7 @@ func (r *dbCmd) update(c *cli.Context) error {
 		return fmt.Errorf("character not found")
 	}
 
-	if _, err := DB.SetChar(c.Context, db.SetCharParams{
+	if _, err := s.CharacterStore.UpdateImageName(c.Context, characters.UpdateImageNameParams{
 		Image: char[0].ImageURL,
 		Name:  strings.Join(strings.Fields(char[0].Name), " "),
 		ID:    char[0].ID,

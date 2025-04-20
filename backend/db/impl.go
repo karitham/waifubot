@@ -11,35 +11,86 @@ import (
 	"github.com/Karitham/corde"
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/tracelog"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
+	"github.com/karitham/waifubot/db/characters"
+	"github.com/karitham/waifubot/db/users"
 	"github.com/karitham/waifubot/discord"
 )
 
 type Store struct {
-	*Queries
-	conn *pgx.Conn
+	UserStore      *users.Queries
+	CharacterStore *characters.Queries
+
+	pgxdb  *pgx.Conn
+	execer users.DBTX
 }
 
 func NewStore(ctx context.Context, url string) (*Store, error) {
-	conn, err := pgx.Connect(ctx, url)
+	cfg, err := pgx.ParseConfig(url)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't parse connect url: %w", err)
+	}
+
+	cfg.Tracer = &tracelog.TraceLog{
+		Logger:   newLogger(log.Logger),
+		LogLevel: tracelog.LogLevelDebug,
+	}
+
+	conn, err := pgx.ConnectConfig(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't connect to db: %w", err)
 	}
 
 	if err := conn.Ping(ctx); err != nil {
-		conn.Close(ctx)
+		_ = conn.Close(ctx)
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	return &Store{
-		Queries: New(conn),
-		conn:    conn,
+		UserStore:      users.New(conn),
+		CharacterStore: characters.New(conn),
+		pgxdb:          conn,
+		execer:         conn,
 	}, nil
 }
 
+type Logger struct {
+	logger zerolog.Logger
+}
+
+func newLogger(logger zerolog.Logger) *Logger {
+	return &Logger{
+		logger: logger.With().Str("module", "pgx").Logger(),
+	}
+}
+
+func (pl *Logger) Log(ctx context.Context, level tracelog.LogLevel, msg string, data map[string]any) {
+	var zlevel zerolog.Level
+	switch level {
+	case tracelog.LogLevelNone:
+		zlevel = zerolog.NoLevel
+	case tracelog.LogLevelError:
+		zlevel = zerolog.ErrorLevel
+	case tracelog.LogLevelWarn:
+		zlevel = zerolog.WarnLevel
+	case tracelog.LogLevelInfo:
+		zlevel = zerolog.InfoLevel
+	case tracelog.LogLevelDebug:
+		zlevel = zerolog.DebugLevel
+	default:
+		zlevel = zerolog.DebugLevel
+	}
+
+	pgxlog := pl.logger.With().Fields(data).Logger()
+	pgxlog.WithLevel(zlevel).Msg(msg)
+}
+
 func (s *Store) Close(ctx context.Context) error {
-	if s.conn != nil {
-		return s.conn.Close(ctx)
+	if s.pgxdb != nil {
+		return s.pgxdb.Close(ctx)
 	}
 
 	return nil
@@ -52,18 +103,20 @@ func (s *Store) Tx(ctx context.Context, fn func(store discord.Store) error) erro
 }
 
 func (s *Store) asTx(ctx context.Context, fn func(q *Store) error) error {
-	if s.conn == nil {
+	if s.pgxdb == nil {
 		return fn(s)
 	}
 
-	tx, err := s.conn.BeginTx(ctx, pgx.TxOptions{})
+	tx, err := s.pgxdb.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
 	txStore := &Store{
-		Queries: s.WithTx(tx),
-		conn:    nil,
+		UserStore:      s.UserStore.WithTx(tx),
+		CharacterStore: s.CharacterStore.WithTx(tx),
+		pgxdb:          nil,
+		execer:         tx,
 	}
 
 	queriesErr := fn(txStore)
@@ -77,7 +130,7 @@ func (s *Store) asTx(ctx context.Context, fn func(q *Store) error) error {
 	return tx.Commit(ctx)
 }
 
-func mapGetUserRowToDiscordUser(u User) discord.User {
+func userToDiscordUser(u users.User) discord.User {
 	return discord.User{
 		Date:       u.Date.Time,
 		Quote:      u.Quote,
@@ -88,7 +141,7 @@ func mapGetUserRowToDiscordUser(u User) discord.User {
 	}
 }
 
-func mapCharacterRowToDiscordCharacter(c Character) discord.Character {
+func charToDiscordChar(c characters.Character) discord.Character {
 	return discord.Character{
 		Date:   c.Date.Time,
 		Image:  c.Image,
@@ -100,49 +153,41 @@ func mapCharacterRowToDiscordCharacter(c Character) discord.Character {
 }
 
 func (s *Store) PutChar(ctx context.Context, userID corde.Snowflake, c discord.Character) error {
-	uid := uint64(userID)
-	_, err := s.getUser(ctx, uid)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
-			if createErr := s.createUser(ctx, uid); createErr != nil {
-				return fmt.Errorf("failed to create user %d for put char: %w", uid, createErr)
-			}
-		} else {
-			return fmt.Errorf("failed to get user %d for put char: %w", uid, err)
-		}
-	}
-
-	p := insertCharParams{
+	err := s.CharacterStore.Insert(ctx, characters.InsertParams{
 		ID:     c.ID,
 		UserID: uint64(c.UserID),
 		Image:  c.Image,
 		Name:   strings.Join(strings.Fields(c.Name), " "),
 		Type:   c.Type,
-	}
-
-	err = s.insertChar(ctx, p)
+	})
 	if err != nil {
 		return fmt.Errorf("failed to insert char %d for user %d: %w", c.ID, userID, err)
 	}
 	return nil
 }
 
-func (s *Store) updateUser(ctx context.Context, userID corde.Snowflake, opts ...func(*squirrel.UpdateBuilder)) error {
-	uid := uint64(userID)
-
-	_, err := s.getUser(ctx, uid)
+func ensureUserExists(ctx context.Context, userID corde.Snowflake, us *users.Queries) error {
+	_, err := us.Get(ctx, uint64(userID))
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
-			if createErr := s.createUser(ctx, uid); createErr != nil {
-				return fmt.Errorf("failed to create user %d for update: %w", uid, createErr)
+		if errors.Is(err, sql.ErrNoRows) {
+			if createErr := us.Create(ctx, uint64(userID)); createErr != nil {
+				return fmt.Errorf("failed to create user %d for put char: %w", userID, createErr)
 			}
 		} else {
-			return fmt.Errorf("failed to get user %d for update: %w", uid, err)
+			return fmt.Errorf("failed to get user %d for put char: %w", userID, err)
 		}
 	}
 
+	return nil
+}
+
+func (s *Store) updateUser(ctx context.Context, userID corde.Snowflake, opts ...func(*squirrel.UpdateBuilder)) error {
+	if err := ensureUserExists(ctx, userID, s.UserStore); err != nil {
+		return err
+	}
+
 	builder := squirrel.Update("users").
-		Where(squirrel.Eq{"user_id": uid}).
+		Where(squirrel.Eq{"user_id": userID}).
 		PlaceholderFormat(squirrel.Dollar)
 
 	for _, opt := range opts {
@@ -151,11 +196,11 @@ func (s *Store) updateUser(ctx context.Context, userID corde.Snowflake, opts ...
 
 	sqlStr, args, err := builder.ToSql()
 	if err != nil {
-		return fmt.Errorf("failed to build update query for user %d: %w", uid, err)
+		return fmt.Errorf("failed to build update query for user %d: %w", userID, err)
 	}
 
-	if _, err := s.db.Exec(ctx, sqlStr, args...); err != nil {
-		return fmt.Errorf("failed to execute update for user %d: %w", uid, err)
+	if _, err := s.execer.Exec(ctx, sqlStr, args...); err != nil {
+		return fmt.Errorf("failed to execute update for user %d: %w", userID, err)
 	}
 
 	return nil
@@ -202,151 +247,116 @@ func (s *Store) SetUserQuote(ctx context.Context, userID corde.Snowflake, quote 
 }
 
 func (s *Store) Chars(ctx context.Context, userID corde.Snowflake) ([]discord.Character, error) {
-	dbchs, err := s.getChars(ctx, uint64(userID))
+	dbchs, err := s.CharacterStore.List(ctx, uint64(userID))
 	if err != nil {
-
-		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return []discord.Character{}, nil
 		}
+
 		return nil, fmt.Errorf("failed to get chars for user %d: %w", userID, err)
 	}
 
 	chars := make([]discord.Character, 0, len(dbchs))
 	for _, c := range dbchs {
-		chars = append(chars, mapCharacterRowToDiscordCharacter(c))
+		chars = append(chars, charToDiscordChar(c))
 	}
 
 	return chars, nil
 }
 
 func (s *Store) CharsIDs(ctx context.Context, userID corde.Snowflake) ([]int64, error) {
-	ids, err := s.getCharsID(ctx, uint64(userID))
+	ids, err := s.CharacterStore.ListIDs(ctx, uint64(userID))
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return []int64{}, nil
 		}
+
 		return nil, fmt.Errorf("failed to get char IDs for user %d: %w", userID, err)
 	}
+
 	if ids == nil {
 		return []int64{}, nil
 	}
+
 	return ids, nil
 }
 
 func (s *Store) User(ctx context.Context, userID corde.Snowflake) (discord.User, error) {
-	uid := uint64(userID)
-
-	u, err := s.getUser(ctx, uid)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
-
-			if createErr := s.createUser(ctx, uid); createErr != nil {
-				return discord.User{}, fmt.Errorf("failed to create user %d for get user: %w", uid, createErr)
-			}
-
-			u, err = s.getUser(ctx, uid)
-			if err != nil {
-				return discord.User{}, fmt.Errorf("failed to get newly created user %d: %w", uid, err)
-			}
-		} else {
-			return discord.User{}, fmt.Errorf("failed to get user %d: %w", uid, err)
-		}
+	if err := ensureUserExists(ctx, userID, s.UserStore); err != nil {
+		return discord.User{}, err
 	}
 
-	return mapGetUserRowToDiscordUser(u), nil
+	u, err := s.UserStore.Get(ctx, uint64(userID))
+	return userToDiscordUser(u), err
 }
 
 func (s *Store) CharsStartingWith(ctx context.Context, userID corde.Snowflake, prefix string) ([]discord.Character, error) {
-	uid := uint64(userID)
-
-	_, err := s.getUser(ctx, uid)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
-			if createErr := s.createUser(ctx, uid); createErr != nil {
-				return nil, fmt.Errorf("failed to create user %d for chars starting with: %w", uid, createErr)
-			}
-
-			return []discord.Character{}, nil
-		} else {
-			return nil, fmt.Errorf("failed to get user %d for chars starting with: %w", uid, err)
-		}
+	if err := ensureUserExists(ctx, userID, s.UserStore); err != nil {
+		return nil, err
 	}
 
-	params := getCharsWhoseIDStartWithParams{
-		UserID:  uid,
-		Lim:     25,
-		Off:     0,
-		LikeStr: prefix + "%",
-	}
-	dbchs, err := s.getCharsWhoseIDStartWith(ctx, params)
+	dbchs, err := s.CharacterStore.ListFilterIDPrefix(ctx, characters.ListFilterIDPrefixParams{
+		UserID:   uint64(userID),
+		Lim:      25,
+		IDPrefix: "%" + prefix,
+	})
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return []discord.Character{}, nil
 		}
+
 		return nil, fmt.Errorf("failed to get chars starting with '%s' for user %d: %w", prefix, userID, err)
 	}
 
 	chars := make([]discord.Character, 0, len(dbchs))
 	for _, c := range dbchs {
-		chars = append(chars, mapCharacterRowToDiscordCharacter(c))
+		chars = append(chars, charToDiscordChar(c))
 	}
 
 	return chars, nil
 }
 
 func (s *Store) ProfileOverview(ctx context.Context, userID corde.Snowflake) (discord.Profile, error) {
-	uid := uint64(userID)
+	if err := ensureUserExists(ctx, userID, s.UserStore); err != nil {
+		return discord.Profile{}, err
+	}
 
-	_, err := s.getUser(ctx, uid)
+	profile := discord.Profile{}
+
+	user, err := s.UserStore.Get(ctx, uint64(userID))
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
-			if createErr := s.createUser(ctx, uid); createErr != nil {
-				return discord.Profile{}, fmt.Errorf("failed to create user %d for profile overview: %w", uid, createErr)
-			}
-		} else {
-			return discord.Profile{}, fmt.Errorf("failed to get user %d for profile overview: %w", uid, err)
-		}
+		return discord.Profile{}, fmt.Errorf("couldn't fetch user: %w", err)
 	}
 
-	p, err := s.getProfileOverview(ctx, uid)
+	if user.Favorite.Valid {
+		fav, err := s.CharacterStore.Get(ctx, characters.GetParams{
+			ID:     user.Favorite.Int64,
+			UserID: user.UserID,
+		})
+		if err != nil {
+			return discord.Profile{}, fmt.Errorf("couldn't fetch favorite: %w", err)
+		}
+
+		profile.Favorite = charToDiscordChar(fav)
+	}
+
+	count, err := s.CharacterStore.Count(ctx, user.UserID)
 	if err != nil {
-
-		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
-
-			u, _ := s.User(ctx, userID)
-			return discord.Profile{User: u}, nil
-		}
-		return discord.Profile{}, fmt.Errorf("failed to get profile overview for user %d: %w", userID, err)
+		return discord.Profile{}, fmt.Errorf("couldn't count chars: %w", err)
 	}
 
-	profile := discord.Profile{
-		User: discord.User{
-			Date:       p.UserDate.Time,
-			Quote:      p.UserQuote,
-			UserID:     corde.Snowflake(p.UserID),
-			Tokens:     p.UserTokens,
-			AnilistURL: p.UserAnilistUrl,
-			Favorite:   uint64(p.FavoriteID.Int64),
-		},
-		CharacterCount: int(p.Count),
-		Favorite: discord.Character{
-			ID:     p.FavoriteID.Int64,
-			Image:  p.FavoriteImage.String,
-			Name:   p.FavoriteName.String,
-			UserID: userID,
-		},
-	}
+	profile.CharacterCount = int(count)
+	profile.User = userToDiscordUser(user)
+
 	return profile, nil
 }
 
 func (s *Store) GiveUserChar(ctx context.Context, dst corde.Snowflake, src corde.Snowflake, charID int64) error {
-	params := giveCharParams{
-		Given: uint64(dst),
-		ID:    charID,
-		Giver: uint64(src),
-	}
-
-	_, err := s.giveChar(ctx, params)
+	_, err := s.CharacterStore.Give(ctx, characters.GiveParams{
+		UserID:   uint64(dst),
+		UserID_2: uint64(src),
+		ID:       charID,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to give char %d from %d to %d: %w", charID, src, dst, err)
 	}
@@ -355,19 +365,18 @@ func (s *Store) GiveUserChar(ctx context.Context, dst corde.Snowflake, src corde
 }
 
 func (s *Store) VerifyChar(ctx context.Context, userID corde.Snowflake, charID int64) (discord.Character, error) {
-	params := getCharParams{
+	c, err := s.CharacterStore.Get(ctx, characters.GetParams{
 		ID:     charID,
 		UserID: uint64(userID),
-	}
-	c, err := s.getChar(ctx, params)
+	})
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return discord.Character{}, fmt.Errorf("character %d not found or does not belong to user %d", charID, userID)
 		}
 		return discord.Character{}, fmt.Errorf("failed to verify char %d for user %d: %w", charID, userID, err)
 	}
 
-	return mapCharacterRowToDiscordCharacter(c), nil
+	return charToDiscordChar(c), nil
 }
 
 func (s *Store) ConsumeDropTokens(ctx context.Context, userID corde.Snowflake, count int32) (discord.User, error) {
@@ -375,16 +384,12 @@ func (s *Store) ConsumeDropTokens(ctx context.Context, userID corde.Snowflake, c
 		return discord.User{}, errors.New("token count to consume must be positive")
 	}
 
-	params := consumeDropTokensParams{
+	u, err := s.UserStore.ConsumeTokens(ctx, users.ConsumeTokensParams{
 		Tokens: count,
 		UserID: uint64(userID),
-	}
-
-	u, err := s.consumeDropTokens(ctx, params)
+	})
 	if err != nil {
-
-		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
-
+		if errors.Is(err, sql.ErrNoRows) {
 			currentUser, userErr := s.User(ctx, userID)
 			if userErr == nil {
 				return discord.User{}, fmt.Errorf("insufficient tokens for user %d: requires %d, has %d", userID, count, currentUser.Tokens)
@@ -392,47 +397,35 @@ func (s *Store) ConsumeDropTokens(ctx context.Context, userID corde.Snowflake, c
 
 			return discord.User{}, fmt.Errorf("insufficient tokens for user %d (requires %d): %w", userID, count, err)
 		}
+
 		return discord.User{}, fmt.Errorf("failed to consume tokens for user %d: %w", userID, err)
 	}
 
-	return mapGetUserRowToDiscordUser(u), nil
+	return userToDiscordUser(u), nil
 }
 
 func (s *Store) AddDropToken(ctx context.Context, userID corde.Snowflake) error {
-	uid := uint64(userID)
-	_, err := s.getUser(ctx, uid)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
-			if createErr := s.createUser(ctx, uid); createErr != nil {
-				return fmt.Errorf("failed to create user %d for add token: %w", uid, createErr)
-			}
-		} else {
-			return fmt.Errorf("failed to get user %d for add token: %w", uid, err)
-		}
+	if err := ensureUserExists(ctx, userID, s.UserStore); err != nil {
+		return err
 	}
 
-	err = s.addDropToken(ctx, uint64(userID))
-	if err != nil {
-		return fmt.Errorf("failed to add token for user %d: %w", userID, err)
-	}
-	return nil
+	return s.UserStore.IncTokens(ctx, uint64(userID))
 }
 
 func (s *Store) DeleteChar(ctx context.Context, userID corde.Snowflake, charID int64) (discord.Character, error) {
-	params := deleteCharParams{
+	c, err := s.CharacterStore.Delete(ctx, characters.DeleteParams{
 		UserID: uint64(userID),
 		ID:     charID,
-	}
-
-	c, err := s.deleteChar(ctx, params)
+	})
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return discord.Character{}, fmt.Errorf("character %d not found or does not belong to user %d", charID, userID)
 		}
+
 		return discord.Character{}, fmt.Errorf("failed to delete char %d for user %d: %w", charID, userID, err)
 	}
 
-	return mapCharacterRowToDiscordCharacter(c), nil
+	return charToDiscordChar(c), nil
 }
 
 type APIProfile struct {
@@ -452,7 +445,7 @@ type APIChar struct {
 	ID    int64     `json:"id"`
 }
 
-func mapUser(user getProfileRow, list []Character) *APIProfile {
+func mapUser(user users.User, list []characters.Character) *APIProfile {
 	p := &APIProfile{
 		ID:         user.UserID,
 		Quote:      user.Quote,
@@ -469,6 +462,7 @@ func mapUser(user getProfileRow, list []Character) *APIProfile {
 			Type:  u.Type,
 			Date:  u.Date.Time,
 		}
+
 		p.Waifus = append(p.Waifus, apiChar)
 
 		if user.Favorite.Valid && user.Favorite.Int64 == u.ID {
@@ -480,19 +474,19 @@ func mapUser(user getProfileRow, list []Character) *APIProfile {
 }
 
 func (s *Store) Profile(ctx context.Context, userID uint64) (*APIProfile, error) {
-	p, err := s.getProfile(ctx, userID)
+	p, err := s.UserStore.Get(ctx, userID)
 	if err != nil {
-
-		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("user %d not found for profile API", userID)
 		}
+
 		return nil, fmt.Errorf("failed to get profile data for user %d: %w", userID, err)
 	}
 
-	chars, err := s.getList(ctx, userID)
+	chars, err := s.CharacterStore.List(ctx, userID)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
-			chars = []Character{}
+		if errors.Is(err, sql.ErrNoRows) {
+			chars = []characters.Character{}
 		} else {
 			return nil, fmt.Errorf("failed to get character list for user %d: %w", userID, err)
 		}
@@ -502,13 +496,14 @@ func (s *Store) Profile(ctx context.Context, userID uint64) (*APIProfile, error)
 }
 
 func (s *Store) UserByAnilistURL(ctx context.Context, anilistURL string) (discord.User, error) {
-	u, err := s.getUserByAnilist(ctx, anilistURL)
+	u, err := s.UserStore.GetByAnilist(ctx, anilistURL)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return discord.User{}, fmt.Errorf("no user found with Anilist URL: %s", anilistURL)
 		}
+
 		return discord.User{}, fmt.Errorf("failed to get user by Anilist URL: %w", err)
 	}
 
-	return mapGetUserRowToDiscordUser(u), nil
+	return userToDiscordUser(u), nil
 }

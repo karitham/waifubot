@@ -1,14 +1,24 @@
 version: "2"
 sql:
   - name: db
-    queries: ./sql/queries.sql
-    schema: ./sql/schema.sql
+    queries: ./characters/queries.sql
+    schema: ./schema.sql
     engine: "postgresql"
     gen:
       go:
-        package: db
+        package: characters
+        emit_prepared_queries: true
         sql_package: "pgx/v5"
-        out: ./
+        out: ./characters
+  - name: db
+    queries: ./users/queries.sql
+    schema: ./schema.sql
+    engine: "postgresql"
+    gen:
+      go:
+        package: users
+        sql_package: "pgx/v5"
+        out: ./users
 
 overrides:
   go:
