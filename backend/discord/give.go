@@ -29,11 +29,23 @@ func (b *Bot) giveCommand(ctx context.Context, w corde.ResponseWriter, i *corde.
 	}
 	log.Ctx(ctx).Trace().Stringer("src", i.Member.User.ID).Stringer("dst", user.ID).Int("charID", charID).Send()
 
-	err := b.Store.GiveUserChar(ctx, user.ID, i.Member.User.ID, int64(charID))
+	c, err := b.Store.VerifyChar(ctx, i.Member.User.ID, int64(charID))
 	if err != nil {
-		w.Respond(newErrf("error giving character %d to user %s", charID, user.Username))
+		w.Respond(newErrf("error giving character %d, it doesn't look like you own it.", charID))
 		return
 	}
 
-	w.Respond(corde.NewResp().Contentf("You successfully gave %d to %s", charID, user.Username))
+	_, err = b.Store.VerifyChar(ctx, user.ID, int64(charID))
+	if err == nil {
+		w.Respond(newErrf("%s already owns character %d (%s). You cannot give them a duplicate.", user.Username, charID, c.Name))
+		return
+	}
+
+	err = b.Store.GiveUserChar(ctx, user.ID, i.Member.User.ID, int64(charID))
+	if err != nil {
+		w.Respond(newErrf("error giving %s (%d) to %s", c.Name, charID, user.Username))
+		return
+	}
+
+	w.Respond(corde.NewResp().Contentf("You successfully gave %s (%d) to %s", c.Name, charID, user.Username))
 }
