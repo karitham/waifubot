@@ -108,9 +108,8 @@ func onInteraction[T corde.InteractionDataConstraint](b *Bot) func(ctx context.C
 func interact[T corde.InteractionDataConstraint](inter Interacter, interact func(ctx context.Context, count int64, i *corde.Interaction[T])) func(func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T])) func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]) {
 	return func(next func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T])) func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]) {
 		return func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]) {
-			ok := make(chan struct{}, 1)
 			go func() {
-				defer func() { ok <- struct{}{} }()
+				ctx := context.Background()
 
 				err := inter.IncrementInteractionCount(ctx, i.ChannelID)
 				if err != nil {
@@ -127,7 +126,6 @@ func interact[T corde.InteractionDataConstraint](inter Interacter, interact func
 			}()
 
 			next(ctx, w, i)
-			<-ok
 		}
 	}
 }
