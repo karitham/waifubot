@@ -1,70 +1,70 @@
 query character($name: String) {
-  Page(page: 1, perPage: 3) {
-    characters(search: $name) {
-      id
-      name {
-        full
-      }
-      description
-      siteUrl
-      image {
-        large
-      }
-    }
-  }
+	Page(page: 1, perPage: 3) {
+		characters(search: $name) {
+			id
+			name {
+				full
+			}
+			description
+			siteUrl
+			image {
+				large
+			}
+		}
+	}
 }
 
 query charactersRandom($pageNumber: Int, $not_in: [Int]) {
-  Page(perPage: 1, page: $pageNumber) {
-    characters(sort: FAVOURITES_DESC, id_not_in: $not_in) {
-      id
-      siteUrl
-      image {
-        large
-      }
-      name {
-        full
-      }
-      media(perPage: 1, sort: POPULARITY_DESC) {
-        nodes {
-          title {
-            romaji
-          }
-        }
-      }
-    }
-  }
+	Page(perPage: 1, page: $pageNumber) {
+		characters(sort: FAVOURITES_DESC, id_not_in: $not_in) {
+			id
+			siteUrl
+			image {
+				large
+			}
+			name {
+				full
+			}
+			media(perPage: 1, sort: POPULARITY_DESC) {
+				nodes {
+					title {
+						romaji
+					}
+				}
+			}
+		}
+	}
 }
 
 query user($name: String) {
-  Page(page: 1, perPage: 3) {
-    users(search: $name) {
-      id
-      name
-      about
-      siteUrl
-      avatar {
-        large
-      }
-      bannerImage
-    }
-  }
+	Page(page: 1, perPage: 3) {
+		users(search: $name) {
+			id
+			name
+			about
+			siteUrl
+			avatar {
+				large
+			}
+			bannerImage
+		}
+	}
 }
 
 query media($name: String, $typ: MediaType) {
-  Page(page: 1, perPage: 3) {
-    media(search: $name, type: $typ) {
-      id
-      title {
-        romaji
-      }
-      description
-      siteUrl
-      coverImage {
-        large
-        color
-      }
-      bannerImage
-    }
-  }
+	Page(page: 1, perPage: 3) {
+		media(search: $name, type: $typ) {
+			id
+			title {
+				romaji
+			}
+			description
+			siteUrl
+			coverImage {
+				large
+				color
+			}
+			bannerImage
+		}
+	}
 }
