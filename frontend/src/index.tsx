@@ -9,12 +9,12 @@ const List = lazy(() => import("./List"));
 const Page404 = lazy(() => import("./404"));
 
 render(
-	() => (
-		<HashRouter>
-			<Route path="/list/:id" component={List} />
-			<Route path="/" component={Home} />
-			<Route path="*" component={Page404} />
-		</HashRouter>
-	),
-	document.getElementById("app")!,
+  () => (
+    <HashRouter>
+      <Route path="/list/:id" component={List} />
+      <Route path="/" component={Home} />
+      <Route path="*" component={Page404} />
+    </HashRouter>
+  ),
+  document.getElementById("app")!,
 );

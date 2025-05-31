@@ -1,6 +1,6 @@
 import solidPlugin from "vite-plugin-solid";
 import UnoCSS from "unocss/vite";
-import { presetIcons, presetUno, presetWebFonts } from "unocss";
+import { presetIcons, presetWind4, presetWebFonts } from "unocss";
 import { defineConfig } from "vite";
 
 export default defineConfig({
@@ -10,7 +10,7 @@ export default defineConfig({
 	plugins: [
 		UnoCSS({
 			presets: [
-				presetUno(),
+				presetWind4(),
 				presetWebFonts({
 					provider: "bunny",
 					fonts: {
