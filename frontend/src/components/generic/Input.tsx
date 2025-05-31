@@ -5,11 +5,13 @@ export const Input = ({
 	onInput,
 	onEnter,
 	icon,
+	value,
 }: {
 	onInput?: (a: string) => void;
 	onEnter?: (a: string) => void;
 	placeholder?: string;
 	icon?: JSX.Element;
+	value?: string;
 }) => {
 	return (
 		<div class="relative flex w-full">
@@ -19,6 +21,7 @@ export const Input = ({
 				onKeyPress={(e) =>
 					onEnter && e.key === "Enter" && onEnter(e.currentTarget.value)
 				}
+				value={value || ''}
 				placeholder={placeholder}
 				class="
           w-full

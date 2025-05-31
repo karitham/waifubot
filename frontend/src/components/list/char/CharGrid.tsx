@@ -7,6 +7,10 @@ import { CharSortValue } from "../nav/Sort";
 import { UserAgainst } from "../nav/CompareUser";
 import { FilterCharacter, MediaCharacters } from "../nav/FilterMedia";
 
+function combofilter<T>(filters: Array<(item: T) => boolean>): (item: T) => boolean {
+	return (item: T) => filters.every((filterFn) => filterFn(item));
+}
+
 export default ({
 	characters,
 }: {
@@ -15,47 +19,64 @@ export default ({
 	cut?: number;
 	characters: Char[];
 }) => {
-	const f = (): CharOwned[] => {
-		const s = CharSortValue();
-		const f = CharFilterValue();
-		const cut = ShowAllValue();
-		const f2 = FilterCharacter();
+	const otherUserOwnedCharIds = createMemo(() => {
 		const other = UserAgainst();
-		const otherChars: Set<string> = new Set(
-			(other?.waifus || []).map((char) => char.id) as [],
-		);
+		if (!other?.waifus) return new Set<string>();
+		return new Set(other.waifus.map((char) => char.id));
+	});
 
-		const owned = characters
-			.filter(f2)
-			.filter(f)
-			.sort(s?.fn)
-			.slice(0, cut ? 200 : characters.length)
-			.map((char: CharOwned) => ({
-				...char,
-				owners: otherChars.has(char.id) ? [other!.id] : undefined,
-			}));
-
-		const ownedIDs = new Set(owned.map((char) => char.id));
-
-		if (!MediaCharacters()) return owned;
-
-		const m = MediaCharacters()
-			?.filter((char) => FilterCharacter()(char))
-			.filter((char) => !ownedIDs.has(char.id))
-			.filter(f)
-			.sort(s?.fn);
-		if (!m) return owned;
-
-		const missing = m.map((char) => ({
-			missing: true,
+	const enrichCharacterWithOwners = (char: Char): CharOwned => {
+		const isOtherOwned = otherUserOwnedCharIds().has(char.id);
+		return {
 			...char,
-			owners: otherChars.has(char.id) ? [other!.id] : undefined,
-		}));
-
-		return [...owned, ...missing];
+			owners: isOtherOwned && UserAgainst() ? [UserAgainst()!.id] : undefined,
+		};
 	};
 
-	const chars = createMemo(f);
+	const filteredOwnedCharacters = createMemo(() =>
+		characters
+			.filter(combofilter([CharFilterValue(), FilterCharacter()]))
+			.map(enrichCharacterWithOwners)
+	);
+
+	const filteredMissingCharacters = createMemo(() => {
+		const mediaChars = MediaCharacters();
+		if (!mediaChars) return [];
+
+		const primaryFilter = CharFilterValue();
+		const secondaryFilter = FilterCharacter();
+		const ownedIds = new Set(filteredOwnedCharacters().map((c) => c.id));
+
+		return mediaChars
+			.filter(primaryFilter)
+			.filter(secondaryFilter)
+			.filter((char) => !ownedIds.has(char.id))
+			.map((char) => ({
+				...enrichCharacterWithOwners(char),
+				missing: true,
+			}));
+	});
+
+	const combinedAndSortedCharacters = createMemo(() => {
+		const owned = filteredOwnedCharacters();
+		const missing = filteredMissingCharacters();
+		const sortFn = CharSortValue()?.fn;
+
+		const combined = [...owned, ...missing];
+
+		if (sortFn) {
+			return combined.sort(sortFn);
+		}
+		return combined;
+	});
+
+	const chars = createMemo(() => {
+		const allChars = combinedAndSortedCharacters();
+		const showAll = ShowAllValue();
+		const limit = !showAll ? allChars.length : 200;
+		return allChars.slice(0, limit);
+	});
+
 	return (
 		// let cards grow to fill the space but wrap so we still have multiple per row
 		<div id="list" class="flex flex-row justify-center gap-6 flex-wrap">
