@@ -15,7 +15,7 @@
             usql
             dbmate
             sqlc
-            bun
+            deno
           ];
         };
       }
