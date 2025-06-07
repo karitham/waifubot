@@ -3,105 +3,54 @@ import {
 	type SearchRootItemComponentProps,
 } from "@kobalte/core/search";
 import { useSearchParams } from "@solidjs/router";
-import { Show, createEffect, createResource, createSignal } from "solid-js";
+import { Show, createResource, createSignal } from "solid-js";
 import type { SearchMediaResponse } from "../../../api/anilist";
-import { getMediaCharacters, searchMedia } from "../../../api/anilist";
+import { searchMedia } from "../../../api/anilist";
 import type { Char } from "../../../api/list";
 
-const [selected, setSelected] = createSignal<Option>();
+export type Option = { value: string; label: string; image?: string };
 
-const [mediaCharacters, { refetch: refetchMediaCharacters }] = createResource<
-	Char[] | undefined
->(async () => {
-	if (!selected()) return undefined;
+export type FilterMediaProps = {
+	onChange: (media: Option | null) => void;
+	value?: Option;
+	defaultValue?: Option;
+};
 
-	const m = await getMediaCharacters(selected()?.value);
-	if (!m) {
-		console.log("no media characters found");
-		return undefined;
-	}
-
-	return m.map((c) => {
-		return {
-			id: c.id,
-			name: c.name.full,
-			image: c.image.large,
-		};
-	});
-});
-
-const [filterV, setFilter] = createSignal<(c: Char) => boolean>(() => true);
-
-export const FilterCharacter = filterV;
-export const MediaCharacters = mediaCharacters;
-
-type Option = { value: string; label: string; image?: string };
-
-type ParamOption = { value: string; label: string };
-
-export default () => {
-	const [getSearchValue, setSearchValue] = createSignal("");
+export default (props: FilterMediaProps) => {
+	const [getSearchValue, setSearchValue] = createSignal(props.value?.label);
 	const [getOptions, setOptions] = createSignal<Option[]>([]);
-	const [searchParams, setSearchParams] = useSearchParams<{
-		media_id?: string;
-		media_label?: string;
-	}>();
 
-	const fetchMedia = async () => {
-		try {
-			if (!getSearchValue() || getSearchValue() === "") return undefined;
+	const [, { refetch: refetchMedia }] = createResource<SearchMediaResponse>(
+		async () => {
+			try {
+				if (!getSearchValue() || getSearchValue() === "") return undefined;
 
-			const m = await searchMedia(getSearchValue(), 10);
-			if (!m) {
-				console.log("no media found for search value");
+				const m = await searchMedia(getSearchValue(), 10);
+				if (!m) {
+					console.log("no media found for search value");
+					return undefined;
+				}
+
+				setOptions(
+					m.data.Page.media.map((mediaItem) => ({
+						value: mediaItem.id,
+						label: mediaItem.title.romaji,
+						image: mediaItem.coverImage.large,
+					})),
+				);
+				return m;
+			} catch (e) {
+				console.error("Error fetching media:", e);
 				return undefined;
 			}
+		},
+	);
 
-			setOptions(
-				m.data.Page.media.map((mediaItem) => ({
-					value: mediaItem.id,
-					label: mediaItem.title.romaji,
-					image: mediaItem.coverImage.large,
-				})),
-			);
-			return m;
-		} catch (e) {
-			console.error("Error fetching media:", e);
-			return undefined;
-		}
-	};
-
-	const [, { refetch: refetchMedia }] = createResource<
-		SearchMediaResponse | undefined
-	>(fetchMedia);
-
-	createEffect(() => {
-		if (!(searchParams.media_id as string | undefined)) {
-			return;
-		}
-
-		setSelected({
-			value: searchParams.media_id,
-			label: searchParams.media_label,
-		});
-	});
-
-	createEffect(async () => {
-		if (selected()) {
-			refetchMediaCharacters();
-		}
-
-		setFilter(() => (c: Char) => {
-			if (!mediaCharacters()) return true;
-			return !!mediaCharacters()?.find((mc) => mc.id === c.id);
-		});
-	});
-
-	const icon = () => (
+	const icon = (
 		<span
 			class="i-ph-television text-lg"
 			classList={{
-				"text-emerald": !!selected(),
+				"text-emerald": !!props.value,
 			}}
 		/>
 	);
@@ -109,7 +58,7 @@ export default () => {
 	const renderItem = (props: SearchRootItemComponentProps<Option>) => (
 		<Search.Item
 			item={props.item}
-			class="text-left p-0 w-full text-text focus:outline-none hover:bg-surfaceB cursor-pointer"
+			class="text-left p-0 w-full text-text focus:outline-none cursor-pointer hover:bg-surfaceC"
 		>
 			<div class="flex flex-row items-center justify-between px-2 py-2 gap-4">
 				<Search.ItemLabel>{props.item.rawValue.label}</Search.ItemLabel>
@@ -127,18 +76,14 @@ export default () => {
 	return (
 		<Search
 			options={getOptions()}
-			onChange={(opt: Option) => {
-				setSelected(opt);
-				setSearchParams({
-					media_id: opt.value,
-					media_label: opt.label,
-				});
-			}}
+			defaultValue={props.defaultValue}
+			onChange={props.onChange}
 			debounceOptionsMillisecond={250}
 			onInputChange={(value) => {
 				setSearchValue(value);
 				refetchMedia(value);
 			}}
+			value={props.value}
 			sameWidth={true}
 			optionLabel="label"
 			optionValue="value"
@@ -153,23 +98,22 @@ export default () => {
 				class="flex w-full flex-row rounded-md overflow-clip bg-surfaceA"
 			>
 				<Search.Input
-					class="w-full text-sm p-4 focus:outline-none bg-surfaceA placeholder:font-sans border-none hover:cursor-text placeholder:text-overlayC text-text overflow-clip"
-					value={selected()?.label}
+					value={getSearchValue()}
+					class="w-full text-sm p-4 focus:outline-none bg-surfaceA hover:bg-surfaceB placeholder:font-sans border-none hover:cursor-text placeholder:text-overlayC text-text overflow-clip"
 				/>
 				<Search.Icon
-					class="bg-surfaceA border-none w-16 flex text-center items-center justify-center color-inherit"
+					class="bg-surfaceA hover:bg-surfaceB border-none w-16 flex text-center items-center justify-center color-inherit"
 					onClick={() => {
-						setSelected(null);
-						setFilter(() => () => true);
+						props.onChange(undefined);
 						setSearchValue("");
 					}}
 				>
-					<Search.Icon>{icon()}</Search.Icon>
+					<Search.Icon>{icon}</Search.Icon>
 				</Search.Icon>
 			</Search.Control>
 			<Search.Portal>
 				<Search.Content class="shadow text-sm">
-					<Search.Listbox class="p-0 m-0 overflow-clip hover:overflow-clip list-none flex w-full border-none rounded-md items-start flex-col bg-surfaceA" />
+					<Search.Listbox class="p-0 m-0 overflow-clip hover:overflow-clip list-none flex w-full border-none rounded-md items-start flex-col bg-surfaceB" />
 				</Search.Content>
 			</Search.Portal>
 		</Search>

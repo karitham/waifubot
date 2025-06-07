@@ -1,11 +1,6 @@
-import { createMemo, For } from "solid-js";
-import type { Char, CharOwned } from "../../../api/list";
+import { For, createMemo } from "solid-js";
+import type { Char, CharOwned, User } from "../../../api/list";
 import CharCard from "../char/Card";
-import { CharFilterValue } from "../nav/Filter";
-import { ShowAllValue } from "../nav/ShowAllButton";
-import { CharSortValue } from "../nav/Sort";
-import { UserAgainst } from "../nav/CompareUser";
-import { FilterCharacter, MediaCharacters } from "../nav/FilterMedia";
 
 function combofilter<T>(
 	filters: Array<(item: T) => boolean>,
@@ -13,45 +8,55 @@ function combofilter<T>(
 	return (item: T) => filters.every((filterFn) => filterFn(item));
 }
 
-export default ({
-	characters,
-}: {
-	filter?: (char: Char) => boolean;
-	sort?: (a: Char, b: Char) => number;
-	cut?: number;
+const filterChars =
+	(characters: Char[]) =>
+	(char: Char): boolean =>
+		!characters || characters.some((c) => c.id === char.id);
+
+const filterCharacters = (v: string) => (a: Char) =>
+	v.length < 2 ||
+	a.id.toString().includes(v) ||
+	(v.length >= 2 && a.name.toLowerCase().includes(v.toLowerCase()));
+
+export default (props: {
+	charSort: (a: Char, b: Char) => number;
+	charSearch: string;
 	characters: Char[];
+	mediaCharacters: Char[] | undefined;
+	compareUser: User | undefined;
+	showCount: number;
 }) => {
 	const otherUserOwnedCharIds = createMemo(() => {
-		const other = UserAgainst();
-		if (!other?.waifus) return new Set<string>();
-		return new Set(other.waifus.map((char) => char.id));
+		if (!props.compareUser?.waifus) return new Set<string>();
+		return new Set(props.compareUser.waifus.map((char) => char.id));
 	});
 
 	const enrichCharacterWithOwners = (char: Char): CharOwned => {
 		const isOtherOwned = otherUserOwnedCharIds().has(char.id);
 		return {
 			...char,
-			owners: isOtherOwned && UserAgainst() ? [UserAgainst()?.id] : undefined,
+			owners:
+				isOtherOwned && props.compareUser ? [props.compareUser?.id] : undefined,
 		};
 	};
 
+	const filters = createMemo(() =>
+		combofilter([
+			filterCharacters(props.charSearch),
+			filterChars(props.mediaCharacters),
+		]),
+	);
 	const filteredOwnedCharacters = createMemo(() =>
-		characters
-			.filter(combofilter([CharFilterValue(), FilterCharacter()]))
-			.map(enrichCharacterWithOwners),
+		props.characters.filter(filters()).map(enrichCharacterWithOwners),
 	);
 
 	const filteredMissingCharacters = createMemo(() => {
-		const mediaChars = MediaCharacters();
-		if (!mediaChars) return [];
+		if (!props.mediaCharacters) return [];
 
-		const primaryFilter = CharFilterValue();
-		const secondaryFilter = FilterCharacter();
 		const ownedIds = new Set(filteredOwnedCharacters().map((c) => c.id));
 
-		return mediaChars
-			.filter(primaryFilter)
-			.filter(secondaryFilter)
+		return props.mediaCharacters
+			.filter(filters())
 			.filter((char) => !ownedIds.has(char.id))
 			.map((char) => ({
 				...enrichCharacterWithOwners(char),
@@ -59,30 +64,21 @@ export default ({
 			}));
 	});
 
-	const combinedAndSortedCharacters = createMemo(() => {
-		const owned = filteredOwnedCharacters();
-		const missing = filteredMissingCharacters();
-		const sortFn = CharSortValue()?.fn;
+	const list = createMemo(() => {
+		const allChars = [
+			...filteredOwnedCharacters(),
+			...filteredMissingCharacters(),
+		].sort(props.charSort);
 
-		const combined = [...owned, ...missing];
-
-		if (sortFn) {
-			return combined.sort(sortFn);
-		}
-		return combined;
-	});
-
-	const chars = createMemo(() => {
-		const allChars = combinedAndSortedCharacters();
-		const showAll = ShowAllValue();
-		const limit = !showAll ? allChars.length : 200;
-		return allChars.slice(0, limit);
+		return props.showCount !== -1
+			? allChars.slice(0, props.showCount)
+			: allChars;
 	});
 
 	return (
 		// let cards grow to fill the space but wrap so we still have multiple per row
 		<div id="list" class="flex flex-row justify-center gap-6 flex-wrap">
-			<For each={chars()} fallback={<></>}>
+			<For each={list()}>
 				{(char: CharOwned) => (
 					<div class="max-w-120 w-72 flex-grow">
 						<CharCard
@@ -93,7 +89,7 @@ export default ({
 					</div>
 				)}
 			</For>
-			{chars()?.length === 0 ? fallback : null}
+			{list()?.length === 0 ? fallback : null}
 		</div>
 	);
 };

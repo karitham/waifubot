@@ -1,36 +1,20 @@
 import { Select } from "@kobalte/core/select";
-import type { Setter } from "solid-js";
 
-type SortFn<T> = {
-	value: (a: T, b: T) => number;
-	label: string;
+type SelectOption = { value: number; label: string };
+
+export type PaginationProps = {
+	value: SelectOption;
+	options: Array<SelectOption>;
+	onChange: (value: SelectOption) => void;
 };
 
-export type CharSortProps<T> = {
-	value: SortFn<T>;
-	options: Array<SortFn<T>>;
-	onChange: Setter<SortFn<T>>;
-};
-
-export default function <T>(props: CharSortProps<T>) {
+export default function (props: PaginationProps) {
 	return (
-		<Select<SortFn<T>>
+		<Select<SelectOption>
 			options={props.options}
 			value={props.value}
-			allowDuplicateSelectionEvents={true}
-			onChange={(o: SortFn<T>) => {
-				if (!o) {
-					props.onChange((prev: SortFn<T>) => {
-						return {
-							label: prev.label,
-							value: (a: T, b: T) => prev.value(b, a),
-						};
-					});
-
-					return;
-				}
-
-				props.onChange(o);
+			onChange={(v: SelectOption | null) => {
+				if (v) props.onChange(v);
 			}}
 			optionValue="value"
 			optionTextValue="label"
@@ -46,7 +30,9 @@ export default function <T>(props: CharSortProps<T>) {
 		>
 			<Select.Label />
 			<Select.Trigger class="flex justify-between w-full text-text rounded-md font-sans border-none hover:cursor-pointer bg-surfaceA text-text p-4 focus:outline-none hover:bg-surfaceB">
-				<Select.Value<SortFn<T>>>{() => props.value?.label}</Select.Value>
+				<Select.Value<SelectOption>>
+					{(state) => state.selectedOption().label}
+				</Select.Value>
 				<Select.Icon />
 			</Select.Trigger>
 			<Select.Portal>

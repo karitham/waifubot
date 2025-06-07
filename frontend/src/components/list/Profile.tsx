@@ -1,5 +1,5 @@
 import { marked } from "marked";
-import { Show, Suspense } from "solid-js";
+import { Show } from "solid-js";
 import type { Char } from "../../api/list";
 import CardRight from "./char/CardRIght";
 import "./Profile.css";
@@ -16,7 +16,7 @@ export default (props: {
 
 	const Favorite = (
 		<Show when={props.favorite && props.favorite.name !== ""}>
-			<CardRight char={props.favorite!} />
+			<CardRight char={props.favorite} />
 		</Show>
 	);
 
@@ -42,7 +42,7 @@ export default (props: {
 					<img
 						src={props.favorite?.image}
 						class="block w-auto h-auto object-cover max-w-64 rounded-3xl"
-						alt={`image of the character ${props.favorite?.name}`}
+						alt={props.favorite?.name}
 					/>
 					<div id="char-description" class="px-8 flex flex-col gap-6">
 						{Username}
