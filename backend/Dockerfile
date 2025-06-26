@@ -1,17 +1,22 @@
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
-RUN apk add git
+ENV GOEXPERIMENT="jsonv2"
+ENV CGO_ENABLED=0
 
-WORKDIR /build
+WORKDIR /app
 
 COPY go.mod go.sum ./
+
 RUN go mod download
+
 COPY . .
 
-RUN CGO_ENABLED=0 go build -ldflags="-w -s" -o /build/bot ./cmd/bot
-RUN CGO_ENABLED=0 go build -ldflags="-w -s" -o /build/api ./cmd/api
+RUN go build -ldflags="-w -s" -o /go/bin/bot ./cmd/bot
+RUN go build -ldflags="-w -s" -o /go/bin/api ./cmd/api
 
-FROM alpine:3.21
-COPY --from=builder /build /bin
+FROM alpine:latest
+
+COPY --from=builder /go/bin/bot /bin/
+COPY --from=builder /go/bin/api /bin/
 
 CMD ["/bin/bot"]

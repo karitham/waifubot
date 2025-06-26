@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"net/http"
 	"os"
@@ -99,7 +99,7 @@ func (a *APIContext) getUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = json.NewEncoder(w).Encode(user); err != nil {
+	if err = json.MarshalWrite(w, user); err != nil {
 		log.Err(err).Msg("encoding request")
 	}
 }
@@ -134,7 +134,7 @@ func (a *APIContext) findUser(w http.ResponseWriter, r *http.Request) {
 		ID uint64 `json:"id,string"`
 	}
 
-	if err = json.NewEncoder(w).Encode(resp{
+	if err = json.MarshalWrite(w, resp{
 		ID: uint64(user.UserID),
 	}); err != nil {
 		log.Err(err).Msg("encoding request")

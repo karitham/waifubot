@@ -11,7 +11,7 @@
       in {
         default = pkgs.mkShell {
           packages = with pkgs; [
-            go
+            go_1_25
             usql
             dbmate
             sqlc
