@@ -17,6 +17,7 @@ A Discord bot for collecting and trading anime/manga characters. Roll for random
 - **claim**: claim a dropped character
 - **exchange**: exchange a character for a token
 - **give**: give a character to someone
+- **holders**: list users in this server who have a character
 - **info**: information about the bot
 - **list**: view character collection
 - **roll**: roll a random character
