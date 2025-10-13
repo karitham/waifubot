@@ -27,7 +27,7 @@ type Store interface {
 	SetUserFavorite(context.Context, corde.Snowflake, int64) error
 	SetUserQuote(context.Context, corde.Snowflake, string) error
 	SetUserAnilistURL(context.Context, corde.Snowflake, string) error
-	GiveUserChar(ctx context.Context, dst corde.Snowflake, src corde.Snowflake, charID int64) error
+	GiveUserChar(ctx context.Context, dst, src corde.Snowflake, charID int64) error
 	AddDropToken(context.Context, corde.Snowflake) error
 	ConsumeDropTokens(context.Context, corde.Snowflake, int32) (User, error)
 	Tx(ctx context.Context, fn func(s Store) error) error

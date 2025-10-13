@@ -344,7 +344,7 @@ func (s *Store) ProfileOverview(ctx context.Context, userID corde.Snowflake) (di
 	return profile, nil
 }
 
-func (s *Store) GiveUserChar(ctx context.Context, dst corde.Snowflake, src corde.Snowflake, charID int64) error {
+func (s *Store) GiveUserChar(ctx context.Context, dst, src corde.Snowflake, charID int64) error {
 	_, err := s.CharacterStore.Give(ctx, characters.GiveParams{
 		UserID:   uint64(dst),
 		UserID_2: uint64(src),
