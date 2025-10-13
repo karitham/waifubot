@@ -246,7 +246,7 @@ func (s *Store) Chars(ctx context.Context, userID corde.Snowflake) ([]discord.Ch
 			return []discord.Character{}, nil
 		}
 
-		return nil, fmt.Errorf("failed to get chars for user %d: %w", userID, err)
+		return nil, fmt.Errorf("failed to search characters for user %d: %w", userID, err)
 	}
 
 	chars := make([]discord.Character, 0, len(dbchs))
@@ -283,22 +283,22 @@ func (s *Store) User(ctx context.Context, userID corde.Snowflake) (discord.User,
 	return userToDiscordUser(u), err
 }
 
-func (s *Store) CharsStartingWith(ctx context.Context, userID corde.Snowflake, prefix string) ([]discord.Character, error) {
+func (s *Store) CharsStartingWith(ctx context.Context, userID corde.Snowflake, term string) ([]discord.Character, error) {
 	if err := ensureUserExists(ctx, userID, s.UserStore); err != nil {
 		return nil, err
 	}
 
-	dbchs, err := s.CharacterStore.ListFilterIDPrefix(ctx, characters.ListFilterIDPrefixParams{
-		UserID:   uint64(userID),
-		Lim:      25,
-		IDPrefix: "%" + prefix,
+	dbchs, err := s.CharacterStore.SearchCharacters(ctx, characters.SearchCharactersParams{
+		UserID: uint64(userID),
+		Lim:    25,
+		Term:   term,
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []discord.Character{}, nil
 		}
 
-		return nil, fmt.Errorf("failed to get chars starting with '%s' for user %d: %w", prefix, userID, err)
+		return nil, fmt.Errorf("failed to get chars starting with '%s' for user %d: %w", term, userID, err)
 	}
 
 	chars := make([]discord.Character, 0, len(dbchs))

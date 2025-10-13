@@ -16,7 +16,7 @@ FROM
 WHERE
     user_id = $1;
 
--- name: ListFilterIDPrefix :many
+-- name: SearchCharacters :many
 /* sql-formatter-disable */
 SELECT
 *
@@ -24,7 +24,7 @@ FROM
 characters
 WHERE
 user_id = @user_id
-AND id::varchar LIKE @id_prefix::varchar
+AND (id::varchar LIKE @term::varchar || '%' OR name ILIKE '%' || @term || '%')
 ORDER BY
 date DESC
 LIMIT

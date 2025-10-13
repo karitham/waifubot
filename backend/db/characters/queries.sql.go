@@ -179,62 +179,6 @@ func (q *Queries) List(ctx context.Context, userID uint64) ([]Character, error) 
 	return items, nil
 }
 
-const listFilterIDPrefix = `-- name: ListFilterIDPrefix :many
-SELECT
-user_id, id, image, name, date, type
-FROM
-characters
-WHERE
-user_id = $1
-AND id::varchar LIKE $2::varchar
-ORDER BY
-date DESC
-LIMIT
-$4
-OFFSET
-$3
-`
-
-type ListFilterIDPrefixParams struct {
-	UserID   uint64
-	IDPrefix string
-	Off      int32
-	Lim      int32
-}
-
-// sql-formatter-disable
-func (q *Queries) ListFilterIDPrefix(ctx context.Context, arg ListFilterIDPrefixParams) ([]Character, error) {
-	rows, err := q.db.Query(ctx, listFilterIDPrefix,
-		arg.UserID,
-		arg.IDPrefix,
-		arg.Off,
-		arg.Lim,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Character
-	for rows.Next() {
-		var i Character
-		if err := rows.Scan(
-			&i.UserID,
-			&i.ID,
-			&i.Image,
-			&i.Name,
-			&i.Date,
-			&i.Type,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listIDs = `-- name: ListIDs :many
 SELECT
     id
@@ -257,6 +201,62 @@ func (q *Queries) ListIDs(ctx context.Context, userID uint64) ([]int64, error) {
 			return nil, err
 		}
 		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchCharacters = `-- name: SearchCharacters :many
+SELECT
+user_id, id, image, name, date, type
+FROM
+characters
+WHERE
+user_id = $1
+AND (id::varchar LIKE $2::varchar || '%' OR name ILIKE '%' || $2 || '%')
+ORDER BY
+date DESC
+LIMIT
+$4
+OFFSET
+$3
+`
+
+type SearchCharactersParams struct {
+	UserID uint64
+	Term   string
+	Off    int32
+	Lim    int32
+}
+
+// sql-formatter-disable
+func (q *Queries) SearchCharacters(ctx context.Context, arg SearchCharactersParams) ([]Character, error) {
+	rows, err := q.db.Query(ctx, searchCharacters,
+		arg.UserID,
+		arg.Term,
+		arg.Off,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Character
+	for rows.Next() {
+		var i Character
+		if err := rows.Scan(
+			&i.UserID,
+			&i.ID,
+			&i.Image,
+			&i.Name,
+			&i.Date,
+			&i.Type,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
