@@ -18,6 +18,7 @@ type Store interface {
 	PutChar(context.Context, corde.Snowflake, Character) error
 	Chars(context.Context, corde.Snowflake) ([]Character, error)
 	VerifyChar(context.Context, corde.Snowflake, int64) (Character, error)
+	GetCharByID(context.Context, int64) (Character, error)
 	CharsIDs(ctx context.Context, userID corde.Snowflake) ([]int64, error)
 	DeleteChar(context.Context, corde.Snowflake, int64) (Character, error)
 	CharsStartingWith(context.Context, corde.Snowflake, string) ([]Character, error)
@@ -31,6 +32,7 @@ type Store interface {
 	GiveUserChar(ctx context.Context, dst, src corde.Snowflake, charID int64) error
 	AddDropToken(context.Context, corde.Snowflake) error
 	ConsumeDropTokens(context.Context, corde.Snowflake, int32) (User, error)
+	UsersOwningCharFiltered(ctx context.Context, charID int64, allowedUserIDs []corde.Snowflake) ([]corde.Snowflake, error)
 	Tx(ctx context.Context, fn func(s Store) error) error
 }
 
@@ -82,6 +84,7 @@ func New(b *Bot) *corde.Mux {
 	b.mux.Route("profile", b.profile)
 	b.mux.Route("verify", b.verify)
 	b.mux.Route("exchange", b.exchange)
+	b.mux.Route("holders", b.holders)
 	b.mux.SlashCommand("list", wrap(b.list, t, i))
 	b.mux.SlashCommand("roll", wrap(b.roll, t, i))
 	b.mux.SlashCommand("info", wrap(b.info, t))
