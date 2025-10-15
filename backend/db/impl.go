@@ -398,6 +398,18 @@ func (s *Store) VerifyChar(ctx context.Context, userID corde.Snowflake, charID i
 	return charToDiscordChar(c), nil
 }
 
+func (s *Store) GetCharByID(ctx context.Context, charID int64) (discord.Character, error) {
+	c, err := s.CharacterStore.GetByID(ctx, charID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return discord.Character{}, fmt.Errorf("character %d not found", charID)
+		}
+		return discord.Character{}, fmt.Errorf("failed to get char %d: %w", charID, err)
+	}
+
+	return charToDiscordChar(c), nil
+}
+
 func (s *Store) ConsumeDropTokens(ctx context.Context, userID corde.Snowflake, count int32) (discord.User, error) {
 	if count <= 0 {
 		return discord.User{}, errors.New("token count to consume must be positive")
@@ -525,4 +537,26 @@ func (s *Store) UserByAnilistURL(ctx context.Context, anilistURL string) (discor
 	}
 
 	return userToDiscordUser(u), nil
+}
+
+func (s *Store) UsersOwningCharFiltered(ctx context.Context, charID int64, allowedUserIDs []corde.Snowflake) ([]corde.Snowflake, error) {
+	int64IDs := make([]int64, len(allowedUserIDs))
+	for i, sf := range allowedUserIDs {
+		int64IDs[i] = int64(sf)
+	}
+
+	userIDs, err := s.CharacterStore.UsersOwningCharFiltered(ctx, characters.UsersOwningCharFilteredParams{
+		ID:      charID,
+		UserIds: int64IDs,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get filtered owners for char %d: %w", charID, err)
+	}
+
+	snowflakes := make([]corde.Snowflake, 0, len(userIDs))
+	for _, uid := range userIDs {
+		snowflakes = append(snowflakes, corde.Snowflake(uid))
+	}
+
+	return snowflakes, nil
 }

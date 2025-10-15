@@ -43,6 +43,16 @@ WHERE
   id = $1
   AND characters.user_id = $2;
 
+-- name: GetByID :one
+SELECT
+    *
+FROM
+    characters
+WHERE
+    id = $1
+LIMIT
+    1;
+
 -- name: Insert :exec
 INSERT INTO
   characters ("id", "user_id", "image", "name", "type")
@@ -102,3 +112,13 @@ ORDER BY
   date DESC
 LIMIT
   sqlc.arg (lim);
+    *;
+
+-- name: UsersOwningCharFiltered :many
+SELECT DISTINCT
+    user_id
+FROM
+    characters
+WHERE
+    id = $1
+    AND user_id = ANY (sqlc.arg(user_ids)::bigint[]);

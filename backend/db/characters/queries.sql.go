@@ -82,6 +82,31 @@ func (q *Queries) Get(ctx context.Context, arg GetParams) (Character, error) {
 	return i, err
 }
 
+const getByID = `-- name: GetByID :one
+SELECT
+    user_id, id, image, name, date, type
+FROM
+    characters
+WHERE
+    id = $1
+LIMIT
+    1
+`
+
+func (q *Queries) GetByID(ctx context.Context, id int64) (Character, error) {
+	row := q.db.QueryRow(ctx, getByID, id)
+	var i Character
+	err := row.Scan(
+		&i.UserID,
+		&i.ID,
+		&i.Image,
+		&i.Name,
+		&i.Date,
+		&i.Type,
+	)
+	return i, err
+}
+
 const give = `-- name: Give :one
 UPDATE characters
 SET
@@ -349,4 +374,39 @@ func (q *Queries) UpdateImageName(ctx context.Context, arg UpdateImageNameParams
 		&i.Type,
 	)
 	return i, err
+}
+
+const usersOwningCharFiltered = `-- name: UsersOwningCharFiltered :many
+SELECT DISTINCT
+    user_id
+FROM
+    characters
+WHERE
+    id = $1
+    AND user_id = ANY ($2::bigint[])
+`
+
+type UsersOwningCharFilteredParams struct {
+	ID      int64
+	UserIds []int64
+}
+
+func (q *Queries) UsersOwningCharFiltered(ctx context.Context, arg UsersOwningCharFilteredParams) ([]uint64, error) {
+	rows, err := q.db.Query(ctx, usersOwningCharFiltered, arg.ID, arg.UserIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uint64
+	for rows.Next() {
+		var user_id uint64
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

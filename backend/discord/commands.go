@@ -59,6 +59,10 @@ func (b *Bot) RegisterCommands() error {
 		),
 
 		corde.NewSlashCommand("info", "information about the bot"),
+
+		corde.NewSlashCommand("holders", "list users in this server who have a character",
+			corde.NewIntOption("id", "id of the character", true).CanAutocomplete(),
+		),
 	}
 
 	var opt []func(*corde.CommandsOpt)
