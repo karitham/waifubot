@@ -70,7 +70,7 @@ func (b *Bot) roll(ctx context.Context, w corde.ResponseWriter, i *corde.Interac
 				return nil
 			}
 		default:
-			w.Respond(newErrf("Invalid roll.\nYou need %d tokens to roll, you have %d, or you can wait %s until next free roll.",
+			w.Respond(newErrf("You need %d tokens to roll, you have %d, or you can wait %s until next free roll.",
 				b.TokensNeeded,
 				user.Tokens,
 				time.Until(user.Date.Add(b.RollCooldown)).Round(time.Second),
@@ -117,8 +117,8 @@ func (b *Bot) roll(ctx context.Context, w corde.ResponseWriter, i *corde.Interac
 	w.Respond(corde.NewEmbed().
 		Title(char.Name).
 		URL(char.URL).
-		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View them on anilist"}).
+		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"}).
 		Thumbnail(corde.Image{URL: char.ImageURL}).
-		Descriptionf("You rolled %s, id: %d\nIt appears in :\n- %s", char.Name, char.ID, char.MediaTitle),
+		Descriptionf("You rolled %s!\nID: %d\nFrom: %s", char.Name, char.ID, char.MediaTitle),
 	)
 }

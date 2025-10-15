@@ -20,7 +20,7 @@ func (b *Bot) list(ctx context.Context, w corde.ResponseWriter, i *corde.Interac
 	}
 
 	if len(chars) == 0 {
-		w.Respond(rspErr("This user doesn't appear to have any characters"))
+		w.Respond(rspErr("No characters in collection"))
 		return
 	}
 

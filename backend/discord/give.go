@@ -31,21 +31,21 @@ func (b *Bot) giveCommand(ctx context.Context, w corde.ResponseWriter, i *corde.
 
 	c, err := b.Store.VerifyChar(ctx, i.Member.User.ID, int64(charID))
 	if err != nil {
-		w.Respond(newErrf("error giving character %d, it doesn't look like you own it.", charID))
+		w.Respond(newErrf("Error giving character %d, not in your collection.", charID))
 		return
 	}
 
 	_, err = b.Store.VerifyChar(ctx, user.ID, int64(charID))
 	if err == nil {
-		w.Respond(newErrf("%s already owns character %d (%s). You cannot give them a duplicate.", user.Username, charID, c.Name))
+		w.Respond(newErrf("%s already has this character in their collection.", user.Username))
 		return
 	}
 
 	err = b.Store.GiveUserChar(ctx, user.ID, i.Member.User.ID, int64(charID))
 	if err != nil {
-		w.Respond(newErrf("error giving %s (%d) to %s", c.Name, charID, user.Username))
+		w.Respond(newErrf("Error giving %s (%d) to %s", c.Name, charID, user.Username))
 		return
 	}
 
-	w.Respond(corde.NewResp().Contentf("You successfully gave %s (%d) to %s", c.Name, charID, user.Username))
+	w.Respond(corde.NewResp().Contentf("Gave %s (%d) to %s", c.Name, charID, user.Username))
 }

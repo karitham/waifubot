@@ -64,7 +64,7 @@ func (b *Bot) claim(ctx context.Context, w corde.ResponseWriter, i *corde.Intera
 	})
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to put character")
-		w.Respond(rspErr("you already have this character!"))
+		w.Respond(rspErr("Already in your collection!"))
 		return
 	}
 
@@ -77,9 +77,9 @@ func (b *Bot) claim(ctx context.Context, w corde.ResponseWriter, i *corde.Intera
 	w.Respond(corde.NewEmbed().
 		Title(char.Name).
 		URL(char.URL).
-		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View them on anilist"}).
+		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"}).
 		Thumbnail(corde.Image{URL: char.ImageURL}).
-		Descriptionf("Congratulations!\nYou just claimed %s (%d)!\nIt appears in :\n- %s", char.Name, char.ID, char.MediaTitle),
+		Descriptionf("Congratulations!\n%s added to your collection!\nID: %d\nFrom: %s", char.Name, char.ID, char.MediaTitle),
 	)
 }
 
@@ -116,7 +116,7 @@ func DropEmbed(ctx context.Context, char MediaCharacter) (corde.Message, func())
 	return corde.Message{
 			Embeds: []corde.Embed{{
 				Title:       "Character Drop!",
-				Description: "Can you guess which character this is?\nUse `/claim name` to claim the character.\n\n**Hint:** " + initials.String(),
+				Description: "Can you guess who this is?\nUse `/claim name` to add them to your collection.\n\n**Hint:** " + initials.String(),
 				Image:       corde.Image{URL: "attachment://image.png"},
 			}},
 			Attachments: []corde.Attachment{{

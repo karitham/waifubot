@@ -39,7 +39,7 @@ func (b *Bot) info(ctx context.Context, w corde.ResponseWriter, i *corde.Interac
 		corde.NewEmbed().
 			Title("Info").
 			Descriptionf(
-				"A gacha game bot to collect and trade characters, and discover anything manga related.\n```info\n%s```",
+				"Collect and trade anime/manga characters.\n```info\n%s```",
 				infob.String(),
 			).
 			URL("https://github.com/Karitham/WaifuBot/tree/corde"),

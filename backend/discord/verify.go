@@ -24,9 +24,9 @@ func (b *Bot) verifyCommand(ctx context.Context, w corde.ResponseWriter, i *cord
 
 	char, _ := b.Store.VerifyChar(ctx, user.ID, charOpt)
 	if char.ID == charOpt {
-		w.Respond(newErrf("%s owns %s", user.Username, char.Name))
+		w.Respond(newErrf("%s has %s in their collection", user.Username, char.Name))
 		return
 	}
 
-	w.Respond(newErrf("%s doesn't own this character", user.Username))
+	w.Respond(newErrf("%s doesn't have this character", user.Username))
 }

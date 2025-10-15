@@ -20,13 +20,13 @@ export default (props: {
 				style={{
 					filter: props.missing ? "grayscale(100%)" : "none",
 				}}
-				title={props.missing ? "You don't own this character yet!" : undefined}
+				title={props.missing ? "You don't have this character yet!" : undefined}
 				alt={`image of ${props.char.name}`}
 			/>
 			<Show when={props.multiOwned}>
 				<span
 					class="i-ph-apple-podcasts-logo text-emerald w-6 h-6 absolute bottom-2 right-2"
-					title="This character is owned by someone else too!"
+					title="Someone else has this character too!"
 					style={{
 						filter: "none",
 					}}

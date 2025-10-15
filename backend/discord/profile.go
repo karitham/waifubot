@@ -52,7 +52,7 @@ func (b *Bot) profileView(ctx context.Context, w corde.ResponseWriter, i *corde.
 		Title(user.Username).
 		URL(fmt.Sprintf("https://waifugui.karitham.dev/#/list/%s", user.ID.String())).
 		Descriptionf(
-			"%s\n%s last rolled %s ago and has %d tokens.\nThey have %d characters.\nTheir favorite character is %s.\n%s",
+			"%s\n%s last rolled %s ago and has %d tokens.\nThey have %d characters.\nFavorite: %s\n%s",
 			data.Quote,
 			user.Username,
 			time.Since(data.Date.UTC()).Truncate(time.Second),

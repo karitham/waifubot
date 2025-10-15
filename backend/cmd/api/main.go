@@ -59,7 +59,7 @@ func main() {
 		r.Get("/{userID}", api.getUser)
 	})
 	r.Get("/", func(w http.ResponseWriter, _ *http.Request) {
-		fmt.Fprint(w, "Hello user, you shouldn't be there, direct yourself to https://github.com/karitham/waifubot for docs")
+		fmt.Fprint(w, "WaifuBot API - See https://github.com/karitham/waifubot for documentation")
 	})
 
 	log.Info().Int("API_PORT", apiPort).Msg("API started")

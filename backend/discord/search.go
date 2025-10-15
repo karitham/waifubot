@@ -163,7 +163,7 @@ func charEmbed(c MediaCharacter) *corde.EmbedB {
 
 func anilistFooter(b *corde.EmbedB) *corde.EmbedB {
 	return b.Footer(corde.Footer{
-		Text:    "View on anilist",
+		Text:    "View on Anilist",
 		IconURL: AnilistIconURL,
 	})
 }

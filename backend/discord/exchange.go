@@ -24,7 +24,7 @@ func (b *Bot) exchangeCommand(ctx context.Context, w corde.ResponseWriter, i *co
 		var err error
 		c, err = s.DeleteChar(ctx, user.ID, char)
 		if err != nil {
-			w.Respond(newErrf("%s doesn't own this character; you can't exchange it!", user.Username))
+			w.Respond(newErrf("%s doesn't have this character; you can't exchange it!", user.Username))
 			return err
 		}
 
@@ -33,5 +33,5 @@ func (b *Bot) exchangeCommand(ctx context.Context, w corde.ResponseWriter, i *co
 		return
 	}
 
-	w.Respond(newErrf("Good job %s, you just exchanged %s for a token!", user.Username, c.Name))
+	w.Respond(newErrf("Exchanged %s for a token!", c.Name))
 }

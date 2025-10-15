@@ -10,16 +10,16 @@ func (b *Bot) RegisterCommands() error {
 	nameOpt := corde.NewStringOption("name", "name you wish to search", true)
 
 	commands := []corde.CreateCommander{
-		corde.NewSlashCommand("list", "list owned characters",
+		corde.NewSlashCommand("list", "view character collection",
 			corde.NewUserOption("user", "user to list characters for", false),
 		),
 
-		corde.NewSlashCommand("verify", "assert a user owns a character",
+		corde.NewSlashCommand("verify", "check if a user has a character",
 			corde.NewIntOption("id", "id of the character", true).CanAutocomplete(),
-			corde.NewUserOption("user", "user which is supposed to own that character", false),
+			corde.NewUserOption("user", "user which is supposed to have that character", false),
 		),
 
-		corde.NewSlashCommand("exchange", "exchange a character against a token",
+		corde.NewSlashCommand("exchange", "exchange a character for a token",
 			corde.NewIntOption("id", "id of the character", true).CanAutocomplete(),
 		),
 
