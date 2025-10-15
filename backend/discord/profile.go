@@ -98,7 +98,7 @@ func (b *Bot) profileEditFavoriteComplete(ctx context.Context, w corde.ResponseW
 
 	resp := corde.NewResp()
 	for _, c := range chars {
-		resp.Choice(c.Name, c.ID)
+		resp.Choice(fmt.Sprintf("%s (%d)", c.Name, c.ID), c.ID)
 	}
 
 	w.Autocomplete(resp)
