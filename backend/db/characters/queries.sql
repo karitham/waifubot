@@ -1,85 +1,104 @@
 -- name: List :many
 SELECT
-    *
+  *
 FROM
-    characters
+  characters
 WHERE
-    characters.user_id = $1
+  characters.user_id = $1
 ORDER BY
-    characters.date DESC;
+  characters.date DESC;
 
 -- name: ListIDs :many
 SELECT
-    id
+  id
 FROM
-    characters
+  characters
 WHERE
-    user_id = $1;
+  user_id = $1;
 
 -- name: SearchCharacters :many
-/* sql-formatter-disable */
 SELECT
-*
+  *
 FROM
-characters
+  characters
 WHERE
-user_id = @user_id
-AND (id::varchar LIKE @term::varchar || '%' OR name ILIKE '%' || @term || '%')
+  user_id = sqlc.arg (user_id)
+  AND (
+    id::VARCHAR LIKE sqlc.arg (term)::VARCHAR || '%'
+    OR name ILIKE '%' || sqlc.arg (term) || '%'
+  )
 ORDER BY
-date DESC
+  date DESC
 LIMIT
-@lim
+  sqlc.arg (lim)
 OFFSET
-@off;
-/* sql-formatter-enable */
+  sqlc.arg (off);
+
 -- name: Get :one
 SELECT
-    *
+  *
 FROM
-    characters
+  characters
 WHERE
-    id = $1
-    AND characters.user_id = $2;
+  id = $1
+  AND characters.user_id = $2;
 
 -- name: Insert :exec
 INSERT INTO
-    characters ("id", "user_id", "image", "name", "type")
+  characters ("id", "user_id", "image", "name", "type")
 VALUES
-    ($1, $2, $3, $4, $5);
+  ($1, $2, $3, $4, $5);
 
 -- name: Give :one
 UPDATE characters
 SET
-    "type" = 'TRADE',
-    "user_id" = $1
+  "type" = 'TRADE',
+  "user_id" = $1
 WHERE
-    characters.id = $2
-    AND characters.user_id = $3
+  characters.id = $2
+  AND characters.user_id = $3
 RETURNING
-    *;
+  *;
 
 -- name: Count :one
 SELECT
-    COUNT(id)
+  COUNT(id)
 FROM
-    characters
+  characters
 WHERE
-    user_id = $1;
+  user_id = $1;
 
 -- name: Delete :one
 DELETE FROM characters
 WHERE
-    user_id = $1
-    AND id = $2
+  user_id = $1
+  AND id = $2
 RETURNING
-    *;
+  *;
 
 -- name: UpdateImageName :one
 UPDATE characters
 SET
-    "image" = $1,
-    "name" = $2
+  "image" = $1,
+  "name" = $2
 WHERE
-    id = $3
+  id = $3
 RETURNING
-    *;
+  *;
+
+-- name: SearchGlobalCharacters :many
+SELECT DISTINCT
+  ON (id) id,
+  name,
+  image,
+  type
+FROM
+  characters
+WHERE
+  id::VARCHAR LIKE sqlc.arg (term)::VARCHAR || '%'
+  OR name ILIKE '%' || sqlc.arg (term) || '%'
+ORDER BY
+  id,
+  date DESC
+LIMIT
+  sqlc.arg (lim);

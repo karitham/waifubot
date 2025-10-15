@@ -13,7 +13,7 @@ func (b *Bot) give(m *corde.Mux) {
 		trace[corde.SlashCommandInteractionData],
 		interact(b.Inter, onInteraction[corde.SlashCommandInteractionData](b)),
 	))
-	m.Autocomplete("id", b.profileEditFavoriteComplete)
+	m.Autocomplete("id", b.userCollectionAutocomplete)
 }
 
 func (b *Bot) giveCommand(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {

@@ -21,6 +21,7 @@ type Store interface {
 	CharsIDs(ctx context.Context, userID corde.Snowflake) ([]int64, error)
 	DeleteChar(context.Context, corde.Snowflake, int64) (Character, error)
 	CharsStartingWith(context.Context, corde.Snowflake, string) ([]Character, error)
+	GlobalCharsStartingWith(context.Context, string) ([]Character, error)
 	User(context.Context, corde.Snowflake) (User, error)
 	ProfileOverview(context.Context, corde.Snowflake) (Profile, error)
 	SetUserDate(context.Context, corde.Snowflake, time.Time) error

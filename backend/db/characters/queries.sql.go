@@ -11,11 +11,11 @@ import (
 
 const count = `-- name: Count :one
 SELECT
-    COUNT(id)
+  COUNT(id)
 FROM
-    characters
+  characters
 WHERE
-    user_id = $1
+  user_id = $1
 `
 
 func (q *Queries) Count(ctx context.Context, userID uint64) (int64, error) {
@@ -28,10 +28,10 @@ func (q *Queries) Count(ctx context.Context, userID uint64) (int64, error) {
 const delete = `-- name: Delete :one
 DELETE FROM characters
 WHERE
-    user_id = $1
-    AND id = $2
+  user_id = $1
+  AND id = $2
 RETURNING
-    user_id, id, image, name, date, type
+  user_id, id, image, name, date, type
 `
 
 type DeleteParams struct {
@@ -55,12 +55,12 @@ func (q *Queries) Delete(ctx context.Context, arg DeleteParams) (Character, erro
 
 const get = `-- name: Get :one
 SELECT
-    user_id, id, image, name, date, type
+  user_id, id, image, name, date, type
 FROM
-    characters
+  characters
 WHERE
-    id = $1
-    AND characters.user_id = $2
+  id = $1
+  AND characters.user_id = $2
 `
 
 type GetParams struct {
@@ -68,7 +68,6 @@ type GetParams struct {
 	UserID uint64
 }
 
-// sql-formatter-enable
 func (q *Queries) Get(ctx context.Context, arg GetParams) (Character, error) {
 	row := q.db.QueryRow(ctx, get, arg.ID, arg.UserID)
 	var i Character
@@ -86,13 +85,13 @@ func (q *Queries) Get(ctx context.Context, arg GetParams) (Character, error) {
 const give = `-- name: Give :one
 UPDATE characters
 SET
-    "type" = 'TRADE',
-    "user_id" = $1
+  "type" = 'TRADE',
+  "user_id" = $1
 WHERE
-    characters.id = $2
-    AND characters.user_id = $3
+  characters.id = $2
+  AND characters.user_id = $3
 RETURNING
-    user_id, id, image, name, date, type
+  user_id, id, image, name, date, type
 `
 
 type GiveParams struct {
@@ -117,9 +116,9 @@ func (q *Queries) Give(ctx context.Context, arg GiveParams) (Character, error) {
 
 const insert = `-- name: Insert :exec
 INSERT INTO
-    characters ("id", "user_id", "image", "name", "type")
+  characters ("id", "user_id", "image", "name", "type")
 VALUES
-    ($1, $2, $3, $4, $5)
+  ($1, $2, $3, $4, $5)
 `
 
 type InsertParams struct {
@@ -143,13 +142,13 @@ func (q *Queries) Insert(ctx context.Context, arg InsertParams) error {
 
 const list = `-- name: List :many
 SELECT
-    user_id, id, image, name, date, type
+  user_id, id, image, name, date, type
 FROM
-    characters
+  characters
 WHERE
-    characters.user_id = $1
+  characters.user_id = $1
 ORDER BY
-    characters.date DESC
+  characters.date DESC
 `
 
 func (q *Queries) List(ctx context.Context, userID uint64) ([]Character, error) {
@@ -181,11 +180,11 @@ func (q *Queries) List(ctx context.Context, userID uint64) ([]Character, error) 
 
 const listIDs = `-- name: ListIDs :many
 SELECT
-    id
+  id
 FROM
-    characters
+  characters
 WHERE
-    user_id = $1
+  user_id = $1
 `
 
 func (q *Queries) ListIDs(ctx context.Context, userID uint64) ([]int64, error) {
@@ -210,18 +209,21 @@ func (q *Queries) ListIDs(ctx context.Context, userID uint64) ([]int64, error) {
 
 const searchCharacters = `-- name: SearchCharacters :many
 SELECT
-user_id, id, image, name, date, type
+  user_id, id, image, name, date, type
 FROM
-characters
+  characters
 WHERE
-user_id = $1
-AND (id::varchar LIKE $2::varchar || '%' OR name ILIKE '%' || $2 || '%')
+  user_id = $1
+  AND (
+    id::VARCHAR LIKE $2::VARCHAR || '%'
+    OR name ILIKE '%' || $2 || '%'
+  )
 ORDER BY
-date DESC
+  date DESC
 LIMIT
-$4
+  $4
 OFFSET
-$3
+  $3
 `
 
 type SearchCharactersParams struct {
@@ -231,7 +233,6 @@ type SearchCharactersParams struct {
 	Lim    int32
 }
 
-// sql-formatter-disable
 func (q *Queries) SearchCharacters(ctx context.Context, arg SearchCharactersParams) ([]Character, error) {
 	rows, err := q.db.Query(ctx, searchCharacters,
 		arg.UserID,
@@ -264,15 +265,70 @@ func (q *Queries) SearchCharacters(ctx context.Context, arg SearchCharactersPara
 	return items, nil
 }
 
+const searchGlobalCharacters = `-- name: SearchGlobalCharacters :many
+SELECT DISTINCT
+  ON (id) id,
+  name,
+  image,
+  type
+FROM
+  characters
+WHERE
+  id::VARCHAR LIKE $1::VARCHAR || '%'
+  OR name ILIKE '%' || $1 || '%'
+ORDER BY
+  id,
+  date DESC
+LIMIT
+  $2
+`
+
+type SearchGlobalCharactersParams struct {
+	Term string
+	Lim  int32
+}
+
+type SearchGlobalCharactersRow struct {
+	ID    int64
+	Name  string
+	Image string
+	Type  string
+}
+
+func (q *Queries) SearchGlobalCharacters(ctx context.Context, arg SearchGlobalCharactersParams) ([]SearchGlobalCharactersRow, error) {
+	rows, err := q.db.Query(ctx, searchGlobalCharacters, arg.Term, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchGlobalCharactersRow
+	for rows.Next() {
+		var i SearchGlobalCharactersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Image,
+			&i.Type,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateImageName = `-- name: UpdateImageName :one
 UPDATE characters
 SET
-    "image" = $1,
-    "name" = $2
+  "image" = $1,
+  "name" = $2
 WHERE
-    id = $3
+  id = $3
 RETURNING
-    user_id, id, image, name, date, type
+  user_id, id, image, name, date, type
 `
 
 type UpdateImageNameParams struct {

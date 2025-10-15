@@ -1,37 +1,37 @@
 -- name: Create :exec
 INSERT INTO
-    users (user_id)
+  users (user_id)
 VALUES
-    ($1);
+  ($1);
 
 -- name: Get :one
 SELECT
-    *
+  *
 FROM
-    users
+  users
 WHERE
-    user_id = $1;
+  user_id = $1;
 
 -- name: IncTokens :exec
 UPDATE users
 SET
-    tokens = tokens + 1
+  tokens = tokens + 1
 WHERE
-    user_id = $1;
+  user_id = $1;
 
 -- name: ConsumeTokens :one
 UPDATE users
 SET
-    tokens = tokens - $1
+  tokens = tokens - $1
 WHERE
-    user_id = $2
+  user_id = $2
 RETURNING
-    *;
+  *;
 
 -- name: GetByAnilist :one
 SELECT
-    *
+  *
 FROM
-    users
+  users
 WHERE
-    users.anilist_url = $1;
+  users.anilist_url = $1;

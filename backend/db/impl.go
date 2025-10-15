@@ -290,8 +290,9 @@ func (s *Store) CharsStartingWith(ctx context.Context, userID corde.Snowflake, t
 
 	dbchs, err := s.CharacterStore.SearchCharacters(ctx, characters.SearchCharactersParams{
 		UserID: uint64(userID),
-		Lim:    25,
 		Term:   term,
+		Lim:    25,
+		Off:    0,
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -304,6 +305,31 @@ func (s *Store) CharsStartingWith(ctx context.Context, userID corde.Snowflake, t
 	chars := make([]discord.Character, 0, len(dbchs))
 	for _, c := range dbchs {
 		chars = append(chars, charToDiscordChar(c))
+	}
+
+	return chars, nil
+}
+
+func (s *Store) GlobalCharsStartingWith(ctx context.Context, term string) ([]discord.Character, error) {
+	dbchs, err := s.CharacterStore.SearchGlobalCharacters(ctx, characters.SearchGlobalCharactersParams{
+		Term: term,
+		Lim:  25,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []discord.Character{}, nil
+		}
+		return nil, fmt.Errorf("failed to search global characters with term '%s': %w", term, err)
+	}
+
+	chars := make([]discord.Character, 0, len(dbchs))
+	for _, c := range dbchs {
+		chars = append(chars, discord.Character{
+			ID:    c.ID,
+			Name:  c.Name,
+			Image: c.Image,
+			Type:  c.Type,
+		})
 	}
 
 	return chars, nil

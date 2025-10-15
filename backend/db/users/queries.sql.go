@@ -12,11 +12,11 @@ import (
 const consumeTokens = `-- name: ConsumeTokens :one
 UPDATE users
 SET
-    tokens = tokens - $1
+  tokens = tokens - $1
 WHERE
-    user_id = $2
+  user_id = $2
 RETURNING
-    id, user_id, quote, date, favorite, tokens, anilist_url
+  id, user_id, quote, date, favorite, tokens, anilist_url
 `
 
 type ConsumeTokensParams struct {
@@ -41,9 +41,9 @@ func (q *Queries) ConsumeTokens(ctx context.Context, arg ConsumeTokensParams) (U
 
 const create = `-- name: Create :exec
 INSERT INTO
-    users (user_id)
+  users (user_id)
 VALUES
-    ($1)
+  ($1)
 `
 
 func (q *Queries) Create(ctx context.Context, userID uint64) error {
@@ -53,11 +53,11 @@ func (q *Queries) Create(ctx context.Context, userID uint64) error {
 
 const get = `-- name: Get :one
 SELECT
-    id, user_id, quote, date, favorite, tokens, anilist_url
+  id, user_id, quote, date, favorite, tokens, anilist_url
 FROM
-    users
+  users
 WHERE
-    user_id = $1
+  user_id = $1
 `
 
 func (q *Queries) Get(ctx context.Context, userID uint64) (User, error) {
@@ -77,11 +77,11 @@ func (q *Queries) Get(ctx context.Context, userID uint64) (User, error) {
 
 const getByAnilist = `-- name: GetByAnilist :one
 SELECT
-    id, user_id, quote, date, favorite, tokens, anilist_url
+  id, user_id, quote, date, favorite, tokens, anilist_url
 FROM
-    users
+  users
 WHERE
-    users.anilist_url = $1
+  users.anilist_url = $1
 `
 
 func (q *Queries) GetByAnilist(ctx context.Context, anilistUrl string) (User, error) {
@@ -102,9 +102,9 @@ func (q *Queries) GetByAnilist(ctx context.Context, anilistUrl string) (User, er
 const incTokens = `-- name: IncTokens :exec
 UPDATE users
 SET
-    tokens = tokens + 1
+  tokens = tokens + 1
 WHERE
-    user_id = $1
+  user_id = $1
 `
 
 func (q *Queries) IncTokens(ctx context.Context, userID uint64) error {

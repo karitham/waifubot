@@ -2,8 +2,11 @@ package discord
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 
 	"github.com/Karitham/corde"
+	"github.com/rs/zerolog/log"
 )
 
 func (b *Bot) verify(m *corde.Mux) {
@@ -12,7 +15,7 @@ func (b *Bot) verify(m *corde.Mux) {
 		trace[corde.SlashCommandInteractionData],
 		interact(b.Inter, onInteraction[corde.SlashCommandInteractionData](b)),
 	))
-	m.Autocomplete("id", b.profileEditFavoriteComplete)
+	m.Autocomplete("id", b.verifyAutocomplete)
 }
 
 func (b *Bot) verifyCommand(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
@@ -29,4 +32,28 @@ func (b *Bot) verifyCommand(ctx context.Context, w corde.ResponseWriter, i *cord
 	}
 
 	w.Respond(newErrf("%s doesn't have this character", user.Username))
+}
+
+func (b *Bot) verifyAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
+	id, err := i.Data.Options.String("id")
+	if err != nil {
+		i, _ := i.Data.Options.Int("id")
+		id = strconv.Itoa(i)
+	}
+
+	chars, err := b.Store.GlobalCharsStartingWith(ctx, id)
+	if err != nil {
+		log.Err(err).Msg("Error searching global characters")
+		return
+	}
+	if len(chars) > 25 {
+		chars = chars[:25]
+	}
+
+	resp := corde.NewResp()
+	for _, c := range chars {
+		resp.Choice(fmt.Sprintf("%s (%d)", c.Name, c.ID), c.ID)
+	}
+
+	w.Autocomplete(resp)
 }

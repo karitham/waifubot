@@ -24,7 +24,7 @@ func (b *Bot) profile(m *corde.Mux) {
 		m.SlashCommand("quote", trace(b.profileEditQuote))
 		m.Route("favorite", func(m *corde.Mux) {
 			m.SlashCommand("", trace(b.profileEditFavorite))
-			m.Autocomplete("id", trace(b.profileEditFavoriteComplete))
+			m.Autocomplete("id", trace(b.userCollectionAutocomplete))
 		})
 		m.SlashCommand("anilist", trace(b.profileEditAnilistURL))
 	})
@@ -80,7 +80,7 @@ func (b *Bot) profileEditFavorite(ctx context.Context, w corde.ResponseWriter, i
 	w.Respond(corde.NewResp().Contentf("Favorite character set as char id %d", optID).Ephemeral())
 }
 
-func (b *Bot) profileEditFavoriteComplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
+func (b *Bot) userCollectionAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
 	id, err := i.Data.Options.String("id")
 	if err != nil {
 		i, _ := i.Data.Options.Int("id")
