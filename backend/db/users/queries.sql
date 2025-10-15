@@ -34,4 +34,4 @@ SELECT
 FROM
   users
 WHERE
-  users.anilist_url = $1;
+  LOWER(users.anilist_url) = LOWER($1);

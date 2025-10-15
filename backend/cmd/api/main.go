@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Karitham/httperr"
@@ -72,6 +73,14 @@ type APIContext struct {
 	db *db.Store
 }
 
+func normalizeAnilistURL(input string) string {
+	input = strings.TrimSpace(input)
+	if strings.HasPrefix(input, "https://anilist.co/user/") || strings.HasPrefix(input, "http://anilist.co/user/") {
+		return input
+	}
+	return fmt.Sprintf("https://anilist.co/user/%s", input)
+}
+
 func (a *APIContext) getUser(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "userID")
 
@@ -118,7 +127,8 @@ func (a *APIContext) findUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := a.db.UserByAnilistURL(r.Context(), fmt.Sprintf("https://anilist.co/user/%s", anilist))
+	anilistURL := normalizeAnilistURL(anilist)
+	user, err := a.db.UserByAnilistURL(r.Context(), anilistURL)
 	if err != nil || user.UserID == 0 {
 		herr := &httperr.DefaultError{
 			Message:    "user not found",

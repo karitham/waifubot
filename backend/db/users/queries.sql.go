@@ -81,11 +81,11 @@ SELECT
 FROM
   users
 WHERE
-  users.anilist_url = $1
+  LOWER(users.anilist_url) = LOWER($1)
 `
 
-func (q *Queries) GetByAnilist(ctx context.Context, anilistUrl string) (User, error) {
-	row := q.db.QueryRow(ctx, getByAnilist, anilistUrl)
+func (q *Queries) GetByAnilist(ctx context.Context, lower string) (User, error) {
+	row := q.db.QueryRow(ctx, getByAnilist, lower)
 	var i User
 	err := row.Scan(
 		&i.ID,
