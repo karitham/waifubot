@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json/v2"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
@@ -14,7 +15,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"github.com/rs/zerolog/log"
 
 	"github.com/karitham/waifubot/db"
 )
@@ -31,16 +31,18 @@ func main() {
 	url := os.Getenv("DB_URL")
 	db, err := db.NewStore(context.Background(), url)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Could not connect to database")
+		slog.Error("Could not connect to database", "error", err)
+		os.Exit(1)
 	}
 
 	api := &APIContext{
 		db: db,
 	}
 
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	r := chi.NewRouter()
 	r.Use(middleware.Timeout(5 * time.Second))
-	r.Use(loggerMiddleware(&log.Logger))
+	r.Use(loggerMiddleware(logger))
 	r.Use(middleware.Compress(5))
 
 	// CORS
@@ -63,9 +65,10 @@ func main() {
 		fmt.Fprint(w, "WaifuBot API - See https://github.com/karitham/waifubot for documentation")
 	})
 
-	log.Info().Int("API_PORT", apiPort).Msg("API started")
+	slog.Info("API started", "API_PORT", apiPort)
 	if err := http.ListenAndServe(":"+strconv.Itoa(apiPort), r); err != nil {
-		log.Fatal().Err(err).Int("Port", apiPort).Msg("Listen and serve crash")
+		slog.Error("Listen and serve crash", "error", err, "Port", apiPort)
+		os.Exit(1)
 	}
 }
 
@@ -92,7 +95,7 @@ func (a *APIContext) getUser(w http.ResponseWriter, r *http.Request) {
 			StatusCode: 400,
 		}
 		httperr.JSON(w, r, herr)
-		log.Debug().Err(herr).Msg("invalid ID")
+		slog.Debug("invalid ID", "error", herr)
 		return
 	}
 
@@ -104,12 +107,12 @@ func (a *APIContext) getUser(w http.ResponseWriter, r *http.Request) {
 			StatusCode: 404,
 		}
 		httperr.JSON(w, r, herr)
-		log.Debug().Err(herr).Msg("fetching user ID")
+		slog.Debug("fetching user ID", "error", herr)
 		return
 	}
 
 	if err = json.MarshalWrite(w, user); err != nil {
-		log.Err(err).Msg("encoding request")
+		slog.Error("encoding request", "error", err)
 	}
 }
 
@@ -123,7 +126,7 @@ func (a *APIContext) findUser(w http.ResponseWriter, r *http.Request) {
 		}
 
 		httperr.JSON(w, r, herr)
-		log.Debug().Err(herr).Msg("fetching user ID")
+		slog.Debug("fetching user ID", "error", herr)
 		return
 	}
 
@@ -136,7 +139,7 @@ func (a *APIContext) findUser(w http.ResponseWriter, r *http.Request) {
 			StatusCode: 404,
 		}
 		httperr.JSON(w, r, herr)
-		log.Debug().Err(herr).Msg("fetching user ID")
+		slog.Debug("fetching user ID", "error", herr)
 		return
 	}
 
@@ -147,6 +150,6 @@ func (a *APIContext) findUser(w http.ResponseWriter, r *http.Request) {
 	if err = json.MarshalWrite(w, resp{
 		ID: uint64(user.UserID),
 	}); err != nil {
-		log.Err(err).Msg("encoding request")
+		slog.Error("encoding request", "error", err)
 	}
 }

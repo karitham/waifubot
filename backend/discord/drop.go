@@ -2,34 +2,34 @@ package discord
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/Karitham/corde"
-	"github.com/rs/zerolog/log"
 )
 
 func (b *Bot) drop(ctx context.Context, channelID corde.Snowflake) {
 	char, err := b.AnimeService.RandomChar(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to get random character")
+		slog.Error("failed to get random character", "error", err)
 		return
 	}
 
 	err = b.Inter.SetChannelChar(ctx, channelID, char)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to set channel character")
+		slog.Error("failed to set channel character", "error", err)
 		return
 	}
 
-	log.Trace().Msgf("dropped %s", char.Name)
+	slog.Debug("dropped character", "name", char.Name)
 
 	msg, cleanup := DropEmbed(ctx, char)
 	defer cleanup()
 	_, err = b.mux.CreateMessage(channelID, msg)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to create message")
+		slog.Error("failed to create message", "error", err)
 		return
 	}
 }
@@ -44,7 +44,7 @@ func (b *Bot) claim(ctx context.Context, w corde.ResponseWriter, i *corde.Intera
 	// impl claim.
 	char, err := b.Inter.GetChannelChar(ctx, i.ChannelID)
 	if err != nil {
-		log.Trace().Err(err).Msg("failed to get channel character")
+		slog.Debug("failed to get channel character", "error", err)
 		w.Respond(rspErr("No character to claim"))
 		return
 	}
@@ -63,14 +63,14 @@ func (b *Bot) claim(ctx context.Context, w corde.ResponseWriter, i *corde.Intera
 		ID:     char.ID,
 	})
 	if err != nil {
-		log.Debug().Err(err).Msg("failed to put character")
+		slog.Debug("failed to put character", "error", err)
 		w.Respond(rspErr("Already in your collection!"))
 		return
 	}
 
 	err = b.Inter.RemoveChannelChar(ctx, i.ChannelID)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to remove channel character")
+		slog.Error("failed to remove channel character", "error", err)
 		return
 	}
 
@@ -94,13 +94,13 @@ func sanitizeName(name string) string {
 func DropEmbed(ctx context.Context, char MediaCharacter) (corde.Message, func()) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, char.ImageURL, nil)
 	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("failed to create request")
+		slog.ErrorContext(ctx, "failed to create request", "error", err)
 		return corde.Message{}, func() {}
 	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("failed to get image")
+		slog.ErrorContext(ctx, "failed to get image", "error", err)
 		return corde.Message{}, func() {}
 	}
 

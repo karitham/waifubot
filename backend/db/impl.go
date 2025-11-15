@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -14,8 +15,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/tracelog"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 
 	"github.com/karitham/waifubot/db/characters"
 	"github.com/karitham/waifubot/db/guilds"
@@ -42,7 +41,7 @@ func NewStore(ctx context.Context, url string) (*Store, error) {
 	}
 
 	cfg.ConnConfig.Tracer = &tracelog.TraceLog{
-		Logger:   newLogger(log.Logger),
+		Logger:   newLogger(slog.Default()),
 		LogLevel: tracelog.LogLevelDebug,
 	}
 
@@ -74,34 +73,37 @@ func (s *Store) withTx(tx pgx.Tx) *Store {
 }
 
 type Logger struct {
-	logger zerolog.Logger
+	logger *slog.Logger
 }
 
-func newLogger(logger zerolog.Logger) *Logger {
+func newLogger(logger *slog.Logger) *Logger {
 	return &Logger{
-		logger: logger.With().Str("module", "pgx").Logger(),
+		logger: logger.With("module", "pgx"),
 	}
 }
 
 func (pl *Logger) Log(ctx context.Context, level tracelog.LogLevel, msg string, data map[string]any) {
-	var zlevel zerolog.Level
+	var slogLevel slog.Level
+
 	switch level {
 	case tracelog.LogLevelNone:
-		zlevel = zerolog.NoLevel
+		slogLevel = slog.Level(-8) // LevelDebug-1, equivalent to NoLevel
 	case tracelog.LogLevelError:
-		zlevel = zerolog.ErrorLevel
+		slogLevel = slog.LevelError
 	case tracelog.LogLevelWarn:
-		zlevel = zerolog.WarnLevel
+		slogLevel = slog.LevelWarn
 	case tracelog.LogLevelInfo:
-		zlevel = zerolog.InfoLevel
-	case tracelog.LogLevelDebug:
-		zlevel = zerolog.DebugLevel
-	default:
-		zlevel = zerolog.DebugLevel
+		slogLevel = slog.LevelInfo
+	case tracelog.LogLevelDebug, tracelog.LogLevelTrace:
+		slogLevel = slog.LevelDebug
 	}
 
-	pgxlog := pl.logger.With().Fields(data).Logger()
-	pgxlog.WithLevel(zlevel).Msg(msg)
+	args := make([]any, 0, len(data)*2)
+	for k, v := range data {
+		args = append(args, k, v)
+	}
+
+	pl.logger.Log(ctx, slogLevel, msg, args...)
 }
 
 func (s *Store) Tx(ctx context.Context, fn func(store discord.Store) error) error {

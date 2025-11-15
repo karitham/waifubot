@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -12,7 +13,6 @@ import (
 	"time"
 
 	"github.com/Khan/genqlient/graphql"
-	"github.com/rs/zerolog/log"
 
 	"github.com/karitham/waifubot/discord"
 )
@@ -109,7 +109,7 @@ two:
 			go func() {
 				ch, err := a.randomChar(context.Background(), notIn...)
 				if err != nil {
-					log.Warn().Err(err).Msg("error getting random char")
+					slog.Warn("error getting random char", "error", err)
 					return
 				}
 				c.Lock()
@@ -121,7 +121,7 @@ two:
 
 	if len(rest) > 0 {
 		char := rest[a.seed.Int63()%(int64(len(rest)))]
-		log.Trace().Str("char", char.Name).Int("cache size", len(c.cache)).Msg("Hit cache")
+		slog.Debug("Hit cache", "char", char.Name, "cache_size", len(c.cache))
 		delete(c.cache, char.ID)
 		return char, nil
 	}

@@ -2,9 +2,9 @@ package discord
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/Karitham/corde"
-	"github.com/rs/zerolog/log"
 )
 
 func (b *Bot) give(m *corde.Mux) {
@@ -27,7 +27,7 @@ func (b *Bot) giveCommand(ctx context.Context, w corde.ResponseWriter, i *corde.
 		w.Respond(rspErr("select a character to give"))
 		return
 	}
-	log.Ctx(ctx).Trace().Stringer("src", i.Member.User.ID).Stringer("dst", user.ID).Int("charID", charID).Send()
+	slog.DebugContext(ctx, "giving character", "src", i.Member.User.ID, "dst", user.ID, "charID", charID)
 
 	c, err := b.Store.VerifyChar(ctx, i.Member.User.ID, int64(charID))
 	if err != nil {

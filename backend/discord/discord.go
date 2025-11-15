@@ -3,10 +3,10 @@ package discord
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/Karitham/corde"
-	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -126,12 +126,12 @@ func interact[T corde.InteractionDataConstraint](inter Interacter, interact func
 
 				err := inter.IncrementInteractionCount(ctx, i.ChannelID)
 				if err != nil {
-					log.Debug().Err(err).Msg("failed to increment interaction count")
+					slog.Debug("failed to increment interaction count", "error", err)
 				}
 
 				count, err := inter.GetInteractionCount(ctx, i.ChannelID)
 				if err != nil {
-					log.Err(err).Msg("failed to get interaction count")
+					slog.Error("failed to get interaction count", "error", err)
 					return
 				}
 
@@ -159,7 +159,7 @@ const maxAge = 7 * 24 * time.Hour
 func (b *Bot) indexGuildIfNeeded(ctx context.Context, guildID corde.Snowflake) {
 	indexed, err := b.Store.IsGuildIndexed(ctx, guildID, maxAge)
 	if err != nil {
-		log.Err(err).Uint64("guild_id", uint64(guildID)).Msg("failed to check if guild is indexed")
+		slog.Error("failed to check if guild is indexed", "error", err, "guild_id", uint64(guildID))
 		return
 	}
 
@@ -180,14 +180,14 @@ func (b *Bot) indexGuildIfNeeded(ctx context.Context, guildID corde.Snowflake) {
 				return nil
 			}
 
-			log.Info().Uint64("guild_id", uint64(guildID)).Msg("restarting stale indexing job")
+			slog.Info("restarting stale indexing job", "guild_id", uint64(guildID))
 		}
 
 		shouldStart = true
 		return s.StartIndexingJob(ctx, guildID)
 	})
 	if err != nil {
-		log.Err(err).Uint64("guild_id", uint64(guildID)).Msg("failed to start indexing job")
+		slog.Error("failed to start indexing job", "error", err, "guild_id", uint64(guildID))
 		return
 	}
 
@@ -201,30 +201,30 @@ func (b *Bot) indexGuildIfNeeded(ctx context.Context, guildID corde.Snowflake) {
 func (b *Bot) indexGuild(guildID corde.Snowflake) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Err(fmt.Errorf("panic in indexing goroutine: %v", r)).Uint64("guild_id", uint64(guildID)).Msg("indexing panic")
+			slog.Error("indexing panic", "error", fmt.Errorf("panic in indexing goroutine: %v", r), "guild_id", uint64(guildID))
 		}
 	}()
 
 	ctx := context.Background()
 	memberIDs, err := FetchGuildMemberIDs(ctx, b.BotToken, guildID)
 	if err != nil {
-		log.Err(err).Uint64("guild_id", uint64(guildID)).Msg("failed to fetch guild members for indexing")
+		slog.Error("failed to fetch guild members for indexing", "error", err, "guild_id", uint64(guildID))
 		return
 	}
 
 	err = b.Store.InsertGuildMembers(ctx, guildID, memberIDs)
 	if err != nil {
-		log.Err(err).Uint64("guild_id", uint64(guildID)).Msg("failed to insert guild members")
+		slog.Error("failed to insert guild members", "error", err, "guild_id", uint64(guildID))
 		return
 	}
 
 	err = b.Store.CompleteIndexingJob(ctx, guildID)
 	if err != nil {
-		log.Err(err).Uint64("guild_id", uint64(guildID)).Msg("failed to complete indexing job")
+		slog.Error("failed to complete indexing job", "error", err, "guild_id", uint64(guildID))
 		return
 	}
 
-	log.Info().Uint64("guild_id", uint64(guildID)).Int("members", len(memberIDs)).Msg("completed guild indexing")
+	slog.Info("completed guild indexing", "guild_id", uint64(guildID), "members", len(memberIDs))
 }
 
 func (b *Bot) PerformRoll(ctx context.Context, userID corde.Snowflake) (MediaCharacter, error) {
@@ -282,7 +282,7 @@ func (b *Bot) PerformGive(ctx context.Context, from, to corde.Snowflake, charID 
 }
 
 func (b *Bot) RemoveUnknownCommands(ctx context.Context, r corde.ResponseWriter, i *corde.Interaction[corde.JsonRaw]) {
-	log.Error().Str("command", i.Route).Int("type", int(i.Type)).Msg("Unknown command")
+	slog.Error("Unknown command", "command", i.Route, "type", int(i.Type))
 	r.Respond(corde.NewResp().Content("I don't know what that means, you shouldn't be able to do that").Ephemeral())
 
 	var opt []func(*corde.CommandsOpt)

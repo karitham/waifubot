@@ -1,8 +1,9 @@
 package discord
 
 import (
+	"log/slog"
+
 	"github.com/Karitham/corde"
-	"github.com/rs/zerolog/log"
 )
 
 // This init is called when ran with the build tag.
@@ -70,6 +71,6 @@ func (b *Bot) RegisterCommands() error {
 		opt = append(opt, corde.GuildOpt(*b.GuildID))
 	}
 
-	log.Info().Msgf("registering commands for app %d", b.AppID)
+	slog.Info("registering commands", "app_id", b.AppID)
 	return corde.NewMux(b.PublicKey, b.AppID, b.BotToken).BulkRegisterCommand(commands, opt...)
 }

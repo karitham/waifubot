@@ -3,10 +3,10 @@ package discord
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/Karitham/corde"
-	"github.com/rs/zerolog/log"
 )
 
 type RandomCharer interface {
@@ -54,7 +54,7 @@ func (b *Bot) roll(ctx context.Context, w corde.ResponseWriter, i *corde.Interac
 		case time.Now().After(user.Date.Add(b.RollCooldown)):
 			updateUser = func() error {
 				if err = s.SetUserDate(ctx, i.Member.User.ID, time.Now()); err != nil {
-					log.Ctx(ctx).Err(err).Msg("error with db service")
+					slog.ErrorContext(ctx, "error with db service", "error", err)
 					w.Respond(rspErr("An error occurred dialing the database, please try again later"))
 					return err
 				}
@@ -63,7 +63,7 @@ func (b *Bot) roll(ctx context.Context, w corde.ResponseWriter, i *corde.Interac
 		case user.Tokens >= b.TokensNeeded:
 			updateUser = func() error {
 				if _, err = s.ConsumeDropTokens(ctx, i.Member.User.ID, b.TokensNeeded); err != nil {
-					log.Ctx(ctx).Err(err).Msg("error with db service")
+					slog.ErrorContext(ctx, "error with db service", "error", err)
 					w.Respond(rspErr("An error occurred dialing the database, please try again later"))
 					return err
 				}
@@ -80,14 +80,14 @@ func (b *Bot) roll(ctx context.Context, w corde.ResponseWriter, i *corde.Interac
 
 		charsIDs, err := s.CharsIDs(ctx, i.Member.User.ID)
 		if err != nil {
-			log.Ctx(ctx).Err(err).Msg("error with db service")
+			slog.ErrorContext(ctx, "error with db service", "error", err)
 			w.Respond(rspErr("An error occurred dialing the database, please try again later"))
 			return err
 		}
 
 		c, err := b.AnimeService.RandomChar(ctx, charsIDs...)
 		if err != nil {
-			log.Ctx(ctx).Err(err).Msg("error with anime service")
+			slog.ErrorContext(ctx, "error with anime service", "error", err)
 			w.Respond(rspErr("An error getting a random character occurred, please try again later"))
 			return err
 		}
@@ -104,7 +104,7 @@ func (b *Bot) roll(ctx context.Context, w corde.ResponseWriter, i *corde.Interac
 				UserID: i.Member.User.ID,
 				ID:     int64(c.ID),
 			}); err != nil {
-			log.Ctx(ctx).Err(err).Msg("error with db service")
+			slog.ErrorContext(ctx, "error with db service", "error", err)
 			w.Respond(rspErr("An error occurred dialing the database, please try again later"))
 			return err
 		}

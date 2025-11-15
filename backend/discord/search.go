@@ -2,10 +2,10 @@ package discord
 
 import (
 	"context"
+	"log/slog"
 	"regexp"
 
 	"github.com/Karitham/corde"
-	"github.com/rs/zerolog/log"
 )
 
 func (b *Bot) search(m *corde.Mux) {
@@ -46,7 +46,7 @@ func (b *Bot) SearchAnime(ctx context.Context, w corde.ResponseWriter, i *corde.
 
 	anime, err := b.AnimeService.Anime(ctx, search)
 	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("error with anime service")
+		slog.ErrorContext(ctx, "error with anime service", "error", err)
 		w.Respond(rspErr("Error searching for this anime, either it doesn't exist or something went wrong"))
 		return
 	}
@@ -68,7 +68,7 @@ func (b *Bot) SearchManga(ctx context.Context, w corde.ResponseWriter, i *corde.
 
 	manga, err := b.AnimeService.Manga(ctx, search)
 	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("error with manga service")
+		slog.ErrorContext(ctx, "error with anime service", "error", err)
 		w.Respond(rspErr("Error searching for this manga, either it doesn't exist or something went wrong"))
 		return
 	}
@@ -90,7 +90,7 @@ func (b *Bot) SearchUser(ctx context.Context, w corde.ResponseWriter, i *corde.I
 
 	user, err := b.AnimeService.User(ctx, search)
 	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("error with user service")
+		slog.ErrorContext(ctx, "error with user service", "error", err)
 		w.Respond(rspErr("Error searching for this user, either it doesn't exist or something went wrong"))
 		return
 	}
@@ -112,7 +112,7 @@ func (b *Bot) SearchChar(ctx context.Context, w corde.ResponseWriter, i *corde.I
 
 	char, err := b.AnimeService.Character(ctx, search)
 	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("error with char service")
+		slog.ErrorContext(ctx, "error with char service", "error", err)
 		w.Respond(rspErr("Error searching for this character, either it doesn't exist or something went wrong"))
 		return
 	}

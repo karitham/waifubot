@@ -3,14 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/Karitham/corde"
 	"github.com/go-redis/redis/v8"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v2"
 
 	"github.com/karitham/waifubot/anilist"
@@ -21,7 +20,7 @@ import (
 )
 
 func main() {
-	log.Logger = log.Level(zerolog.InfoLevel)
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo})))
 
 	disc := &discordCmd{}
 	d := &dbCmd{}
@@ -206,15 +205,15 @@ func main() {
 		Action: disc.run,
 		Before: func(*cli.Context) error {
 			if dev {
-				log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-				log.Logger = log.Level(zerolog.TraceLevel)
+				slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})))
 			}
 			return nil
 		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal().Err(err).Msg("error running app")
+		slog.Error("error running app", "error", err)
+		os.Exit(1)
 	}
 }
 

@@ -3,13 +3,13 @@ package discord
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/Karitham/corde"
-	"github.com/rs/zerolog/log"
 )
 
 type Profile struct {
@@ -38,7 +38,7 @@ func (b *Bot) profileView(ctx context.Context, w corde.ResponseWriter, i *corde.
 
 	data, err := b.Store.ProfileOverview(ctx, user.ID)
 	if err != nil {
-		log.Ctx(ctx).Err(err).Msg("Error getting user's profile")
+		slog.ErrorContext(ctx, "Error getting user's profile", "error", err)
 		w.Respond(corde.NewResp().Content("An error occurred dialing the database, please try again later").Ephemeral())
 		return
 	}
@@ -72,7 +72,7 @@ func (b *Bot) profileEditFavorite(ctx context.Context, w corde.ResponseWriter, i
 	optID, _ := i.Data.Options.Int64("id")
 	err := b.Store.SetUserFavorite(ctx, i.Member.User.ID, optID)
 	if err != nil {
-		log.Ctx(ctx).Err(err).Stringer("user", i.Member.User.ID).Int64("character", optID).Msg("Error setting user's favorite character")
+		slog.ErrorContext(ctx, "Error setting user's favorite character", "error", err, "user", i.Member.User.ID, "character", optID)
 		w.Respond(corde.NewResp().Content("An error occurred setting this character").Ephemeral())
 		return
 	}
@@ -89,7 +89,7 @@ func (b *Bot) userCollectionAutocomplete(ctx context.Context, w corde.ResponseWr
 
 	chars, err := b.Store.CharsStartingWith(ctx, i.Member.User.ID, id)
 	if err != nil {
-		log.Err(err).Stringer("user", i.Member.User.ID).Msg("Error getting user's characters")
+		slog.Error("Error getting user's characters", "error", err, "user", i.Member.User.ID)
 		return
 	}
 	if len(chars) > 25 {
@@ -124,7 +124,7 @@ func (b *Bot) profileEditAnilistURL(ctx context.Context, w corde.ResponseWriter,
 
 	err = b.Store.SetUserAnilistURL(ctx, i.Member.User.ID, anilistURL)
 	if err != nil {
-		log.Ctx(ctx).Err(err).Stringer("user", i.Member.User.ID).Msg("Error setting user's anilist url")
+		slog.ErrorContext(ctx, "Error setting user's anilist url", "error", err, "user", i.Member.User.ID)
 		w.Respond(corde.NewResp().Content("An error occurred setting your anilist url").Ephemeral())
 		return
 	}
@@ -141,7 +141,7 @@ func (b *Bot) profileEditQuote(ctx context.Context, w corde.ResponseWriter, i *c
 
 	err := b.Store.SetUserQuote(ctx, i.Member.User.ID, quote)
 	if err != nil {
-		log.Ctx(ctx).Err(err).Stringer("user", i.Member.User.ID).Str("quote", quote).Msg("Error setting user's favorite character")
+		slog.ErrorContext(ctx, "Error setting user's quote", "error", err, "user", i.Member.User.ID, "quote", quote)
 		w.Respond(corde.NewResp().Content("An error occurred setting this character").Ephemeral())
 		return
 	}

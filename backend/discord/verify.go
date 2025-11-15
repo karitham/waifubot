@@ -3,10 +3,10 @@ package discord
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strconv"
 
 	"github.com/Karitham/corde"
-	"github.com/rs/zerolog/log"
 )
 
 func (b *Bot) verify(m *corde.Mux) {
@@ -44,7 +44,7 @@ func (b *Bot) verifyAutocomplete(ctx context.Context, w corde.ResponseWriter, i 
 
 	chars, err := b.Store.GlobalCharsStartingWith(ctx, id)
 	if err != nil {
-		log.Err(err).Msg("Error searching global characters")
+		slog.Error("Error searching global characters", "error", err)
 		return
 	}
 	if len(chars) > 25 {
