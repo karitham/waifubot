@@ -10,9 +10,22 @@ import (
 	"github.com/Karitham/corde"
 )
 
+func indexMiddleware[T corde.InteractionDataConstraint](b *Bot) func(func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T])) func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]) {
+	return func(next func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T])) func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]) {
+		return func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]) {
+			if i.GuildID != 0 {
+				go b.indexGuildIfNeeded(context.Background(), i.GuildID)
+			}
+
+			next(ctx, w, i)
+		}
+	}
+}
+
 func (b *Bot) holders(m *corde.Mux) {
 	m.SlashCommand("", wrap(
 		b.holdersCommand,
+		indexMiddleware[corde.SlashCommandInteractionData](b),
 		trace[corde.SlashCommandInteractionData],
 		interact(b.Inter, onInteraction[corde.SlashCommandInteractionData](b)),
 	))
@@ -37,13 +50,18 @@ func (b *Bot) holdersCommand(ctx context.Context, w corde.ResponseWriter, i *cor
 		return
 	}
 
-	memberIDs, err := fetchGuildMemberIDs(ctx, b.BotToken, i.GuildID)
+	memberIDs, err := b.Store.GetGuildMembers(ctx, i.GuildID)
 	if err != nil {
 		w.Respond(newErrf("failed to fetch guild members: %v", err))
 		return
 	}
 
-	holderIDs, err := b.Store.UsersOwningCharFiltered(ctx, int64(charID), memberIDs)
+	if len(memberIDs) == 0 {
+		w.Respond(rspErr("guild members not indexed yet, please try again later"))
+		return
+	}
+
+	holderIDs, err := b.Store.UsersOwningCharInGuild(ctx, int64(charID), i.GuildID)
 	if err != nil {
 		w.Respond(newErrf("failed to fetch character holders: %v", err))
 		return
@@ -64,7 +82,7 @@ func (b *Bot) holdersCommand(ctx context.Context, w corde.ResponseWriter, i *cor
 	w.Respond(corde.NewResp().Content(mentions.String()).Ephemeral())
 }
 
-func fetchGuildMemberIDs(ctx context.Context, botToken string, guildID corde.Snowflake) ([]corde.Snowflake, error) {
+func FetchGuildMemberIDs(ctx context.Context, botToken string, guildID corde.Snowflake) ([]corde.Snowflake, error) {
 	var allMemberIDs []corde.Snowflake
 
 	after := corde.Snowflake(0)

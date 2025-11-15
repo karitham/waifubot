@@ -13,6 +13,7 @@ func (b *Bot) verify(m *corde.Mux) {
 	m.SlashCommand("", wrap(
 		b.verifyCommand,
 		trace[corde.SlashCommandInteractionData],
+		indexMiddleware[corde.SlashCommandInteractionData](b),
 		interact(b.Inter, onInteraction[corde.SlashCommandInteractionData](b)),
 	))
 	m.Autocomplete("id", b.verifyAutocomplete)

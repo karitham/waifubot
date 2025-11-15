@@ -2,6 +2,7 @@ package discord
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/Karitham/corde"
@@ -33,6 +34,13 @@ type Store interface {
 	AddDropToken(context.Context, corde.Snowflake) error
 	ConsumeDropTokens(context.Context, corde.Snowflake, int32) (User, error)
 	UsersOwningCharFiltered(ctx context.Context, charID int64, allowedUserIDs []corde.Snowflake) ([]corde.Snowflake, error)
+	GetGuildMembers(ctx context.Context, guildID corde.Snowflake) ([]corde.Snowflake, error)
+	UsersOwningCharInGuild(ctx context.Context, charID int64, guildID corde.Snowflake) ([]corde.Snowflake, error)
+	IsGuildIndexed(ctx context.Context, guildID corde.Snowflake, maxAge time.Duration) (bool, error)
+	GetIndexingStatus(ctx context.Context, guildID corde.Snowflake) (string, time.Time, error)
+	StartIndexingJob(ctx context.Context, guildID corde.Snowflake) error
+	CompleteIndexingJob(ctx context.Context, guildID corde.Snowflake) error
+	InsertGuildMembers(ctx context.Context, guildID corde.Snowflake, userIDs []corde.Snowflake) error
 	Tx(ctx context.Context, fn func(s Store) error) error
 }
 
@@ -78,6 +86,7 @@ func New(b *Bot) *corde.Mux {
 
 	t := trace[corde.SlashCommandInteractionData]
 	i := interact(b.Inter, onInteraction[corde.SlashCommandInteractionData](b))
+	idx := indexMiddleware[corde.SlashCommandInteractionData](b)
 
 	b.mux.Route("give", b.give)
 	b.mux.Route("search", b.search)
@@ -85,8 +94,8 @@ func New(b *Bot) *corde.Mux {
 	b.mux.Route("verify", b.verify)
 	b.mux.Route("exchange", b.exchange)
 	b.mux.Route("holders", b.holders)
-	b.mux.SlashCommand("list", wrap(b.list, t, i))
-	b.mux.SlashCommand("roll", wrap(b.roll, t, i))
+	b.mux.SlashCommand("list", wrap(b.list, t, i, idx))
+	b.mux.SlashCommand("roll", wrap(b.roll, t, i, idx))
 	b.mux.SlashCommand("info", wrap(b.info, t))
 	b.mux.SlashCommand("claim", wrap(b.claim, t))
 
@@ -143,6 +152,133 @@ func wrap[T corde.InteractionDataConstraint](
 		next = fns[i](next)
 	}
 	return next
+}
+
+const maxAge = 7 * 24 * time.Hour
+
+func (b *Bot) indexGuildIfNeeded(ctx context.Context, guildID corde.Snowflake) {
+	indexed, err := b.Store.IsGuildIndexed(ctx, guildID, maxAge)
+	if err != nil {
+		log.Err(err).Uint64("guild_id", uint64(guildID)).Msg("failed to check if guild is indexed")
+		return
+	}
+
+	if indexed {
+		return
+	}
+
+	var shouldStart bool
+	err = b.Store.Tx(ctx, func(s Store) error {
+		status, updatedAt, err := s.GetIndexingStatus(ctx, guildID)
+		if err != nil {
+			shouldStart = true
+			return s.StartIndexingJob(ctx, guildID)
+		}
+		if status == "in_progress" {
+			if time.Since(updatedAt) < 10*time.Minute {
+				shouldStart = false
+				return nil
+			}
+
+			log.Info().Uint64("guild_id", uint64(guildID)).Msg("restarting stale indexing job")
+		}
+
+		shouldStart = true
+		return s.StartIndexingJob(ctx, guildID)
+	})
+	if err != nil {
+		log.Err(err).Uint64("guild_id", uint64(guildID)).Msg("failed to start indexing job")
+		return
+	}
+
+	if !shouldStart {
+		return
+	}
+
+	go b.indexGuild(guildID)
+}
+
+func (b *Bot) indexGuild(guildID corde.Snowflake) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Err(fmt.Errorf("panic in indexing goroutine: %v", r)).Uint64("guild_id", uint64(guildID)).Msg("indexing panic")
+		}
+	}()
+
+	ctx := context.Background()
+	memberIDs, err := FetchGuildMemberIDs(ctx, b.BotToken, guildID)
+	if err != nil {
+		log.Err(err).Uint64("guild_id", uint64(guildID)).Msg("failed to fetch guild members for indexing")
+		return
+	}
+
+	err = b.Store.InsertGuildMembers(ctx, guildID, memberIDs)
+	if err != nil {
+		log.Err(err).Uint64("guild_id", uint64(guildID)).Msg("failed to insert guild members")
+		return
+	}
+
+	err = b.Store.CompleteIndexingJob(ctx, guildID)
+	if err != nil {
+		log.Err(err).Uint64("guild_id", uint64(guildID)).Msg("failed to complete indexing job")
+		return
+	}
+
+	log.Info().Uint64("guild_id", uint64(guildID)).Int("members", len(memberIDs)).Msg("completed guild indexing")
+}
+
+func (b *Bot) PerformRoll(ctx context.Context, userID corde.Snowflake) (MediaCharacter, error) {
+	var char MediaCharacter
+
+	err := b.Store.Tx(ctx, func(s Store) error {
+		charsIDs, err := s.CharsIDs(ctx, userID)
+		if err != nil {
+			return err
+		}
+
+		c, err := b.AnimeService.RandomChar(ctx, charsIDs...)
+		if err != nil {
+			return err
+		}
+		char = MediaCharacter{
+			ID:          c.ID,
+			Name:        c.Name,
+			ImageURL:    c.ImageURL,
+			URL:         c.URL,
+			Description: c.Description,
+			MediaTitle:  c.MediaTitle,
+		}
+
+		return s.PutChar(ctx, userID, Character{
+			Date:   time.Now(),
+			Image:  c.ImageURL,
+			Name:   c.Name,
+			Type:   "ROLL",
+			UserID: userID,
+			ID:     int64(c.ID),
+		})
+	})
+
+	return char, err
+}
+
+func (b *Bot) PerformGive(ctx context.Context, from, to corde.Snowflake, charID int64) (Character, error) {
+	c, err := b.Store.VerifyChar(ctx, from, charID)
+	if err != nil {
+		return Character{}, fmt.Errorf("from user does not own char %d: %w", charID, err)
+	}
+
+	_, err = b.Store.VerifyChar(ctx, to, charID)
+	if err == nil {
+		return Character{}, fmt.Errorf("to user already owns char %d", charID)
+	}
+
+	err = b.Store.GiveUserChar(ctx, to, from, charID)
+	if err != nil {
+		return Character{}, fmt.Errorf("error giving char: %w", err)
+	}
+
+	return c, nil
 }
 
 func (b *Bot) RemoveUnknownCommands(ctx context.Context, r corde.ResponseWriter, i *corde.Interaction[corde.JsonRaw]) {

@@ -19,6 +19,15 @@ sql:
         package: users
         sql_package: "pgx/v5"
         out: ./users
+  - name: db
+    queries: ./guilds/queries.sql
+    schema: ./schema.sql
+    engine: "postgresql"
+    gen:
+      go:
+        package: guilds
+        sql_package: "pgx/v5"
+        out: ./guilds
 
 overrides:
   go:

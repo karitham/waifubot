@@ -11,12 +11,14 @@ import (
 	"github.com/Karitham/corde"
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	"github.com/karitham/waifubot/db/characters"
+	"github.com/karitham/waifubot/db/guilds"
 	"github.com/karitham/waifubot/db/users"
 	"github.com/karitham/waifubot/discord"
 )
@@ -29,6 +31,7 @@ type TXer interface {
 type Store struct {
 	UserStore      *users.Queries
 	CharacterStore *characters.Queries
+	GuildStore     *guilds.Queries
 	db             TXer
 }
 
@@ -56,6 +59,7 @@ func NewStore(ctx context.Context, url string) (*Store, error) {
 	return &Store{
 		UserStore:      users.New(conn),
 		CharacterStore: characters.New(conn),
+		GuildStore:     guilds.New(conn),
 		db:             conn,
 	}, nil
 }
@@ -64,6 +68,7 @@ func (s *Store) withTx(tx pgx.Tx) *Store {
 	return &Store{
 		UserStore:      s.UserStore.WithTx(tx),
 		CharacterStore: s.CharacterStore.WithTx(tx),
+		GuildStore:     s.GuildStore.WithTx(tx),
 		db:             tx,
 	}
 }
@@ -559,4 +564,105 @@ func (s *Store) UsersOwningCharFiltered(ctx context.Context, charID int64, allow
 	}
 
 	return snowflakes, nil
+}
+
+func (s *Store) GetGuildMembers(ctx context.Context, guildID corde.Snowflake) ([]corde.Snowflake, error) {
+	userIDs, err := s.GuildStore.GetGuildMembers(ctx, int64(guildID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query guild members for guild %d: %w", guildID, err)
+	}
+
+	snowflakes := make([]corde.Snowflake, len(userIDs))
+	for i, uid := range userIDs {
+		snowflakes[i] = corde.Snowflake(uid)
+	}
+
+	return snowflakes, nil
+}
+
+func (s *Store) UsersOwningCharInGuild(ctx context.Context, charID int64, guildID corde.Snowflake) ([]corde.Snowflake, error) {
+	userIDs, err := s.GuildStore.UsersOwningCharInGuild(ctx, guilds.UsersOwningCharInGuildParams{
+		ID:      charID,
+		GuildID: int64(guildID),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to query users owning char %d in guild %d: %w", charID, guildID, err)
+	}
+
+	snowflakes := make([]corde.Snowflake, len(userIDs))
+	for i, uid := range userIDs {
+		snowflakes[i] = corde.Snowflake(uid)
+	}
+
+	return snowflakes, nil
+}
+
+func (s *Store) IsGuildIndexed(ctx context.Context, guildID corde.Snowflake, maxAge time.Duration) (bool, error) {
+	row, err := s.GuildStore.IsGuildIndexed(ctx, int64(guildID))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to check indexing status for guild %d: %w", guildID, err)
+	}
+
+	if row.Status != guilds.IndexingStatusCompleted {
+		return false, nil
+	}
+
+	return time.Since(row.UpdatedAt.Time) <= maxAge, nil
+}
+
+func (s *Store) GetIndexingStatus(ctx context.Context, guildID corde.Snowflake) (string, time.Time, error) {
+	row, err := s.GuildStore.GetIndexingStatus(ctx, int64(guildID))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "pending", time.Time{}, nil
+		}
+		return "", time.Time{}, fmt.Errorf("failed to get indexing status for guild %d: %w", guildID, err)
+	}
+
+	return string(row.Status), row.UpdatedAt.Time, nil
+}
+
+func (s *Store) StartIndexingJob(ctx context.Context, guildID corde.Snowflake) error {
+	return s.GuildStore.StartIndexingJob(ctx, int64(guildID))
+}
+
+func (s *Store) CompleteIndexingJob(ctx context.Context, guildID corde.Snowflake) error {
+	return s.GuildStore.CompleteIndexingJob(ctx, int64(guildID))
+}
+
+func (s *Store) InsertGuildMembers(ctx context.Context, guildID corde.Snowflake, userIDs []corde.Snowflake) error {
+	// Convert userIDs to []int64
+	userIDsInt := make([]int64, len(userIDs))
+	for i, id := range userIDs {
+		userIDsInt[i] = int64(id)
+	}
+
+	// Delete members not in the new list
+	err := s.GuildStore.DeleteGuildMembersNotIn(ctx, guilds.DeleteGuildMembersNotInParams{
+		GuildID: int64(guildID),
+		Column2: userIDsInt,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete old guild members for guild %d: %w", guildID, err)
+	}
+
+	// Upsert new members
+	if len(userIDs) == 0 {
+		return nil
+	}
+
+	indexedAt := pgtype.Timestamp{Time: time.Now(), Valid: true}
+	err = s.GuildStore.UpsertGuildMembers(ctx, guilds.UpsertGuildMembersParams{
+		GuildID:   int64(guildID),
+		Column2:   userIDsInt,
+		IndexedAt: indexedAt,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to upsert guild members for guild %d: %w", guildID, err)
+	}
+
+	return nil
 }

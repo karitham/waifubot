@@ -112,7 +112,6 @@ ORDER BY
   date DESC
 LIMIT
   sqlc.arg (lim);
-    *;
 
 -- name: UsersOwningCharFiltered :many
 SELECT DISTINCT

@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.30.0
 
-package users
+package guilds
 
 import (
 	"database/sql/driver"

@@ -5,8 +5,54 @@
 package characters
 
 import (
+	"database/sql/driver"
+	"fmt"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type IndexingStatus string
+
+const (
+	IndexingStatusPending    IndexingStatus = "pending"
+	IndexingStatusInProgress IndexingStatus = "in_progress"
+	IndexingStatusCompleted  IndexingStatus = "completed"
+)
+
+func (e *IndexingStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = IndexingStatus(s)
+	case string:
+		*e = IndexingStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for IndexingStatus: %T", src)
+	}
+	return nil
+}
+
+type NullIndexingStatus struct {
+	IndexingStatus IndexingStatus
+	Valid          bool // Valid is true if IndexingStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullIndexingStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.IndexingStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.IndexingStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullIndexingStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.IndexingStatus), nil
+}
 
 type Character struct {
 	UserID uint64
@@ -15,6 +61,18 @@ type Character struct {
 	Name   string
 	Date   pgtype.Timestamp
 	Type   string
+}
+
+type GuildIndexingJob struct {
+	GuildID   int64
+	Status    IndexingStatus
+	UpdatedAt pgtype.Timestamp
+}
+
+type GuildMember struct {
+	GuildID   int64
+	UserID    int64
+	IndexedAt pgtype.Timestamp
 }
 
 type User struct {
