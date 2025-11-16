@@ -6,11 +6,13 @@ import (
 	"regexp"
 
 	"github.com/Karitham/corde"
+
+	"github.com/karitham/waifubot/collection"
 )
 
 func (b *Bot) search(m *corde.Mux) {
 	t := trace[corde.SlashCommandInteractionData]
-	i := interact(b.Inter, onInteraction[corde.SlashCommandInteractionData](b))
+	i := interact(b.InterStore, onInteraction[corde.SlashCommandInteractionData](b))
 	idx := indexMiddleware[corde.SlashCommandInteractionData](b)
 
 	m.SlashCommand("char", wrap(b.SearchChar, t, i, idx))
@@ -19,113 +21,79 @@ func (b *Bot) search(m *corde.Mux) {
 	m.SlashCommand("anime", wrap(b.SearchAnime, t, i, idx))
 }
 
-type AnimeSearcher interface {
-	Anime(context.Context, string) ([]Media, error)
-}
-
-// Media represents an anime or manga.
-type Media struct {
-	Title           string
-	URL             string
-	CoverImageURL   string
-	BannerImageURL  string
-	CoverImageColor uint32
-	Description     string
-}
-
-// TrackerUser represents an anime tracker user.
-type TrackerUser struct {
-	Name     string
-	URL      string
-	ImageURL string
-	About    string
-}
-
 func (b *Bot) SearchAnime(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
 	search, _ := i.Data.Options.String("name")
 
-	anime, err := b.AnimeService.Anime(ctx, search)
+	media, err := b.AnimeService.Anime(ctx, search)
 	if err != nil {
 		slog.ErrorContext(ctx, "error with anime service", "error", err)
 		w.Respond(rspErr("Error searching for this anime, either it doesn't exist or something went wrong"))
 		return
 	}
 
-	if len(anime) == 0 {
+	if len(media) == 0 {
 		w.Respond(rspErr("No anime found with that name"))
 		return
 	}
 
-	w.Respond(mediaEmbed(anime[0]))
-}
-
-type MangaSearcher interface {
-	Manga(context.Context, string) ([]Media, error)
+	w.Respond(mediaEmbed(media[0]))
 }
 
 func (b *Bot) SearchManga(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
 	search, _ := i.Data.Options.String("name")
 
-	manga, err := b.AnimeService.Manga(ctx, search)
+	media, err := b.AnimeService.Manga(ctx, search)
 	if err != nil {
 		slog.ErrorContext(ctx, "error with anime service", "error", err)
 		w.Respond(rspErr("Error searching for this manga, either it doesn't exist or something went wrong"))
 		return
 	}
 
-	if len(manga) == 0 {
+	if len(media) == 0 {
 		w.Respond(rspErr("No manga found with that name"))
 		return
 	}
 
-	w.Respond(mediaEmbed(manga[0]))
-}
-
-type UserSearcher interface {
-	User(context.Context, string) ([]TrackerUser, error)
+	w.Respond(mediaEmbed(media[0]))
 }
 
 func (b *Bot) SearchUser(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
 	search, _ := i.Data.Options.String("name")
 
-	user, err := b.AnimeService.User(ctx, search)
+	users, err := b.AnimeService.User(ctx, search)
 	if err != nil {
 		slog.ErrorContext(ctx, "error with user service", "error", err)
 		w.Respond(rspErr("Error searching for this user, either it doesn't exist or something went wrong"))
 		return
 	}
 
-	if len(user) == 0 {
+	if len(users) == 0 {
 		w.Respond(rspErr("No user found with that name"))
 		return
 	}
 
-	w.Respond(userEmbed(user[0]))
-}
-
-type CharSearcher interface {
-	Character(context.Context, string) ([]MediaCharacter, error)
+	w.Respond(userEmbed(users[0]))
 }
 
 func (b *Bot) SearchChar(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
 	search, _ := i.Data.Options.String("name")
 
-	char, err := b.AnimeService.Character(ctx, search)
+	characters, err := b.AnimeService.Character(ctx, search)
 	if err != nil {
 		slog.ErrorContext(ctx, "error with char service", "error", err)
 		w.Respond(rspErr("Error searching for this character, either it doesn't exist or something went wrong"))
 		return
 	}
 
-	if len(char) == 0 {
+	if len(characters) == 0 {
 		w.Respond(rspErr("No character found with that name"))
 		return
 	}
 
-	w.Respond(charEmbed(char[0]))
+	w.Respond(charEmbed(characters[0]))
 }
 
-func mediaEmbed(m Media) *corde.EmbedB {
+func mediaEmbed(m collection.Media) *corde.EmbedB {
 	return applyEmbedOpt(corde.NewEmbed().
 		Title(m.Title).
 		URL(m.URL).
@@ -138,7 +106,7 @@ func mediaEmbed(m Media) *corde.EmbedB {
 	)
 }
 
-func userEmbed(u TrackerUser) *corde.EmbedB {
+func userEmbed(u collection.TrackerUser) *corde.EmbedB {
 	return applyEmbedOpt(corde.NewEmbed().
 		Title(u.Name).
 		URL(u.URL).
@@ -150,7 +118,7 @@ func userEmbed(u TrackerUser) *corde.EmbedB {
 	)
 }
 
-func charEmbed(c MediaCharacter) *corde.EmbedB {
+func charEmbed(c collection.MediaCharacter) *corde.EmbedB {
 	return applyEmbedOpt(corde.NewEmbed().
 		Title(c.Name).
 		Color(AnilistColor).

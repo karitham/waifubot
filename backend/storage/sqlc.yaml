@@ -1,0 +1,45 @@
+version: "2"
+
+sql:
+  - queries: "./collectionstore/queries.sql"
+    schema: "./schema.sql"
+    engine: "postgresql"
+    gen:
+      go:
+        out: collectionstore
+        emit_interface: true
+        emit_prepared_queries: true
+        sql_package: pgx/v5
+        sql_driver: github.com/jackc/pgx/v5
+  - queries: "./userstore/queries.sql"
+    schema: "./schema.sql"
+    engine: "postgresql"
+    gen:
+      go:
+        out: userstore
+        emit_interface: true
+        emit_prepared_queries: true
+        sql_package: pgx/v5
+        sql_driver: github.com/jackc/pgx/v5
+  - queries: "./guildstore/queries.sql"
+    schema: "./schema.sql"
+    engine: "postgresql"
+    gen:
+      go:
+        out: guildstore
+        emit_interface: true
+        emit_prepared_queries: true
+        sql_package: pgx/v5
+        sql_driver: github.com/jackc/pgx/v5
+
+overrides:
+  go:
+    overrides:
+      - column: users.user_id
+        go_type: uint64
+      - column: characters.user_id
+        go_type: uint64
+      - column: guild_members.guild_id
+        go_type: uint64
+      - column: guild_indexing_jobs.guild_id
+        go_type: uint64

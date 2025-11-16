@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.30.0
 
-package guilds
+package guildstore
 
 import (
 	"database/sql/driver"
@@ -64,13 +64,13 @@ type Character struct {
 }
 
 type GuildIndexingJob struct {
-	GuildID   int64
+	GuildID   uint64
 	Status    IndexingStatus
 	UpdatedAt pgtype.Timestamp
 }
 
 type GuildMember struct {
-	GuildID   int64
+	GuildID   uint64
 	UserID    int64
 	IndexedAt pgtype.Timestamp
 }

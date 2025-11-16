@@ -14,6 +14,7 @@ import (
 
 	"github.com/Khan/genqlient/graphql"
 
+	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/discord"
 )
 
@@ -78,7 +79,7 @@ func MaxChar(n int64) func(*Anilist) {
 }
 
 // RandomChar returns a random char
-func (a *Anilist) RandomChar(ctx context.Context, notIn ...int64) (discord.MediaCharacter, error) {
+func (a *Anilist) RandomChar(ctx context.Context, notIn ...int64) (collection.MediaCharacter, error) {
 	if !a.cache {
 		return a.randomChar(ctx, notIn...)
 	}
@@ -91,7 +92,7 @@ func (a *Anilist) RandomChar(ctx context.Context, notIn ...int64) (discord.Media
 	c.Lock()
 	defer c.Unlock()
 
-	rest := []discord.MediaCharacter{}
+	rest := []collection.MediaCharacter{}
 
 two:
 	for id, char := range c.cache {
@@ -101,7 +102,7 @@ two:
 			}
 		}
 
-		rest = append(rest, char.(discord.MediaCharacter))
+		rest = append(rest, char.(collection.MediaCharacter))
 	}
 
 	if len(c.cache) < 100 {
@@ -129,14 +130,14 @@ two:
 	return a.randomChar(ctx, notIn...)
 }
 
-func (a *Anilist) randomChar(ctx context.Context, notIn ...int64) (discord.MediaCharacter, error) {
+func (a *Anilist) randomChar(ctx context.Context, notIn ...int64) (collection.MediaCharacter, error) {
 	r, err := charactersRandom(ctx, a.c, a.seed.Int63()%a.MaxChars, notIn)
 	if err != nil {
-		return discord.MediaCharacter{}, err
+		return collection.MediaCharacter{}, err
 	}
 
 	if len(r.Page.Characters) < 1 {
-		return discord.MediaCharacter{}, errors.New("error querying random char")
+		return collection.MediaCharacter{}, errors.New("error querying random char")
 	}
 
 	c := r.Page.Characters[0]
@@ -145,7 +146,7 @@ func (a *Anilist) randomChar(ctx context.Context, notIn ...int64) (discord.Media
 		mediaTitle = c.Media.Nodes[0].Title.Romaji
 	}
 
-	return discord.MediaCharacter{
+	return collection.MediaCharacter{
 		ID:         c.Id,
 		Name:       strings.Join(strings.Fields(c.Name.Full), " "),
 		ImageURL:   c.Image.Large,
@@ -155,18 +156,18 @@ func (a *Anilist) randomChar(ctx context.Context, notIn ...int64) (discord.Media
 }
 
 // Anime returns an anime by title
-func (a *Anilist) Anime(ctx context.Context, title string) ([]discord.Media, error) {
+func (a *Anilist) Anime(ctx context.Context, title string) ([]collection.Media, error) {
 	return a.media(ctx, title, MediaTypeAnime)
 }
 
-func (a *Anilist) media(ctx context.Context, title string, t MediaType) ([]discord.Media, error) {
+func (a *Anilist) media(ctx context.Context, title string, t MediaType) ([]collection.Media, error) {
 	media, err := media(ctx, a.c, title, t)
 	if err != nil {
 		return nil, err
 	}
-	resp := make([]discord.Media, len(media.Page.Media))
+	resp := make([]collection.Media, len(media.Page.Media))
 	for i, m := range media.Page.Media {
-		resp[i] = discord.Media{
+		resp[i] = collection.Media{
 			CoverImageURL:   m.CoverImage.Large,
 			BannerImageURL:  m.BannerImage,
 			CoverImageColor: ColorUint(m.CoverImage.Color),
@@ -180,15 +181,15 @@ func (a *Anilist) media(ctx context.Context, title string, t MediaType) ([]disco
 }
 
 // User returns a user by name
-func (a *Anilist) User(ctx context.Context, name string) ([]discord.TrackerUser, error) {
+func (a *Anilist) User(ctx context.Context, name string) ([]collection.TrackerUser, error) {
 	users, err := user(ctx, a.c, name)
 	if err != nil {
 		return nil, err
 	}
 
-	resp := make([]discord.TrackerUser, len(users.Page.Users))
+	resp := make([]collection.TrackerUser, len(users.Page.Users))
 	for i, u := range users.Page.Users {
-		resp[i] = discord.TrackerUser{
+		resp[i] = collection.TrackerUser{
 			URL:      u.SiteUrl,
 			Name:     u.Name,
 			ImageURL: fmt.Sprintf("https://img.anili.st/user/%d", u.Id),
@@ -200,15 +201,15 @@ func (a *Anilist) User(ctx context.Context, name string) ([]discord.TrackerUser,
 }
 
 // Character returns a character by name
-func (a *Anilist) Character(ctx context.Context, name string) ([]discord.MediaCharacter, error) {
+func (a *Anilist) Character(ctx context.Context, name string) ([]collection.MediaCharacter, error) {
 	char, err := character(ctx, a.c, name)
 	if err != nil {
 		return nil, err
 	}
 
-	resp := make([]discord.MediaCharacter, len(char.Page.Characters))
+	resp := make([]collection.MediaCharacter, len(char.Page.Characters))
 	for i, c := range char.Page.Characters {
-		resp[i] = discord.MediaCharacter{
+		resp[i] = collection.MediaCharacter{
 			ID:          c.Id,
 			Name:        c.Name.Full,
 			ImageURL:    c.Image.Large,
@@ -221,7 +222,7 @@ func (a *Anilist) Character(ctx context.Context, name string) ([]discord.MediaCh
 }
 
 // Manga returns a manga by title
-func (a *Anilist) Manga(ctx context.Context, title string) ([]discord.Media, error) {
+func (a *Anilist) Manga(ctx context.Context, title string) ([]collection.Media, error) {
 	return a.media(ctx, title, MediaTypeManga)
 }
 

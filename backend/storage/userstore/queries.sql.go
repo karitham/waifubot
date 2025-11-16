@@ -3,10 +3,12 @@
 //   sqlc v1.30.0
 // source: queries.sql
 
-package users
+package userstore
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const consumeTokens = `-- name: ConsumeTokens :one
@@ -109,5 +111,77 @@ WHERE
 
 func (q *Queries) IncTokens(ctx context.Context, userID uint64) error {
 	_, err := q.db.Exec(ctx, incTokens, userID)
+	return err
+}
+
+const updateAnilistURL = `-- name: UpdateAnilistURL :exec
+UPDATE users
+SET
+  anilist_url = $1
+WHERE
+  user_id = $2
+`
+
+type UpdateAnilistURLParams struct {
+	AnilistUrl string
+	UserID     uint64
+}
+
+func (q *Queries) UpdateAnilistURL(ctx context.Context, arg UpdateAnilistURLParams) error {
+	_, err := q.db.Exec(ctx, updateAnilistURL, arg.AnilistUrl, arg.UserID)
+	return err
+}
+
+const updateDate = `-- name: UpdateDate :exec
+UPDATE users
+SET
+  date = $1
+WHERE
+  user_id = $2
+`
+
+type UpdateDateParams struct {
+	Date   pgtype.Timestamp
+	UserID uint64
+}
+
+func (q *Queries) UpdateDate(ctx context.Context, arg UpdateDateParams) error {
+	_, err := q.db.Exec(ctx, updateDate, arg.Date, arg.UserID)
+	return err
+}
+
+const updateFavorite = `-- name: UpdateFavorite :exec
+UPDATE users
+SET
+  favorite = $1
+WHERE
+  user_id = $2
+`
+
+type UpdateFavoriteParams struct {
+	Favorite pgtype.Int8
+	UserID   uint64
+}
+
+func (q *Queries) UpdateFavorite(ctx context.Context, arg UpdateFavoriteParams) error {
+	_, err := q.db.Exec(ctx, updateFavorite, arg.Favorite, arg.UserID)
+	return err
+}
+
+const updateQuote = `-- name: UpdateQuote :exec
+UPDATE users
+SET
+  quote = $1
+WHERE
+  user_id = $2
+`
+
+type UpdateQuoteParams struct {
+	Quote  string
+	UserID uint64
+}
+
+func (q *Queries) UpdateQuote(ctx context.Context, arg UpdateQuoteParams) error {
+	_, err := q.db.Exec(ctx, updateQuote, arg.Quote, arg.UserID)
 	return err
 }

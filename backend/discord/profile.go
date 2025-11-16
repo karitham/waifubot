@@ -4,19 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/Karitham/corde"
-)
 
-type Profile struct {
-	User
-	CharacterCount int
-	Favorite       Character
-}
+	"github.com/karitham/waifubot/collection"
+)
 
 func (b *Bot) profile(m *corde.Mux) {
 	m.SlashCommand("view", trace(b.profileView))
@@ -31,14 +25,16 @@ func (b *Bot) profile(m *corde.Mux) {
 }
 
 func (b *Bot) profileView(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
+	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
+
 	user := i.Member.User
 	if len(i.Data.Resolved.Users) > 0 {
 		user = i.Data.Resolved.Users.First()
 	}
 
-	data, err := b.Store.ProfileOverview(ctx, user.ID)
+	data, err := collection.UserProfile(ctx, b.Store, user.ID)
 	if err != nil {
-		slog.ErrorContext(ctx, "Error getting user's profile", "error", err)
+		logger.Error("error getting profile", "error", err, "target_user_id", uint64(user.ID))
 		w.Respond(corde.NewResp().Content("An error occurred dialing the database, please try again later").Ephemeral())
 		return
 	}
@@ -69,10 +65,11 @@ func (b *Bot) profileView(ctx context.Context, w corde.ResponseWriter, i *corde.
 }
 
 func (b *Bot) profileEditFavorite(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
+	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
+
 	optID, _ := i.Data.Options.Int64("id")
-	err := b.Store.SetUserFavorite(ctx, i.Member.User.ID, optID)
-	if err != nil {
-		slog.ErrorContext(ctx, "Error setting user's favorite character", "error", err, "user", i.Member.User.ID, "character", optID)
+	if err := collection.SetFavorite(ctx, b.Store, i.Member.User.ID, optID); err != nil {
+		logger.Error("error setting favorite character", "error", err, "character_id", optID)
 		w.Respond(corde.NewResp().Content("An error occurred setting this character").Ephemeral())
 		return
 	}
@@ -87,13 +84,10 @@ func (b *Bot) userCollectionAutocomplete(ctx context.Context, w corde.ResponseWr
 		id = strconv.Itoa(i)
 	}
 
-	chars, err := b.Store.CharsStartingWith(ctx, i.Member.User.ID, id)
+	chars, err := collection.SearchCharacters(ctx, b.Store, i.Member.User.ID, id)
 	if err != nil {
 		slog.Error("Error getting user's characters", "error", err, "user", i.Member.User.ID)
 		return
-	}
-	if len(chars) > 25 {
-		chars = chars[25:]
 	}
 
 	resp := corde.NewResp()
@@ -106,26 +100,8 @@ func (b *Bot) userCollectionAutocomplete(ctx context.Context, w corde.ResponseWr
 
 func (b *Bot) profileEditAnilistURL(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
 	anilistURL, _ := i.Data.Options.String("url")
-	parsedURL, err := url.Parse(anilistURL)
-	if err != nil {
-		w.Respond(corde.NewResp().Content("Invalid URL").Ephemeral())
-		return
-	}
-
-	if parsedURL.Host != "anilist.co" {
-		w.Respond(corde.NewResp().Content("Invalid Anilist URL").Ephemeral())
-		return
-	}
-
-	if !strings.HasPrefix(parsedURL.Path, "/user/") {
-		w.Respond(corde.NewResp().Content("Invalid Anilist URL").Ephemeral())
-		return
-	}
-
-	err = b.Store.SetUserAnilistURL(ctx, i.Member.User.ID, anilistURL)
-	if err != nil {
-		slog.ErrorContext(ctx, "Error setting user's anilist url", "error", err, "user", i.Member.User.ID)
-		w.Respond(corde.NewResp().Content("An error occurred setting your anilist url").Ephemeral())
+	if err := collection.SetAnilistURL(ctx, b.Store, i.Member.User.ID, anilistURL); err != nil {
+		w.Respond(corde.NewResp().Content(err.Error()).Ephemeral())
 		return
 	}
 
@@ -134,15 +110,8 @@ func (b *Bot) profileEditAnilistURL(ctx context.Context, w corde.ResponseWriter,
 
 func (b *Bot) profileEditQuote(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
 	quote, _ := i.Data.Options.String("value")
-	if len(quote) > 1024 {
-		w.Respond(corde.NewResp().Content("Quote is too long").Ephemeral())
-		return
-	}
-
-	err := b.Store.SetUserQuote(ctx, i.Member.User.ID, quote)
-	if err != nil {
-		slog.ErrorContext(ctx, "Error setting user's quote", "error", err, "user", i.Member.User.ID, "quote", quote)
-		w.Respond(corde.NewResp().Content("An error occurred setting this character").Ephemeral())
+	if err := collection.SetQuote(ctx, b.Store, i.Member.User.ID, quote); err != nil {
+		w.Respond(corde.NewResp().Content(err.Error()).Ephemeral())
 		return
 	}
 

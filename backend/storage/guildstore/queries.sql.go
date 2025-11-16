@@ -3,7 +3,7 @@
 //   sqlc v1.30.0
 // source: queries.sql
 
-package guilds
+package guildstore
 
 import (
 	"context"
@@ -20,7 +20,7 @@ WHERE
   guild_id = $1
 `
 
-func (q *Queries) CompleteIndexingJob(ctx context.Context, guildID int64) error {
+func (q *Queries) CompleteIndexingJob(ctx context.Context, guildID uint64) error {
 	_, err := q.db.Exec(ctx, completeIndexingJob, guildID)
 	return err
 }
@@ -31,7 +31,7 @@ WHERE
   guild_id = $1
 `
 
-func (q *Queries) DeleteGuildMembers(ctx context.Context, guildID int64) error {
+func (q *Queries) DeleteGuildMembers(ctx context.Context, guildID uint64) error {
 	_, err := q.db.Exec(ctx, deleteGuildMembers, guildID)
 	return err
 }
@@ -42,7 +42,7 @@ WHERE guild_id = $1 AND user_id NOT IN (SELECT unnest($2::bigint[]))
 `
 
 type DeleteGuildMembersNotInParams struct {
-	GuildID int64
+	GuildID uint64
 	Column2 []int64
 }
 
@@ -60,7 +60,7 @@ WHERE
   guild_id = $1
 `
 
-func (q *Queries) GetGuildMembers(ctx context.Context, guildID int64) ([]int64, error) {
+func (q *Queries) GetGuildMembers(ctx context.Context, guildID uint64) ([]int64, error) {
 	rows, err := q.db.Query(ctx, getGuildMembers, guildID)
 	if err != nil {
 		return nil, err
@@ -95,7 +95,7 @@ type GetIndexingStatusRow struct {
 	UpdatedAt pgtype.Timestamp
 }
 
-func (q *Queries) GetIndexingStatus(ctx context.Context, guildID int64) (GetIndexingStatusRow, error) {
+func (q *Queries) GetIndexingStatus(ctx context.Context, guildID uint64) (GetIndexingStatusRow, error) {
 	row := q.db.QueryRow(ctx, getIndexingStatus, guildID)
 	var i GetIndexingStatusRow
 	err := row.Scan(&i.Status, &i.UpdatedAt)
@@ -117,7 +117,7 @@ type IsGuildIndexedRow struct {
 	UpdatedAt pgtype.Timestamp
 }
 
-func (q *Queries) IsGuildIndexed(ctx context.Context, guildID int64) (IsGuildIndexedRow, error) {
+func (q *Queries) IsGuildIndexed(ctx context.Context, guildID uint64) (IsGuildIndexedRow, error) {
 	row := q.db.QueryRow(ctx, isGuildIndexed, guildID)
 	var i IsGuildIndexedRow
 	err := row.Scan(&i.Status, &i.UpdatedAt)
@@ -135,7 +135,7 @@ SET
   updated_at = NOW()
 `
 
-func (q *Queries) StartIndexingJob(ctx context.Context, guildID int64) error {
+func (q *Queries) StartIndexingJob(ctx context.Context, guildID uint64) error {
 	_, err := q.db.Exec(ctx, startIndexingJob, guildID)
 	return err
 }
@@ -147,7 +147,7 @@ ON CONFLICT (guild_id, user_id) DO UPDATE SET indexed_at = EXCLUDED.indexed_at
 `
 
 type UpsertGuildMembersParams struct {
-	GuildID   int64
+	GuildID   uint64
 	Column2   []int64
 	IndexedAt pgtype.Timestamp
 }
@@ -170,7 +170,7 @@ WHERE
 
 type UsersOwningCharInGuildParams struct {
 	ID      int64
-	GuildID int64
+	GuildID uint64
 }
 
 func (q *Queries) UsersOwningCharInGuild(ctx context.Context, arg UsersOwningCharInGuildParams) ([]uint64, error) {

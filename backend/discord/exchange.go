@@ -2,36 +2,34 @@ package discord
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/Karitham/corde"
+
+	"github.com/karitham/waifubot/collection"
 )
 
 func (b *Bot) exchange(m *corde.Mux) {
 	m.SlashCommand("", wrap(
 		b.exchangeCommand,
 		trace[corde.SlashCommandInteractionData],
-		interact(b.Inter, onInteraction[corde.SlashCommandInteractionData](b)),
+		interact(b.InterStore, onInteraction[corde.SlashCommandInteractionData](b)),
 	))
 	m.Autocomplete("id", b.userCollectionAutocomplete)
 }
 
 func (b *Bot) exchangeCommand(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
+	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
+
 	user := i.Member.User
-	char, _ := i.Data.Options.Int64("id")
-	var c Character
+	charID, _ := i.Data.Options.Int64("id")
 
-	if err := b.Store.Tx(ctx, func(s Store) error {
-		var err error
-		c, err = s.DeleteChar(ctx, user.ID, char)
-		if err != nil {
-			w.Respond(newErrf("%s doesn't have this character; you can't exchange it!", user.Username))
-			return err
-		}
-
-		return s.AddDropToken(ctx, user.ID)
-	}); err != nil {
+	char, err := collection.Exchange(ctx, b.Store, user.ID, charID)
+	if err != nil {
+		logger.Error("error performing exchange", "error", err, "character_id", charID)
+		w.Respond(newErrf("Error: %s", err.Error()))
 		return
 	}
 
-	w.Respond(newErrf("Exchanged %s for a token!", c.Name))
+	w.Respond(newErrf("Exchanged %s for a token!", char.Name))
 }

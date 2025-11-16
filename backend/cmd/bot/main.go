@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -9,22 +10,43 @@ import (
 	"time"
 
 	"github.com/Karitham/corde"
-	"github.com/go-redis/redis/v8"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/redis/go-redis/v9"
 	"github.com/urfave/cli/v2"
 
 	"github.com/karitham/waifubot/anilist"
-	"github.com/karitham/waifubot/db"
-	"github.com/karitham/waifubot/db/characters"
+	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/discord"
-	"github.com/karitham/waifubot/memstore"
+	"github.com/karitham/waifubot/guild"
+	"github.com/karitham/waifubot/storage"
+	"github.com/karitham/waifubot/storage/collectionstore"
+	"github.com/karitham/waifubot/storage/guildstore"
+
+	"github.com/karitham/waifubot/storage/dropstore"
+	"github.com/karitham/waifubot/storage/interactionstore"
 )
 
+func parseLogLevel(levelStr string) slog.Level {
+	switch strings.ToUpper(levelStr) {
+	case "DEBUG":
+		return slog.LevelDebug
+	case "INFO":
+		return slog.LevelInfo
+	case "WARN", "WARNING":
+		return slog.LevelWarn
+	case "ERROR":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}
+
 func main() {
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo})))
+	logLevel := parseLogLevel(os.Getenv("LOG_LEVEL"))
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})))
 
 	disc := &discordCmd{}
 	d := &dbCmd{}
-	dev := false
 
 	app := &cli.App{
 		Name:        "waifubot",
@@ -97,7 +119,115 @@ func main() {
 						Required: true,
 					},
 				},
-				Action: disc.queryHolders,
+				Action: disc.holders,
+			},
+			{
+				Name:  "profile",
+				Usage: "Show user profile",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     "user",
+						EnvVars:  []string{"USER_ID"},
+						Required: true,
+					},
+				},
+				Action: disc.profile,
+			},
+			{
+				Name:  "exchange",
+				Usage: "Exchange a character for a token",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     "user",
+						EnvVars:  []string{"USER_ID"},
+						Required: true,
+					},
+					&cli.Int64Flag{
+						Name:     "id",
+						Usage:    "Character ID to exchange",
+						Required: true,
+					},
+				},
+				Action: disc.exchange,
+			},
+			{
+				Name:  "search",
+				Usage: "Search for anime, manga, users, or characters",
+				Subcommands: []*cli.Command{
+					{
+						Name:  "anime",
+						Usage: "Search for anime",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:     "name",
+								Required: true,
+							},
+						},
+						Action: disc.searchAnime,
+					},
+					{
+						Name:  "manga",
+						Usage: "Search for manga",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:     "name",
+								Required: true,
+							},
+						},
+						Action: disc.searchManga,
+					},
+					{
+						Name:  "user",
+						Usage: "Search for users",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:     "name",
+								Required: true,
+							},
+						},
+						Action: disc.searchUser,
+					},
+					{
+						Name:  "character",
+						Usage: "Search for characters",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:     "name",
+								Required: true,
+							},
+						},
+						Action: disc.searchCharacter,
+					},
+				},
+			},
+			{
+				Name:  "verify",
+				Usage: "Check if user owns a character",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     "user",
+						EnvVars:  []string{"USER_ID"},
+						Required: true,
+					},
+					&cli.Int64Flag{
+						Name:     "id",
+						Usage:    "Character ID to check",
+						Required: true,
+					},
+				},
+				Action: disc.verify,
+			},
+			{
+				Name:  "list",
+				Usage: "List user's characters",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     "user",
+						EnvVars:  []string{"USER_ID"},
+						Required: true,
+					},
+				},
+				Action: disc.list,
 			},
 			{
 				Name:  "roll",
@@ -190,25 +320,13 @@ func main() {
 				Destination: &disc.anilistMaxChars,
 				EnvVars:     []string{"ANILIST_MAX_CHARS"},
 			},
-			&cli.BoolFlag{
-				Name:        "dev",
-				EnvVars:     []string{"DEV"},
-				Destination: &dev,
-			},
 			&cli.StringFlag{
 				Name:        "redis-url",
 				EnvVars:     []string{"REDIS_URL"},
-				Required:    true,
 				Destination: &disc.redisURL,
 			},
 		},
 		Action: disc.run,
-		Before: func(*cli.Context) error {
-			if dev {
-				slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})))
-			}
-			return nil
-		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -254,32 +372,48 @@ func (dc *discordCmd) run(c *cli.Context) error {
 		return fmt.Errorf("error building bot: %w", err)
 	}
 
-	return discord.New(bot).ListenAndServe(":" + dc.port)
+	slog.Info("Starting WaifuBot Discord bot", "port", dc.port, "app_id", dc.appID)
+	mux := discord.New(bot)
+	slog.Info("Discord bot started successfully", "port", dc.port)
+	err = mux.ListenAndServe(":" + dc.port)
+	if err != nil {
+		slog.Error("Discord bot crashed", "error", err, "port", dc.port)
+		return err
+	}
+	slog.Info("Discord bot shutting down", "port", dc.port)
+	return nil
 }
 
 func (dc *discordCmd) createBot(ctx context.Context) (*discord.Bot, error) {
-	store, err := db.NewStore(ctx, dc.dbURL)
+	store, err := storage.NewStore(ctx, dc.dbURL)
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to db: %w", err)
 	}
 
-	opts, err := redis.ParseURL(dc.redisURL)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing redis url: %w", err)
-	}
-
-	redis := memstore.New(opts)
-
 	bot := &discord.Bot{
 		Store:             store,
 		AnimeService:      anilist.New(anilist.MaxChar(dc.anilistMaxChars)),
+		GuildIndexer:      guild.NewIndexer(store, dc.botToken),
 		AppID:             corde.SnowflakeFromString(dc.appID),
 		BotToken:          dc.botToken,
 		PublicKey:         dc.publicKey,
 		RollCooldown:      dc.rollCooldown,
 		TokensNeeded:      int32(dc.tokensNeeded),
 		InteractionNeeded: dc.interactionNeeded,
-		Inter:             redis,
+		InterStore:        interactionstore.NewMemStore(),
+		DropStore:         dropstore.NewMemStore[collection.MediaCharacter](),
+	}
+
+	if dc.redisURL != "" {
+		opts, err := redis.ParseURL(dc.redisURL)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing redis url: %w", err)
+		}
+
+		redis := redis.NewClient(opts)
+
+		bot.DropStore = dropstore.NewRedis[collection.MediaCharacter](redis, "channel", "char")
+		bot.InterStore = interactionstore.NewRedis(redis)
 	}
 
 	if dc.guildID != "" {
@@ -303,23 +437,34 @@ func (dc *discordCmd) indexGuild(c *cli.Context) error {
 		return fmt.Errorf("invalid guild ID: %s", guildIDStr)
 	}
 
-	fmt.Printf("Indexing guild %s...\n", guildIDStr)
-
 	memberIDs, err := discord.FetchGuildMemberIDs(ctx, dc.botToken, guildID)
 	if err != nil {
 		return fmt.Errorf("failed to fetch members: %w", err)
 	}
 
-	err = bot.Store.InsertGuildMembers(ctx, guildID, memberIDs)
-	if err != nil {
-		return fmt.Errorf("failed to insert members: %w", err)
+	memberIDsInt := make([]int64, len(memberIDs))
+	for i, id := range memberIDs {
+		memberIDsInt[i] = int64(id)
 	}
 
-	fmt.Printf("Indexed %d members\n", len(memberIDs))
-	return nil
+	err = bot.Store.GuildStore().UpsertGuildMembers(ctx, guildstore.UpsertGuildMembersParams{
+		GuildID:   uint64(guildID),
+		Column2:   memberIDsInt,
+		IndexedAt: pgtype.Timestamp{Time: time.Now(), Valid: true},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to upsert guild members: %w", err)
+	}
+
+	result := map[string]any{
+		"guild_id":        guildIDStr,
+		"indexed_members": len(memberIDs),
+	}
+
+	return json.NewEncoder(os.Stdout).Encode(result)
 }
 
-func (dc *discordCmd) queryHolders(c *cli.Context) error {
+func (dc *discordCmd) holders(c *cli.Context) error {
 	ctx := c.Context
 	bot, err := dc.createBot(ctx)
 	if err != nil {
@@ -332,39 +477,20 @@ func (dc *discordCmd) queryHolders(c *cli.Context) error {
 		return fmt.Errorf("invalid guild ID: %s", guildIDStr)
 	}
 
-	charID := c.Int64("character-id")
+	charID := c.Int64("id")
 
-	char, err := bot.Store.GetCharByID(ctx, charID)
+	charName, holderIDs, err := collection.CharacterHolders(ctx, bot.Store, guildID, charID)
 	if err != nil {
-		return fmt.Errorf("character not found: %w", err)
+		return fmt.Errorf("failed to get character holders: %w", err)
 	}
 
-	memberIDs, err := bot.Store.GetGuildMembers(ctx, guildID)
-	if err != nil {
-		return fmt.Errorf("failed to fetch guild members: %w", err)
+	result := map[string]any{
+		"character_id":   charID,
+		"character_name": charName,
+		"holder_ids":     holderIDs,
 	}
 
-	if len(memberIDs) == 0 {
-		fmt.Println("Guild members not indexed yet")
-		return nil
-	}
-
-	holderIDs, err := bot.Store.UsersOwningCharInGuild(ctx, charID, guildID)
-	if err != nil {
-		return fmt.Errorf("failed to fetch character holders: %w", err)
-	}
-
-	if len(holderIDs) == 0 {
-		fmt.Printf("No one in this server has %s (ID: %d)\n", char.Name, charID)
-		return nil
-	}
-
-	fmt.Printf("Users in this server who have %s (ID: %d):\n", char.Name, charID)
-	for _, holderID := range holderIDs {
-		fmt.Printf("- %d\n", holderID)
-	}
-
-	return nil
+	return json.NewEncoder(os.Stdout).Encode(result)
 }
 
 func (dc *discordCmd) rollForUser(c *cli.Context) error {
@@ -374,19 +500,22 @@ func (dc *discordCmd) rollForUser(c *cli.Context) error {
 		return err
 	}
 
-	userIDStr := c.String("user-id")
+	userIDStr := c.String("user")
 	userID := corde.SnowflakeFromString(userIDStr)
 	if userID == 0 {
 		return fmt.Errorf("invalid user ID: %s", userIDStr)
 	}
 
-	char, err := bot.PerformRoll(ctx, userID)
+	config := collection.Config{
+		RollCooldown: bot.RollCooldown,
+		TokensNeeded: bot.TokensNeeded,
+	}
+	char, err := collection.Roll(ctx, bot.Store, bot.AnimeService, config, userID)
 	if err != nil {
 		return fmt.Errorf("error rolling: %w", err)
 	}
 
-	fmt.Printf("Rolled %s (ID: %d) from %s\n", char.Name, char.ID, char.MediaTitle)
-	return nil
+	return json.NewEncoder(os.Stdout).Encode(char)
 }
 
 func (dc *discordCmd) giveCharacter(c *cli.Context) error {
@@ -396,27 +525,190 @@ func (dc *discordCmd) giveCharacter(c *cli.Context) error {
 		return err
 	}
 
-	fromStr := c.String("from-user-id")
+	fromStr := c.String("from")
 	from := corde.SnowflakeFromString(fromStr)
 	if from == 0 {
 		return fmt.Errorf("invalid from user ID: %s", fromStr)
 	}
 
-	toStr := c.String("to-user-id")
+	toStr := c.String("to")
 	to := corde.SnowflakeFromString(toStr)
 	if to == 0 {
 		return fmt.Errorf("invalid to user ID: %s", toStr)
 	}
 
-	charID := c.Int64("character-id")
+	charID := c.Int64("id")
 
-	char, err := bot.PerformGive(ctx, from, to, charID)
+	char, err := collection.Give(ctx, bot.Store, from, to, charID)
 	if err != nil {
 		return fmt.Errorf("error giving: %w", err)
 	}
 
-	fmt.Printf("Gave %s (%d) from %d to %d\n", char.Name, charID, from, to)
-	return nil
+	return json.NewEncoder(os.Stdout).Encode(char)
+}
+
+func (dc *discordCmd) profile(c *cli.Context) error {
+	ctx := c.Context
+	bot, err := dc.createBot(ctx)
+	if err != nil {
+		return err
+	}
+
+	userIDStr := c.String("user")
+	userID := corde.SnowflakeFromString(userIDStr)
+	if userID == 0 {
+		return fmt.Errorf("invalid user ID: %s", userIDStr)
+	}
+
+	profile, err := collection.UserProfile(ctx, bot.Store, userID)
+	if err != nil {
+		return fmt.Errorf("error getting profile: %w", err)
+	}
+
+	return json.NewEncoder(os.Stdout).Encode(profile)
+}
+
+func (dc *discordCmd) exchange(c *cli.Context) error {
+	ctx := c.Context
+	bot, err := dc.createBot(ctx)
+	if err != nil {
+		return err
+	}
+
+	userIDStr := c.String("user")
+	userID := corde.SnowflakeFromString(userIDStr)
+	if userID == 0 {
+		return fmt.Errorf("invalid user ID: %s", userIDStr)
+	}
+
+	charID := c.Int64("id")
+
+	char, err := collection.Exchange(ctx, bot.Store, userID, charID)
+	if err != nil {
+		return fmt.Errorf("error exchanging: %w", err)
+	}
+
+	result := map[string]any{
+		"exchanged_character": char,
+		"message":             fmt.Sprintf("Exchanged %s for a token", char.Name),
+	}
+
+	return json.NewEncoder(os.Stdout).Encode(result)
+}
+
+func (dc *discordCmd) searchAnime(c *cli.Context) error {
+	ctx := c.Context
+	bot, err := dc.createBot(ctx)
+	if err != nil {
+		return err
+	}
+
+	name := c.String("name")
+	anime, err := bot.AnimeService.Anime(ctx, name)
+	if err != nil {
+		return fmt.Errorf("error searching anime: %w", err)
+	}
+
+	return json.NewEncoder(os.Stdout).Encode(anime)
+}
+
+func (dc *discordCmd) searchManga(c *cli.Context) error {
+	ctx := c.Context
+	bot, err := dc.createBot(ctx)
+	if err != nil {
+		return err
+	}
+
+	name := c.String("name")
+	manga, err := bot.AnimeService.Manga(ctx, name)
+	if err != nil {
+		return fmt.Errorf("error searching manga: %w", err)
+	}
+
+	return json.NewEncoder(os.Stdout).Encode(manga)
+}
+
+func (dc *discordCmd) searchUser(c *cli.Context) error {
+	ctx := c.Context
+	bot, err := dc.createBot(ctx)
+	if err != nil {
+		return err
+	}
+
+	name := c.String("name")
+	users, err := bot.AnimeService.User(ctx, name)
+	if err != nil {
+		return fmt.Errorf("error searching users: %w", err)
+	}
+
+	return json.NewEncoder(os.Stdout).Encode(users)
+}
+
+func (dc *discordCmd) searchCharacter(c *cli.Context) error {
+	ctx := c.Context
+	bot, err := dc.createBot(ctx)
+	if err != nil {
+		return err
+	}
+
+	name := c.String("name")
+	characters, err := bot.AnimeService.Character(ctx, name)
+	if err != nil {
+		return fmt.Errorf("error searching characters: %w", err)
+	}
+
+	return json.NewEncoder(os.Stdout).Encode(characters)
+}
+
+func (dc *discordCmd) verify(c *cli.Context) error {
+	ctx := c.Context
+	bot, err := dc.createBot(ctx)
+	if err != nil {
+		return err
+	}
+
+	userIDStr := c.String("user")
+	userID := corde.SnowflakeFromString(userIDStr)
+	if userID == 0 {
+		return fmt.Errorf("invalid user ID: %s", userIDStr)
+	}
+
+	charID := c.Int64("id")
+
+	has, char, err := collection.CheckOwnership(ctx, bot.Store, userID, charID)
+	if err != nil {
+		return fmt.Errorf("error checking ownership: %w", err)
+	}
+
+	result := map[string]any{
+		"has": has,
+	}
+	if has {
+		result["character"] = char
+	}
+
+	return json.NewEncoder(os.Stdout).Encode(result)
+}
+
+func (dc *discordCmd) list(c *cli.Context) error {
+	ctx := c.Context
+	bot, err := dc.createBot(ctx)
+	if err != nil {
+		return err
+	}
+
+	userIDStr := c.String("user")
+	userID := corde.SnowflakeFromString(userIDStr)
+	if userID == 0 {
+		return fmt.Errorf("invalid user ID: %s", userIDStr)
+	}
+
+	characters, err := collection.Characters(ctx, bot.Store, userID)
+	if err != nil {
+		return fmt.Errorf("error listing characters: %w", err)
+	}
+
+	return json.NewEncoder(os.Stdout).Encode(characters)
 }
 
 type dbCmd struct {
@@ -429,7 +721,7 @@ func (r *dbCmd) update(c *cli.Context) error {
 		return fmt.Errorf("no character name provided")
 	}
 
-	s, err := db.NewStore(c.Context, r.DatabaseURL)
+	s, err := storage.NewStore(c.Context, r.DatabaseURL)
 	if err != nil {
 		return fmt.Errorf("error connecting to db %v", err)
 	}
@@ -442,7 +734,7 @@ func (r *dbCmd) update(c *cli.Context) error {
 		return fmt.Errorf("character not found")
 	}
 
-	if _, err := s.CharacterStore.UpdateImageName(c.Context, characters.UpdateImageNameParams{
+	if _, err := s.CollectionStore().UpdateImageName(c.Context, collectionstore.UpdateImageNameParams{
 		Image: char[0].ImageURL,
 		Name:  strings.Join(strings.Fields(char[0].Name), " "),
 		ID:    char[0].ID,

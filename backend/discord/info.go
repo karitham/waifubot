@@ -42,6 +42,6 @@ func (b *Bot) info(ctx context.Context, w corde.ResponseWriter, i *corde.Interac
 				"Collect and trade anime/manga characters.\n```info\n%s```",
 				infob.String(),
 			).
-			URL("https://github.com/Karitham/WaifuBot/tree/corde"),
+			URL("https://github.com/karitham/waifubot"),
 	))
 }

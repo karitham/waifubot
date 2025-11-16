@@ -23,7 +23,7 @@ RUN apk add --no-cache curl postgresql-client && \
 
 COPY --from=builder /go/bin/bot /bin/
 COPY --from=builder /go/bin/api /bin/
-COPY db/migrations /migrations
+COPY storage/migrations /migrations
 
 COPY <<'EOF' /entrypoint.sh
 #!/bin/sh

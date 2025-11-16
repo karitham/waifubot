@@ -35,3 +35,31 @@ FROM
   users
 WHERE
   LOWER(users.anilist_url) = LOWER($1);
+
+-- name: UpdateFavorite :exec
+UPDATE users
+SET
+  favorite = $1
+WHERE
+  user_id = $2;
+
+-- name: UpdateAnilistURL :exec
+UPDATE users
+SET
+  anilist_url = $1
+WHERE
+  user_id = $2;
+
+-- name: UpdateQuote :exec
+UPDATE users
+SET
+  quote = $1
+WHERE
+  user_id = $2;
+
+-- name: UpdateDate :exec
+UPDATE users
+SET
+  date = $1
+WHERE
+  user_id = $2;

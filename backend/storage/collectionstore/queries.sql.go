@@ -3,7 +3,7 @@
 //   sqlc v1.30.0
 // source: queries.sql
 
-package characters
+package collectionstore
 
 import (
 	"context"

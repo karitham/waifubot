@@ -4,18 +4,23 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/Karitham/corde"
+
+	"github.com/karitham/waifubot/collection"
 )
 
 func indexMiddleware[T corde.InteractionDataConstraint](b *Bot) func(func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T])) func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]) {
 	return func(next func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T])) func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]) {
 		return func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]) {
-			if i.GuildID != 0 {
-				go b.indexGuildIfNeeded(context.Background(), i.GuildID)
-			}
+			go func() {
+				if err := b.GuildIndexer.IndexGuildIfNeeded(context.Background(), i.GuildID); err != nil {
+					slog.Error("failed to index guild", "error", err, "guild_id", i.GuildID)
+				}
+			}()
 
 			next(ctx, w, i)
 		}
@@ -27,7 +32,7 @@ func (b *Bot) holders(m *corde.Mux) {
 		b.holdersCommand,
 		indexMiddleware[corde.SlashCommandInteractionData](b),
 		trace[corde.SlashCommandInteractionData],
-		interact(b.Inter, onInteraction[corde.SlashCommandInteractionData](b)),
+		interact(b.InterStore, onInteraction[corde.SlashCommandInteractionData](b)),
 	))
 	m.Autocomplete("id", b.verifyAutocomplete)
 }
@@ -39,42 +44,20 @@ func (b *Bot) holdersCommand(ctx context.Context, w corde.ResponseWriter, i *cor
 		return
 	}
 
-	if i.GuildID == 0 {
-		w.Respond(rspErr("this command can only be used in servers"))
-		return
-	}
-
-	char, err := b.Store.GetCharByID(ctx, int64(charID))
+	charName, holderIDs, err := collection.CharacterHolders(ctx, b.Store, i.GuildID, int64(charID))
 	if err != nil {
-		w.Respond(newErrf("no one in this server has %d", charID))
-		return
-	}
-
-	memberIDs, err := b.Store.GetGuildMembers(ctx, i.GuildID)
-	if err != nil {
-		w.Respond(newErrf("failed to fetch guild members: %v", err))
-		return
-	}
-
-	if len(memberIDs) == 0 {
-		w.Respond(rspErr("guild members not indexed yet, please try again later"))
-		return
-	}
-
-	holderIDs, err := b.Store.UsersOwningCharInGuild(ctx, int64(charID), i.GuildID)
-	if err != nil {
-		w.Respond(newErrf("failed to fetch character holders: %v", err))
+		w.Respond(newErrf("Error: %s", err.Error()))
 		return
 	}
 
 	if len(holderIDs) == 0 {
-		w.Respond(corde.NewResp().Contentf("No one in this server has **%s** (ID: %d)", char.Name, charID).Ephemeral())
+		w.Respond(corde.NewResp().Contentf("No one in this server has **%s** (ID: %d)", charName, charID).Ephemeral())
 		return
 	}
 
 	var mentions strings.Builder
 
-	mentions.WriteString(fmt.Sprintf("Users in this server who have **%s** (ID: %d):\n", char.Name, charID))
+	mentions.WriteString(fmt.Sprintf("Users in this server who have **%s** (ID: %d):\n", charName, charID))
 	for _, holderID := range holderIDs {
 		mentions.WriteString(fmt.Sprintf("- <@%d>\n", holderID))
 	}
@@ -127,7 +110,7 @@ func fetchGuildMembersPage(ctx context.Context, botToken string, guildID, after 
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch guild members: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint: errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to fetch guild members: status %d", resp.StatusCode)
