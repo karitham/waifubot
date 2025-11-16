@@ -2,10 +2,8 @@ package discord
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"strings"
 
 	"github.com/Karitham/corde"
@@ -63,63 +61,4 @@ func (b *Bot) holdersCommand(ctx context.Context, w corde.ResponseWriter, i *cor
 	}
 
 	w.Respond(corde.NewResp().Content(mentions.String()).Ephemeral())
-}
-
-func FetchGuildMemberIDs(ctx context.Context, botToken string, guildID corde.Snowflake) ([]corde.Snowflake, error) {
-	var allMemberIDs []corde.Snowflake
-
-	after := corde.Snowflake(0)
-
-	for {
-		members, err := fetchGuildMembersPage(ctx, botToken, guildID, after)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(members) == 0 {
-			break
-		}
-
-		for _, member := range members {
-			allMemberIDs = append(allMemberIDs, member.User.ID)
-		}
-
-		if len(members) < 1000 {
-			break
-		}
-
-		after = members[len(members)-1].User.ID
-	}
-
-	return allMemberIDs, nil
-}
-
-func fetchGuildMembersPage(ctx context.Context, botToken string, guildID, after corde.Snowflake) ([]corde.Member, error) {
-	url := fmt.Sprintf("https://discord.com/api/v10/guilds/%d/members?limit=1000", guildID)
-	if after != 0 {
-		url = fmt.Sprintf("%s&after=%d", url, after)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("Authorization", "Bot "+botToken)
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch guild members: %w", err)
-	}
-	defer resp.Body.Close() //nolint: errcheck
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to fetch guild members: status %d", resp.StatusCode)
-	}
-
-	var members []corde.Member
-	if err := json.NewDecoder(resp.Body).Decode(&members); err != nil {
-		return nil, fmt.Errorf("failed to decode members: %w", err)
-	}
-
-	return members, nil
 }

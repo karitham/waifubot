@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/Karitham/corde"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/redis/go-redis/v9"
 	"github.com/urfave/cli/v2"
 
@@ -20,7 +19,6 @@ import (
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/collectionstore"
-	"github.com/karitham/waifubot/storage/guildstore"
 
 	"github.com/karitham/waifubot/storage/dropstore"
 	"github.com/karitham/waifubot/storage/interactionstore"
@@ -437,31 +435,14 @@ func (dc *discordCmd) indexGuild(c *cli.Context) error {
 		return fmt.Errorf("invalid guild ID: %s", guildIDStr)
 	}
 
-	memberIDs, err := discord.FetchGuildMemberIDs(ctx, dc.botToken, guildID)
+	err = guild.NewIndexer(bot.Store, dc.botToken).IndexGuild(ctx, guildID)
 	if err != nil {
-		return fmt.Errorf("failed to fetch members: %w", err)
+		return fmt.Errorf("failed to index guild: %w", err)
 	}
 
-	memberIDsInt := make([]int64, len(memberIDs))
-	for i, id := range memberIDs {
-		memberIDsInt[i] = int64(id)
-	}
-
-	err = bot.Store.GuildStore().UpsertGuildMembers(ctx, guildstore.UpsertGuildMembersParams{
-		GuildID:   uint64(guildID),
-		Column2:   memberIDsInt,
-		IndexedAt: pgtype.Timestamp{Time: time.Now(), Valid: true},
+	return json.NewEncoder(os.Stdout).Encode(map[string]any{
+		"guild_id": guildIDStr,
 	})
-	if err != nil {
-		return fmt.Errorf("failed to upsert guild members: %w", err)
-	}
-
-	result := map[string]any{
-		"guild_id":        guildIDStr,
-		"indexed_members": len(memberIDs),
-	}
-
-	return json.NewEncoder(os.Stdout).Encode(result)
 }
 
 func (dc *discordCmd) holders(c *cli.Context) error {

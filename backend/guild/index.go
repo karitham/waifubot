@@ -98,15 +98,15 @@ func (i *Indexer) IndexGuildIfNeeded(ctx context.Context, guildID corde.Snowflak
 		return nil
 	}
 
-	i.indexGuild(ctx, guildID)
+	_ = i.IndexGuild(ctx, guildID)
 	return nil
 }
 
-// indexGuild performs the actual guild indexing
-func (i *Indexer) indexGuild(ctx context.Context, guildID corde.Snowflake) {
+// IndexGuild performs the actual guild indexing
+func (i *Indexer) IndexGuild(ctx context.Context, guildID corde.Snowflake) error {
 	memberIDs, err := i.fetchGuildMemberIDs(ctx, guildID)
 	if err != nil {
-		return
+		return err
 	}
 
 	// Convert memberIDs to []int64
@@ -121,7 +121,7 @@ func (i *Indexer) indexGuild(ctx context.Context, guildID corde.Snowflake) {
 		Column2: userIDsInt,
 	})
 	if err != nil {
-		return
+		return err
 	}
 
 	// Upsert new members
@@ -132,14 +132,16 @@ func (i *Indexer) indexGuild(ctx context.Context, guildID corde.Snowflake) {
 			IndexedAt: pgtype.Timestamp{Time: time.Now(), Valid: true},
 		})
 		if err != nil {
-			return
+			return err
 		}
 	}
 
 	err = i.store.GuildStore().CompleteIndexingJob(ctx, uint64(guildID))
 	if err != nil {
-		return
+		return err
 	}
+
+	return nil
 }
 
 // fetchGuildMemberIDs fetches all member IDs from a Discord guild
