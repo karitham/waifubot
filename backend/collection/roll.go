@@ -23,72 +23,69 @@ func (e ErrRollCooldown) Error() string {
 
 // Roll executes the roll logic for a user
 func Roll(ctx context.Context, store Store, animeService AnimeService, config Config, userID corde.Snowflake) (MediaCharacter, error) {
-	txI, err := store.Tx(ctx)
+	tx, err := store.Tx(ctx)
 	if err != nil {
 		return MediaCharacter{}, err
 	}
-	tx := txI.(Store)
-
-	var char MediaCharacter
-	err = func() error {
-		u, err := tx.UserStore().Get(ctx, uint64(userID))
+	defer func() {
 		if err != nil {
-			return err
+			_ = tx.Rollback(ctx)
 		}
-
-		var updateUser func() error
-		switch {
-		case time.Now().After(u.Date.Time.Add(config.RollCooldown)):
-			updateUser = func() error {
-				return tx.UserStore().UpdateDate(ctx, users.UpdateDateParams{
-					Date:   pgtype.Timestamp{Time: time.Now(), Valid: true},
-					UserID: uint64(userID),
-				})
-			}
-		case u.Tokens >= config.TokensNeeded:
-			updateUser = func() error {
-				_, err := tx.UserStore().ConsumeTokens(ctx, users.ConsumeTokensParams{
-					Tokens: config.TokensNeeded,
-					UserID: uint64(userID),
-				})
-				return err
-			}
-		default:
-			return ErrRollCooldown{Until: u.Date.Time.Add(config.RollCooldown), MissingTokens: int(config.TokensNeeded - u.Tokens)}
-		}
-
-		charsIDs, err := tx.CollectionStore().ListIDs(ctx, uint64(userID))
-		if err != nil {
-			return err
-		}
-
-		c, err := animeService.RandomChar(ctx, charsIDs...)
-		if err != nil {
-			return err
-		}
-		char = c
-
-		err = tx.CollectionStore().Insert(ctx, characters.InsertParams{
-			ID:     int64(c.ID),
-			UserID: uint64(userID),
-			Image:  c.ImageURL,
-			Name:   c.Name,
-			Type:   "ROLL",
-		})
-		if err != nil {
-			return err
-		}
-
-		return updateUser()
 	}()
+
+	user, err := tx.UserStore().Get(ctx, uint64(userID))
 	if err != nil {
-		_ = tx.Rollback(ctx)
 		return MediaCharacter{}, err
 	}
 
-	if err := tx.Commit(ctx); err != nil {
+	now := time.Now()
+	canRollFree := now.After(user.Date.Time.Add(config.RollCooldown))
+	hasTokens := user.Tokens >= config.TokensNeeded
+
+	if !canRollFree && !hasTokens {
+		return MediaCharacter{}, ErrRollCooldown{
+			Until:         user.Date.Time.Add(config.RollCooldown),
+			MissingTokens: int(config.TokensNeeded - user.Tokens),
+		}
+	}
+
+	charsIDs, err := tx.CollectionStore().ListIDs(ctx, uint64(userID))
+	if err != nil {
 		return MediaCharacter{}, err
 	}
 
-	return char, nil
+	char, err := animeService.RandomChar(ctx, charsIDs...)
+	if err != nil {
+		return MediaCharacter{}, err
+	}
+
+	err = tx.CollectionStore().Insert(ctx, characters.InsertParams{
+		ID:     int64(char.ID),
+		UserID: uint64(userID),
+		Image:  char.ImageURL,
+		Name:   char.Name,
+		Type:   "ROLL",
+	})
+	if err != nil {
+		return MediaCharacter{}, err
+	}
+
+	if canRollFree {
+		err = tx.UserStore().UpdateDate(ctx, users.UpdateDateParams{
+			Date:   pgtype.Timestamp{Time: now, Valid: true},
+			UserID: uint64(userID),
+		})
+	} else {
+		_, err = tx.UserStore().ConsumeTokens(ctx, users.ConsumeTokensParams{
+			Tokens: config.TokensNeeded,
+			UserID: uint64(userID),
+		})
+	}
+
+	if err != nil {
+		return MediaCharacter{}, err
+	}
+
+	err = tx.Commit(ctx)
+	return char, err
 }

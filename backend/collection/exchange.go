@@ -10,29 +10,27 @@ import (
 
 // Exchange executes the exchange logic for a character
 func Exchange(ctx context.Context, store Store, userID corde.Snowflake, charID int64) (collectionstore.Character, error) {
-	txI, err := store.Tx(ctx)
+	tx, err := store.Tx(ctx)
 	if err != nil {
 		return collectionstore.Character{}, err
 	}
-	tx := txI.(Store)
 
-	var char collectionstore.Character
-	err = func() error {
-		c, err := tx.CollectionStore().Delete(ctx, collectionstore.DeleteParams{UserID: uint64(userID), ID: charID})
+	defer func() {
 		if err != nil {
-			return err
+			_ = tx.Rollback(ctx)
 		}
-		char = c
-		return tx.UserStore().IncTokens(ctx, uint64(userID))
 	}()
+
+	char, err := tx.CollectionStore().Delete(ctx, collectionstore.DeleteParams{UserID: uint64(userID), ID: charID})
 	if err != nil {
-		_ = tx.Rollback(ctx)
 		return collectionstore.Character{}, err
 	}
 
-	if err := tx.Commit(ctx); err != nil {
+	err = tx.UserStore().IncTokens(ctx, uint64(userID))
+	if err != nil {
 		return collectionstore.Character{}, err
 	}
 
-	return char, nil
+	err = tx.Commit(ctx)
+	return char, err
 }
