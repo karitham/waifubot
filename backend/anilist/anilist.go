@@ -246,21 +246,33 @@ func (a *Anilist) SearchMedia(ctx context.Context, search string) ([]collection.
 	return media, nil
 }
 
-// GetMediaCharacters returns all characters from a media
+// GetMediaCharacters returns up to 100 characters from a media, paginating as needed
 func (a *Anilist) GetMediaCharacters(ctx context.Context, mediaId int64) ([]collection.MediaCharacter, error) {
-	resp, err := getMediaCharacters(ctx, a.c, mediaId)
-	if err != nil {
-		return nil, err
-	}
-	characters := make([]collection.MediaCharacter, len(resp.Media.Characters.Edges))
-	for i, edge := range resp.Media.Characters.Edges {
-		characters[i] = collection.MediaCharacter{
-			ID:       edge.Node.Id,
-			Name:     edge.Node.Name.Full,
-			ImageURL: edge.Node.Image.Large,
+	var allCharacters []collection.MediaCharacter
+	page := int64(1)
+	maxPages := int64(4) // 25 * 4 = 100 characters max
+
+	for page <= maxPages {
+		resp, err := getMediaCharacters(ctx, a.c, mediaId, page)
+		if err != nil {
+			return nil, err
 		}
+
+		for _, edge := range resp.Media.Characters.Edges {
+			allCharacters = append(allCharacters, collection.MediaCharacter{
+				ID:       edge.Node.Id,
+				Name:     edge.Node.Name.Full,
+				ImageURL: edge.Node.Image.Large,
+			})
+		}
+
+		if !resp.Media.Characters.PageInfo.HasNextPage {
+			break
+		}
+		page++
 	}
-	return characters, nil
+
+	return allCharacters, nil
 }
 
 // ColorUint

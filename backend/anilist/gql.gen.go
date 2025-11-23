@@ -46,10 +46,14 @@ func (v *__charactersRandomInput) GetNot_in() []int64 { return v.Not_in }
 // __getMediaCharactersInput is used internally by genqlient
 type __getMediaCharactersInput struct {
 	MediaId int64 `json:"mediaId"`
+	Page    int64 `json:"page"`
 }
 
 // GetMediaId returns __getMediaCharactersInput.MediaId, and is useful for accessing the field via an interface.
 func (v *__getMediaCharactersInput) GetMediaId() int64 { return v.MediaId }
+
+// GetPage returns __getMediaCharactersInput.Page, and is useful for accessing the field via an interface.
+func (v *__getMediaCharactersInput) GetPage() int64 { return v.Page }
 
 // __mediaInput is used internally by genqlient
 type __mediaInput struct {
@@ -300,11 +304,18 @@ func (v *getMediaCharactersMedia) GetCharacters() getMediaCharactersMediaCharact
 // getMediaCharactersMediaCharactersCharacterConnection includes the requested fields of the GraphQL type CharacterConnection.
 type getMediaCharactersMediaCharactersCharacterConnection struct {
 	Edges []getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdge `json:"edges"`
+	// The pagination information
+	PageInfo getMediaCharactersMediaCharactersCharacterConnectionPageInfo `json:"pageInfo"`
 }
 
 // GetEdges returns getMediaCharactersMediaCharactersCharacterConnection.Edges, and is useful for accessing the field via an interface.
 func (v *getMediaCharactersMediaCharactersCharacterConnection) GetEdges() []getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdge {
 	return v.Edges
+}
+
+// GetPageInfo returns getMediaCharactersMediaCharactersCharacterConnection.PageInfo, and is useful for accessing the field via an interface.
+func (v *getMediaCharactersMediaCharactersCharacterConnection) GetPageInfo() getMediaCharactersMediaCharactersCharacterConnectionPageInfo {
+	return v.PageInfo
 }
 
 // getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdge includes the requested fields of the GraphQL type CharacterEdge.
@@ -371,6 +382,17 @@ type getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeC
 // GetFull returns getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacterName.Full, and is useful for accessing the field via an interface.
 func (v *getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacterName) GetFull() string {
 	return v.Full
+}
+
+// getMediaCharactersMediaCharactersCharacterConnectionPageInfo includes the requested fields of the GraphQL type PageInfo.
+type getMediaCharactersMediaCharactersCharacterConnectionPageInfo struct {
+	// If there is another page
+	HasNextPage bool `json:"hasNextPage"`
+}
+
+// GetHasNextPage returns getMediaCharactersMediaCharactersCharacterConnectionPageInfo.HasNextPage, and is useful for accessing the field via an interface.
+func (v *getMediaCharactersMediaCharactersCharacterConnectionPageInfo) GetHasNextPage() bool {
+	return v.HasNextPage
 }
 
 // getMediaCharactersMediaTitle includes the requested fields of the GraphQL type MediaTitle.
@@ -724,14 +746,14 @@ func charactersRandom(
 
 // The query executed by getMediaCharacters.
 const getMediaCharacters_Operation = `
-query getMediaCharacters ($mediaId: Int!) {
+query getMediaCharacters ($mediaId: Int!, $page: Int) {
 	Media(id: $mediaId) {
 		id
 		title {
 			romaji
 			english
 		}
-		characters(sort: ROLE, page: 1, perPage: 100) {
+		characters(sort: ROLE, page: $page, perPage: 25) {
 			edges {
 				node {
 					id
@@ -743,6 +765,9 @@ query getMediaCharacters ($mediaId: Int!) {
 					}
 				}
 			}
+			pageInfo {
+				hasNextPage
+			}
 		}
 	}
 }
@@ -752,12 +777,14 @@ func getMediaCharacters(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	mediaId int64,
+	page int64,
 ) (data_ *getMediaCharactersResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "getMediaCharacters",
 		Query:  getMediaCharacters_Operation,
 		Variables: &__getMediaCharactersInput{
 			MediaId: mediaId,
+			Page:    page,
 		},
 	}
 

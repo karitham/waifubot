@@ -86,14 +86,14 @@ query searchMedia($search: String) {
 	}
 }
 
-query getMediaCharacters($mediaId: Int!) {
+query getMediaCharacters($mediaId: Int!, $page: Int) {
 	Media(id: $mediaId) {
 		id
 		title {
 			romaji
 			english
 		}
-		characters(sort: ROLE, page: 1, perPage: 100) {
+		characters(sort: ROLE, page: $page, perPage: 25) {
 			edges {
 				node {
 					id
@@ -104,6 +104,9 @@ query getMediaCharacters($mediaId: Int!) {
 						large
 					}
 				}
+			}
+			pageInfo {
+				hasNextPage
 			}
 		}
 	}

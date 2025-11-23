@@ -141,11 +141,21 @@ func AddMediaToWishlist(ctx context.Context, wishlistStore Store, mediaService M
 		return 0, nil
 	}
 
-	// Add characters to wishlist
-	err = wishlistStore.AddMultipleCharactersToWishlist(ctx, uint64(userID), characterIDs)
-	if err != nil {
-		return 0, err
+	// Add characters to wishlist in batches of 50
+	batchSize := 50
+	added := 0
+	for i := 0; i < len(characterIDs); i += batchSize {
+		end := i + batchSize
+		if end > len(characterIDs) {
+			end = len(characterIDs)
+		}
+		batch := characterIDs[i:end]
+		err = wishlistStore.AddMultipleCharactersToWishlist(ctx, uint64(userID), batch)
+		if err != nil {
+			return added, err
+		}
+		added += len(batch)
 	}
 
-	return len(characterIDs), nil
+	return added, nil
 }
