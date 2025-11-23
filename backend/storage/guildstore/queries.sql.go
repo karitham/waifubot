@@ -60,15 +60,15 @@ WHERE
   guild_id = $1
 `
 
-func (q *Queries) GetGuildMembers(ctx context.Context, guildID uint64) ([]int64, error) {
+func (q *Queries) GetGuildMembers(ctx context.Context, guildID uint64) ([]uint64, error) {
 	rows, err := q.db.Query(ctx, getGuildMembers, guildID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []int64
+	var items []uint64
 	for rows.Next() {
-		var user_id int64
+		var user_id uint64
 		if err := rows.Scan(&user_id); err != nil {
 			return nil, err
 		}

@@ -90,7 +90,7 @@ type GuildIndexingJob struct {
 
 type GuildMember struct {
 	GuildID   uint64
-	UserID    int64
+	UserID    uint64
 	IndexedAt pgtype.Timestamp
 }
 

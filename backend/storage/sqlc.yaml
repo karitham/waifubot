@@ -54,7 +54,7 @@ overrides:
       - column: guild_indexing_jobs.guild_id
         go_type: uint64
       - column: guild_members.user_id
-        go_type: int64
+        go_type: uint64
       - column: collection.user_id
         go_type: uint64
       - column: collection.character_id

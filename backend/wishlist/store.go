@@ -76,13 +76,14 @@ func (s *store) GetWishlistHolders(ctx context.Context, userID uint64, guildID u
 	// Group by user
 	holdersMap := make(map[uint64]*WishlistHolder)
 	for _, row := range rows {
-		if _, exists := holdersMap[row.UserID]; !exists {
-			holdersMap[row.UserID] = &WishlistHolder{
-				UserID:     row.UserID,
+		userID := uint64(row.UserID)
+		if _, exists := holdersMap[userID]; !exists {
+			holdersMap[userID] = &WishlistHolder{
+				UserID:     userID,
 				Characters: []Character{},
 			}
 		}
-		holdersMap[row.UserID].Characters = append(holdersMap[row.UserID].Characters, Character{
+		holdersMap[userID].Characters = append(holdersMap[userID].Characters, Character{
 			ID:    row.CharacterID,
 			Name:  row.CharacterName,
 			Image: row.CharacterImage,
@@ -109,13 +110,14 @@ func (s *store) GetWantedCharacters(ctx context.Context, userID uint64, guildID 
 	// Group by user
 	wantedMap := make(map[uint64]*WantedCharacter)
 	for _, row := range rows {
-		if _, exists := wantedMap[row.UserID]; !exists {
-			wantedMap[row.UserID] = &WantedCharacter{
-				UserID:     row.UserID,
+		userID := uint64(row.UserID)
+		if _, exists := wantedMap[userID]; !exists {
+			wantedMap[userID] = &WantedCharacter{
+				UserID:     userID,
 				Characters: []Character{},
 			}
 		}
-		wantedMap[row.UserID].Characters = append(wantedMap[row.UserID].Characters, Character{
+		wantedMap[userID].Characters = append(wantedMap[userID].Characters, Character{
 			ID:    row.CharacterID,
 			Name:  row.CharacterName,
 			Image: row.CharacterImage,

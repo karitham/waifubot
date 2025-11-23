@@ -8,7 +8,8 @@ A Discord bot for collecting and trading anime/manga characters. Roll for random
 
 - **Character collection**: Roll and claim characters from anime and manga
 - **Trading system**: Give characters to other users or exchange them for tokens
-- **Web interface**: View and manage your collection at [waifugui.karitham.dev](https://waifugui.karitham.dev)
+- **Wishlist system**: Create and manage wishlists of desired characters, find trading partners
+- **Web interface**: View and manage your collection and wishlist at [waifugui.karitham.dev](https://waifugui.karitham.dev)
 - **API access**: Retrieve data programmatically at [waifuapi.karitham.dev](https://waifuapi.karitham.dev)
 - **AniList integration**: Search for anime, manga, characters, and users
 
@@ -33,3 +34,11 @@ A Discord bot for collecting and trading anime/manga characters. Roll for random
   - **char**: search for a character
   - **manga**: search for a manga
   - **user**: search for a user
+- **wishlist**:
+  - **character add**: add a character to your wishlist
+  - **character remove**: remove a character from your wishlist
+  - **character list**: view your wishlist
+  - **media add**: add all characters from an anime/manga to your wishlist
+  - **holders**: find users who have characters from your wishlist
+  - **wanted**: find users who want characters you own
+  - **compare**: compare your wishlist with another user's collection

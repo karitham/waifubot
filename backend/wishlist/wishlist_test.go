@@ -159,6 +159,35 @@ func TestGetWishlistHolders(t *testing.T) {
 	assert.Len(t, holders[0].Characters, 1)
 }
 
+func TestGetWantedCharacters(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockStore := mocks.NewMockWishlistQuerier(ctrl)
+	store := New(mockStore)
+
+	ctx := context.Background()
+	userID := uint64(123)
+
+	mockStore.EXPECT().GetWantedCharacters(ctx, wishliststore.GetWantedCharactersParams{
+		UserID:  userID,
+		GuildID: 123,
+	}).Return([]wishliststore.GetWantedCharactersRow{
+		{
+			UserID:         789,
+			CharacterID:    456,
+			CharacterName:  "Test Character",
+			CharacterImage: "http://example.com/image.jpg",
+		},
+	}, nil)
+
+	wanted, err := GetWantedCharacters(ctx, store, userID, 123)
+	require.NoError(t, err)
+	assert.Len(t, wanted, 1)
+	assert.Equal(t, uint64(789), wanted[0].UserID)
+	assert.Len(t, wanted[0].Characters, 1)
+}
+
 func TestCompareWithUser(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

@@ -12,7 +12,7 @@ type Querier interface {
 	CompleteIndexingJob(ctx context.Context, guildID uint64) error
 	DeleteGuildMembers(ctx context.Context, guildID uint64) error
 	DeleteGuildMembersNotIn(ctx context.Context, arg DeleteGuildMembersNotInParams) error
-	GetGuildMembers(ctx context.Context, guildID uint64) ([]int64, error)
+	GetGuildMembers(ctx context.Context, guildID uint64) ([]uint64, error)
 	GetIndexingStatus(ctx context.Context, guildID uint64) (GetIndexingStatusRow, error)
 	IsGuildIndexed(ctx context.Context, guildID uint64) (IsGuildIndexedRow, error)
 	StartIndexingJob(ctx context.Context, guildID uint64) error

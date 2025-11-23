@@ -38,7 +38,7 @@ func TestCharacterHolders(t *testing.T) {
 					Name:  "TestChar",
 					Image: "img",
 				}, nil)
-				guild.EXPECT().GetGuildMembers(gomock.Any(), uint64(123)).Return([]int64{1, 2, 3}, nil)
+				guild.EXPECT().GetGuildMembers(gomock.Any(), uint64(123)).Return([]uint64{1, 2, 3}, nil)
 				guild.EXPECT().UsersOwningCharInGuild(gomock.Any(), guildstore.UsersOwningCharInGuildParams{
 					CharacterID: 456,
 					GuildID:     123,
@@ -98,7 +98,7 @@ func TestCharacterHolders(t *testing.T) {
 					Name:  "TestChar",
 					Image: "img",
 				}, nil)
-				guild.EXPECT().GetGuildMembers(gomock.Any(), uint64(123)).Return([]int64{}, nil)
+				guild.EXPECT().GetGuildMembers(gomock.Any(), uint64(123)).Return([]uint64{}, nil)
 			},
 			wantErr: true,
 			errMsg:  "guild members not indexed yet, please try again later",
@@ -115,7 +115,7 @@ func TestCharacterHolders(t *testing.T) {
 					Name:  "TestChar",
 					Image: "img",
 				}, nil)
-				guild.EXPECT().GetGuildMembers(gomock.Any(), uint64(123)).Return([]int64{1, 2, 3}, nil)
+				guild.EXPECT().GetGuildMembers(gomock.Any(), uint64(123)).Return([]uint64{1, 2, 3}, nil)
 				guild.EXPECT().UsersOwningCharInGuild(gomock.Any(), guildstore.UsersOwningCharInGuildParams{
 					CharacterID: 456,
 					GuildID:     123,

@@ -89,8 +89,8 @@ func (b *Bot) wishlist(m *corde.Mux) {
 			m.Autocomplete("media", trace(b.mediaAutocomplete))
 		})
 	})
-	m.SlashCommand("holders", trace(b.wishlistHolders))
-	m.SlashCommand("wanted", trace(b.wishlistWanted))
+	m.SlashCommand("holders", wrap(b.wishlistHolders, indexMiddleware[corde.SlashCommandInteractionData](b), trace[corde.SlashCommandInteractionData]))
+	m.SlashCommand("wanted", wrap(b.wishlistWanted, indexMiddleware[corde.SlashCommandInteractionData](b), trace[corde.SlashCommandInteractionData]))
 	m.SlashCommand("compare", trace(b.wishlistCompare))
 }
 

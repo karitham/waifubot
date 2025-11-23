@@ -4,6 +4,7 @@ package collection
 //go:generate mockgen -source=../storage/collectionstore/querier.go -destination=collectionstore_mock.go -package=collection -mock_names=Querier=MockCollectionQuerier
 //go:generate mockgen -source=../storage/userstore/querier.go -destination=userstore_mock.go -package=collection -mock_names=Querier=MockUserQuerier
 //go:generate mockgen -source=../storage/wishliststore/querier.go -destination=wishliststore_mock.go -package=collection -mock_names=Querier=MockWishlistQuerier
+//go:generate mockgen -source=../storage/guildstore/querier.go -destination=guildstore_mock.go -package=collection -mock_names=Querier=MockGuildQuerier
 
 import (
 	"context"

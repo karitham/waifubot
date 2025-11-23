@@ -84,10 +84,10 @@ func (mr *MockGuildQuerierMockRecorder) DeleteGuildMembersNotIn(ctx, arg any) *g
 }
 
 // GetGuildMembers mocks base method.
-func (m *MockGuildQuerier) GetGuildMembers(ctx context.Context, guildID uint64) ([]int64, error) {
+func (m *MockGuildQuerier) GetGuildMembers(ctx context.Context, guildID uint64) ([]uint64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetGuildMembers", ctx, guildID)
-	ret0, _ := ret[0].([]int64)
+	ret0, _ := ret[0].([]uint64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
