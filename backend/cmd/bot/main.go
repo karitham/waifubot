@@ -19,6 +19,7 @@ import (
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/collectionstore"
+	"github.com/karitham/waifubot/wishlist"
 
 	"github.com/karitham/waifubot/storage/dropstore"
 	"github.com/karitham/waifubot/storage/interactionstore"
@@ -259,6 +260,82 @@ func main() {
 				},
 				Action: disc.giveCharacter,
 			},
+			{
+				Name:  "wishlist",
+				Usage: "Manage user wishlists",
+				Subcommands: []*cli.Command{
+					{
+						Name:  "add",
+						Usage: "Add a character to a user's wishlist",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:     "user",
+								EnvVars:  []string{"USER_ID"},
+								Required: true,
+							},
+							&cli.Int64Flag{
+								Name:     "id",
+								Usage:    "Character ID to add",
+								Required: true,
+							},
+						},
+						Action: disc.wishlistAdd,
+					},
+					{
+						Name:  "remove",
+						Usage: "Remove a character from a user's wishlist",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:     "user",
+								EnvVars:  []string{"USER_ID"},
+								Required: true,
+							},
+							&cli.Int64Flag{
+								Name:     "id",
+								Usage:    "Character ID to remove",
+								Required: true,
+							},
+						},
+						Action: disc.wishlistRemove,
+					},
+					{
+						Name:  "list",
+						Usage: "List a user's wishlist",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:     "user",
+								EnvVars:  []string{"USER_ID"},
+								Required: true,
+							},
+						},
+						Action: disc.wishlistList,
+					},
+					{
+						Name:  "holders",
+						Usage: "Show who has characters from a user's wishlist",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:     "user",
+								EnvVars:  []string{"USER_ID"},
+								Required: true,
+							},
+						},
+						Action: disc.wishlistHolders,
+					},
+					{
+						Name:  "wanted",
+						Usage: "Show who wants characters from a user's collection",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:     "user",
+								EnvVars:  []string{"USER_ID"},
+								Required: true,
+							},
+						},
+						Action: disc.wishlistWanted,
+					},
+				},
+			},
 		},
 		Flags: []cli.Flag{
 			&cli.StringFlag{
@@ -390,6 +467,7 @@ func (dc *discordCmd) createBot(ctx context.Context) (*discord.Bot, error) {
 
 	bot := &discord.Bot{
 		Store:             store,
+		WishlistStore:     wishlist.New(store.WishlistStore()),
 		AnimeService:      anilist.New(anilist.MaxChar(dc.anilistMaxChars)),
 		GuildIndexer:      guild.NewIndexer(store, dc.botToken),
 		AppID:             corde.SnowflakeFromString(dc.appID),
@@ -724,4 +802,141 @@ func (r *dbCmd) update(c *cli.Context) error {
 	}
 
 	return nil
+}
+
+func (dc *discordCmd) wishlistAdd(c *cli.Context) error {
+	ctx := c.Context
+	bot, err := dc.createBot(ctx)
+	if err != nil {
+		return err
+	}
+
+	userIDStr := c.String("user")
+	userID := corde.SnowflakeFromString(userIDStr)
+	if userID == 0 {
+		return fmt.Errorf("invalid user ID: %s", userIDStr)
+	}
+
+	charID := c.Int64("id")
+
+	err = wishlist.AddCharacter(ctx, bot.WishlistStore, uint64(userID), charID)
+	if err != nil {
+		return fmt.Errorf("error adding character to wishlist: %w", err)
+	}
+
+	result := map[string]any{
+		"user_id":      userIDStr,
+		"character_id": charID,
+		"action":       "added",
+	}
+
+	return json.NewEncoder(os.Stdout).Encode(result)
+}
+
+func (dc *discordCmd) wishlistRemove(c *cli.Context) error {
+	ctx := c.Context
+	bot, err := dc.createBot(ctx)
+	if err != nil {
+		return err
+	}
+
+	userIDStr := c.String("user")
+	userID := corde.SnowflakeFromString(userIDStr)
+	if userID == 0 {
+		return fmt.Errorf("invalid user ID: %s", userIDStr)
+	}
+
+	charID := c.Int64("id")
+
+	err = wishlist.RemoveCharacter(ctx, bot.WishlistStore, uint64(userID), charID)
+	if err != nil {
+		return fmt.Errorf("error removing character from wishlist: %w", err)
+	}
+
+	result := map[string]any{
+		"user_id":      userIDStr,
+		"character_id": charID,
+		"action":       "removed",
+	}
+
+	return json.NewEncoder(os.Stdout).Encode(result)
+}
+
+func (dc *discordCmd) wishlistList(c *cli.Context) error {
+	ctx := c.Context
+	bot, err := dc.createBot(ctx)
+	if err != nil {
+		return err
+	}
+
+	userIDStr := c.String("user")
+	userID := corde.SnowflakeFromString(userIDStr)
+	if userID == 0 {
+		return fmt.Errorf("invalid user ID: %s", userIDStr)
+	}
+
+	chars, err := wishlist.GetUserWishlist(ctx, bot.WishlistStore, uint64(userID))
+	if err != nil {
+		return fmt.Errorf("error getting user wishlist: %w", err)
+	}
+
+	result := map[string]any{
+		"user_id":  userIDStr,
+		"wishlist": chars,
+		"total":    len(chars),
+	}
+
+	return json.NewEncoder(os.Stdout).Encode(result)
+}
+
+func (dc *discordCmd) wishlistHolders(c *cli.Context) error {
+	ctx := c.Context
+	bot, err := dc.createBot(ctx)
+	if err != nil {
+		return err
+	}
+
+	userIDStr := c.String("user")
+	userID := corde.SnowflakeFromString(userIDStr)
+	if userID == 0 {
+		return fmt.Errorf("invalid user ID: %s", userIDStr)
+	}
+
+	holders, err := wishlist.GetWishlistHolders(ctx, bot.WishlistStore, uint64(userID), 0)
+	if err != nil {
+		return fmt.Errorf("error getting wishlist holders: %w", err)
+	}
+
+	result := map[string]any{
+		"user_id": userIDStr,
+		"holders": holders,
+	}
+
+	return json.NewEncoder(os.Stdout).Encode(result)
+}
+
+func (dc *discordCmd) wishlistWanted(c *cli.Context) error {
+	ctx := c.Context
+	bot, err := dc.createBot(ctx)
+	if err != nil {
+		return err
+	}
+
+	userIDStr := c.String("user")
+	userID := corde.SnowflakeFromString(userIDStr)
+	if userID == 0 {
+		return fmt.Errorf("invalid user ID: %s", userIDStr)
+	}
+
+	wanted, err := wishlist.GetWantedCharacters(ctx, bot.WishlistStore, uint64(userID))
+	if err != nil {
+		return fmt.Errorf("error getting wanted characters: %w", err)
+	}
+
+	result := map[string]any{
+		"user_id": userIDStr,
+		"wanted":  wanted,
+	}
+
+	return json.NewEncoder(os.Stdout).Encode(result)
 }

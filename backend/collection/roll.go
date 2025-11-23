@@ -10,6 +10,7 @@ import (
 
 	characters "github.com/karitham/waifubot/storage/collectionstore"
 	users "github.com/karitham/waifubot/storage/userstore"
+	wishliststore "github.com/karitham/waifubot/storage/wishliststore"
 )
 
 type ErrRollCooldown struct {
@@ -78,6 +79,12 @@ func Roll(ctx context.Context, store Store, animeService AnimeService, config Co
 	if err != nil {
 		return MediaCharacter{}, err
 	}
+
+	// Remove from wishlist if present
+	_ = tx.WishlistStore().RemoveCharacterFromWishlist(ctx, wishliststore.RemoveCharacterFromWishlistParams{
+		UserID:      uint64(userID),
+		CharacterID: char.ID,
+	})
 
 	if canRollFree {
 		err = tx.UserStore().UpdateDate(ctx, users.UpdateDateParams{

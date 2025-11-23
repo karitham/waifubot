@@ -60,6 +60,12 @@ type Character struct {
 	Image string
 }
 
+type CharacterWishlist struct {
+	UserID      uint64
+	CharacterID int64
+	CreatedAt   pgtype.Timestamp
+}
+
 type CharactersBackup struct {
 	UserID int64
 	ID     int64

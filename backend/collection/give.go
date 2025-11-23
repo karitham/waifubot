@@ -9,6 +9,7 @@ import (
 	"github.com/Karitham/corde"
 
 	"github.com/karitham/waifubot/storage/collectionstore"
+	"github.com/karitham/waifubot/storage/wishliststore"
 )
 
 // Give executes the give logic from one user to another
@@ -30,6 +31,12 @@ func Give(ctx context.Context, store Store, from, to corde.Snowflake, charID int
 	if err != nil {
 		return Character{}, fmt.Errorf("error giving char: %w", err)
 	}
+
+	// Remove from recipient's wishlist if present
+	_ = store.WishlistStore().RemoveCharacterFromWishlist(ctx, wishliststore.RemoveCharacterFromWishlistParams{
+		UserID:      uint64(to),
+		CharacterID: charID,
+	})
 
 	return Character{
 		Date:   c.Date.Time,

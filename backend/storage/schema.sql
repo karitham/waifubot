@@ -49,3 +49,9 @@ CREATE TABLE public.users (
   anilist_url CHARACTER VARYING(255) DEFAULT ''::CHARACTER VARYING NOT NULL
 );
 
+CREATE TABLE public.character_wishlist (
+  user_id BIGINT NOT NULL,
+  character_id BIGINT NOT NULL,
+  created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW() NOT NULL
+);
+

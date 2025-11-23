@@ -19,6 +19,7 @@ import (
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/collectionstore"
 	"github.com/karitham/waifubot/storage/userstore"
+	"github.com/karitham/waifubot/wishlist"
 )
 
 var (
@@ -101,6 +102,13 @@ func main() {
 		r.Get("/find", api.findUser)
 		r.Get("/{userID}", api.getUser)
 	})
+
+	// Implement GET /wishlist/123
+	r.Route("/wishlist", func(r chi.Router) {
+		r.Use(middleware.SetHeader("Content-Type", "application/json"))
+		r.Use(middleware.SetHeader("Cache-Control", "public, max-age="+cacheAge))
+		r.Get("/{userID}", api.getWishlist)
+	})
 	r.Get("/", func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = fmt.Fprint(w, "WaifuBot API - See https://github.com/karitham/waifubot for documentation")
 	})
@@ -164,6 +172,34 @@ func (h *Handler) getUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = json.MarshalWrite(w, mapUser(u, chars)); err != nil {
+		slog.Error("encoding request", "error", err)
+	}
+}
+
+func (h *Handler) getWishlist(w http.ResponseWriter, r *http.Request) {
+	userID := chi.URLParam(r, "userID")
+
+	id, err := strconv.ParseUint(userID, 10, 64)
+	if err != nil || id == 0 {
+		httperr.JSON(w, r, invalidIDError)
+		return
+	}
+
+	chars, err := wishlist.GetUserWishlist(r.Context(), wishlist.New(h.db.WishlistStore()), id)
+	if err != nil {
+		httperr.JSON(w, r, userNotFound)
+		return
+	}
+
+	type resp struct {
+		Characters []wishlist.Character `json:"characters"`
+		Total      int                  `json:"total"`
+	}
+
+	if err = json.MarshalWrite(w, resp{
+		Characters: chars,
+		Total:      len(chars),
+	}); err != nil {
 		slog.Error("encoding request", "error", err)
 	}
 }

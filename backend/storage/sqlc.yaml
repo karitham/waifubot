@@ -31,6 +31,16 @@ sql:
         emit_prepared_queries: true
         sql_package: pgx/v5
         sql_driver: github.com/jackc/pgx/v5
+  - queries: "./wishliststore/queries.sql"
+    schema: "./schema.sql"
+    engine: "postgresql"
+    gen:
+      go:
+        out: wishliststore
+        emit_interface: true
+        emit_prepared_queries: true
+        sql_package: pgx/v5
+        sql_driver: github.com/jackc/pgx/v5
 
 overrides:
   go:
@@ -48,4 +58,8 @@ overrides:
       - column: collection.user_id
         go_type: uint64
       - column: collection.character_id
+        go_type: int64
+      - column: character_wishlist.user_id
+        go_type: uint64
+      - column: character_wishlist.character_id
         go_type: int64

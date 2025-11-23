@@ -17,6 +17,7 @@ import (
 	"github.com/karitham/waifubot/storage/collectionstore"
 	"github.com/karitham/waifubot/storage/guildstore"
 	"github.com/karitham/waifubot/storage/userstore"
+	"github.com/karitham/waifubot/storage/wishliststore"
 )
 
 type TXer interface {
@@ -45,6 +46,7 @@ type Store interface {
 	UserStore() userstore.Querier
 	CollectionStore() collectionstore.Querier
 	GuildStore() guildstore.Querier
+	WishlistStore() wishliststore.Querier
 	Tx(ctx context.Context) (Store, error)
 	Commit(ctx context.Context) error
 	Rollback(ctx context.Context) error
@@ -54,6 +56,7 @@ type DBStore struct {
 	userStore       *userstore.Queries
 	collectionStore *collectionstore.Queries
 	guildStore      *guildstore.Queries
+	wishlistStore   *wishliststore.Queries
 	db              TXer
 	tx              pgx.Tx
 }
@@ -83,6 +86,7 @@ func NewStore(ctx context.Context, url string) (*DBStore, error) {
 		userStore:       userstore.New(conn),
 		collectionStore: collectionstore.New(conn),
 		guildStore:      guildstore.New(conn),
+		wishlistStore:   wishliststore.New(conn),
 		db:              conn,
 	}, nil
 }
@@ -92,6 +96,7 @@ func (s *DBStore) withTx(tx pgx.Tx) *DBStore {
 		userStore:       s.userStore.WithTx(tx),
 		collectionStore: s.collectionStore.WithTx(tx),
 		guildStore:      s.guildStore.WithTx(tx),
+		wishlistStore:   s.wishlistStore.WithTx(tx),
 		db:              tx,
 		tx:              tx,
 	}
@@ -147,6 +152,10 @@ func (s *DBStore) CollectionStore() collectionstore.Querier {
 
 func (s *DBStore) GuildStore() guildstore.Querier {
 	return s.guildStore
+}
+
+func (s *DBStore) WishlistStore() wishliststore.Querier {
+	return s.wishlistStore
 }
 
 func (s *DBStore) Tx(ctx context.Context) (Store, error) {

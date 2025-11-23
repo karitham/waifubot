@@ -13,6 +13,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/karitham/waifubot/storage/collectionstore"
+	"github.com/karitham/waifubot/storage/wishliststore"
 )
 
 func TestGive(t *testing.T) {
@@ -34,7 +35,9 @@ func TestGive(t *testing.T) {
 			to:     456,
 			charID: 1,
 			setupMocks: func(store *MockProfileStore, coll *MockCollectionQuerier) {
+				wishlist := NewMockWishlistQuerier(ctrl)
 				store.EXPECT().CollectionStore().Return(coll).AnyTimes()
+				store.EXPECT().WishlistStore().Return(wishlist).AnyTimes()
 				coll.EXPECT().Get(gomock.Any(), collectionstore.GetParams{ID: 1, UserID: uint64(123)}).Return(collectionstore.GetRow{
 					ID:     1,
 					Date:   pgtype.Timestamp{Time: time.Now(), Valid: true},
@@ -44,6 +47,7 @@ func TestGive(t *testing.T) {
 				}, nil)
 				coll.EXPECT().Get(gomock.Any(), collectionstore.GetParams{ID: 1, UserID: uint64(456)}).Return(collectionstore.GetRow{}, errors.New("not found"))
 				coll.EXPECT().Give(gomock.Any(), gomock.Any()).Return(collectionstore.Collection{}, nil)
+				wishlist.EXPECT().RemoveCharacterFromWishlist(gomock.Any(), wishliststore.RemoveCharacterFromWishlistParams{UserID: 456, CharacterID: 1}).Return(nil)
 			},
 			want:      Character{ID: 1, Name: "Char1", Image: "img1", Type: "ROLL", UserID: 456},
 			assertErr: nil,

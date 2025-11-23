@@ -19,6 +19,7 @@ import (
 	collectionstore "github.com/karitham/waifubot/storage/collectionstore"
 	guildstore "github.com/karitham/waifubot/storage/guildstore"
 	userstore "github.com/karitham/waifubot/storage/userstore"
+	wishliststore "github.com/karitham/waifubot/storage/wishliststore"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -227,4 +228,18 @@ func (m *MockStorageStore) UserStore() userstore.Querier {
 func (mr *MockStorageStoreMockRecorder) UserStore() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UserStore", reflect.TypeOf((*MockStorageStore)(nil).UserStore))
+}
+
+// WishlistStore mocks base method.
+func (m *MockStorageStore) WishlistStore() wishliststore.Querier {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WishlistStore")
+	ret0, _ := ret[0].(wishliststore.Querier)
+	return ret0
+}
+
+// WishlistStore indicates an expected call of WishlistStore.
+func (mr *MockStorageStoreMockRecorder) WishlistStore() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WishlistStore", reflect.TypeOf((*MockStorageStore)(nil).WishlistStore))
 }

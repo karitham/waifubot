@@ -13,6 +13,7 @@ import (
 
 	"github.com/karitham/waifubot/storage/collectionstore"
 	"github.com/karitham/waifubot/storage/userstore"
+	"github.com/karitham/waifubot/storage/wishliststore"
 )
 
 func TestRoll(t *testing.T) {
@@ -33,9 +34,11 @@ func TestRoll(t *testing.T) {
 			userID: 123,
 			config: Config{RollCooldown: time.Hour, TokensNeeded: 10},
 			setupMocks: func(store *MockProfileStore, anime *MockAnimeService, coll *MockCollectionQuerier, user *MockUserQuerier) {
+				wishlist := NewMockWishlistQuerier(ctrl)
 				store.EXPECT().Tx(gomock.Any()).Return(store, nil)
 				store.EXPECT().UserStore().Return(user).AnyTimes()
 				store.EXPECT().CollectionStore().Return(coll).AnyTimes()
+				store.EXPECT().WishlistStore().Return(wishlist).AnyTimes()
 				user.EXPECT().Get(gomock.Any(), uint64(123)).Return(userstore.User{
 					UserID: 123,
 					Date:   pgtype.Timestamp{Time: time.Now().Add(-2 * time.Hour), Valid: true},
@@ -45,6 +48,7 @@ func TestRoll(t *testing.T) {
 				anime.EXPECT().RandomChar(gomock.Any()).Return(MediaCharacter{ID: 3, Name: "Char3", ImageURL: "img3"}, nil)
 				coll.EXPECT().UpsertCharacter(gomock.Any(), gomock.Any()).Return(collectionstore.Character{}, nil)
 				coll.EXPECT().Insert(gomock.Any(), gomock.Any()).Return(collectionstore.Collection{}, nil)
+				wishlist.EXPECT().RemoveCharacterFromWishlist(gomock.Any(), wishliststore.RemoveCharacterFromWishlistParams{UserID: 123, CharacterID: 3}).Return(nil)
 				user.EXPECT().UpdateDate(gomock.Any(), gomock.Any()).Return(nil)
 				store.EXPECT().Commit(gomock.Any()).Return(nil)
 			},
@@ -168,9 +172,11 @@ func TestRoll(t *testing.T) {
 			userID: 123,
 			config: Config{RollCooldown: time.Hour, TokensNeeded: 10},
 			setupMocks: func(store *MockProfileStore, anime *MockAnimeService, coll *MockCollectionQuerier, user *MockUserQuerier) {
+				wishlist := NewMockWishlistQuerier(ctrl)
 				store.EXPECT().Tx(gomock.Any()).Return(store, nil)
 				store.EXPECT().UserStore().Return(user).AnyTimes()
 				store.EXPECT().CollectionStore().Return(coll).AnyTimes()
+				store.EXPECT().WishlistStore().Return(wishlist).AnyTimes()
 				user.EXPECT().Get(gomock.Any(), uint64(123)).Return(userstore.User{
 					UserID: 123,
 					Date:   pgtype.Timestamp{Time: time.Now().Add(-2 * time.Hour), Valid: true},
@@ -180,6 +186,7 @@ func TestRoll(t *testing.T) {
 				anime.EXPECT().RandomChar(gomock.Any()).Return(MediaCharacter{ID: 3, Name: "Char3", ImageURL: "img3"}, nil)
 				coll.EXPECT().UpsertCharacter(gomock.Any(), gomock.Any()).Return(collectionstore.Character{}, nil)
 				coll.EXPECT().Insert(gomock.Any(), gomock.Any()).Return(collectionstore.Collection{}, nil)
+				wishlist.EXPECT().RemoveCharacterFromWishlist(gomock.Any(), wishliststore.RemoveCharacterFromWishlistParams{UserID: 123, CharacterID: 3}).Return(nil)
 				user.EXPECT().UpdateDate(gomock.Any(), gomock.Any()).Return(errors.New("update error"))
 				store.EXPECT().Rollback(gomock.Any()).Return(nil)
 			},
@@ -191,9 +198,11 @@ func TestRoll(t *testing.T) {
 			userID: 123,
 			config: Config{RollCooldown: time.Hour, TokensNeeded: 10},
 			setupMocks: func(store *MockProfileStore, anime *MockAnimeService, coll *MockCollectionQuerier, user *MockUserQuerier) {
+				wishlist := NewMockWishlistQuerier(ctrl)
 				store.EXPECT().Tx(gomock.Any()).Return(store, nil)
 				store.EXPECT().UserStore().Return(user).AnyTimes()
 				store.EXPECT().CollectionStore().Return(coll).AnyTimes()
+				store.EXPECT().WishlistStore().Return(wishlist).AnyTimes()
 				user.EXPECT().Get(gomock.Any(), uint64(123)).Return(userstore.User{
 					UserID: 123,
 					Date:   pgtype.Timestamp{Time: time.Now().Add(-30 * time.Minute), Valid: true},
@@ -203,6 +212,7 @@ func TestRoll(t *testing.T) {
 				anime.EXPECT().RandomChar(gomock.Any()).Return(MediaCharacter{ID: 3, Name: "Char3", ImageURL: "img3"}, nil)
 				coll.EXPECT().UpsertCharacter(gomock.Any(), gomock.Any()).Return(collectionstore.Character{}, nil)
 				coll.EXPECT().Insert(gomock.Any(), gomock.Any()).Return(collectionstore.Collection{}, nil)
+				wishlist.EXPECT().RemoveCharacterFromWishlist(gomock.Any(), wishliststore.RemoveCharacterFromWishlistParams{UserID: 123, CharacterID: 3}).Return(nil)
 				user.EXPECT().ConsumeTokens(gomock.Any(), gomock.Any()).Return(userstore.User{}, errors.New("consume error"))
 				store.EXPECT().Rollback(gomock.Any()).Return(nil)
 			},
@@ -214,9 +224,11 @@ func TestRoll(t *testing.T) {
 			userID: 123,
 			config: Config{RollCooldown: time.Hour, TokensNeeded: 10},
 			setupMocks: func(store *MockProfileStore, anime *MockAnimeService, coll *MockCollectionQuerier, user *MockUserQuerier) {
+				wishlist := NewMockWishlistQuerier(ctrl)
 				store.EXPECT().Tx(gomock.Any()).Return(store, nil)
 				store.EXPECT().UserStore().Return(user).AnyTimes()
 				store.EXPECT().CollectionStore().Return(coll).AnyTimes()
+				store.EXPECT().WishlistStore().Return(wishlist).AnyTimes()
 				user.EXPECT().Get(gomock.Any(), uint64(123)).Return(userstore.User{
 					UserID: 123,
 					Date:   pgtype.Timestamp{Time: time.Now().Add(-2 * time.Hour), Valid: true},
@@ -226,6 +238,7 @@ func TestRoll(t *testing.T) {
 				anime.EXPECT().RandomChar(gomock.Any()).Return(MediaCharacter{ID: 3, Name: "Char3", ImageURL: "img3"}, nil)
 				coll.EXPECT().UpsertCharacter(gomock.Any(), gomock.Any()).Return(collectionstore.Character{}, nil)
 				coll.EXPECT().Insert(gomock.Any(), gomock.Any()).Return(collectionstore.Collection{}, nil)
+				wishlist.EXPECT().RemoveCharacterFromWishlist(gomock.Any(), wishliststore.RemoveCharacterFromWishlistParams{UserID: 123, CharacterID: 3}).Return(nil)
 				user.EXPECT().UpdateDate(gomock.Any(), gomock.Any()).Return(nil)
 				store.EXPECT().Commit(gomock.Any()).Return(errors.New("commit error"))
 				store.EXPECT().Rollback(gomock.Any()).Return(nil)
