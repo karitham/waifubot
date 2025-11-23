@@ -95,19 +95,21 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	// Implement GET /user/123
-	r.Route("/user", func(r chi.Router) {
-		r.Use(middleware.SetHeader("Content-Type", "application/json"))
-		r.Use(middleware.SetHeader("Cache-Control", "public, max-age="+cacheAge))
-		r.Get("/find", api.findUser)
-		r.Get("/{userID}", api.getUser)
-	})
+	r.Route("/api/v1", func(r chi.Router) {
+		// Implement GET /user/123
+		r.Route("/user", func(r chi.Router) {
+			r.Use(middleware.SetHeader("Content-Type", "application/json"))
+			r.Use(middleware.SetHeader("Cache-Control", "public, max-age="+cacheAge))
+			r.Get("/find", api.findUser)
+			r.Get("/{userID}", api.getUser)
+		})
 
-	// Implement GET /wishlist/123
-	r.Route("/wishlist", func(r chi.Router) {
-		r.Use(middleware.SetHeader("Content-Type", "application/json"))
-		r.Use(middleware.SetHeader("Cache-Control", "public, max-age="+cacheAge))
-		r.Get("/{userID}", api.getWishlist)
+		// Implement GET /wishlist/123
+		r.Route("/wishlist", func(r chi.Router) {
+			r.Use(middleware.SetHeader("Content-Type", "application/json"))
+			r.Use(middleware.SetHeader("Cache-Control", "public, max-age="+cacheAge))
+			r.Get("/{userID}", api.getWishlist)
+		})
 	})
 	r.Get("/", func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = fmt.Fprint(w, "WaifuBot API - See https://github.com/karitham/waifubot for documentation")

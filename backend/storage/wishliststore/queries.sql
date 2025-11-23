@@ -49,8 +49,10 @@ SELECT
 FROM character_wishlist cw
 JOIN characters c ON cw.character_id = c.id
 JOIN collection col ON col.character_id = c.id
+LEFT JOIN guild_members gm ON gm.user_id = cw.user_id AND gm.guild_id = $2
 WHERE col.user_id = $1
-AND cw.user_id != $1;
+AND cw.user_id != $1
+AND ($2 = 0 OR gm.guild_id IS NOT NULL);
 
 -- name: CompareWithUser :many
 SELECT

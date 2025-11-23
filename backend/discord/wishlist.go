@@ -202,7 +202,7 @@ func (b *Bot) wishlistHolders(ctx context.Context, w corde.ResponseWriter, i *co
 func (b *Bot) wishlistWanted(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
 	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
 
-	wanted, err := wishlist.GetWantedCharacters(ctx, b.WishlistStore, uint64(i.Member.User.ID))
+	wanted, err := wishlist.GetWantedCharacters(ctx, b.WishlistStore, uint64(i.Member.User.ID), uint64(i.GuildID))
 	if err != nil {
 		logger.Error("error getting wanted characters", "error", err)
 		w.Respond(rspErr("Unable to retrieve wanted characters. Please try again."))

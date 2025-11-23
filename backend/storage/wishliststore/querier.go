@@ -13,7 +13,7 @@ type Querier interface {
 	AddMultipleCharactersToWishlist(ctx context.Context, arg AddMultipleCharactersToWishlistParams) error
 	CompareWithUser(ctx context.Context, arg CompareWithUserParams) ([]CompareWithUserRow, error)
 	GetUserCharacterWishlist(ctx context.Context, userID uint64) ([]GetUserCharacterWishlistRow, error)
-	GetWantedCharacters(ctx context.Context, userID uint64) ([]GetWantedCharactersRow, error)
+	GetWantedCharacters(ctx context.Context, arg GetWantedCharactersParams) ([]GetWantedCharactersRow, error)
 	GetWishlistHolders(ctx context.Context, arg GetWishlistHoldersParams) ([]GetWishlistHoldersRow, error)
 	RemoveCharacterFromWishlist(ctx context.Context, arg RemoveCharacterFromWishlistParams) error
 	RemoveMultipleCharactersFromWishlist(ctx context.Context, arg RemoveMultipleCharactersFromWishlistParams) error

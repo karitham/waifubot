@@ -928,7 +928,7 @@ func (dc *discordCmd) wishlistWanted(c *cli.Context) error {
 		return fmt.Errorf("invalid user ID: %s", userIDStr)
 	}
 
-	wanted, err := wishlist.GetWantedCharacters(ctx, bot.WishlistStore, uint64(userID))
+	wanted, err := wishlist.GetWantedCharacters(ctx, bot.WishlistStore, uint64(userID), 0)
 	if err != nil {
 		return fmt.Errorf("error getting wanted characters: %w", err)
 	}

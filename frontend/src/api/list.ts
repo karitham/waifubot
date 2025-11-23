@@ -55,7 +55,7 @@ export const until = async <ErrorType = Error, DataType = unknown>(
 export const getUser = async (anilistUsername: string) => {
 	return until(() =>
 		fetch(
-			`${ROOT_URL}/user/find?anilist=${encodeURIComponent(anilistUsername)}`,
+			`${ROOT_URL}/api/v1/user/find?anilist=${encodeURIComponent(anilistUsername)}`,
 		)
 			.then((res) => res.json())
 			.then(
@@ -69,7 +69,7 @@ export const getUser = async (anilistUsername: string) => {
 
 export const getList = async (userID: string) => {
 	return until(() =>
-		fetch(`https://waifuapi.karitham.dev/user/${userID}`)
+		fetch(`${ROOT_URL}/api/v1/user/${userID}`)
 			.then((res) => res.json())
 			.then((res) => res as User),
 	);
@@ -82,7 +82,7 @@ export interface WishlistResponse {
 
 export const getWishlist = async (userID: string) => {
 	return until(() =>
-		fetch(`${ROOT_URL}/wishlist/${userID}`)
+		fetch(`${ROOT_URL}/api/v1/wishlist/${userID}`)
 			.then((res) => res.json())
 			.then((res) => res as WishlistResponse),
 	);

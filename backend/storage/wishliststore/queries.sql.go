@@ -163,9 +163,16 @@ SELECT
 FROM character_wishlist cw
 JOIN characters c ON cw.character_id = c.id
 JOIN collection col ON col.character_id = c.id
+LEFT JOIN guild_members gm ON gm.user_id = cw.user_id AND gm.guild_id = $2
 WHERE col.user_id = $1
 AND cw.user_id != $1
+AND ($2 = 0 OR gm.guild_id IS NOT NULL)
 `
+
+type GetWantedCharactersParams struct {
+	UserID  uint64
+	GuildID uint64
+}
 
 type GetWantedCharactersRow struct {
 	UserID         uint64
@@ -174,8 +181,8 @@ type GetWantedCharactersRow struct {
 	CharacterImage string
 }
 
-func (q *Queries) GetWantedCharacters(ctx context.Context, userID uint64) ([]GetWantedCharactersRow, error) {
-	rows, err := q.db.Query(ctx, getWantedCharacters, userID)
+func (q *Queries) GetWantedCharacters(ctx context.Context, arg GetWantedCharactersParams) ([]GetWantedCharactersRow, error) {
+	rows, err := q.db.Query(ctx, getWantedCharacters, arg.UserID, arg.GuildID)
 	if err != nil {
 		return nil, err
 	}
