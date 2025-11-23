@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Karitham/corde"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/karitham/waifubot/storage"
@@ -108,7 +109,18 @@ func UserProfile(ctx context.Context, store Store, userID corde.Snowflake) (Prof
 	// Get user
 	u, err := store.UserStore().Get(ctx, uint64(userID))
 	if err != nil {
-		return Profile{}, err
+		if err == pgx.ErrNoRows {
+			err = store.UserStore().Create(ctx, uint64(userID))
+			if err != nil {
+				return Profile{}, err
+			}
+			u, err = store.UserStore().Get(ctx, uint64(userID))
+			if err != nil {
+				return Profile{}, err
+			}
+		} else {
+			return Profile{}, err
+		}
 	}
 
 	// Get favorite if any

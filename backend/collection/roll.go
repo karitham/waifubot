@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Karitham/corde"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	characters "github.com/karitham/waifubot/storage/collectionstore"
@@ -37,7 +38,18 @@ func Roll(ctx context.Context, store Store, animeService AnimeService, config Co
 
 	user, err := tx.UserStore().Get(ctx, uint64(userID))
 	if err != nil {
-		return MediaCharacter{}, err
+		if err == pgx.ErrNoRows {
+			err = tx.UserStore().Create(ctx, uint64(userID))
+			if err != nil {
+				return MediaCharacter{}, err
+			}
+			user, err = tx.UserStore().Get(ctx, uint64(userID))
+			if err != nil {
+				return MediaCharacter{}, err
+			}
+		} else {
+			return MediaCharacter{}, err
+		}
 	}
 
 	now := time.Now()

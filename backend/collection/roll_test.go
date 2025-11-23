@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Karitham/corde"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/mock/gomock"
 
@@ -84,6 +85,34 @@ func TestRoll(t *testing.T) {
 			},
 			wantErr:     true,
 			errContains: "user not found",
+		},
+		{
+			name:   "new user roll success",
+			userID: 456,
+			config: Config{RollCooldown: time.Hour, TokensNeeded: 10},
+			setupMocks: func(store *MockProfileStore, anime *MockAnimeService, coll *MockCollectionQuerier, user *MockUserQuerier) {
+				wishlist := NewMockWishlistQuerier(ctrl)
+				store.EXPECT().Tx(gomock.Any()).Return(store, nil)
+				store.EXPECT().UserStore().Return(user).AnyTimes()
+				store.EXPECT().CollectionStore().Return(coll).AnyTimes()
+				store.EXPECT().WishlistStore().Return(wishlist).AnyTimes()
+				user.EXPECT().Get(gomock.Any(), uint64(456)).Return(userstore.User{}, pgx.ErrNoRows)
+				user.EXPECT().Create(gomock.Any(), uint64(456)).Return(nil)
+				user.EXPECT().Get(gomock.Any(), uint64(456)).Return(userstore.User{
+					UserID: 456,
+					Date:   pgtype.Timestamp{Valid: false}, // new user, no date
+					Tokens: 0,
+				}, nil)
+				coll.EXPECT().ListIDs(gomock.Any(), uint64(456)).Return([]int64{}, nil)
+				anime.EXPECT().RandomChar(gomock.Any()).Return(MediaCharacter{ID: 4, Name: "Char4", ImageURL: "img4"}, nil)
+				coll.EXPECT().UpsertCharacter(gomock.Any(), gomock.Any()).Return(collectionstore.Character{}, nil)
+				coll.EXPECT().Insert(gomock.Any(), gomock.Any()).Return(collectionstore.Collection{}, nil)
+				wishlist.EXPECT().RemoveCharacterFromWishlist(gomock.Any(), wishliststore.RemoveCharacterFromWishlistParams{UserID: 456, CharacterID: 4}).Return(nil)
+				user.EXPECT().UpdateDate(gomock.Any(), gomock.Any()).Return(nil)
+				store.EXPECT().Commit(gomock.Any()).Return(nil)
+			},
+			wantErr:  false,
+			wantChar: MediaCharacter{ID: 4, Name: "Char4", ImageURL: "img4"},
 		},
 		{
 			name:   "list ids error",
