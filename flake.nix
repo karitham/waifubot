@@ -3,7 +3,7 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
   };
   outputs = {nixpkgs, ...}: let
-    forSystems = nixpkgs.lib.genAttrs ["x86_64-linux" "aarch64-linux"];
+    forSystems = nixpkgs.lib.genAttrs nixpkgs.lib.systems.flakeExposed;
   in {
     devShells = forSystems (
       system: let
@@ -13,6 +13,7 @@
           packages = with pkgs; [
             go
             gofumpt
+            golangci-lint
             usql
             dbmate
             sqlc
