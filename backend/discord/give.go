@@ -2,6 +2,7 @@ package discord
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"github.com/Karitham/corde"
@@ -37,6 +38,10 @@ func (b *Bot) giveCommand(ctx context.Context, w corde.ResponseWriter, i *corde.
 
 	char, err := collection.Give(ctx, b.Store, i.Member.User.ID, user.ID, int64(charID))
 	if err != nil {
+		if errors.Is(err, collection.ErrUserDoesNotOwnCharacter) {
+			w.Respond(rspErr("You don't own that character"))
+			return
+		}
 		logger.Error("error performing give", "error", err, "to_user_id", uint64(user.ID), "character_id", charID)
 		w.Respond(newErrf("Error: %s", err.Error()))
 		return

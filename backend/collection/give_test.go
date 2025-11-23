@@ -2,6 +2,7 @@ package collection
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"strings"
 	"testing"
@@ -19,14 +20,13 @@ func TestGive(t *testing.T) {
 	defer ctrl.Finish()
 
 	tests := []struct {
-		name        string
-		from        corde.Snowflake
-		to          corde.Snowflake
-		charID      int64
-		setupMocks  func(*MockProfileStore, *MockCollectionQuerier)
-		want        Character
-		wantErr     bool
-		errContains string
+		name       string
+		from       corde.Snowflake
+		to         corde.Snowflake
+		charID     int64
+		setupMocks func(*MockProfileStore, *MockCollectionQuerier)
+		want       Character
+		assertErr  func(error) bool
 	}{
 		{
 			name:   "success",
@@ -45,28 +45,8 @@ func TestGive(t *testing.T) {
 				coll.EXPECT().Get(gomock.Any(), collectionstore.GetParams{ID: 1, UserID: uint64(456)}).Return(collectionstore.GetRow{}, errors.New("not found"))
 				coll.EXPECT().Give(gomock.Any(), gomock.Any()).Return(collectionstore.Collection{}, nil)
 			},
-			want: Character{
-				ID:     1,
-				UserID: 456,
-				Date:   time.Now(),
-				Image:  "img1",
-				Name:   "Char1",
-				Type:   "ROLL",
-			},
-			wantErr: false,
-		},
-		{
-			name:   "from does not own",
-			from:   123,
-			to:     456,
-			charID: 1,
-			setupMocks: func(store *MockProfileStore, coll *MockCollectionQuerier) {
-				store.EXPECT().CollectionStore().Return(coll)
-				coll.EXPECT().Get(gomock.Any(), collectionstore.GetParams{ID: 1, UserID: uint64(123)}).Return(collectionstore.GetRow{}, errors.New("not found"))
-			},
-			want:        Character{},
-			wantErr:     true,
-			errContains: "from user does not own char 1",
+			want:      Character{ID: 1, Name: "Char1", Image: "img1", Type: "ROLL", UserID: 456},
+			assertErr: nil,
 		},
 		{
 			name:   "to already owns",
@@ -90,12 +70,23 @@ func TestGive(t *testing.T) {
 					Source: "ROLL",
 				}, nil)
 			},
-			want:        Character{},
-			wantErr:     true,
-			errContains: "to user already owns char 1",
+			want:      Character{},
+			assertErr: func(err error) bool { return strings.Contains(err.Error(), "to user already owns char 1") },
 		},
 		{
-			name:   "give error",
+			name:   "from_does_not_own",
+			from:   123,
+			to:     456,
+			charID: 1,
+			setupMocks: func(store *MockProfileStore, coll *MockCollectionQuerier) {
+				store.EXPECT().CollectionStore().Return(coll)
+				coll.EXPECT().Get(gomock.Any(), collectionstore.GetParams{ID: 1, UserID: uint64(123)}).Return(collectionstore.GetRow{}, sql.ErrNoRows)
+			},
+			want:      Character{},
+			assertErr: func(err error) bool { return errors.Is(err, ErrUserDoesNotOwnCharacter) },
+		},
+		{
+			name:   "give_error",
 			from:   123,
 			to:     456,
 			charID: 1,
@@ -111,9 +102,8 @@ func TestGive(t *testing.T) {
 				coll.EXPECT().Get(gomock.Any(), collectionstore.GetParams{ID: 1, UserID: uint64(456)}).Return(collectionstore.GetRow{}, errors.New("not found"))
 				coll.EXPECT().Give(gomock.Any(), gomock.Any()).Return(collectionstore.Collection{}, errors.New("give error"))
 			},
-			want:        Character{},
-			wantErr:     true,
-			errContains: "error giving char",
+			want:      Character{},
+			assertErr: func(err error) bool { return strings.Contains(err.Error(), "error giving char") },
 		},
 	}
 
@@ -124,17 +114,21 @@ func TestGive(t *testing.T) {
 			tt.setupMocks(store, coll)
 
 			got, err := Give(context.Background(), store, tt.from, tt.to, tt.charID)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Give() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.wantErr && tt.errContains != "" && !strings.Contains(err.Error(), tt.errContains) {
-				t.Errorf("Give() error = %v, want contains %v", err, tt.errContains)
-			}
-			if !tt.wantErr {
-				// Approximate time check
-				if got.ID != tt.want.ID || got.UserID != tt.want.UserID || got.Image != tt.want.Image || got.Name != tt.want.Name || got.Type != tt.want.Type {
+			if tt.assertErr == nil {
+				if err != nil {
+					t.Errorf("Give() expected no error, got %v", err)
+					return
+				}
+				if got.ID != tt.want.ID || got.Name != tt.want.Name || got.Image != tt.want.Image || got.Type != tt.want.Type || got.UserID != tt.want.UserID {
 					t.Errorf("Give() = %v, want %v", got, tt.want)
+				}
+			} else {
+				if err == nil {
+					t.Errorf("Give() expected error, got nil")
+					return
+				}
+				if !tt.assertErr(err) {
+					t.Errorf("Give() error assertion failed: %v", err)
 				}
 			}
 		})

@@ -2,6 +2,8 @@ package collection
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 
 	"github.com/Karitham/corde"
 
@@ -12,6 +14,9 @@ import (
 func CheckOwnership(ctx context.Context, store Store, userID corde.Snowflake, charID int64) (bool, collectionstore.Character, error) {
 	char, err := store.CollectionStore().Get(ctx, collectionstore.GetParams{ID: charID, UserID: uint64(userID)})
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, collectionstore.Character{}, nil
+		}
 		return false, collectionstore.Character{}, err
 	}
 	return char.ID == charID, collectionstore.Character{

@@ -2,6 +2,8 @@ package collection
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/Karitham/corde"
@@ -13,7 +15,10 @@ import (
 func Give(ctx context.Context, store Store, from, to corde.Snowflake, charID int64) (Character, error) {
 	c, err := store.CollectionStore().Get(ctx, collectionstore.GetParams{ID: charID, UserID: uint64(from)})
 	if err != nil {
-		return Character{}, fmt.Errorf("from user does not own char %d: %w", charID, err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return Character{}, fmt.Errorf("%w %d", ErrUserDoesNotOwnCharacter, charID)
+		}
+		return Character{}, fmt.Errorf("error checking ownership: %w", err)
 	}
 
 	_, err = store.CollectionStore().Get(ctx, collectionstore.GetParams{ID: charID, UserID: uint64(to)})

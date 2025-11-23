@@ -2,6 +2,9 @@ package collection
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"fmt"
 
 	"github.com/Karitham/corde"
 
@@ -29,6 +32,9 @@ func Exchange(ctx context.Context, store Store, userID corde.Snowflake, charID i
 
 	_, err = tx.CollectionStore().Delete(ctx, collectionstore.DeleteParams{UserID: uint64(userID), CharacterID: charID})
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return collectionstore.Character{}, fmt.Errorf("%w %d", ErrUserDoesNotOwnCharacter, charID)
+		}
 		return collectionstore.Character{}, err
 	}
 

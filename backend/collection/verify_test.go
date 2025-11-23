@@ -2,6 +2,7 @@ package collection
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"reflect"
 	"testing"
@@ -23,7 +24,7 @@ func TestCheckOwnership(t *testing.T) {
 		setupMocks func(*MockProfileStore, *MockCollectionQuerier)
 		want       bool
 		wantChar   collectionstore.Character
-		wantErr    bool
+		assertErr  func(error) bool
 	}{
 		{
 			name:   "success owns",
@@ -43,7 +44,7 @@ func TestCheckOwnership(t *testing.T) {
 				Name:  "Char1",
 				Image: "img1",
 			},
-			wantErr: false,
+			assertErr: nil,
 		},
 		{
 			name:   "does not own",
@@ -51,11 +52,11 @@ func TestCheckOwnership(t *testing.T) {
 			charID: 2,
 			setupMocks: func(store *MockProfileStore, coll *MockCollectionQuerier) {
 				store.EXPECT().CollectionStore().Return(coll)
-				coll.EXPECT().Get(gomock.Any(), collectionstore.GetParams{ID: 2, UserID: 123}).Return(collectionstore.GetRow{}, errors.New("not found"))
+				coll.EXPECT().Get(gomock.Any(), collectionstore.GetParams{ID: 2, UserID: 123}).Return(collectionstore.GetRow{}, sql.ErrNoRows)
 			},
-			want:     false,
-			wantChar: collectionstore.Character{},
-			wantErr:  true,
+			want:      false,
+			wantChar:  collectionstore.Character{},
+			assertErr: nil,
 		},
 	}
 
@@ -66,15 +67,25 @@ func TestCheckOwnership(t *testing.T) {
 			tt.setupMocks(store, coll)
 
 			got, gotChar, err := CheckOwnership(context.Background(), store, tt.userID, tt.charID)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("CheckOwnership() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("CheckOwnership() got = %v, want %v", got, tt.want)
-			}
-			if gotChar != tt.wantChar {
-				t.Errorf("CheckOwnership() gotChar = %v, want %v", gotChar, tt.wantChar)
+			if tt.assertErr == nil {
+				if err != nil {
+					t.Errorf("CheckOwnership() expected no error, got %v", err)
+					return
+				}
+				if got != tt.want {
+					t.Errorf("CheckOwnership() got = %v, want %v", got, tt.want)
+				}
+				if gotChar != tt.wantChar {
+					t.Errorf("CheckOwnership() gotChar = %v, want %v", gotChar, tt.wantChar)
+				}
+			} else {
+				if err == nil {
+					t.Errorf("CheckOwnership() expected error, got nil")
+					return
+				}
+				if !tt.assertErr(err) {
+					t.Errorf("CheckOwnership() error assertion failed: %v", err)
+				}
 			}
 		})
 	}

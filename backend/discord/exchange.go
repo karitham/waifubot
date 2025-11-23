@@ -2,6 +2,7 @@ package discord
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"github.com/Karitham/corde"
@@ -26,6 +27,10 @@ func (b *Bot) exchangeCommand(ctx context.Context, w corde.ResponseWriter, i *co
 
 	char, err := collection.Exchange(ctx, b.Store, user.ID, charID)
 	if err != nil {
+		if errors.Is(err, collection.ErrUserDoesNotOwnCharacter) {
+			w.Respond(rspErr("You don't own that character"))
+			return
+		}
 		logger.Error("error performing exchange", "error", err, "character_id", charID)
 		w.Respond(newErrf("Error: %s", err.Error()))
 		return
