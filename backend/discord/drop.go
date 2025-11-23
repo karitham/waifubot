@@ -7,8 +7,10 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/Karitham/corde"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage/collectionstore"
@@ -78,13 +80,24 @@ func (b *Bot) claim(ctx context.Context, w corde.ResponseWriter, i *corde.Intera
 		}
 	}
 
-	// Insert char
-	err = b.Store.CollectionStore().Insert(ctx, collectionstore.InsertParams{
-		ID:     char.ID,
-		UserID: uint64(i.Member.User.ID),
-		Image:  char.ImageURL,
-		Name:   sanitizeName(char.Name),
-		Type:   "CLAIM",
+	// First create the character if it doesn't exist
+	_, err = b.Store.CollectionStore().UpsertCharacter(ctx, collectionstore.UpsertCharacterParams{
+		ID:    char.ID,
+		Name:  sanitizeName(char.Name),
+		Image: char.ImageURL,
+	})
+	if err != nil {
+		logger.Debug("failed to create character", "error", err, "character_id", char.ID, "character_name", char.Name)
+		w.Respond(rspErr("Failed to claim character"))
+		return
+	}
+
+	// Insert char into collection
+	_, err = b.Store.CollectionStore().Insert(ctx, collectionstore.InsertParams{
+		UserID:      uint64(i.Member.User.ID),
+		CharacterID: char.ID,
+		Source:      "CLAIM",
+		AcquiredAt:  pgtype.Timestamp{Time: time.Now(), Valid: true},
 	})
 	if err != nil {
 		logger.Debug("failed to insert claimed character", "error", err, "character_id", char.ID, "character_name", char.Name)

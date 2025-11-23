@@ -1,5 +1,9 @@
 package collection
 
+//go:generate mockgen -source=profile.go -destination=profile_mock.go -package=collection -mock_names=Store=MockProfileStore,AnimeService=MockAnimeService
+//go:generate mockgen -source=../storage/collectionstore/querier.go -destination=collectionstore_mock.go -package=collection -mock_names=Querier=MockCollectionQuerier
+//go:generate mockgen -source=../storage/userstore/querier.go -destination=userstore_mock.go -package=collection -mock_names=Querier=MockUserQuerier
+
 import (
 	"context"
 	"fmt"
@@ -115,9 +119,9 @@ func UserProfile(ctx context.Context, store Store, userID corde.Snowflake) (Prof
 				Date:   favRow.Date.Time,
 				Image:  favRow.Image,
 				Name:   favRow.Name,
-				Type:   favRow.Type,
-				UserID: corde.Snowflake(favRow.UserID),
-				ID:     favRow.ID,
+				Type:   favRow.Source,
+				UserID: userID,
+				ID:     int64(favRow.ID),
 			}
 		}
 	}
@@ -185,7 +189,7 @@ func SetQuote(ctx context.Context, store Store, userID corde.Snowflake, quote st
 
 // SearchCharacters searches for characters in a user's collection for autocomplete
 func SearchCharacters(ctx context.Context, store Store, userID corde.Snowflake, term string) ([]collectionstore.Character, error) {
-	chars, err := store.CollectionStore().SearchCharacters(ctx, collectionstore.SearchCharactersParams{
+	rows, err := store.CollectionStore().SearchCharacters(ctx, collectionstore.SearchCharactersParams{
 		UserID: uint64(userID),
 		Term:   term,
 		Lim:    25,
@@ -194,8 +198,18 @@ func SearchCharacters(ctx context.Context, store Store, userID corde.Snowflake, 
 	if err != nil {
 		return nil, err
 	}
-	if len(chars) > 25 {
-		chars = chars[:25]
+	if len(rows) > 25 {
+		rows = rows[:25]
+	}
+
+	// Convert SearchCharactersRow to Character
+	chars := make([]collectionstore.Character, len(rows))
+	for i, row := range rows {
+		chars[i] = collectionstore.Character{
+			ID:    row.ID,
+			Name:  row.Name,
+			Image: row.Image,
+		}
 	}
 
 	return chars, nil

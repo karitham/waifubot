@@ -21,7 +21,13 @@ func Exchange(ctx context.Context, store Store, userID corde.Snowflake, charID i
 		}
 	}()
 
-	char, err := tx.CollectionStore().Delete(ctx, collectionstore.DeleteParams{UserID: uint64(userID), ID: charID})
+	// First get the character info before deleting
+	charInfo, err := tx.CollectionStore().GetByID(ctx, charID)
+	if err != nil {
+		return collectionstore.Character{}, err
+	}
+
+	_, err = tx.CollectionStore().Delete(ctx, collectionstore.DeleteParams{UserID: uint64(userID), CharacterID: charID})
 	if err != nil {
 		return collectionstore.Character{}, err
 	}
@@ -32,5 +38,10 @@ func Exchange(ctx context.Context, store Store, userID corde.Snowflake, charID i
 	}
 
 	err = tx.Commit(ctx)
-	return char, err
+
+	return collectionstore.Character{
+		ID:    charInfo.ID,
+		Name:  charInfo.Name,
+		Image: charInfo.Image,
+	}, err
 }

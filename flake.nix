@@ -13,6 +13,7 @@
           packages = with pkgs; [
             go
             gofumpt
+            mockgen
             golangci-lint
             usql
             dbmate

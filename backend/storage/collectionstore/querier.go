@@ -10,16 +10,17 @@ import (
 
 type Querier interface {
 	Count(ctx context.Context, userID uint64) (int64, error)
-	Delete(ctx context.Context, arg DeleteParams) (Character, error)
-	Get(ctx context.Context, arg GetParams) (Character, error)
+	Delete(ctx context.Context, arg DeleteParams) (Collection, error)
+	Get(ctx context.Context, arg GetParams) (GetRow, error)
 	GetByID(ctx context.Context, id int64) (Character, error)
-	Give(ctx context.Context, arg GiveParams) (Character, error)
-	Insert(ctx context.Context, arg InsertParams) error
-	List(ctx context.Context, userID uint64) ([]Character, error)
+	Give(ctx context.Context, arg GiveParams) (Collection, error)
+	Insert(ctx context.Context, arg InsertParams) (Collection, error)
+	List(ctx context.Context, userID uint64) ([]ListRow, error)
 	ListIDs(ctx context.Context, userID uint64) ([]int64, error)
-	SearchCharacters(ctx context.Context, arg SearchCharactersParams) ([]Character, error)
-	SearchGlobalCharacters(ctx context.Context, arg SearchGlobalCharactersParams) ([]SearchGlobalCharactersRow, error)
+	SearchCharacters(ctx context.Context, arg SearchCharactersParams) ([]SearchCharactersRow, error)
+	SearchGlobalCharacters(ctx context.Context, arg SearchGlobalCharactersParams) ([]Character, error)
 	UpdateImageName(ctx context.Context, arg UpdateImageNameParams) (Character, error)
+	UpsertCharacter(ctx context.Context, arg UpsertCharacterParams) (Character, error)
 	UsersOwningCharFiltered(ctx context.Context, arg UsersOwningCharFilteredParams) ([]uint64, error)
 }
 

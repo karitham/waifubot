@@ -55,12 +55,25 @@ func (ns NullIndexingStatus) Value() (driver.Value, error) {
 }
 
 type Character struct {
-	UserID uint64
+	ID    int64
+	Name  string
+	Image string
+}
+
+type CharactersBackup struct {
+	UserID int64
 	ID     int64
 	Image  string
 	Name   string
 	Date   pgtype.Timestamp
 	Type   string
+}
+
+type Collection struct {
+	UserID      uint64
+	CharacterID int64
+	Source      string
+	AcquiredAt  pgtype.Timestamp
 }
 
 type GuildIndexingJob struct {
@@ -73,6 +86,10 @@ type GuildMember struct {
 	GuildID   uint64
 	UserID    int64
 	IndexedAt pgtype.Timestamp
+}
+
+type SchemaMigration struct {
+	Version string
 }
 
 type User struct {

@@ -193,7 +193,7 @@ func (h *Handler) findUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func mapUser(u userstore.User, list []collectionstore.Character) *Profile {
+func mapUser(u userstore.User, list []collectionstore.ListRow) *Profile {
 	p := &Profile{
 		ID:         u.UserID,
 		Quote:      u.Quote,
@@ -202,19 +202,19 @@ func mapUser(u userstore.User, list []collectionstore.Character) *Profile {
 		Waifus:     make([]Character, 0, len(list)),
 	}
 
-	for _, c := range list {
-		apiChar := Character{
-			ID:    c.ID,
-			Name:  c.Name,
-			Image: c.Image,
-			Type:  c.Type,
-			Date:  c.Date.Time,
+	for _, entry := range list {
+		c := Character{
+			ID:    entry.ID,
+			Name:  entry.Name,
+			Image: entry.Image,
+			Type:  entry.Source,
+			Date:  entry.Date.Time,
 		}
 
-		p.Waifus = append(p.Waifus, apiChar)
+		p.Waifus = append(p.Waifus, c)
 
-		if u.Favorite.Valid && uint64(c.ID) == uint64(u.Favorite.Int64) {
-			p.Favorite = apiChar
+		if u.Favorite.Valid && entry.ID == u.Favorite.Int64 {
+			p.Favorite = c
 		}
 	}
 

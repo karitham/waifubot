@@ -19,9 +19,9 @@ func Characters(ctx context.Context, store Store, userID corde.Snowflake) ([]Cha
 			Date:   c.Date.Time,
 			Image:  c.Image,
 			Name:   c.Name,
-			Type:   c.Type,
-			UserID: corde.Snowflake(c.UserID),
-			ID:     c.ID,
+			Type:   c.Source,
+			UserID: userID,
+			ID:     int64(c.ID),
 		}
 	}
 

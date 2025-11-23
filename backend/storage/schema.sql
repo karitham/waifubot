@@ -1,49 +1,51 @@
-CREATE TABLE IF NOT EXISTS users (
-  "id" serial NOT NULL,
-  "user_id" BIGINT NOT NULL PRIMARY KEY,
-  "quote" TEXT NOT NULL DEFAULT '',
-  "date" TIMESTAMP NOT NULL DEFAULT '1970-01-01 00:00:00-00',
-  "favorite" BIGINT,
-  "tokens" INT NOT NULL DEFAULT 0,
-  "anilist_url" VARCHAR(255) NOT NULL DEFAULT ''
+CREATE EXTENSION if NOT EXISTS pg_trgm
+WITH  schema public;
+
+CREATE TYPE public.indexing_status AS ENUM('pending', 'in_progress', 'completed');
+
+CREATE TABLE public.characters (
+  id BIGINT CONSTRAINT characters_new_id_not_null NOT NULL,
+  name CHARACTER VARYING(128) CONSTRAINT characters_new_name_not_null NOT NULL,
+  image CHARACTER VARYING(256) CONSTRAINT characters_new_image_not_null NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS characters (
-  "user_id" BIGINT NOT NULL,
-  "id" BIGINT NOT NULL,
-  "image" CHARACTER VARYING(256) NOT NULL DEFAULT '',
-  "name" CHARACTER VARYING(128) NOT NULL DEFAULT '',
-  "date" TIMESTAMP NOT NULL DEFAULT NOW(),
-  "type" VARCHAR NOT NULL DEFAULT '',
-  PRIMARY KEY ("id", "user_id"),
-  CONSTRAINT "users_characters_fk" FOREIGN key (user_id) REFERENCES users (user_id)
+CREATE TABLE public.characters_backup (
+  user_id BIGINT CONSTRAINT characters_user_id_not_null NOT NULL,
+  id BIGINT CONSTRAINT characters_id_not_null NOT NULL,
+  image CHARACTER VARYING(256) DEFAULT ''::CHARACTER VARYING CONSTRAINT characters_image_not_null NOT NULL,
+  name CHARACTER VARYING(128) DEFAULT ''::CHARACTER VARYING CONSTRAINT characters_name_not_null NOT NULL,
+  date TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW() CONSTRAINT characters_date_not_null NOT NULL,
+  type CHARACTER VARYING DEFAULT ''::CHARACTER VARYING CONSTRAINT characters_type_not_null NOT NULL
 );
 
--- constraint
-ALTER TABLE users
-ADD CONSTRAINT "characters_users_fk" FOREIGN key (favorite, user_id) REFERENCES characters (id, user_id);
-
--- index
-CREATE INDEX characters_id_user_id_idx ON characters (id, user_id);
-
-CREATE INDEX characters_user_id_idx ON characters (user_id);
-
-CREATE INDEX users_user_id_idx ON users (user_id);
-
-CREATE INDEX characters_id_user_id_date_idx ON characters (id, user_id, date);
-
--- CREATE INDEX ON characters (user_id) STORING (image, name, date, type);
-CREATE TYPE indexing_status AS ENUM ('pending', 'in_progress', 'completed');
-
-CREATE TABLE guild_members (
-    guild_id BIGINT NOT NULL,
-    user_id BIGINT NOT NULL,
-    indexed_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (guild_id, user_id)
+CREATE TABLE public.collection (
+  user_id BIGINT NOT NULL,
+  character_id BIGINT NOT NULL,
+  source CHARACTER VARYING(50) DEFAULT 'ROLL'::CHARACTER VARYING NOT NULL,
+  acquired_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
 );
 
-CREATE TABLE guild_indexing_jobs (
-    guild_id BIGINT PRIMARY KEY,
-    status indexing_status NOT NULL DEFAULT 'pending',
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+CREATE TABLE public.guild_indexing_jobs (
+  guild_id BIGINT NOT NULL,
+  status public.indexing_status DEFAULT 'pending'::public.indexing_status NOT NULL,
+  updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW() NOT NULL
 );
+
+CREATE TABLE public.guild_members (
+  guild_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
+  indexed_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE public.schema_migrations (version CHARACTER VARYING NOT NULL);
+
+CREATE TABLE public.users (
+  id INTEGER NOT NULL,
+  user_id BIGINT NOT NULL,
+  quote TEXT DEFAULT ''::TEXT NOT NULL,
+  date TIMESTAMP WITHOUT TIME ZONE DEFAULT '1970-01-01 00:00:00'::TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+  favorite BIGINT,
+  tokens INTEGER DEFAULT 0 NOT NULL,
+  anilist_url CHARACTER VARYING(255) DEFAULT ''::CHARACTER VARYING NOT NULL
+);
+

@@ -1,5 +1,8 @@
 package storage
 
+//go:generate mockgen -source=store.go -destination=mocks/store_mock.go -package=mocks -mock_names=Store=MockStorageStore,TXer=MockTXer
+//go:generate mockgen -source=userstore/querier.go -destination=mocks/userstore_mock.go -package=mocks -mock_names=Querier=MockUserQuerier
+
 import (
 	"context"
 	"fmt"

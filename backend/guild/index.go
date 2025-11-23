@@ -1,5 +1,7 @@
 package guild
 
+//go:generate mockgen -source=../storage/guildstore/querier.go -destination=mocks/guildstore_mock.go -package=mocks -mock_names=Querier=MockGuildQuerier
+
 import (
 	"context"
 	"encoding/json"

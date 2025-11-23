@@ -1,123 +1,117 @@
 -- name: List :many
-SELECT
-  *
-FROM
-  characters
-WHERE
-  characters.user_id = $1
-ORDER BY
-  characters.date DESC;
+SELECT 
+    c.id,
+    c.name,
+    c.image,
+    col.source,
+    col.acquired_at as date
+FROM collection col
+JOIN characters c ON col.character_id = c.id
+WHERE col.user_id = $1
+ORDER BY col.acquired_at DESC;
 
 -- name: ListIDs :many
-SELECT
-  id
-FROM
-  characters
-WHERE
-  user_id = $1;
+SELECT 
+    col.character_id as id
+FROM collection col
+WHERE col.user_id = $1;
 
 -- name: SearchCharacters :many
-SELECT
-  *
-FROM
-  characters
-WHERE
-  user_id = sqlc.arg (user_id)
-  AND (
-    id::VARCHAR LIKE sqlc.arg (term)::VARCHAR || '%'
-    OR name ILIKE '%' || sqlc.arg (term) || '%'
-  )
-ORDER BY
-  date DESC
-LIMIT
-  sqlc.arg (lim)
-OFFSET
-  sqlc.arg (off);
+SELECT 
+    c.id,
+    c.name,
+    c.image,
+    col.source,
+    col.acquired_at as date
+FROM collection col
+JOIN characters c ON col.character_id = c.id
+WHERE col.user_id = sqlc.arg(user_id)
+AND (
+    c.id::VARCHAR LIKE sqlc.arg(term)::VARCHAR || '%'
+    OR c.name ILIKE '%' || sqlc.arg(term) || '%'
+)
+ORDER BY col.acquired_at DESC
+LIMIT sqlc.arg(lim)
+OFFSET sqlc.arg(off);
 
 -- name: Get :one
-SELECT
-  *
-FROM
-  characters
-WHERE
-  id = $1
-  AND characters.user_id = $2;
+SELECT 
+    c.id,
+    c.name,
+    c.image,
+    col.source,
+    col.acquired_at as date
+FROM collection col
+JOIN characters c ON col.character_id = c.id
+WHERE c.id = $1
+AND col.user_id = $2;
 
 -- name: GetByID :one
-SELECT
-    *
-FROM
-    characters
-WHERE
-    id = $1
-LIMIT
-    1;
+SELECT 
+    id,
+    name,
+    image
+FROM characters
+WHERE id = $1
+LIMIT 1;
 
--- name: Insert :exec
-INSERT INTO
-  characters ("id", "user_id", "image", "name", "type")
-VALUES
-  ($1, $2, $3, $4, $5);
+-- name: Insert :one
+INSERT INTO collection (user_id, character_id, source, acquired_at)
+VALUES ($1, $2, $3, $4)
+RETURNING user_id, character_id, source, acquired_at;
 
 -- name: Give :one
-UPDATE characters
-SET
-  "type" = 'TRADE',
-  "user_id" = $1
-WHERE
-  characters.id = $2
-  AND characters.user_id = $3
-RETURNING
-  *;
+UPDATE collection col
+SET 
+    user_id = $1,
+    source = 'TRADE'
+WHERE col.character_id = $2
+AND col.user_id = $3
+RETURNING user_id, character_id, source, acquired_at;
 
 -- name: Count :one
-SELECT
-  COUNT(id)
-FROM
-  characters
-WHERE
-  user_id = $1;
+SELECT 
+    COUNT(col.character_id)
+FROM collection col
+WHERE col.user_id = $1;
 
 -- name: Delete :one
-DELETE FROM characters
-WHERE
-  user_id = $1
-  AND id = $2
-RETURNING
-  *;
+DELETE FROM collection col
+WHERE col.user_id = $1
+AND col.character_id = $2
+RETURNING user_id, character_id, source, acquired_at;
 
 -- name: UpdateImageName :one
-UPDATE characters
-SET
-  "image" = $1,
-  "name" = $2
-WHERE
-  id = $3
-RETURNING
-  *;
+UPDATE characters c
+SET 
+    image = $1,
+    name = $2
+WHERE c.id = $3
+RETURNING id, name, image;
 
 -- name: SearchGlobalCharacters :many
-SELECT DISTINCT
-  ON (id) id,
-  name,
-  image,
-  type
-FROM
-  characters
-WHERE
-  id::VARCHAR LIKE sqlc.arg (term)::VARCHAR || '%'
-  OR name ILIKE '%' || sqlc.arg (term) || '%'
-ORDER BY
-  id,
-  date DESC
-LIMIT
-  sqlc.arg (lim);
+SELECT DISTINCT 
+    c.id,
+    c.name,
+    c.image
+FROM characters c
+WHERE 
+    c.id::VARCHAR LIKE sqlc.arg(term)::VARCHAR || '%'
+    OR c.name ILIKE '%' || sqlc.arg(term) || '%'
+ORDER BY c.id
+LIMIT sqlc.arg(lim);
 
 -- name: UsersOwningCharFiltered :many
-SELECT DISTINCT
-    user_id
-FROM
-    characters
-WHERE
-    id = $1
-    AND user_id = ANY (sqlc.arg(user_ids)::bigint[]);
+SELECT DISTINCT 
+    col.user_id
+FROM collection col
+WHERE col.character_id = $1
+AND col.user_id = ANY (sqlc.arg(user_ids)::bigint[]);
+
+-- name: UpsertCharacter :one
+INSERT INTO characters (id, name, image)
+VALUES ($1, $2, $3)
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    image = EXCLUDED.image
+RETURNING id, name, image;

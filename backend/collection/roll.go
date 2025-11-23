@@ -27,8 +27,9 @@ func Roll(ctx context.Context, store Store, animeService AnimeService, config Co
 	if err != nil {
 		return MediaCharacter{}, err
 	}
+	committed := false
 	defer func() {
-		if err != nil {
+		if !committed {
 			_ = tx.Rollback(ctx)
 		}
 	}()
@@ -59,12 +60,20 @@ func Roll(ctx context.Context, store Store, animeService AnimeService, config Co
 		return MediaCharacter{}, err
 	}
 
-	err = tx.CollectionStore().Insert(ctx, characters.InsertParams{
-		ID:     int64(char.ID),
-		UserID: uint64(userID),
-		Image:  char.ImageURL,
-		Name:   char.Name,
-		Type:   "ROLL",
+	_, err = tx.CollectionStore().UpsertCharacter(ctx, characters.UpsertCharacterParams{
+		ID:    char.ID,
+		Name:  char.Name,
+		Image: char.ImageURL,
+	})
+	if err != nil {
+		return MediaCharacter{}, err
+	}
+
+	_, err = tx.CollectionStore().Insert(ctx, characters.InsertParams{
+		UserID:      uint64(userID),
+		CharacterID: char.ID,
+		Source:      "ROLL",
+		AcquiredAt:  pgtype.Timestamp{Time: now, Valid: true},
 	})
 	if err != nil {
 		return MediaCharacter{}, err
@@ -87,5 +96,6 @@ func Roll(ctx context.Context, store Store, animeService AnimeService, config Co
 	}
 
 	err = tx.Commit(ctx)
+	committed = err == nil
 	return char, err
 }

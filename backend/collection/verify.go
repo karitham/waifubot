@@ -14,10 +14,14 @@ func CheckOwnership(ctx context.Context, store Store, userID corde.Snowflake, ch
 	if err != nil {
 		return false, collectionstore.Character{}, err
 	}
-	return char.ID == charID, char, nil
+	return char.ID == charID, collectionstore.Character{
+		ID:    char.ID,
+		Name:  char.Name,
+		Image: char.Image,
+	}, nil
 }
 
 // SearchGlobalCharacters searches for characters globally for autocomplete
-func SearchGlobalCharacters(ctx context.Context, store Store, term string) ([]collectionstore.SearchGlobalCharactersRow, error) {
+func SearchGlobalCharacters(ctx context.Context, store Store, term string) ([]collectionstore.Character, error) {
 	return store.CollectionStore().SearchGlobalCharacters(ctx, collectionstore.SearchGlobalCharactersParams{Term: term, Lim: 25})
 }

@@ -159,22 +159,22 @@ func (q *Queries) UpsertGuildMembers(ctx context.Context, arg UpsertGuildMembers
 
 const usersOwningCharInGuild = `-- name: UsersOwningCharInGuild :many
 SELECT DISTINCT
-  c.user_id
+  col.user_id
 FROM
-  characters c
-  JOIN guild_members gm ON c.user_id = gm.user_id
+  collection col
+  JOIN guild_members gm ON col.user_id = gm.user_id
 WHERE
-  c.id = $1
+  col.character_id = $1
   AND gm.guild_id = $2
 `
 
 type UsersOwningCharInGuildParams struct {
-	ID      int64
-	GuildID uint64
+	CharacterID int64
+	GuildID     uint64
 }
 
 func (q *Queries) UsersOwningCharInGuild(ctx context.Context, arg UsersOwningCharInGuildParams) ([]uint64, error) {
-	rows, err := q.db.Query(ctx, usersOwningCharInGuild, arg.ID, arg.GuildID)
+	rows, err := q.db.Query(ctx, usersOwningCharInGuild, arg.CharacterID, arg.GuildID)
 	if err != nil {
 		return nil, err
 	}

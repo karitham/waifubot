@@ -8,12 +8,12 @@ WHERE
 
 -- name: UsersOwningCharInGuild :many
 SELECT DISTINCT
-  c.user_id
+  col.user_id
 FROM
-  characters c
-  JOIN guild_members gm ON c.user_id = gm.user_id
+  collection col
+  JOIN guild_members gm ON col.user_id = gm.user_id
 WHERE
-  c.id = $1
+  col.character_id = $1
   AND gm.guild_id = $2;
 
 -- name: IsGuildIndexed :one

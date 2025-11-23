@@ -29,7 +29,7 @@ func CharacterHolders(ctx context.Context, store Store, guildID corde.Snowflake,
 		return "", nil, fmt.Errorf("guild members not indexed yet, please try again later")
 	}
 
-	holderIDsInt, err := store.GuildStore().UsersOwningCharInGuild(ctx, guildstore.UsersOwningCharInGuildParams{ID: charID, GuildID: uint64(guildID)})
+	holderIDsInt, err := store.GuildStore().UsersOwningCharInGuild(ctx, guildstore.UsersOwningCharInGuildParams{CharacterID: charID, GuildID: uint64(guildID)})
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to fetch character holders: %w", err)
 	}

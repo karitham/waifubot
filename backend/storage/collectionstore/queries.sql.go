@@ -7,15 +7,15 @@ package collectionstore
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const count = `-- name: Count :one
-SELECT
-  COUNT(id)
-FROM
-  characters
-WHERE
-  user_id = $1
+SELECT 
+    COUNT(col.character_id)
+FROM collection col
+WHERE col.user_id = $1
 `
 
 func (q *Queries) Count(ctx context.Context, userID uint64) (int64, error) {
@@ -26,41 +26,40 @@ func (q *Queries) Count(ctx context.Context, userID uint64) (int64, error) {
 }
 
 const delete = `-- name: Delete :one
-DELETE FROM characters
-WHERE
-  user_id = $1
-  AND id = $2
-RETURNING
-  user_id, id, image, name, date, type
+DELETE FROM collection col
+WHERE col.user_id = $1
+AND col.character_id = $2
+RETURNING user_id, character_id, source, acquired_at
 `
 
 type DeleteParams struct {
-	UserID uint64
-	ID     int64
+	UserID      uint64
+	CharacterID int64
 }
 
-func (q *Queries) Delete(ctx context.Context, arg DeleteParams) (Character, error) {
-	row := q.db.QueryRow(ctx, delete, arg.UserID, arg.ID)
-	var i Character
+func (q *Queries) Delete(ctx context.Context, arg DeleteParams) (Collection, error) {
+	row := q.db.QueryRow(ctx, delete, arg.UserID, arg.CharacterID)
+	var i Collection
 	err := row.Scan(
 		&i.UserID,
-		&i.ID,
-		&i.Image,
-		&i.Name,
-		&i.Date,
-		&i.Type,
+		&i.CharacterID,
+		&i.Source,
+		&i.AcquiredAt,
 	)
 	return i, err
 }
 
 const get = `-- name: Get :one
-SELECT
-  user_id, id, image, name, date, type
-FROM
-  characters
-WHERE
-  id = $1
-  AND characters.user_id = $2
+SELECT 
+    c.id,
+    c.name,
+    c.image,
+    col.source,
+    col.acquired_at as date
+FROM collection col
+JOIN characters c ON col.character_id = c.id
+WHERE c.id = $1
+AND col.user_id = $2
 `
 
 type GetParams struct {
@@ -68,130 +67,138 @@ type GetParams struct {
 	UserID uint64
 }
 
-func (q *Queries) Get(ctx context.Context, arg GetParams) (Character, error) {
+type GetRow struct {
+	ID     int64
+	Name   string
+	Image  string
+	Source string
+	Date   pgtype.Timestamp
+}
+
+func (q *Queries) Get(ctx context.Context, arg GetParams) (GetRow, error) {
 	row := q.db.QueryRow(ctx, get, arg.ID, arg.UserID)
-	var i Character
+	var i GetRow
 	err := row.Scan(
-		&i.UserID,
 		&i.ID,
-		&i.Image,
 		&i.Name,
+		&i.Image,
+		&i.Source,
 		&i.Date,
-		&i.Type,
 	)
 	return i, err
 }
 
 const getByID = `-- name: GetByID :one
-SELECT
-    user_id, id, image, name, date, type
-FROM
-    characters
-WHERE
-    id = $1
-LIMIT
-    1
+SELECT 
+    id,
+    name,
+    image
+FROM characters
+WHERE id = $1
+LIMIT 1
 `
 
 func (q *Queries) GetByID(ctx context.Context, id int64) (Character, error) {
 	row := q.db.QueryRow(ctx, getByID, id)
 	var i Character
-	err := row.Scan(
-		&i.UserID,
-		&i.ID,
-		&i.Image,
-		&i.Name,
-		&i.Date,
-		&i.Type,
-	)
+	err := row.Scan(&i.ID, &i.Name, &i.Image)
 	return i, err
 }
 
 const give = `-- name: Give :one
-UPDATE characters
-SET
-  "type" = 'TRADE',
-  "user_id" = $1
-WHERE
-  characters.id = $2
-  AND characters.user_id = $3
-RETURNING
-  user_id, id, image, name, date, type
+UPDATE collection col
+SET 
+    user_id = $1,
+    source = 'TRADE'
+WHERE col.character_id = $2
+AND col.user_id = $3
+RETURNING user_id, character_id, source, acquired_at
 `
 
 type GiveParams struct {
-	UserID   uint64
-	ID       int64
-	UserID_2 uint64
+	UserID      uint64
+	CharacterID int64
+	UserID_2    uint64
 }
 
-func (q *Queries) Give(ctx context.Context, arg GiveParams) (Character, error) {
-	row := q.db.QueryRow(ctx, give, arg.UserID, arg.ID, arg.UserID_2)
-	var i Character
+func (q *Queries) Give(ctx context.Context, arg GiveParams) (Collection, error) {
+	row := q.db.QueryRow(ctx, give, arg.UserID, arg.CharacterID, arg.UserID_2)
+	var i Collection
 	err := row.Scan(
 		&i.UserID,
-		&i.ID,
-		&i.Image,
-		&i.Name,
-		&i.Date,
-		&i.Type,
+		&i.CharacterID,
+		&i.Source,
+		&i.AcquiredAt,
 	)
 	return i, err
 }
 
-const insert = `-- name: Insert :exec
-INSERT INTO
-  characters ("id", "user_id", "image", "name", "type")
-VALUES
-  ($1, $2, $3, $4, $5)
+const insert = `-- name: Insert :one
+INSERT INTO collection (user_id, character_id, source, acquired_at)
+VALUES ($1, $2, $3, $4)
+RETURNING user_id, character_id, source, acquired_at
 `
 
 type InsertParams struct {
-	ID     int64
-	UserID uint64
-	Image  string
-	Name   string
-	Type   string
+	UserID      uint64
+	CharacterID int64
+	Source      string
+	AcquiredAt  pgtype.Timestamp
 }
 
-func (q *Queries) Insert(ctx context.Context, arg InsertParams) error {
-	_, err := q.db.Exec(ctx, insert,
-		arg.ID,
+func (q *Queries) Insert(ctx context.Context, arg InsertParams) (Collection, error) {
+	row := q.db.QueryRow(ctx, insert,
 		arg.UserID,
-		arg.Image,
-		arg.Name,
-		arg.Type,
+		arg.CharacterID,
+		arg.Source,
+		arg.AcquiredAt,
 	)
-	return err
+	var i Collection
+	err := row.Scan(
+		&i.UserID,
+		&i.CharacterID,
+		&i.Source,
+		&i.AcquiredAt,
+	)
+	return i, err
 }
 
 const list = `-- name: List :many
-SELECT
-  user_id, id, image, name, date, type
-FROM
-  characters
-WHERE
-  characters.user_id = $1
-ORDER BY
-  characters.date DESC
+SELECT 
+    c.id,
+    c.name,
+    c.image,
+    col.source,
+    col.acquired_at as date
+FROM collection col
+JOIN characters c ON col.character_id = c.id
+WHERE col.user_id = $1
+ORDER BY col.acquired_at DESC
 `
 
-func (q *Queries) List(ctx context.Context, userID uint64) ([]Character, error) {
+type ListRow struct {
+	ID     int64
+	Name   string
+	Image  string
+	Source string
+	Date   pgtype.Timestamp
+}
+
+func (q *Queries) List(ctx context.Context, userID uint64) ([]ListRow, error) {
 	rows, err := q.db.Query(ctx, list, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Character
+	var items []ListRow
 	for rows.Next() {
-		var i Character
+		var i ListRow
 		if err := rows.Scan(
-			&i.UserID,
 			&i.ID,
-			&i.Image,
 			&i.Name,
+			&i.Image,
+			&i.Source,
 			&i.Date,
-			&i.Type,
 		); err != nil {
 			return nil, err
 		}
@@ -204,12 +211,10 @@ func (q *Queries) List(ctx context.Context, userID uint64) ([]Character, error) 
 }
 
 const listIDs = `-- name: ListIDs :many
-SELECT
-  id
-FROM
-  characters
-WHERE
-  user_id = $1
+SELECT 
+    col.character_id as id
+FROM collection col
+WHERE col.user_id = $1
 `
 
 func (q *Queries) ListIDs(ctx context.Context, userID uint64) ([]int64, error) {
@@ -233,22 +238,22 @@ func (q *Queries) ListIDs(ctx context.Context, userID uint64) ([]int64, error) {
 }
 
 const searchCharacters = `-- name: SearchCharacters :many
-SELECT
-  user_id, id, image, name, date, type
-FROM
-  characters
-WHERE
-  user_id = $1
-  AND (
-    id::VARCHAR LIKE $2::VARCHAR || '%'
-    OR name ILIKE '%' || $2 || '%'
-  )
-ORDER BY
-  date DESC
-LIMIT
-  $4
-OFFSET
-  $3
+SELECT 
+    c.id,
+    c.name,
+    c.image,
+    col.source,
+    col.acquired_at as date
+FROM collection col
+JOIN characters c ON col.character_id = c.id
+WHERE col.user_id = $1
+AND (
+    c.id::VARCHAR LIKE $2::VARCHAR || '%'
+    OR c.name ILIKE '%' || $2 || '%'
+)
+ORDER BY col.acquired_at DESC
+LIMIT $4
+OFFSET $3
 `
 
 type SearchCharactersParams struct {
@@ -258,7 +263,15 @@ type SearchCharactersParams struct {
 	Lim    int32
 }
 
-func (q *Queries) SearchCharacters(ctx context.Context, arg SearchCharactersParams) ([]Character, error) {
+type SearchCharactersRow struct {
+	ID     int64
+	Name   string
+	Image  string
+	Source string
+	Date   pgtype.Timestamp
+}
+
+func (q *Queries) SearchCharacters(ctx context.Context, arg SearchCharactersParams) ([]SearchCharactersRow, error) {
 	rows, err := q.db.Query(ctx, searchCharacters,
 		arg.UserID,
 		arg.Term,
@@ -269,16 +282,15 @@ func (q *Queries) SearchCharacters(ctx context.Context, arg SearchCharactersPara
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Character
+	var items []SearchCharactersRow
 	for rows.Next() {
-		var i Character
+		var i SearchCharactersRow
 		if err := rows.Scan(
-			&i.UserID,
 			&i.ID,
-			&i.Image,
 			&i.Name,
+			&i.Image,
+			&i.Source,
 			&i.Date,
-			&i.Type,
 		); err != nil {
 			return nil, err
 		}
@@ -291,21 +303,16 @@ func (q *Queries) SearchCharacters(ctx context.Context, arg SearchCharactersPara
 }
 
 const searchGlobalCharacters = `-- name: SearchGlobalCharacters :many
-SELECT DISTINCT
-  ON (id) id,
-  name,
-  image,
-  type
-FROM
-  characters
-WHERE
-  id::VARCHAR LIKE $1::VARCHAR || '%'
-  OR name ILIKE '%' || $1 || '%'
-ORDER BY
-  id,
-  date DESC
-LIMIT
-  $2
+SELECT DISTINCT 
+    c.id,
+    c.name,
+    c.image
+FROM characters c
+WHERE 
+    c.id::VARCHAR LIKE $1::VARCHAR || '%'
+    OR c.name ILIKE '%' || $1 || '%'
+ORDER BY c.id
+LIMIT $2
 `
 
 type SearchGlobalCharactersParams struct {
@@ -313,28 +320,16 @@ type SearchGlobalCharactersParams struct {
 	Lim  int32
 }
 
-type SearchGlobalCharactersRow struct {
-	ID    int64
-	Name  string
-	Image string
-	Type  string
-}
-
-func (q *Queries) SearchGlobalCharacters(ctx context.Context, arg SearchGlobalCharactersParams) ([]SearchGlobalCharactersRow, error) {
+func (q *Queries) SearchGlobalCharacters(ctx context.Context, arg SearchGlobalCharactersParams) ([]Character, error) {
 	rows, err := q.db.Query(ctx, searchGlobalCharacters, arg.Term, arg.Lim)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []SearchGlobalCharactersRow
+	var items []Character
 	for rows.Next() {
-		var i SearchGlobalCharactersRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Image,
-			&i.Type,
-		); err != nil {
+		var i Character
+		if err := rows.Scan(&i.ID, &i.Name, &i.Image); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -346,14 +341,12 @@ func (q *Queries) SearchGlobalCharacters(ctx context.Context, arg SearchGlobalCh
 }
 
 const updateImageName = `-- name: UpdateImageName :one
-UPDATE characters
-SET
-  "image" = $1,
-  "name" = $2
-WHERE
-  id = $3
-RETURNING
-  user_id, id, image, name, date, type
+UPDATE characters c
+SET 
+    image = $1,
+    name = $2
+WHERE c.id = $3
+RETURNING id, name, image
 `
 
 type UpdateImageNameParams struct {
@@ -365,34 +358,47 @@ type UpdateImageNameParams struct {
 func (q *Queries) UpdateImageName(ctx context.Context, arg UpdateImageNameParams) (Character, error) {
 	row := q.db.QueryRow(ctx, updateImageName, arg.Image, arg.Name, arg.ID)
 	var i Character
-	err := row.Scan(
-		&i.UserID,
-		&i.ID,
-		&i.Image,
-		&i.Name,
-		&i.Date,
-		&i.Type,
-	)
+	err := row.Scan(&i.ID, &i.Name, &i.Image)
+	return i, err
+}
+
+const upsertCharacter = `-- name: UpsertCharacter :one
+INSERT INTO characters (id, name, image)
+VALUES ($1, $2, $3)
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    image = EXCLUDED.image
+RETURNING id, name, image
+`
+
+type UpsertCharacterParams struct {
+	ID    int64
+	Name  string
+	Image string
+}
+
+func (q *Queries) UpsertCharacter(ctx context.Context, arg UpsertCharacterParams) (Character, error) {
+	row := q.db.QueryRow(ctx, upsertCharacter, arg.ID, arg.Name, arg.Image)
+	var i Character
+	err := row.Scan(&i.ID, &i.Name, &i.Image)
 	return i, err
 }
 
 const usersOwningCharFiltered = `-- name: UsersOwningCharFiltered :many
-SELECT DISTINCT
-    user_id
-FROM
-    characters
-WHERE
-    id = $1
-    AND user_id = ANY ($2::bigint[])
+SELECT DISTINCT 
+    col.user_id
+FROM collection col
+WHERE col.character_id = $1
+AND col.user_id = ANY ($2::bigint[])
 `
 
 type UsersOwningCharFilteredParams struct {
-	ID      int64
-	UserIds []int64
+	CharacterID int64
+	UserIds     []int64
 }
 
 func (q *Queries) UsersOwningCharFiltered(ctx context.Context, arg UsersOwningCharFilteredParams) ([]uint64, error) {
-	rows, err := q.db.Query(ctx, usersOwningCharFiltered, arg.ID, arg.UserIds)
+	rows, err := q.db.Query(ctx, usersOwningCharFiltered, arg.CharacterID, arg.UserIds)
 	if err != nil {
 		return nil, err
 	}
