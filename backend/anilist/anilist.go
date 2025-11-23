@@ -168,12 +168,14 @@ func (a *Anilist) media(ctx context.Context, title string, t MediaType) ([]colle
 	resp := make([]collection.Media, len(media.Page.Media))
 	for i, m := range media.Page.Media {
 		resp[i] = collection.Media{
+			ID:              m.Id,
 			CoverImageURL:   m.CoverImage.Large,
 			BannerImageURL:  m.BannerImage,
 			CoverImageColor: ColorUint(m.CoverImage.Color),
 			Title:           m.Title.Romaji,
 			URL:             m.SiteUrl,
 			Description:     m.Description,
+			Type:            string(t),
 		}
 	}
 
@@ -224,6 +226,41 @@ func (a *Anilist) Character(ctx context.Context, name string) ([]collection.Medi
 // Manga returns a manga by title
 func (a *Anilist) Manga(ctx context.Context, title string) ([]collection.Media, error) {
 	return a.media(ctx, title, MediaTypeManga)
+}
+
+// SearchMedia returns media (anime and manga) by search term
+func (a *Anilist) SearchMedia(ctx context.Context, search string) ([]collection.Media, error) {
+	resp, err := searchMedia(ctx, a.c, search)
+	if err != nil {
+		return nil, err
+	}
+	media := make([]collection.Media, len(resp.Page.Media))
+	for i, m := range resp.Page.Media {
+		media[i] = collection.Media{
+			ID:            m.Id,
+			CoverImageURL: m.CoverImage.Large,
+			Title:         m.Title.Romaji,
+			Type:          string(m.Type),
+		}
+	}
+	return media, nil
+}
+
+// GetMediaCharacters returns all characters from a media
+func (a *Anilist) GetMediaCharacters(ctx context.Context, mediaId int64) ([]collection.MediaCharacter, error) {
+	resp, err := getMediaCharacters(ctx, a.c, mediaId)
+	if err != nil {
+		return nil, err
+	}
+	characters := make([]collection.MediaCharacter, len(resp.Media.Characters.Edges))
+	for i, edge := range resp.Media.Characters.Edges {
+		characters[i] = collection.MediaCharacter{
+			ID:       edge.Node.Id,
+			Name:     edge.Node.Name.Full,
+			ImageURL: edge.Node.Image.Large,
+		}
+	}
+	return characters, nil
 }
 
 // ColorUint

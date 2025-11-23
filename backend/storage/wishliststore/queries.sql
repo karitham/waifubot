@@ -12,6 +12,10 @@ ON CONFLICT (user_id, character_id) DO NOTHING;
 DELETE FROM character_wishlist
 WHERE user_id = $1 AND character_id = $2;
 
+-- name: RemoveMultipleCharactersFromWishlist :exec
+DELETE FROM character_wishlist
+WHERE user_id = $1 AND character_id = ANY($2::bigint[]);
+
 -- name: GetUserCharacterWishlist :many
 SELECT
     c.id,

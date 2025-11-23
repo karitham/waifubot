@@ -27,6 +27,8 @@ type TrackingService interface {
 	Manga(ctx context.Context, name string) ([]collection.Media, error)
 	User(ctx context.Context, name string) ([]collection.TrackerUser, error)
 	Character(ctx context.Context, name string) ([]collection.MediaCharacter, error)
+	SearchMedia(ctx context.Context, search string) ([]collection.Media, error)
+	GetMediaCharacters(ctx context.Context, mediaId int64) ([]collection.MediaCharacter, error)
 }
 
 // Bot holds the bot state

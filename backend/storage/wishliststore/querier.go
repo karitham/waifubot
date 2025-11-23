@@ -2,8 +2,6 @@
 // versions:
 //   sqlc v1.30.0
 
-//go:generate mockgen -source=querier.go -destination=../mocks/wishliststore_mock.go -package=mocks -mock_names=Querier=MockWishlistQuerier
-
 package wishliststore
 
 import (
@@ -18,6 +16,7 @@ type Querier interface {
 	GetWantedCharacters(ctx context.Context, userID uint64) ([]GetWantedCharactersRow, error)
 	GetWishlistHolders(ctx context.Context, arg GetWishlistHoldersParams) ([]GetWishlistHoldersRow, error)
 	RemoveCharacterFromWishlist(ctx context.Context, arg RemoveCharacterFromWishlistParams) error
+	RemoveMultipleCharactersFromWishlist(ctx context.Context, arg RemoveMultipleCharactersFromWishlistParams) error
 }
 
 var _ Querier = (*Queries)(nil)

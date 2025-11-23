@@ -88,12 +88,14 @@ type Profile struct {
 
 // Media represents an anime or manga
 type Media struct {
+	ID              int64
 	Title           string
 	URL             string
 	CoverImageURL   string
 	BannerImageURL  string
 	CoverImageColor uint32
 	Description     string
+	Type            string
 }
 
 // TrackerUser represents an anime tracker user

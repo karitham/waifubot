@@ -68,3 +68,43 @@ query media($name: String, $typ: MediaType) {
 		}
 	}
 }
+
+query searchMedia($search: String) {
+	Page(page: 1, perPage: 10) {
+		media(search: $search, sort: POPULARITY_DESC) {
+			id
+			title {
+				romaji
+				english
+				native
+			}
+			type
+			coverImage {
+				large
+			}
+		}
+	}
+}
+
+query getMediaCharacters($mediaId: Int!) {
+	Media(id: $mediaId) {
+		id
+		title {
+			romaji
+			english
+		}
+		characters(sort: ROLE, page: 1, perPage: 100) {
+			edges {
+				node {
+					id
+					name {
+						full
+					}
+					image {
+						large
+					}
+				}
+			}
+		}
+	}
+}

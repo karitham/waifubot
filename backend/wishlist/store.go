@@ -15,13 +15,6 @@ func New(q wishliststore.Querier) Store {
 	return &store{q: q}
 }
 
-func (s *store) AddCharacterToWishlist(ctx context.Context, userID uint64, characterID int64) error {
-	return s.q.AddCharacterToWishlist(ctx, wishliststore.AddCharacterToWishlistParams{
-		UserID:      userID,
-		CharacterID: characterID,
-	})
-}
-
 func (s *store) AddMultipleCharactersToWishlist(ctx context.Context, userID uint64, characterIDs []int64) error {
 	return s.q.AddMultipleCharactersToWishlist(ctx, wishliststore.AddMultipleCharactersToWishlistParams{
 		UserID:  userID,
@@ -29,10 +22,10 @@ func (s *store) AddMultipleCharactersToWishlist(ctx context.Context, userID uint
 	})
 }
 
-func (s *store) RemoveCharacterFromWishlist(ctx context.Context, userID uint64, characterID int64) error {
-	return s.q.RemoveCharacterFromWishlist(ctx, wishliststore.RemoveCharacterFromWishlistParams{
-		UserID:      userID,
-		CharacterID: characterID,
+func (s *store) RemoveMultipleCharactersFromWishlist(ctx context.Context, userID uint64, characterIDs []int64) error {
+	return s.q.RemoveMultipleCharactersFromWishlist(ctx, wishliststore.RemoveMultipleCharactersFromWishlistParams{
+		UserID:  userID,
+		Column2: characterIDs,
 	})
 }
 
@@ -144,7 +137,8 @@ func (s *store) CompareWithUser(ctx context.Context, userID1, userID2 uint64) (W
 	}
 
 	var userHas, userWants []Character
-	mutual := 0
+	hasIDs := make(map[int64]bool)
+	wantsIDs := make(map[int64]bool)
 
 	for _, row := range rows {
 		char := Character{
@@ -157,19 +151,18 @@ func (s *store) CompareWithUser(ctx context.Context, userID1, userID2 uint64) (W
 		switch row.Type {
 		case "has":
 			userHas = append(userHas, char)
+			hasIDs[row.ID] = true
 		case "wants":
 			userWants = append(userWants, char)
+			wantsIDs[row.ID] = true
 		}
+	}
 
-		// Count mutual matches (characters both want and the other has)
-		if row.Type == "has" {
-			// Check if userID2 wants this character
-			for _, r2 := range rows {
-				if r2.Type == "wants" && r2.ID == row.ID {
-					mutual++
-					break
-				}
-			}
+	// Count mutual matches efficiently using set intersection
+	mutual := 0
+	for id := range hasIDs {
+		if wantsIDs[id] {
+			mutual++
 		}
 	}
 

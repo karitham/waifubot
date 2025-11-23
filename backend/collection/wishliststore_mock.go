@@ -142,3 +142,17 @@ func (mr *MockWishlistQuerierMockRecorder) RemoveCharacterFromWishlist(ctx, arg 
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveCharacterFromWishlist", reflect.TypeOf((*MockWishlistQuerier)(nil).RemoveCharacterFromWishlist), ctx, arg)
 }
+
+// RemoveMultipleCharactersFromWishlist mocks base method.
+func (m *MockWishlistQuerier) RemoveMultipleCharactersFromWishlist(ctx context.Context, arg wishliststore.RemoveMultipleCharactersFromWishlistParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveMultipleCharactersFromWishlist", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveMultipleCharactersFromWishlist indicates an expected call of RemoveMultipleCharactersFromWishlist.
+func (mr *MockWishlistQuerierMockRecorder) RemoveMultipleCharactersFromWishlist(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveMultipleCharactersFromWishlist", reflect.TypeOf((*MockWishlistQuerier)(nil).RemoveMultipleCharactersFromWishlist), ctx, arg)
+}

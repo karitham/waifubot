@@ -10,8 +10,32 @@ import (
 	"github.com/Karitham/corde"
 
 	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/storage"
+	"github.com/karitham/waifubot/storage/collectionstore"
 	"github.com/karitham/waifubot/wishlist"
 )
+
+// collectionServiceWrapper wraps the storage.Store to implement wishlist.CollectionService
+type collectionServiceWrapper struct {
+	store storage.Store
+}
+
+func (c *collectionServiceWrapper) CheckOwnership(ctx context.Context, userID corde.Snowflake, charID int64) (bool, collectionstore.Character, error) {
+	return collection.CheckOwnership(ctx, c.store, userID, charID)
+}
+
+func (c *collectionServiceWrapper) GetUserCollectionIDs(ctx context.Context, userID corde.Snowflake) ([]int64, error) {
+	return c.store.CollectionStore().ListIDs(ctx, uint64(userID))
+}
+
+func (c *collectionServiceWrapper) UpsertCharacter(ctx context.Context, charID int64, name, image string) error {
+	_, err := c.store.CollectionStore().UpsertCharacter(ctx, collectionstore.UpsertCharacterParams{
+		ID:    charID,
+		Name:  name,
+		Image: image,
+	})
+	return err
+}
 
 // formatCharacter formats a character as "Name (ID)"
 func formatCharacter(name string, id int64) string {
@@ -58,6 +82,12 @@ func (b *Bot) wishlist(m *corde.Mux) {
 			m.Autocomplete("character", trace(b.wishlistAutocomplete))
 		})
 		m.SlashCommand("list", trace(b.wishlistCharacterList))
+	})
+	m.Route("media", func(m *corde.Mux) {
+		m.Route("add", func(m *corde.Mux) {
+			m.SlashCommand("", trace(b.wishlistMediaAdd))
+			m.Autocomplete("media", trace(b.mediaAutocomplete))
+		})
 	})
 	m.SlashCommand("holders", trace(b.wishlistHolders))
 	m.SlashCommand("wanted", trace(b.wishlistWanted))
@@ -241,10 +271,14 @@ func (b *Bot) wishlistCompare(ctx context.Context, w corde.ResponseWriter, i *co
 }
 
 func (b *Bot) wishlistAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
-	id, err := i.Data.Options.String("character")
+	input, err := i.Data.Options.String("character")
 	if err != nil {
-		i, _ := i.Data.Options.Int("character")
-		id = fmt.Sprintf("%d", i)
+		// If it's an int, convert to string for filtering
+		if intVal, intErr := i.Data.Options.Int("character"); intErr == nil {
+			input = fmt.Sprintf("%d", intVal)
+		} else {
+			input = ""
+		}
 	}
 
 	chars, err := wishlist.GetUserWishlist(ctx, b.WishlistStore, uint64(i.Member.User.ID))
@@ -255,7 +289,9 @@ func (b *Bot) wishlistAutocomplete(ctx context.Context, w corde.ResponseWriter, 
 
 	resp := corde.NewResp()
 	for _, c := range chars {
-		if fmt.Sprintf("%d", c.ID) == id || c.Name == id {
+		charIDStr := fmt.Sprintf("%d", c.ID)
+		// Show characters whose name or ID starts with the input
+		if input == "" || strings.HasPrefix(strings.ToLower(c.Name), strings.ToLower(input)) || strings.HasPrefix(charIDStr, input) {
 			resp.Choice(formatCharacter(c.Name, c.ID), c.ID)
 		}
 	}
@@ -279,6 +315,52 @@ func (b *Bot) characterAutocomplete(ctx context.Context, w corde.ResponseWriter,
 	resp := corde.NewResp()
 	for _, c := range chars {
 		resp.Choice(formatCharacter(c.Name, c.ID), c.ID)
+	}
+
+	w.Autocomplete(resp)
+}
+
+func (b *Bot) wishlistMediaAdd(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
+	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
+
+	mediaID, _ := i.Data.Options.Int64("media")
+
+	// Create a collection service wrapper
+	collectionService := &collectionServiceWrapper{store: b.Store}
+
+	count, err := wishlist.AddMediaToWishlist(ctx, b.WishlistStore, b.AnimeService, collectionService, i.Member.User.ID, mediaID)
+	if err != nil {
+		logger.Error("error adding media to wishlist", "error", err, "media_id", mediaID)
+		w.Respond(rspErr("Unable to add characters from this media to your wishlist. Please try again."))
+		return
+	}
+
+	if count == 0 {
+		w.Respond(rspErr("No characters found for this media, or you already own all of them."))
+		return
+	}
+
+	w.Respond(corde.NewResp().Contentf("Added %d characters from this media to your wishlist.", count).Ephemeral())
+}
+
+func (b *Bot) mediaAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
+	search, err := i.Data.Options.String("media")
+	if err != nil {
+		w.Autocomplete(corde.NewResp())
+		return
+	}
+
+	media, err := b.AnimeService.SearchMedia(ctx, search)
+	if err != nil {
+		slog.Error("Error searching media", "error", err, "term", search)
+		w.Autocomplete(corde.NewResp())
+		return
+	}
+
+	resp := corde.NewResp()
+	for _, m := range media {
+		displayName := fmt.Sprintf("%s (%s)", m.Title, strings.Title(strings.ToLower(m.Type)))
+		resp.Choice(displayName, m.ID)
 	}
 
 	w.Autocomplete(resp)

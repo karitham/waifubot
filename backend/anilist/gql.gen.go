@@ -18,6 +18,11 @@ const (
 	MediaTypeManga MediaType = "MANGA"
 )
 
+var AllMediaType = []MediaType{
+	MediaTypeAnime,
+	MediaTypeManga,
+}
+
 // __characterInput is used internally by genqlient
 type __characterInput struct {
 	Name string `json:"name"`
@@ -38,6 +43,14 @@ func (v *__charactersRandomInput) GetPageNumber() int64 { return v.PageNumber }
 // GetNot_in returns __charactersRandomInput.Not_in, and is useful for accessing the field via an interface.
 func (v *__charactersRandomInput) GetNot_in() []int64 { return v.Not_in }
 
+// __getMediaCharactersInput is used internally by genqlient
+type __getMediaCharactersInput struct {
+	MediaId int64 `json:"mediaId"`
+}
+
+// GetMediaId returns __getMediaCharactersInput.MediaId, and is useful for accessing the field via an interface.
+func (v *__getMediaCharactersInput) GetMediaId() int64 { return v.MediaId }
+
 // __mediaInput is used internally by genqlient
 type __mediaInput struct {
 	Name string    `json:"name"`
@@ -49,6 +62,14 @@ func (v *__mediaInput) GetName() string { return v.Name }
 
 // GetTyp returns __mediaInput.Typ, and is useful for accessing the field via an interface.
 func (v *__mediaInput) GetTyp() MediaType { return v.Typ }
+
+// __searchMediaInput is used internally by genqlient
+type __searchMediaInput struct {
+	Search string `json:"search"`
+}
+
+// GetSearch returns __searchMediaInput.Search, and is useful for accessing the field via an interface.
+func (v *__searchMediaInput) GetSearch() string { return v.Search }
 
 // __userInput is used internally by genqlient
 type __userInput struct {
@@ -252,6 +273,132 @@ type charactersRandomResponse struct {
 // GetPage returns charactersRandomResponse.Page, and is useful for accessing the field via an interface.
 func (v *charactersRandomResponse) GetPage() charactersRandomPage { return v.Page }
 
+// getMediaCharactersMedia includes the requested fields of the GraphQL type Media.
+// The GraphQL type's documentation follows.
+//
+// Anime or Manga
+type getMediaCharactersMedia struct {
+	// The id of the media
+	Id int64 `json:"id"`
+	// The official titles of the media in various languages
+	Title getMediaCharactersMediaTitle `json:"title"`
+	// The characters in the media
+	Characters getMediaCharactersMediaCharactersCharacterConnection `json:"characters"`
+}
+
+// GetId returns getMediaCharactersMedia.Id, and is useful for accessing the field via an interface.
+func (v *getMediaCharactersMedia) GetId() int64 { return v.Id }
+
+// GetTitle returns getMediaCharactersMedia.Title, and is useful for accessing the field via an interface.
+func (v *getMediaCharactersMedia) GetTitle() getMediaCharactersMediaTitle { return v.Title }
+
+// GetCharacters returns getMediaCharactersMedia.Characters, and is useful for accessing the field via an interface.
+func (v *getMediaCharactersMedia) GetCharacters() getMediaCharactersMediaCharactersCharacterConnection {
+	return v.Characters
+}
+
+// getMediaCharactersMediaCharactersCharacterConnection includes the requested fields of the GraphQL type CharacterConnection.
+type getMediaCharactersMediaCharactersCharacterConnection struct {
+	Edges []getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdge `json:"edges"`
+}
+
+// GetEdges returns getMediaCharactersMediaCharactersCharacterConnection.Edges, and is useful for accessing the field via an interface.
+func (v *getMediaCharactersMediaCharactersCharacterConnection) GetEdges() []getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdge {
+	return v.Edges
+}
+
+// getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdge includes the requested fields of the GraphQL type CharacterEdge.
+// The GraphQL type's documentation follows.
+//
+// Character connection edge
+type getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdge struct {
+	Node getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacter `json:"node"`
+}
+
+// GetNode returns getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdge.Node, and is useful for accessing the field via an interface.
+func (v *getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdge) GetNode() getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacter {
+	return v.Node
+}
+
+// getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacter includes the requested fields of the GraphQL type Character.
+// The GraphQL type's documentation follows.
+//
+// A character that features in an anime or manga
+type getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacter struct {
+	// The id of the character
+	Id int64 `json:"id"`
+	// The names of the character
+	Name getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacterName `json:"name"`
+	// Character images
+	Image getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacterImage `json:"image"`
+}
+
+// GetId returns getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacter.Id, and is useful for accessing the field via an interface.
+func (v *getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacter) GetId() int64 {
+	return v.Id
+}
+
+// GetName returns getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacter.Name, and is useful for accessing the field via an interface.
+func (v *getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacter) GetName() getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacterName {
+	return v.Name
+}
+
+// GetImage returns getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacter.Image, and is useful for accessing the field via an interface.
+func (v *getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacter) GetImage() getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacterImage {
+	return v.Image
+}
+
+// getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacterImage includes the requested fields of the GraphQL type CharacterImage.
+type getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacterImage struct {
+	// The character's image of media at its largest size
+	Large string `json:"large"`
+}
+
+// GetLarge returns getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacterImage.Large, and is useful for accessing the field via an interface.
+func (v *getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacterImage) GetLarge() string {
+	return v.Large
+}
+
+// getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacterName includes the requested fields of the GraphQL type CharacterName.
+// The GraphQL type's documentation follows.
+//
+// The names of the character
+type getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacterName struct {
+	// The character's first and last name
+	Full string `json:"full"`
+}
+
+// GetFull returns getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacterName.Full, and is useful for accessing the field via an interface.
+func (v *getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacterName) GetFull() string {
+	return v.Full
+}
+
+// getMediaCharactersMediaTitle includes the requested fields of the GraphQL type MediaTitle.
+// The GraphQL type's documentation follows.
+//
+// The official titles of the media in various languages
+type getMediaCharactersMediaTitle struct {
+	// The romanization of the native language title
+	Romaji string `json:"romaji"`
+	// The official english title
+	English string `json:"english"`
+}
+
+// GetRomaji returns getMediaCharactersMediaTitle.Romaji, and is useful for accessing the field via an interface.
+func (v *getMediaCharactersMediaTitle) GetRomaji() string { return v.Romaji }
+
+// GetEnglish returns getMediaCharactersMediaTitle.English, and is useful for accessing the field via an interface.
+func (v *getMediaCharactersMediaTitle) GetEnglish() string { return v.English }
+
+// getMediaCharactersResponse is returned by getMediaCharacters on success.
+type getMediaCharactersResponse struct {
+	// Media query
+	Media getMediaCharactersMedia `json:"Media"`
+}
+
+// GetMedia returns getMediaCharactersResponse.Media, and is useful for accessing the field via an interface.
+func (v *getMediaCharactersResponse) GetMedia() getMediaCharactersMedia { return v.Media }
+
 // mediaPage includes the requested fields of the GraphQL type Page.
 // The GraphQL type's documentation follows.
 //
@@ -334,6 +481,83 @@ type mediaResponse struct {
 // GetPage returns mediaResponse.Page, and is useful for accessing the field via an interface.
 func (v *mediaResponse) GetPage() mediaPage { return v.Page }
 
+// searchMediaPage includes the requested fields of the GraphQL type Page.
+// The GraphQL type's documentation follows.
+//
+// Page of data
+type searchMediaPage struct {
+	Media []searchMediaPageMedia `json:"media"`
+}
+
+// GetMedia returns searchMediaPage.Media, and is useful for accessing the field via an interface.
+func (v *searchMediaPage) GetMedia() []searchMediaPageMedia { return v.Media }
+
+// searchMediaPageMedia includes the requested fields of the GraphQL type Media.
+// The GraphQL type's documentation follows.
+//
+// Anime or Manga
+type searchMediaPageMedia struct {
+	// The id of the media
+	Id int64 `json:"id"`
+	// The official titles of the media in various languages
+	Title searchMediaPageMediaTitle `json:"title"`
+	// The type of the media; anime or manga
+	Type MediaType `json:"type"`
+	// The cover images of the media
+	CoverImage searchMediaPageMediaCoverImage `json:"coverImage"`
+}
+
+// GetId returns searchMediaPageMedia.Id, and is useful for accessing the field via an interface.
+func (v *searchMediaPageMedia) GetId() int64 { return v.Id }
+
+// GetTitle returns searchMediaPageMedia.Title, and is useful for accessing the field via an interface.
+func (v *searchMediaPageMedia) GetTitle() searchMediaPageMediaTitle { return v.Title }
+
+// GetType returns searchMediaPageMedia.Type, and is useful for accessing the field via an interface.
+func (v *searchMediaPageMedia) GetType() MediaType { return v.Type }
+
+// GetCoverImage returns searchMediaPageMedia.CoverImage, and is useful for accessing the field via an interface.
+func (v *searchMediaPageMedia) GetCoverImage() searchMediaPageMediaCoverImage { return v.CoverImage }
+
+// searchMediaPageMediaCoverImage includes the requested fields of the GraphQL type MediaCoverImage.
+type searchMediaPageMediaCoverImage struct {
+	// The cover image url of the media at a large size
+	Large string `json:"large"`
+}
+
+// GetLarge returns searchMediaPageMediaCoverImage.Large, and is useful for accessing the field via an interface.
+func (v *searchMediaPageMediaCoverImage) GetLarge() string { return v.Large }
+
+// searchMediaPageMediaTitle includes the requested fields of the GraphQL type MediaTitle.
+// The GraphQL type's documentation follows.
+//
+// The official titles of the media in various languages
+type searchMediaPageMediaTitle struct {
+	// The romanization of the native language title
+	Romaji string `json:"romaji"`
+	// The official english title
+	English string `json:"english"`
+	// Official title in it's native language
+	Native string `json:"native"`
+}
+
+// GetRomaji returns searchMediaPageMediaTitle.Romaji, and is useful for accessing the field via an interface.
+func (v *searchMediaPageMediaTitle) GetRomaji() string { return v.Romaji }
+
+// GetEnglish returns searchMediaPageMediaTitle.English, and is useful for accessing the field via an interface.
+func (v *searchMediaPageMediaTitle) GetEnglish() string { return v.English }
+
+// GetNative returns searchMediaPageMediaTitle.Native, and is useful for accessing the field via an interface.
+func (v *searchMediaPageMediaTitle) GetNative() string { return v.Native }
+
+// searchMediaResponse is returned by searchMedia on success.
+type searchMediaResponse struct {
+	Page searchMediaPage `json:"Page"`
+}
+
+// GetPage returns searchMediaResponse.Page, and is useful for accessing the field via an interface.
+func (v *searchMediaResponse) GetPage() searchMediaPage { return v.Page }
+
 // userPage includes the requested fields of the GraphQL type Page.
 // The GraphQL type's documentation follows.
 //
@@ -402,14 +626,8 @@ type userResponse struct {
 // GetPage returns userResponse.Page, and is useful for accessing the field via an interface.
 func (v *userResponse) GetPage() userPage { return v.Page }
 
-func character(
-	ctx context.Context,
-	client graphql.Client,
-	name string,
-) (*characterResponse, error) {
-	req := &graphql.Request{
-		OpName: "character",
-		Query: `
+// The query executed by character.
+const character_Operation = `
 query character ($name: String) {
 	Page(page: 1, perPage: 3) {
 		characters(search: $name) {
@@ -425,34 +643,35 @@ query character ($name: String) {
 		}
 	}
 }
-`,
+`
+
+func character(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	name string,
+) (data_ *characterResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "character",
+		Query:  character_Operation,
 		Variables: &__characterInput{
 			Name: name,
 		},
 	}
-	var err error
 
-	var data characterResponse
-	resp := &graphql.Response{Data: &data}
+	data_ = &characterResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
-	err = client.MakeRequest(
-		ctx,
-		req,
-		resp,
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
 	)
 
-	return &data, err
+	return data_, err_
 }
 
-func charactersRandom(
-	ctx context.Context,
-	client graphql.Client,
-	pageNumber int64,
-	not_in []int64,
-) (*charactersRandomResponse, error) {
-	req := &graphql.Request{
-		OpName: "charactersRandom",
-		Query: `
+// The query executed by charactersRandom.
+const charactersRandom_Operation = `
 query charactersRandom ($pageNumber: Int, $not_in: [Int]) {
 	Page(perPage: 1, page: $pageNumber) {
 		characters(sort: FAVOURITES_DESC, id_not_in: $not_in) {
@@ -474,35 +693,88 @@ query charactersRandom ($pageNumber: Int, $not_in: [Int]) {
 		}
 	}
 }
-`,
+`
+
+func charactersRandom(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	pageNumber int64,
+	not_in []int64,
+) (data_ *charactersRandomResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "charactersRandom",
+		Query:  charactersRandom_Operation,
 		Variables: &__charactersRandomInput{
 			PageNumber: pageNumber,
 			Not_in:     not_in,
 		},
 	}
-	var err error
 
-	var data charactersRandomResponse
-	resp := &graphql.Response{Data: &data}
+	data_ = &charactersRandomResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
-	err = client.MakeRequest(
-		ctx,
-		req,
-		resp,
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
 	)
 
-	return &data, err
+	return data_, err_
 }
 
-func media(
-	ctx context.Context,
-	client graphql.Client,
-	name string,
-	typ MediaType,
-) (*mediaResponse, error) {
-	req := &graphql.Request{
-		OpName: "media",
-		Query: `
+// The query executed by getMediaCharacters.
+const getMediaCharacters_Operation = `
+query getMediaCharacters ($mediaId: Int!) {
+	Media(id: $mediaId) {
+		id
+		title {
+			romaji
+			english
+		}
+		characters(sort: ROLE, page: 1, perPage: 100) {
+			edges {
+				node {
+					id
+					name {
+						full
+					}
+					image {
+						large
+					}
+				}
+			}
+		}
+	}
+}
+`
+
+func getMediaCharacters(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	mediaId int64,
+) (data_ *getMediaCharactersResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "getMediaCharacters",
+		Query:  getMediaCharacters_Operation,
+		Variables: &__getMediaCharactersInput{
+			MediaId: mediaId,
+		},
+	}
+
+	data_ = &getMediaCharactersResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
+// The query executed by media.
+const media_Operation = `
 query media ($name: String, $typ: MediaType) {
 	Page(page: 1, perPage: 3) {
 		media(search: $name, type: $typ) {
@@ -520,34 +792,82 @@ query media ($name: String, $typ: MediaType) {
 		}
 	}
 }
-`,
+`
+
+func media(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	name string,
+	typ MediaType,
+) (data_ *mediaResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "media",
+		Query:  media_Operation,
 		Variables: &__mediaInput{
 			Name: name,
 			Typ:  typ,
 		},
 	}
-	var err error
 
-	var data mediaResponse
-	resp := &graphql.Response{Data: &data}
+	data_ = &mediaResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
-	err = client.MakeRequest(
-		ctx,
-		req,
-		resp,
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
 	)
 
-	return &data, err
+	return data_, err_
 }
 
-func user(
-	ctx context.Context,
-	client graphql.Client,
-	name string,
-) (*userResponse, error) {
-	req := &graphql.Request{
-		OpName: "user",
-		Query: `
+// The query executed by searchMedia.
+const searchMedia_Operation = `
+query searchMedia ($search: String) {
+	Page(page: 1, perPage: 10) {
+		media(search: $search, sort: POPULARITY_DESC) {
+			id
+			title {
+				romaji
+				english
+				native
+			}
+			type
+			coverImage {
+				large
+			}
+		}
+	}
+}
+`
+
+func searchMedia(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	search string,
+) (data_ *searchMediaResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "searchMedia",
+		Query:  searchMedia_Operation,
+		Variables: &__searchMediaInput{
+			Search: search,
+		},
+	}
+
+	data_ = &searchMediaResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
+// The query executed by user.
+const user_Operation = `
 query user ($name: String) {
 	Page(page: 1, perPage: 3) {
 		users(search: $name) {
@@ -562,21 +882,29 @@ query user ($name: String) {
 		}
 	}
 }
-`,
+`
+
+func user(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	name string,
+) (data_ *userResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "user",
+		Query:  user_Operation,
 		Variables: &__userInput{
 			Name: name,
 		},
 	}
-	var err error
 
-	var data userResponse
-	resp := &graphql.Response{Data: &data}
+	data_ = &userResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
-	err = client.MakeRequest(
-		ctx,
-		req,
-		resp,
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
 	)
 
-	return &data, err
+	return data_, err_
 }
