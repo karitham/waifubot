@@ -4,7 +4,7 @@ export default () => {
 	const navigate = useNavigate();
 	return (
 		<main class="bg-neutral-900 h-screen w-screen selection:bg-zinc-700 text-white flex flex-col items-center justify-center gap-12">
-			<div class="flex flex-col gap-4 items-center justify-center">
+			<div class="flex flex-col gap-4 items-center justify-center main-content">
 				<h1 class="text-5xl">404</h1>
 				<h2 class="text-2xl">Page not found</h2>
 				<button

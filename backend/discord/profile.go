@@ -56,7 +56,9 @@ func (b *Bot) profileView(ctx context.Context, w corde.ResponseWriter, i *corde.
 			data.CharacterCount,
 			data.Favorite.Name,
 			anilistURLDesc,
-		)
+		).
+		Field("Collection", fmt.Sprintf("[View Collection](https://waifugui.karitham.dev/#/list/%s)", user.ID.String())).
+		Field("Wishlist", fmt.Sprintf("[View Wishlist](https://waifugui.karitham.dev/#/wishlist/%s)", user.ID.String()))
 	if data.Favorite.Image != "" {
 		resp.Thumbnail(corde.Image{URL: data.Favorite.Image})
 	}

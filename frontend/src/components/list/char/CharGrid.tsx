@@ -1,4 +1,4 @@
-import { For, createMemo } from "solid-js";
+import { createMemo, For } from "solid-js";
 import type { Char, CharOwned, User } from "../../../api/list";
 import CharCard from "../char/Card";
 

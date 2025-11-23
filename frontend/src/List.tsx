@@ -1,5 +1,5 @@
 import { useParams, useSearchParams } from "@solidjs/router";
-import { Show, createEffect, createResource, createSignal } from "solid-js";
+import { createEffect, createResource, createSignal, Show } from "solid-js";
 import { getMediaCharacters } from "./api/anilist";
 import list, { type Char } from "./api/list";
 import FilterBar from "./components/list/FilterBar";
@@ -107,13 +107,17 @@ export default () => {
 	return (
 		<main class="bg-base min-h-screen flex flex-col text-text">
 			<Show when={!user.loading && !!user()}>
-				<div class="flex flex-col gap-8 w-full text-text bg-crust">
+				<div class="flex flex-col gap-8 w-full text-text bg-crust main-content">
 					<div class="flex flex-col gap-12 p-8 mx-auto max-w-7xl">
 						<ProfileBar
 							favorite={user()?.favorite}
 							about={user()?.quote}
 							user={user()?.id}
 							anilistURL={user()?.anilist_url}
+							actionLink={{
+								href: `/wishlist/${params.id}`,
+								label: "View Wishlist",
+							}}
 						/>
 						<FilterBar
 							charFilter={{

@@ -3,7 +3,7 @@ import {
 	type SearchRootItemComponentProps,
 } from "@kobalte/core/search";
 import { useSearchParams } from "@solidjs/router";
-import { Show, createResource, createSignal } from "solid-js";
+import { createResource, createSignal, Show } from "solid-js";
 import type { SearchMediaResponse } from "../../../api/anilist";
 import { searchMedia } from "../../../api/anilist";
 import type { Char } from "../../../api/list";

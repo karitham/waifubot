@@ -9,6 +9,10 @@ export default (props: {
 	user: string | undefined;
 	anilistURL: string | undefined;
 	about: string | undefined;
+	actionLink?: {
+		href: string;
+		label: string;
+	};
 }) => {
 	const username =
 		props.anilistURL?.split(/https:\/\/anilist.co\/user\/([\w\d]+)/g)?.[1] ??
@@ -45,7 +49,17 @@ export default (props: {
 						alt={props.favorite?.name}
 					/>
 					<div id="char-description" class="px-8 flex flex-col gap-6">
-						{Username}
+						<div class="flex items-center justify-between">
+							{Username}
+							<Show when={props.actionLink}>
+								<a
+									href={props.actionLink!.href}
+									class="px-4 py-2 bg-mauve text-base rounded-lg hover:bg-mauve/80 transition-colors"
+								>
+									{props.actionLink!.label}
+								</a>
+							</Show>
+						</div>
 						{Favorite}
 
 						<Show when={props.about && props.about !== ""}>

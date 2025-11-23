@@ -22,7 +22,7 @@ export default () => {
 
 	return (
 		<main class="bg-base h-screen w-screen font-sans selection:bg-overlayC">
-			<div class="flex flex-col gap-16 pt-32 items-center justify-center text-text">
+			<div class="flex flex-col gap-16 pt-32 items-center justify-center text-text main-content">
 				<img src={Icon} alt="icon" />
 				<div class="text-sm flex flex-row gap-4 items-end bg-mantle p-4 rounded-xl">
 					<TextField onChange={setValue} class="w-64 flex flex-col gap-2">

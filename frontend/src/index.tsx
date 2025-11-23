@@ -6,12 +6,14 @@ import "virtual:uno.css";
 
 const Home = lazy(() => import("./Home"));
 const List = lazy(() => import("./List"));
+const Wishlist = lazy(() => import("./Wishlist"));
 const Page404 = lazy(() => import("./404"));
 
 render(
 	() => (
 		<HashRouter>
 			<Route path="/list/:id" component={List} />
+			<Route path="/wishlist/:id" component={Wishlist} />
 			<Route path="/" component={Home} />
 			<Route path="*" component={Page404} />
 		</HashRouter>

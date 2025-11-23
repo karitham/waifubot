@@ -75,4 +75,17 @@ export const getList = async (userID: string) => {
 	);
 };
 
+export interface WishlistResponse {
+	characters: Char[];
+	total: number;
+}
+
+export const getWishlist = async (userID: string) => {
+	return until(() =>
+		fetch(`${ROOT_URL}/wishlist/${userID}`)
+			.then((res) => res.json())
+			.then((res) => res as WishlistResponse),
+	);
+};
+
 export default getList;
