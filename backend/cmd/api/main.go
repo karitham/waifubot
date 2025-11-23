@@ -95,14 +95,18 @@ func main() {
 		AllowCredentials: true,
 	}))
 
+	users := func(r chi.Router) {
+		r.Use(middleware.SetHeader("Content-Type", "application/json"))
+		r.Use(middleware.SetHeader("Cache-Control", "public, max-age="+cacheAge))
+		r.Get("/find", api.findUser)
+		r.Get("/{userID}", api.getUser)
+	}
+
+	// deprecated path
+	r.Route("/user", users)
 	r.Route("/api/v1", func(r chi.Router) {
 		// Implement GET /user/123
-		r.Route("/user", func(r chi.Router) {
-			r.Use(middleware.SetHeader("Content-Type", "application/json"))
-			r.Use(middleware.SetHeader("Cache-Control", "public, max-age="+cacheAge))
-			r.Get("/find", api.findUser)
-			r.Get("/{userID}", api.getUser)
-		})
+		r.Route("/user", users)
 
 		// Implement GET /wishlist/123
 		r.Route("/wishlist", func(r chi.Router) {
