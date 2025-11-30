@@ -359,8 +359,7 @@ func (b *Bot) mediaAutocomplete(ctx context.Context, w corde.ResponseWriter, i *
 
 	resp := corde.NewResp()
 	for _, m := range media {
-		displayName := fmt.Sprintf("%s (%s)", m.Title, strings.Title(strings.ToLower(m.Type)))
-		resp.Choice(displayName, m.ID)
+		resp.Choice(fmt.Sprintf("%s (%s)", m.Title, strings.ToTitle(strings.ToLower(m.Type))), m.ID)
 	}
 
 	w.Autocomplete(resp)
