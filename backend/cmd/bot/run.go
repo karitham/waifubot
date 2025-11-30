@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"log/slog"
+	"net/http"
 
 	"github.com/Karitham/corde"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 	"github.com/urfave/cli/v2"
 
@@ -99,8 +101,11 @@ var RunCommand = &cli.Command{
 
 		slog.Info("Discord bot started successfully", "port", c.String("port"))
 
-		err = mux.ListenAndServe(":" + c.String("port"))
-		if err != nil {
+		r := http.NewServeMux()
+		r.Handle("/metrics", promhttp.Handler())
+		r.Handle(mux.BasePath, mux)
+
+		if err := http.ListenAndServe(":"+c.String("port"), r); err != nil {
 			slog.Error("Discord bot crashed", "error", err, "port", c.String("port"))
 			return err
 		}

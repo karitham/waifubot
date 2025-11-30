@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Karitham/corde"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/guild"
@@ -18,6 +19,31 @@ import (
 const (
 	AnilistColor   = 0x02a9ff
 	AnilistIconURL = "https://anilist.co/img/icons/favicon-32x32.png"
+)
+
+var (
+	commandCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "waifubot_command_total",
+			Help: "Total number of command invocations",
+		},
+		[]string{"command"},
+	)
+	commandDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "waifubot_command_duration_seconds",
+			Help:    "Duration of command execution",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"command"},
+	)
+	errorCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "waifubot_error_total",
+			Help: "Total number of errors",
+		},
+		[]string{"command", "error_type"},
+	)
 )
 
 // TrackingService is the interface for the anilist service
@@ -51,6 +77,8 @@ type Bot struct {
 
 // New runs the bot
 func New(b *Bot) *corde.Mux {
+	prometheus.MustRegister(commandCounter, commandDuration, errorCounter)
+
 	b.mux = corde.NewMux(b.PublicKey, b.AppID, b.BotToken)
 	b.mux.OnNotFound = b.RemoveUnknownCommands
 

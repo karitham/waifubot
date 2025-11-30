@@ -21,6 +21,10 @@ func trace[T corde.InteractionDataConstraint](next func(ctx context.Context, w c
 		ctx = context.WithValue(ctx, slog.Default().Handler(), l)
 		next(ctx, w, i)
 
-		l.Info("request completed", "took", time.Since(start).String())
+		duration := time.Since(start)
+		commandCounter.WithLabelValues(i.Route).Inc()
+		commandDuration.WithLabelValues(i.Route).Observe(duration.Seconds())
+
+		l.Info("request completed", "took", duration.String())
 	}
 }

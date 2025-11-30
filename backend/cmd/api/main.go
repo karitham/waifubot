@@ -15,6 +15,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/collectionstore"
@@ -42,6 +44,23 @@ var (
 		ErrorCode:  "invalid_anilist",
 		StatusCode: 400,
 	}
+
+	apiRequestCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "waifubot_api_requests_total",
+			Help: "Total number of API requests",
+		},
+		[]string{"method", "endpoint", "status"},
+	)
+
+	apiRequestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "waifubot_api_request_duration_seconds",
+			Help:    "Duration of API requests",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"method", "endpoint"},
+	)
 )
 
 func parseLogLevel(levelStr string) slog.Level {
@@ -57,6 +76,29 @@ func parseLogLevel(levelStr string) slog.Level {
 	default:
 		return slog.LevelInfo
 	}
+}
+
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.statusCode = code
+	rw.ResponseWriter.WriteHeader(code)
+}
+
+func prometheusMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		rw := &responseWriter{ResponseWriter: w, statusCode: 200}
+
+		next.ServeHTTP(rw, r)
+
+		duration := time.Since(start)
+		apiRequestCounter.WithLabelValues(r.Method, r.URL.Path, strconv.Itoa(rw.statusCode)).Inc()
+		apiRequestDuration.WithLabelValues(r.Method, r.URL.Path).Observe(duration.Seconds())
+	})
 }
 
 func main() {
@@ -75,6 +117,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	prometheus.MustRegister(apiRequestCounter, apiRequestDuration)
+
 	api := &Handler{
 		db: db,
 	}
@@ -85,6 +129,7 @@ func main() {
 	r.Use(middleware.Timeout(5 * time.Second))
 	r.Use(loggerMiddleware(logger))
 	r.Use(middleware.Compress(5))
+	r.Use(prometheusMiddleware)
 
 	// CORS
 	r.Use(cors.Handler(cors.Options{
@@ -115,9 +160,8 @@ func main() {
 			r.Get("/{userID}", api.getWishlist)
 		})
 	})
-	r.Get("/", func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = fmt.Fprint(w, "WaifuBot API - See https://github.com/karitham/waifubot for documentation")
-	})
+
+	r.Handle("/metrics", promhttp.Handler())
 
 	slog.Info("API server started successfully", "port", apiPort)
 	if err := http.ListenAndServe(":"+strconv.Itoa(apiPort), r); err != nil {
