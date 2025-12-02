@@ -13,6 +13,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/karitham/waifubot/storage/collectionstore"
+	"github.com/karitham/waifubot/storage/mocks"
 	"github.com/karitham/waifubot/storage/userstore"
 	"github.com/karitham/waifubot/storage/wishliststore"
 )
@@ -35,7 +36,7 @@ func TestRoll(t *testing.T) {
 			userID: 123,
 			config: Config{RollCooldown: time.Hour, TokensNeeded: 10},
 			setupMocks: func(store *MockProfileStore, anime *MockAnimeService, coll *MockCollectionQuerier, user *MockUserQuerier) {
-				wishlist := NewMockWishlistQuerier(ctrl)
+				wishlist := mocks.NewMockWishlistQuerier(ctrl)
 				store.EXPECT().Tx(gomock.Any()).Return(store, nil)
 				store.EXPECT().UserStore().Return(user).AnyTimes()
 				store.EXPECT().CollectionStore().Return(coll).AnyTimes()
@@ -91,7 +92,7 @@ func TestRoll(t *testing.T) {
 			userID: 456,
 			config: Config{RollCooldown: time.Hour, TokensNeeded: 10},
 			setupMocks: func(store *MockProfileStore, anime *MockAnimeService, coll *MockCollectionQuerier, user *MockUserQuerier) {
-				wishlist := NewMockWishlistQuerier(ctrl)
+				wishlist := mocks.NewMockWishlistQuerier(ctrl)
 				store.EXPECT().Tx(gomock.Any()).Return(store, nil)
 				store.EXPECT().UserStore().Return(user).AnyTimes()
 				store.EXPECT().CollectionStore().Return(coll).AnyTimes()
@@ -201,7 +202,7 @@ func TestRoll(t *testing.T) {
 			userID: 123,
 			config: Config{RollCooldown: time.Hour, TokensNeeded: 10},
 			setupMocks: func(store *MockProfileStore, anime *MockAnimeService, coll *MockCollectionQuerier, user *MockUserQuerier) {
-				wishlist := NewMockWishlistQuerier(ctrl)
+				wishlist := mocks.NewMockWishlistQuerier(ctrl)
 				store.EXPECT().Tx(gomock.Any()).Return(store, nil)
 				store.EXPECT().UserStore().Return(user).AnyTimes()
 				store.EXPECT().CollectionStore().Return(coll).AnyTimes()
@@ -227,7 +228,7 @@ func TestRoll(t *testing.T) {
 			userID: 123,
 			config: Config{RollCooldown: time.Hour, TokensNeeded: 10},
 			setupMocks: func(store *MockProfileStore, anime *MockAnimeService, coll *MockCollectionQuerier, user *MockUserQuerier) {
-				wishlist := NewMockWishlistQuerier(ctrl)
+				wishlist := mocks.NewMockWishlistQuerier(ctrl)
 				store.EXPECT().Tx(gomock.Any()).Return(store, nil)
 				store.EXPECT().UserStore().Return(user).AnyTimes()
 				store.EXPECT().CollectionStore().Return(coll).AnyTimes()
@@ -253,7 +254,7 @@ func TestRoll(t *testing.T) {
 			userID: 123,
 			config: Config{RollCooldown: time.Hour, TokensNeeded: 10},
 			setupMocks: func(store *MockProfileStore, anime *MockAnimeService, coll *MockCollectionQuerier, user *MockUserQuerier) {
-				wishlist := NewMockWishlistQuerier(ctrl)
+				wishlist := mocks.NewMockWishlistQuerier(ctrl)
 				store.EXPECT().Tx(gomock.Any()).Return(store, nil)
 				store.EXPECT().UserStore().Return(user).AnyTimes()
 				store.EXPECT().CollectionStore().Return(coll).AnyTimes()

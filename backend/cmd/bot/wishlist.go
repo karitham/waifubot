@@ -197,5 +197,40 @@ var WishlistCommand = &cli.Command{
 				return json.NewEncoder(os.Stdout).Encode(result)
 			},
 		},
+		{
+			Name:  "remove-all",
+			Usage: "Remove all characters from a user's wishlist",
+			Flags: []cli.Flag{
+				userFlag,
+				dbURLFlag,
+			},
+			Action: func(c *cli.Context) error {
+				userID := corde.SnowflakeFromString(c.String(userFlag.Name))
+				if userID == 0 {
+					return fmt.Errorf("invalid user ID: %s", c.String(userFlag.Name))
+				}
+
+				dbURL := c.String(dbURLFlag.Name)
+
+				ctx := c.Context
+				store, err := storage.NewStore(ctx, dbURL)
+				if err != nil {
+					return fmt.Errorf("error connecting to db: %w", err)
+				}
+
+				wishlistStore := wishlist.New(store.WishlistStore())
+				err = wishlist.RemoveAll(ctx, wishlistStore, uint64(userID))
+				if err != nil {
+					return fmt.Errorf("error removing all from wishlist: %w", err)
+				}
+
+				result := map[string]any{
+					"user_id": userID.String(),
+					"action":  "removed_all",
+				}
+
+				return json.NewEncoder(os.Stdout).Encode(result)
+			},
+		},
 	},
 }

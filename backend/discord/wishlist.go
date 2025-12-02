@@ -82,6 +82,7 @@ func (b *Bot) wishlist(m *corde.Mux) {
 			m.Autocomplete("character", trace(b.wishlistAutocomplete))
 		})
 		m.SlashCommand("list", trace(b.wishlistCharacterList))
+		m.SlashCommand("remove-all", trace(b.wishlistCharacterRemoveAll))
 	})
 	m.Route("media", func(m *corde.Mux) {
 		m.Route("add", func(m *corde.Mux) {
@@ -159,6 +160,19 @@ func (b *Bot) wishlistCharacterList(ctx context.Context, w corde.ResponseWriter,
 	embed.Description(truncateString(charList, 4096))
 
 	w.Respond(corde.NewResp().Embeds(embed).Ephemeral())
+}
+
+func (b *Bot) wishlistCharacterRemoveAll(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
+	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
+
+	err := wishlist.RemoveAll(ctx, b.WishlistStore, uint64(i.Member.User.ID))
+	if err != nil {
+		logger.Error("error removing all from wishlist", "error", err)
+		w.Respond(rspErr("Unable to clear your wishlist. Please try again."))
+		return
+	}
+
+	w.Respond(corde.NewResp().Content("Cleared your wishlist.").Ephemeral())
 }
 
 // formatUser formats a user ID as a Discord mention

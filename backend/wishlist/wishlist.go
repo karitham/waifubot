@@ -36,6 +36,7 @@ type Store interface {
 	// Character Wishlist
 	AddMultipleCharactersToWishlist(ctx context.Context, userID uint64, characterIDs []int64) error
 	RemoveMultipleCharactersFromWishlist(ctx context.Context, userID uint64, characterIDs []int64) error
+	RemoveAllFromWishlist(ctx context.Context, userID uint64) error
 	GetUserCharacterWishlist(ctx context.Context, userID uint64) ([]Character, error)
 
 	// Discovery
@@ -75,6 +76,11 @@ func RemoveCharacter(ctx context.Context, s Store, userID uint64, characterID in
 // RemoveMultipleCharacters removes multiple characters from the user's wishlist
 func RemoveMultipleCharacters(ctx context.Context, s Store, userID uint64, characterIDs []int64) error {
 	return s.RemoveMultipleCharactersFromWishlist(ctx, userID, characterIDs)
+}
+
+// RemoveAll removes all characters from the user's wishlist
+func RemoveAll(ctx context.Context, s Store, userID uint64) error {
+	return s.RemoveAllFromWishlist(ctx, userID)
 }
 
 // GetUserWishlist gets the user's wishlist

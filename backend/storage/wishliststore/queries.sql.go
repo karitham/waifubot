@@ -268,6 +268,15 @@ func (q *Queries) GetWishlistHolders(ctx context.Context, arg GetWishlistHolders
 	return items, nil
 }
 
+const removeAllFromWishlist = `-- name: RemoveAllFromWishlist :exec
+DELETE FROM character_wishlist WHERE user_id = $1
+`
+
+func (q *Queries) RemoveAllFromWishlist(ctx context.Context, userID uint64) error {
+	_, err := q.db.Exec(ctx, removeAllFromWishlist, userID)
+	return err
+}
+
 const removeCharacterFromWishlist = `-- name: RemoveCharacterFromWishlist :exec
 DELETE FROM character_wishlist
 WHERE user_id = $1 AND character_id = $2

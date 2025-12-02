@@ -15,7 +15,10 @@ var RegisterCommand = &cli.Command{
 	Usage:   "Register the bot commands",
 	Flags: []cli.Flag{
 		botTokenFlag,
-		guildIDFlag,
+		&cli.Uint64Flag{
+			Name:    "guild-id",
+			EnvVars: []string{"GUILD_ID"},
+		},
 		appIDFlag,
 	},
 	Action: func(c *cli.Context) error {

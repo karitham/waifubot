@@ -64,6 +64,9 @@ JOIN collection col ON col.character_id = cw.character_id AND col.user_id = $1
 JOIN characters c ON cw.character_id = c.id
 ORDER BY uc.match_count DESC, uc.user_id ASC, c.id ASC;
 
+-- name: RemoveAllFromWishlist :exec
+DELETE FROM character_wishlist WHERE user_id = $1;
+
 -- name: CompareWithUser :many
 SELECT
     'has' as type,

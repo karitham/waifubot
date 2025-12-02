@@ -99,6 +99,22 @@ func TestRemoveCharacter(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestRemoveAll(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockStore := mocks.NewMockWishlistQuerier(ctrl)
+	store := New(mockStore)
+
+	ctx := context.Background()
+	userID := uint64(123)
+
+	mockStore.EXPECT().RemoveAllFromWishlist(ctx, userID).Return(nil)
+
+	err := RemoveAll(ctx, store, userID)
+	require.NoError(t, err)
+}
+
 func TestGetUserWishlist(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

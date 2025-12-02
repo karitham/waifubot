@@ -29,6 +29,10 @@ func (s *store) RemoveMultipleCharactersFromWishlist(ctx context.Context, userID
 	})
 }
 
+func (s *store) RemoveAllFromWishlist(ctx context.Context, userID uint64) error {
+	return s.q.RemoveAllFromWishlist(ctx, userID)
+}
+
 func (s *store) GetUserCharacterWishlist(ctx context.Context, userID uint64) ([]Character, error) {
 	rows, err := s.q.GetUserCharacterWishlist(ctx, userID)
 	if err != nil {

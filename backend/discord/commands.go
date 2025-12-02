@@ -74,6 +74,7 @@ func (b *Bot) RegisterCommands() error {
 					corde.NewIntOption("character", "ID of the character to remove", true).CanAutocomplete(),
 				),
 				corde.NewSubcommand("list", "List all characters in your wishlist"),
+				corde.NewSubcommand("remove-all", "Remove all characters from your wishlist"),
 			),
 			corde.NewSubcommandGroup("media", "Manage media in your wishlist",
 				corde.NewSubcommand("add", "Add all characters from a show/manga to your wishlist",

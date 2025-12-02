@@ -13,6 +13,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/karitham/waifubot/storage/collectionstore"
+	"github.com/karitham/waifubot/storage/mocks"
 	"github.com/karitham/waifubot/storage/wishliststore"
 )
 
@@ -35,7 +36,7 @@ func TestGive(t *testing.T) {
 			to:     456,
 			charID: 1,
 			setupMocks: func(store *MockProfileStore, coll *MockCollectionQuerier) {
-				wishlist := NewMockWishlistQuerier(ctrl)
+				wishlist := mocks.NewMockWishlistQuerier(ctrl)
 				store.EXPECT().CollectionStore().Return(coll).AnyTimes()
 				store.EXPECT().WishlistStore().Return(wishlist).AnyTimes()
 				coll.EXPECT().Get(gomock.Any(), collectionstore.GetParams{ID: 1, UserID: uint64(123)}).Return(collectionstore.GetRow{
