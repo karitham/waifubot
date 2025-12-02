@@ -72,12 +72,14 @@ type Character struct {
 
 // User represents a user profile
 type User struct {
-	Date       time.Time       `json:"date"`
-	Quote      string          `json:"quote"`
-	Favorite   uint64          `json:"favorite"`
-	UserID     corde.Snowflake `json:"user_id"`
-	AnilistURL string          `json:"anilist_url,omitempty"`
-	Tokens     int32           `json:"tokens"`
+	Date            time.Time       `json:"date"`
+	Quote           string          `json:"quote"`
+	Favorite        uint64          `json:"favorite"`
+	UserID          corde.Snowflake `json:"user_id"`
+	AnilistURL      string          `json:"anilist_url,omitempty"`
+	Tokens          int32           `json:"tokens"`
+	DiscordUsername string          `json:"discord_username,omitempty"`
+	DiscordAvatar   string          `json:"discord_avatar,omitempty"`
 }
 
 // Profile represents a complete user profile with character count and favorite
@@ -152,12 +154,14 @@ func UserProfile(ctx context.Context, store Store, userID corde.Snowflake) (Prof
 
 	return Profile{
 		User: User{
-			Date:       u.Date.Time,
-			Quote:      u.Quote,
-			UserID:     corde.Snowflake(u.UserID),
-			Favorite:   uint64(u.Favorite.Int64),
-			Tokens:     u.Tokens,
-			AnilistURL: u.AnilistUrl,
+			Date:            u.Date.Time,
+			Quote:           u.Quote,
+			UserID:          corde.Snowflake(u.UserID),
+			Favorite:        uint64(u.Favorite.Int64),
+			Tokens:          u.Tokens,
+			AnilistURL:      u.AnilistUrl,
+			DiscordUsername: u.DiscordUsername,
+			DiscordAvatar:   u.DiscordAvatar,
 		},
 		Favorite:       favorite,
 		CharacterCount: int(count),

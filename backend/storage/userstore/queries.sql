@@ -36,6 +36,15 @@ FROM
 WHERE
   LOWER(users.anilist_url) = LOWER($1);
 
+-- name: GetByDiscordUsername :one
+SELECT
+  *
+FROM
+  users
+WHERE
+  discord_username = $1
+  AND discord_username != '';
+
 -- name: UpdateFavorite :exec
 UPDATE users
 SET
@@ -63,3 +72,12 @@ SET
   date = $1
 WHERE
   user_id = $2;
+
+-- name: UpdateDiscordInfo :exec
+UPDATE users
+SET
+  discord_username = $1,
+  discord_avatar = $2,
+  last_updated = $3
+WHERE
+  user_id = $4;

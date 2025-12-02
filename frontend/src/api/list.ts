@@ -1,4 +1,5 @@
-const ROOT_URL = "https://waifuapi.karitham.dev";
+const ROOT_URL =
+	import.meta.env.VITE_API_URL || "https://waifuapi.karitham.dev";
 
 export type UserID = string;
 
@@ -7,7 +8,9 @@ export interface User {
 	favorite?: Char;
 	quote?: string;
 	anilist_url?: string;
-	waifus: Char[];
+	discord_username?: string;
+	discord_avatar?: string;
+	waifus?: Char[];
 }
 export interface Char {
 	id: string;
@@ -55,7 +58,26 @@ export const until = async <ErrorType = Error, DataType = unknown>(
 export const getUser = async (anilistUsername: string) => {
 	return until(() =>
 		fetch(
-			`${ROOT_URL}/api/v1/user/find?anilist=${encodeURIComponent(anilistUsername)}`,
+			`${ROOT_URL}/api/v1/user/find?anilist=${encodeURIComponent(
+				anilistUsername,
+			)}`,
+		)
+			.then((res) => res.json())
+			.then(
+				(res) =>
+					res as {
+						id: string;
+					},
+			),
+	);
+};
+
+export const getUserByDiscord = async (discordUsername: string) => {
+	return until(() =>
+		fetch(
+			`${ROOT_URL}/api/v1/user/find?discord=${encodeURIComponent(
+				discordUsername,
+			)}`,
 		)
 			.then((res) => res.json())
 			.then(

@@ -151,10 +151,7 @@ func AddMediaToWishlist(ctx context.Context, wishlistStore Store, mediaService M
 	batchSize := 50
 	added := 0
 	for i := 0; i < len(characterIDs); i += batchSize {
-		end := i + batchSize
-		if end > len(characterIDs) {
-			end = len(characterIDs)
-		}
+		end := min(i+batchSize, len(characterIDs))
 		batch := characterIDs[i:end]
 		err = wishlistStore.AddMultipleCharactersToWishlist(ctx, uint64(userID), batch)
 		if err != nil {

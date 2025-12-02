@@ -1,12 +1,13 @@
 {
-	"compilerOptions": {
-		"target": "ESNext",
-		"jsx": "preserve",
-		"jsxImportSource": "solid-js",
-		"module": "ESNext",
-		"moduleResolution": "node",
-		"types": ["vite/client"],
-		"allowSyntheticDefaultImports": true,
-		"esModuleInterop": true
-	}
+  "compilerOptions": {
+    "target": "ESNext",
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["vite/client"],
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "lib": ["ES2021", "DOM", "DOM.Iterable"]
+  }
 }

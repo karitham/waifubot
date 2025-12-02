@@ -18,7 +18,7 @@ SET
 WHERE
   user_id = $2
 RETURNING
-  id, user_id, quote, date, favorite, tokens, anilist_url
+  id, user_id, quote, date, favorite, tokens, anilist_url, discord_username, discord_avatar, last_updated
 `
 
 type ConsumeTokensParams struct {
@@ -37,6 +37,9 @@ func (q *Queries) ConsumeTokens(ctx context.Context, arg ConsumeTokensParams) (U
 		&i.Favorite,
 		&i.Tokens,
 		&i.AnilistUrl,
+		&i.DiscordUsername,
+		&i.DiscordAvatar,
+		&i.LastUpdated,
 	)
 	return i, err
 }
@@ -55,7 +58,7 @@ func (q *Queries) Create(ctx context.Context, userID uint64) error {
 
 const get = `-- name: Get :one
 SELECT
-  id, user_id, quote, date, favorite, tokens, anilist_url
+  id, user_id, quote, date, favorite, tokens, anilist_url, discord_username, discord_avatar, last_updated
 FROM
   users
 WHERE
@@ -73,13 +76,16 @@ func (q *Queries) Get(ctx context.Context, userID uint64) (User, error) {
 		&i.Favorite,
 		&i.Tokens,
 		&i.AnilistUrl,
+		&i.DiscordUsername,
+		&i.DiscordAvatar,
+		&i.LastUpdated,
 	)
 	return i, err
 }
 
 const getByAnilist = `-- name: GetByAnilist :one
 SELECT
-  id, user_id, quote, date, favorite, tokens, anilist_url
+  id, user_id, quote, date, favorite, tokens, anilist_url, discord_username, discord_avatar, last_updated
 FROM
   users
 WHERE
@@ -97,6 +103,37 @@ func (q *Queries) GetByAnilist(ctx context.Context, lower string) (User, error) 
 		&i.Favorite,
 		&i.Tokens,
 		&i.AnilistUrl,
+		&i.DiscordUsername,
+		&i.DiscordAvatar,
+		&i.LastUpdated,
+	)
+	return i, err
+}
+
+const getByDiscordUsername = `-- name: GetByDiscordUsername :one
+SELECT
+  id, user_id, quote, date, favorite, tokens, anilist_url, discord_username, discord_avatar, last_updated
+FROM
+  users
+WHERE
+  discord_username = $1
+  AND discord_username != ''
+`
+
+func (q *Queries) GetByDiscordUsername(ctx context.Context, discordUsername string) (User, error) {
+	row := q.db.QueryRow(ctx, getByDiscordUsername, discordUsername)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Quote,
+		&i.Date,
+		&i.Favorite,
+		&i.Tokens,
+		&i.AnilistUrl,
+		&i.DiscordUsername,
+		&i.DiscordAvatar,
+		&i.LastUpdated,
 	)
 	return i, err
 }
@@ -147,6 +184,33 @@ type UpdateDateParams struct {
 
 func (q *Queries) UpdateDate(ctx context.Context, arg UpdateDateParams) error {
 	_, err := q.db.Exec(ctx, updateDate, arg.Date, arg.UserID)
+	return err
+}
+
+const updateDiscordInfo = `-- name: UpdateDiscordInfo :exec
+UPDATE users
+SET
+  discord_username = $1,
+  discord_avatar = $2,
+  last_updated = $3
+WHERE
+  user_id = $4
+`
+
+type UpdateDiscordInfoParams struct {
+	DiscordUsername string
+	DiscordAvatar   string
+	LastUpdated     pgtype.Timestamp
+	UserID          uint64
+}
+
+func (q *Queries) UpdateDiscordInfo(ctx context.Context, arg UpdateDiscordInfoParams) error {
+	_, err := q.db.Exec(ctx, updateDiscordInfo,
+		arg.DiscordUsername,
+		arg.DiscordAvatar,
+		arg.LastUpdated,
+		arg.UserID,
+	)
 	return err
 }
 

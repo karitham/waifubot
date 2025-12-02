@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Karitham/corde"
 	"github.com/Karitham/httperr"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -18,6 +19,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/karitham/waifubot/discord"
+	"github.com/karitham/waifubot/services"
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/collectionstore"
 	"github.com/karitham/waifubot/storage/userstore"
@@ -36,12 +39,6 @@ var (
 	invalidIDError = &httperr.DefaultError{
 		Message:    "invalid id provided",
 		ErrorCode:  "invalid_id",
-		StatusCode: 400,
-	}
-
-	anilistRequiredError = &httperr.DefaultError{
-		Message:    "anilist query param is required",
-		ErrorCode:  "invalid_anilist",
 		StatusCode: 400,
 	}
 
@@ -119,8 +116,14 @@ func main() {
 
 	prometheus.MustRegister(apiRequestCounter, apiRequestDuration)
 
+	discordToken := os.Getenv("BOT_TOKEN")
+	if discordToken == "" {
+		slog.Warn("BOT_TOKEN not set, Discord user info will not be updated")
+	}
+
 	api := &Handler{
-		db: db,
+		db:             db,
+		discordService: services.NewDiscordService(discordToken),
 	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
@@ -172,16 +175,19 @@ func main() {
 }
 
 type Handler struct {
-	db storage.Store
+	db             storage.Store
+	discordService *services.DiscordService
 }
 
 type Profile struct {
-	ID         uint64      `json:"id,string"`
-	Quote      string      `json:"quote,omitempty"`
-	Tokens     int32       `json:"tokens,omitempty"`
-	AnilistURL string      `json:"anilist_url,omitempty"`
-	Favorite   Character   `json:"favorite,omitzero"`
-	Waifus     []Character `json:"waifus,omitempty"`
+	ID              uint64      `json:"id,string"`
+	Quote           string      `json:"quote,omitempty"`
+	Tokens          int32       `json:"tokens,omitempty"`
+	AnilistURL      string      `json:"anilist_url,omitempty"`
+	DiscordUsername string      `json:"discord_username,omitempty"`
+	DiscordAvatar   string      `json:"discord_avatar,omitempty"`
+	Favorite        Character   `json:"favorite,omitzero"`
+	Waifus          []Character `json:"waifus,omitempty"`
 }
 
 type Character struct {
@@ -207,6 +213,16 @@ func (h *Handler) getUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil || id == 0 {
 		httperr.JSON(w, r, invalidIDError)
 		return
+	}
+
+	// Update Discord info synchronously if needed
+	if h.discordService != nil {
+		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		defer cancel()
+
+		if err := h.discordService.UpdateIfNeeded(ctx, h.db, corde.Snowflake(id)); err != nil {
+			slog.Debug("Failed to update Discord user info", "user_id", id, "error", err)
+		}
 	}
 
 	u, err := h.db.UserStore().Get(r.Context(), id)
@@ -256,13 +272,27 @@ func (h *Handler) getWishlist(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) findUser(w http.ResponseWriter, r *http.Request) {
 	anilist := r.URL.Query().Get("anilist")
-	if anilist == "" {
-		httperr.JSON(w, r, anilistRequiredError)
+	discord := r.URL.Query().Get("discord")
+
+	if anilist == "" && discord == "" {
+		httperr.JSON(w, r, &httperr.DefaultError{
+			Message:    "anilist or discord query param is required",
+			ErrorCode:  "missing_query_param",
+			StatusCode: 400,
+		})
 		return
 	}
 
-	anilistURL := normalizeAnilistURL(anilist)
-	user, err := h.db.UserStore().GetByAnilist(r.Context(), anilistURL)
+	var user userstore.User
+	var err error
+
+	if anilist != "" {
+		anilistURL := normalizeAnilistURL(anilist)
+		user, err = h.db.UserStore().GetByAnilist(r.Context(), anilistURL)
+	} else {
+		user, err = h.db.UserStore().GetByDiscordUsername(r.Context(), discord)
+	}
+
 	if err != nil || user.UserID == 0 {
 		httperr.JSON(w, r, userNotFound)
 		return
@@ -281,11 +311,13 @@ func (h *Handler) findUser(w http.ResponseWriter, r *http.Request) {
 
 func mapUser(u userstore.User, list []collectionstore.ListRow) *Profile {
 	p := &Profile{
-		ID:         u.UserID,
-		Quote:      u.Quote,
-		Tokens:     u.Tokens,
-		AnilistURL: u.AnilistUrl,
-		Waifus:     make([]Character, 0, len(list)),
+		ID:              u.UserID,
+		Quote:           u.Quote,
+		Tokens:          u.Tokens,
+		AnilistURL:      u.AnilistUrl,
+		DiscordUsername: u.DiscordUsername,
+		DiscordAvatar:   discord.DiscordAvatarURL(u.UserID, u.DiscordAvatar),
+		Waifus:          make([]Character, 0, len(list)),
 	}
 
 	for _, entry := range list {

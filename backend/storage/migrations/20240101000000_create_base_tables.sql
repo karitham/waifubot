@@ -6,7 +6,11 @@ CREATE TABLE IF NOT EXISTS users (
   "date" TIMESTAMP NOT NULL DEFAULT '1970-01-01 00:00:00-00',
   "favorite" BIGINT,
   "tokens" INT NOT NULL DEFAULT 0,
-  "anilist_url" VARCHAR(255) NOT NULL DEFAULT ''
+  "anilist_url" VARCHAR(255) NOT NULL DEFAULT '',
+  "discord_username" VARCHAR(32) NOT NULL DEFAULT '',
+  "discord_avatar" VARCHAR(34) NOT NULL DEFAULT '',
+  "last_updated" TIMESTAMP NOT NULL DEFAULT '1970-01-01 00:00:00-00',
+  CONSTRAINT "users_discord_username_key" UNIQUE ("discord_username")
 );
 
 CREATE TABLE IF NOT EXISTS characters (

@@ -99,11 +99,14 @@ type SchemaMigration struct {
 }
 
 type User struct {
-	ID         int32
-	UserID     uint64
-	Quote      string
-	Date       pgtype.Timestamp
-	Favorite   pgtype.Int8
-	Tokens     int32
-	AnilistUrl string
+	ID              int32
+	UserID          uint64
+	Quote           string
+	Date            pgtype.Timestamp
+	Favorite        pgtype.Int8
+	Tokens          int32
+	AnilistUrl      string
+	DiscordUsername string
+	DiscordAvatar   string
+	LastUpdated     pgtype.Timestamp
 }
