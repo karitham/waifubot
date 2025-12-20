@@ -16,7 +16,7 @@ export type FilterBarProps = {
 
 export default function (props: FilterBarProps) {
   return (
-    <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-4 w-full">
       <div class="flex flex-row flex-wrap md:flex-nowrap gap-4 justify-between">
         <div class="flex flex-col gap-0.5 flex-1">
           <FilterLabel>Search Characters</FilterLabel>

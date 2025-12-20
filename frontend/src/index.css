@@ -8,6 +8,11 @@ body {
   animation: fadeIn 0.3s ease-in;
 }
 
+.content-width {
+  max-width: 1536px;
+  margin: 0 auto;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

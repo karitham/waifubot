@@ -68,7 +68,7 @@ export default (props: CollectionPageProps) => {
   }) => (
     <main class="bg-base min-h-screen flex flex-col text-text">
       <div class="w-full bg-crust">
-        <div class="p-8 mx-auto max-w-7xl">{props.profile}</div>
+        <div class="p-8 content-width">{props.profile}</div>
         {props.navbar}
       </div>
       {props.body}
@@ -107,8 +107,8 @@ export default (props: CollectionPageProps) => {
           </div>
         }
         body={
-          <div class="flex flex-col gap-8 max-w-400 p-8 mx-auto bg-base">
-            <div class="p-2 rounded-lg flex flex-col gap-4">
+          <div class="flex flex-col gap-8 bg-base w-full">
+            <div class="p-8 pb-0 rounded-lg flex flex-col gap-4 w-full content-width">
               <FilterBar
                 charFilter={{
                   onChange: setCharSearch,
@@ -149,17 +149,19 @@ export default (props: CollectionPageProps) => {
               />
             </div>
 
-            <CharGrid
-              charSearch={charSearch()}
-              showCount={showCount().value}
-              characters={props.characters || []}
-              mediaCharacters={mediaCharacters()}
-              compareUsers={compareUsersResource() || []}
-              users={[props.user, ...(compareUsersResource() || [])].filter(
-                Boolean,
-              )}
-              charSort={charSort().value}
-            />
+            <div class="content-width pt-0 p-8">
+              <CharGrid
+                charSearch={charSearch()}
+                showCount={showCount().value}
+                characters={props.characters || []}
+                mediaCharacters={mediaCharacters()}
+                compareUsers={compareUsersResource() || []}
+                users={[props.user, ...(compareUsersResource() || [])].filter(
+                  Boolean,
+                )}
+                charSort={charSort().value}
+              />
+            </div>
           </div>
         }
       />

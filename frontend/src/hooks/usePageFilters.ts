@@ -5,7 +5,6 @@ import { getList, getUser, getUserByDiscord, type User } from "../api/list";
 import type { Option } from "../components/filters/FilterMedia";
 
 export const selectOptions = [
-  { value: 50, label: "50" },
   { value: 100, label: "100" },
   { value: 200, label: "200" },
   { value: 500, label: "500" },
@@ -72,7 +71,7 @@ export function usePageFilters() {
     compare: string;
   }>();
 
-  const [showCount, setShowCount] = createSignal(selectOptions[0]);
+  const [showCount, setShowCount] = createSignal(selectOptions[1]);
   const [compareIds, setCompareIds] = createSignal<string[]>(
     sp.compare
       ? sp.compare
