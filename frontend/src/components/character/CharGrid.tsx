@@ -127,7 +127,7 @@ export default (props: {
 };
 
 const fallback = (
-  <div class="text-2xl text-center text-text col-span-full">
+  <div class="text-2xl text-center text-subtextA font-light w-full py-16">
     No characters to display :(
   </div>
 );

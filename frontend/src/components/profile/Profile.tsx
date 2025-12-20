@@ -63,14 +63,14 @@ export default (props: {
       <div class="flex flex-col gap-8 p-4">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
           {Username}
-          <Show when={props.actionLink}>
-            <a
-              href={props.actionLink?.href}
-              class="px-4 py-2 bg-mauve text-base rounded-lg hover:bg-mauve/80 transition-colors"
-            >
-              {props.actionLink?.label}
-            </a>
-          </Show>
+           <Show when={props.actionLink}>
+             <a
+               href={props.actionLink?.href}
+               class="px-4 py-2 bg-mauve text-base rounded-lg hover:bg-pink transition-colors"
+             >
+               {props.actionLink?.label}
+             </a>
+           </Show>
         </div>
         <div class="bg-surface p-4 rounded-lg">
           <h3 class="text-lg font-semibold mb-4 text-mauve">

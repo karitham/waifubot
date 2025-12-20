@@ -45,7 +45,7 @@ export default function <T>(props: CharSortProps<T>) {
       class="w-full"
     >
       <Select.Label />
-      <Select.Trigger class="flex justify-between w-full text-text rounded-md font-sans border-none hover:cursor-pointer bg-surfaceA text-text p-4 focus:outline-none hover:bg-surfaceB">
+      <Select.Trigger class="flex justify-between w-full text-text rounded-md font-sans border-none hover:cursor-pointer bg-surfaceA text-text p-4 focus:outline-none hover:bg-surfaceB transition-colors">
         <Select.Value<SortFn<T>>>{() => props.value?.label}</Select.Value>
         <Select.Icon />
       </Select.Trigger>

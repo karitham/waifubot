@@ -61,19 +61,19 @@ export default (props: CollectionPageProps) => {
     fetchCharacters,
   );
 
-  const Layout = (props: {
-    profile: JSX.Element;
-    body: JSX.Element;
-    navbar: JSX.Element;
-  }) => (
-    <main class="bg-base min-h-screen flex flex-col text-text">
-      <div class="w-full bg-crust">
-        <div class="p-8 content-width">{props.profile}</div>
-        {props.navbar}
-      </div>
-      {props.body}
-    </main>
-  );
+   const Layout = (props: {
+     profile: JSX.Element;
+     body: JSX.Element;
+     navbar: JSX.Element;
+   }) => (
+     <main class="bg-base min-h-screen flex flex-col text-text main-content">
+       <div class="w-full bg-crust">
+         <div class="p-8 content-width">{props.profile}</div>
+         {props.navbar}
+       </div>
+       {props.body}
+     </main>
+   );
 
   return (
     <Show
@@ -99,13 +99,16 @@ export default (props: CollectionPageProps) => {
             discordAvatar={props.user.discord_avatar}
           />
         }
-        navbar={
-          <div class="p-4 text-center">
-            <a href={props.navbarLink.href} class="text-mauve hover:underline">
-              {props.navbarLink.text}
-            </a>
-          </div>
-        }
+         navbar={
+           <div class="p-4 flex justify-center gap-8">
+             <a href="/" class="text-mauve hover:text-pink transition-colors px-4 py-2 rounded-md hover:bg-surfaceA/50">
+               Back to Home
+             </a>
+             <a href={props.navbarLink.href} class="text-mauve hover:text-pink transition-colors px-4 py-2 rounded-md hover:bg-surfaceA/50">
+               {props.navbarLink.text}
+             </a>
+           </div>
+         }
         body={
           <div class="flex flex-col gap-8 bg-base w-full">
             <div class="p-8 pb-0 rounded-lg flex flex-col gap-4 w-full content-width">

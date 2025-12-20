@@ -11,7 +11,9 @@ export default (props: {
 }) => {
   return (
     <div
-      class={"bg-surfaceA rounded-lg relative flex h-44 w-full overflow-clip"}
+      class={`bg-surfaceA rounded-lg relative flex h-44 w-full overflow-clip hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer ${
+        props.missing ? "opacity-60" : ""
+      }`}
     >
       <img
         src={props.char.image}
