@@ -81,15 +81,13 @@ export default (props: CompareUserProps) => {
       onChange={(option) => {
         if (option?.value === "add") {
           props.onAdd(getSearchValue());
-          setSearchValue("");
         } else if (option) {
           props.onRemove(option.value);
         }
+        setSearchValue("");
       }}
-      onInputChange={(value) => setSearchValue(value)}
       optionLabel="label"
       optionValue="value"
-      optionTextValue="label"
       placeholder="Search users..."
       class="w-full"
       triggerMode="focus"
@@ -113,13 +111,15 @@ export default (props: CompareUserProps) => {
                   small
                 />
               </div>
-              <Search.Input
-                class={dropdownStyles.input}
-                style={{ "padding-right": `${avatarWidth + 24}px` }}
-                placeholder={props.selectedUsers.length > 0
-                  ? "Add more users..."
-                  : "Search users..."}
-              />
+               <Search.Input
+                 value={getSearchValue()}
+                 onInput={(e) => setSearchValue(e.currentTarget.value)}
+                 class={dropdownStyles.input}
+                 style={{ "padding-right": `${avatarWidth + 24}px` }}
+                 placeholder={props.selectedUsers.length > 0
+                   ? "Add more users..."
+                   : "Search users..."}
+               />
             </div>
           );
         }}

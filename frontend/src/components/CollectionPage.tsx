@@ -1,4 +1,5 @@
 import { createResource, type JSX, Show } from "solid-js";
+import { useSearchParams } from "@solidjs/router";
 import { getMediaCharacters } from "../api/anilist";
 import type { Char, User } from "../api/list";
 import CharGrid from "../components/character/CharGrid";
@@ -42,6 +43,16 @@ interface CollectionPageProps {
 }
 
 export default (props: CollectionPageProps) => {
+  const [sp] = useSearchParams();
+
+  const searchParams = () => {
+    const params = new URLSearchParams();
+    Object.entries(sp).forEach(([k, v]) => {
+      if (v !== undefined) params.set(k, String(v));
+    });
+    return params.toString();
+  };
+
   const {
     showCount,
     setShowCount,
@@ -104,9 +115,9 @@ export default (props: CollectionPageProps) => {
              <a href="/" class="text-mauve hover:text-pink transition-colors px-4 py-2 rounded-md hover:bg-surfaceA/50">
                Back to Home
              </a>
-             <a href={props.navbarLink.href} class="text-mauve hover:text-pink transition-colors px-4 py-2 rounded-md hover:bg-surfaceA/50">
-               {props.navbarLink.text}
-             </a>
+              <a href={`${props.navbarLink.href}${searchParams() ? `?${searchParams()}` : ''}`} class="text-mauve hover:text-pink transition-colors px-4 py-2 rounded-md hover:bg-surfaceA/50">
+                {props.navbarLink.text}
+              </a>
            </div>
          }
         body={
