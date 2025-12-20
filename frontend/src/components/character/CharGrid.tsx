@@ -27,24 +27,31 @@ export default (props: {
 }) => {
   const compareUsers = () => props.compareUsers || [];
 
-  const otherUserOwnedCharIds = createMemo(() => {
+  const _otherUserOwnedCharIds = createMemo(() => {
     const ids = new Set<string>();
     compareUsers().forEach((user) => {
-      if (user.waifus) user.waifus.forEach((char) => ids.add(char.id));
+      if (user.waifus) {
+        user.waifus.forEach((char) => {
+          ids.add(char.id);
+        });
+      }
     });
     return ids;
   });
 
   const enrichCharacterWithOwners = (char: Char): CharOwned => {
     const owners = [];
-    if (props.characters.some((c) => c.id === char.id)) {
-      owners.push(props.users[0]?.id); // main user
+    // Check if main user owns this character
+    if (props.users[0]?.waifus?.some((c) => c.id === char.id)) {
+      owners.push(props.users[0].id);
     }
-    compareUsers().forEach((user) => {
-      if (user.waifus && user.waifus.some((c) => c.id === char.id)) {
+    // Check compare users
+    for (const user of compareUsers()) {
+      if (user.waifus?.some((c) => c.id === char.id)) {
         owners.push(user.id);
       }
-    });
+    }
+
     return {
       ...char,
       owners: owners.length > 0 ? owners : undefined,
@@ -54,7 +61,9 @@ export default (props: {
   const filters = createMemo(() =>
     combofilter([
       filterCharacters(props.charSearch),
-      filterChars(props.mediaCharacters),
+      ...(props.mediaCharacters && props.mediaCharacters.length > 0
+        ? [filterChars(props.mediaCharacters)]
+        : []),
     ])
   );
   const filteredOwnedCharacters = createMemo(() =>
@@ -91,14 +100,15 @@ export default (props: {
     <div id="list" class="flex flex-row justify-center gap-6 flex-wrap">
       <For each={list()}>
         {(char: CharOwned) => {
-          const ownersAvatars =
-            char.owners?.map((id) =>
-              props.users.find((u) => u.id === id)?.discord_avatar
-            ).filter(Boolean) || [];
-          const ownersNames =
-            char.owners?.map((id) =>
-              props.users.find((u) => u.id === id)?.discord_username || id
-            ) || [];
+          const ownersAvatars = char.owners
+            ?.map(
+              (id) => props.users.find((u) => u.id === id)?.discord_avatar,
+            )
+            .filter(Boolean) || [];
+          const ownersNames = char.owners?.map(
+            (id) =>
+              props.users.find((u) => u.id === id)?.discord_username || id,
+          ) || [];
           return (
             <div class="max-w-120 w-72 flex-grow">
               <CharCard

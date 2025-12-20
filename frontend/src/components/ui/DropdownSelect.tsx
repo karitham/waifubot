@@ -1,7 +1,7 @@
 import { Select } from "@kobalte/core/select";
 import type { Component } from "solid-js";
 
-type SelectOption = { value: any; label: string };
+type SelectOption = { value: string | number | undefined; label: string };
 
 type DropdownSelectProps<T extends SelectOption> = {
   options: T[];

@@ -1,4 +1,4 @@
-import { createMemo, createSignal } from "solid-js";
+import { createMemo } from "solid-js";
 import type { Char, CharOwned, User } from "../api/list";
 
 function combofilter<T>(
@@ -23,12 +23,14 @@ const enrichCharacterWithOwners = (
 ): CharOwned => {
   const owners = [];
   if (
-    users.find((u) => u.id === mainUserId)?.waifus?.some((c) =>
-      c.id === char.id
-    )
-  ) owners.push(mainUserId);
+    users
+      .find((u) => u.id === mainUserId)
+      ?.waifus?.some((c) => c.id === char.id)
+  ) {
+    owners.push(mainUserId);
+  }
   compareUsers.forEach((user) => {
-    if (user.waifus && user.waifus.some((c) => c.id === char.id)) {
+    if (user.waifus?.some((c) => c.id === char.id)) {
       owners.push(user.id);
     }
   });
@@ -48,10 +50,14 @@ export function useCharacterFilters(
 ) {
   const compareUsersMemo = createMemo(() => compareUsers || []);
 
-  const otherUserOwnedCharIds = createMemo(() => {
+  const _otherUserOwnedCharIds = createMemo(() => {
     const ids = new Set<string>();
     compareUsersMemo().forEach((user) => {
-      if (user.waifus) user.waifus.forEach((char) => ids.add(char.id));
+      if (user.waifus) {
+        user.waifus.forEach((char) => {
+          ids.add(char.id);
+        });
+      }
     });
     return ids;
   });

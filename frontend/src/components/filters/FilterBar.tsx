@@ -1,11 +1,10 @@
 import type { Char } from "../../api/list";
+import FilterLabel from "../ui/FilterLabel";
 import CompareUser, { type CompareUserProps } from "./CompareUser";
 import CharFilter, { type CharacterFilterProps } from "./Filter";
-import FilterLabel from "../ui/FilterLabel";
 import FilterMedia, { type FilterMediaProps } from "./FilterMedia";
 import Pagination, { type PaginationProps } from "./Paginate";
 import CharSort, { type CharSortProps } from "./Sort";
-import type { User } from "../../api/list";
 
 export type FilterBarProps = {
   pagination: PaginationProps;

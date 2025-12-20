@@ -1,9 +1,9 @@
-import { type Navigator, useNavigate } from "@solidjs/router";
-import { getUser, getUserByDiscord } from "../api/list";
-import Icon from "/src/assets/icon.png";
-import { createSignal } from "solid-js";
-import { TextField } from "@kobalte/core/text-field";
 import { Button } from "@kobalte/core/button";
+import { TextField } from "@kobalte/core/text-field";
+import { type Navigator, useNavigate } from "@solidjs/router";
+import { createSignal } from "solid-js";
+import Icon from "/src/assets/icon.png";
+import { getUser, getUserByDiscord } from "../api/list";
 
 const userOrList = async (nav: Navigator, id: string) => {
   if (id.match(/\d{6,}/)) return nav(`/list/${id}`);

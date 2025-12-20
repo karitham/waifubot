@@ -1,7 +1,7 @@
 import { Show } from "solid-js";
 import type { Char } from "../../api/list";
-import CardRight from "./CardRight";
 import AvatarStack from "../ui/AvatarStack";
+import CardRight from "./CardRight";
 
 export default (props: {
   char: Char;

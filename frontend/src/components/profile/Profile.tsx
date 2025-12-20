@@ -65,10 +65,10 @@ export default (props: {
           {Username}
           <Show when={props.actionLink}>
             <a
-              href={props.actionLink!.href}
+              href={props.actionLink?.href}
               class="px-4 py-2 bg-mauve text-base rounded-lg hover:bg-mauve/80 transition-colors"
             >
-              {props.actionLink!.label}
+              {props.actionLink?.label}
             </a>
           </Show>
         </div>

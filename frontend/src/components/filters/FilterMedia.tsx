@@ -2,11 +2,9 @@ import {
   Search,
   type SearchRootItemComponentProps,
 } from "@kobalte/core/search";
-import { useSearchParams } from "@solidjs/router";
 import { createResource, createSignal, Show } from "solid-js";
 import type { SearchMediaResponse } from "../../api/anilist";
 import { searchMedia } from "../../api/anilist";
-import type { Char } from "../../api/list";
 import dropdownStyles from "../ui/styles";
 
 export type Option = { value: string; label: string; image?: string };
@@ -57,10 +55,7 @@ export default (props: FilterMediaProps) => {
   );
 
   const renderItem = (props: SearchRootItemComponentProps<Option>) => (
-    <Search.Item
-      item={props.item}
-      class={dropdownStyles.item}
-    >
+    <Search.Item item={props.item} class={dropdownStyles.item}>
       <div class="flex flex-row items-center gap-4">
         <Show when={props.item.rawValue.image} fallback={<div />}>
           <img
@@ -93,10 +88,7 @@ export default (props: FilterMediaProps) => {
       class="w-full"
       itemComponent={renderItem}
     >
-      <Search.Control
-        aria-label="Media"
-        class={dropdownStyles.control}
-      >
+      <Search.Control aria-label="Media" class={dropdownStyles.control}>
         <Search.Input
           value={getSearchValue()}
           class={dropdownStyles.input}

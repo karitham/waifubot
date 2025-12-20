@@ -2,10 +2,14 @@ import {
   Search,
   type SearchRootItemComponentProps,
 } from "@kobalte/core/search";
-import { type Component, createSignal, Show } from "solid-js";
+import { type Component, createSignal, type JSX, Show } from "solid-js";
 import dropdownStyles from "./styles";
 
-type SearchOption = { value: any; label: string; image?: string };
+type SearchOption = {
+  value: string | number | undefined;
+  label: string;
+  image?: string;
+};
 
 type DropdownSearchProps<T extends SearchOption> = {
   options: T[];
@@ -17,13 +21,15 @@ type DropdownSearchProps<T extends SearchOption> = {
   itemComponent?: Component<SearchRootItemComponentProps<T>>;
   debounceOptionsMillisecond?: number;
   triggerMode?: "focus" | "input";
-  customControl?: Component<{ children: any }>;
+  customControl?: Component<{ children: JSX.Element }>;
   class?: string;
   icon?: Component;
   onIconClick?: () => void;
 };
 
-const defaultItemComponent = (props: SearchRootItemComponentProps<any>) => (
+const defaultItemComponent = (
+  props: SearchRootItemComponentProps<SearchOption>,
+) => (
   <Search.Item item={props.item} class={dropdownStyles.item}>
     <div class="flex flex-row items-center gap-4">
       <Show when={props.item.rawValue.image} fallback={<div />}>
@@ -38,7 +44,7 @@ const defaultItemComponent = (props: SearchRootItemComponentProps<any>) => (
   </Search.Item>
 );
 
-const defaultControl = (props: { children: any }) => (
+const defaultControl = (props: { children: JSX.Element }) => (
   <Search.Control aria-label="Search" class={dropdownStyles.control}>
     {props.children}
   </Search.Control>

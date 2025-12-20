@@ -1,8 +1,11 @@
 import { For } from "solid-js";
 
-export default (
-  props: { avatars: string[]; names?: string[]; max?: number; small?: boolean },
-) => (
+export default (props: {
+  avatars: string[];
+  names?: string[];
+  max?: number;
+  small?: boolean;
+}) => (
   <div class="flex">
     <For each={props.avatars.slice(0, props.max || 3)}>
       {(avatar: string, index) => (
