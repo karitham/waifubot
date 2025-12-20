@@ -3,7 +3,6 @@ import {
 	type SearchRootItemComponentProps,
 } from "@kobalte/core/search";
 import { type Component, createSignal, type JSX, Show } from "solid-js";
-import dropdownStyles from "./styles";
 
 type SearchOption = {
 	value: string | number | undefined;
@@ -30,7 +29,10 @@ type DropdownSearchProps<T extends SearchOption> = {
 const defaultItemComponent = (
 	props: SearchRootItemComponentProps<SearchOption>,
 ) => (
-	<Search.Item item={props.item} class={dropdownStyles.item}>
+	<Search.Item
+		item={props.item}
+		class="flex flex-row items-center justify-between px-4 py-2 gap-4 hover:bg-surfaceC cursor-pointer text-text w-full"
+	>
 		<div class="flex flex-row items-center gap-4">
 			<Show when={props.item.rawValue.image} fallback={<div />}>
 				<img
@@ -45,7 +47,10 @@ const defaultItemComponent = (
 );
 
 const defaultControl = (props: { children: JSX.Element }) => (
-	<Search.Control aria-label="Search" class={dropdownStyles.control}>
+	<Search.Control
+		aria-label="Search"
+		class="flex w-full flex-row rounded-md overflow-clip bg-surfaceA"
+	>
 		{props.children}
 	</Search.Control>
 );
@@ -83,12 +88,12 @@ export default function <T extends SearchOption>(
 			<ControlComponent>
 				<Search.Input
 					value={getSearchValue()}
-					class={dropdownStyles.input}
+					class="w-full text-sm p-4 focus:outline-none bg-surfaceA hover:bg-surfaceB placeholder:font-sans border-none hover:cursor-text placeholder:text-overlayC text-text overflow-clip"
 					placeholder={props.placeholder || "Search..."}
 				/>
 				{props.icon && (
 					<Search.Icon
-						class={dropdownStyles.button}
+						class="bg-surfaceA hover:bg-surfaceB border-none w-16 flex text-center items-center justify-center"
 						onClick={props.onIconClick}
 					>
 						<props.icon />
@@ -96,8 +101,8 @@ export default function <T extends SearchOption>(
 				)}
 			</ControlComponent>
 			<Search.Portal>
-				<Search.Content class={dropdownStyles.content}>
-					<Search.Listbox class={dropdownStyles.list} />
+				<Search.Content class="shadow text-sm">
+					<Search.Listbox class="p-0 m-0 overflow-clip hover:overflow-clip list-none flex w-full border-none rounded-md items-start flex-col bg-surfaceB" />
 				</Search.Content>
 			</Search.Portal>
 		</Search>

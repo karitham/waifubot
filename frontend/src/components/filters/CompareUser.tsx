@@ -5,7 +5,6 @@ import {
 import { createSignal, Show } from "solid-js";
 import type { User } from "../../api/list.ts";
 import AvatarStack from "../ui/AvatarStack.tsx";
-import dropdownStyles from "../ui/styles.ts";
 
 export type CompareUserProps = {
 	selectedUsers: User[];
@@ -42,7 +41,7 @@ export default (props: CompareUserProps) => {
 		return (
 			<Search.Item
 				item={itemProps.item}
-				class={dropdownStyles.item}
+				class="flex flex-row items-center justify-between px-4 py-2 gap-4 hover:bg-surfaceC cursor-pointer text-text w-full"
 				onMouseEnter={() => setHovered(true)}
 				onMouseLeave={() => setHovered(false)}
 			>
@@ -91,7 +90,10 @@ export default (props: CompareUserProps) => {
 			triggerMode="focus"
 			itemComponent={renderItem}
 		>
-			<Search.Control aria-label="Users" class={dropdownStyles.control}>
+			<Search.Control
+				aria-label="Users"
+				class="flex w-full flex-row rounded-md overflow-clip bg-surfaceA"
+			>
 				{(_state) => {
 					const avatarWidth = 24 + (props.selectedUsers.length - 1) * 16; // 24px first + 16px each additional (24-8 overlap)
 					return (
@@ -112,7 +114,7 @@ export default (props: CompareUserProps) => {
 							<Search.Input
 								value={getSearchValue()}
 								onInput={(e) => setSearchValue(e.currentTarget.value)}
-								class={dropdownStyles.input}
+								class="w-full text-sm p-4 focus:outline-none bg-surfaceA hover:bg-surfaceB placeholder:font-sans border-none hover:cursor-text placeholder:text-overlayC text-text overflow-clip"
 								style={{ "padding-right": `${avatarWidth + 24}px` }}
 								placeholder={
 									props.selectedUsers.length > 0
@@ -126,7 +128,7 @@ export default (props: CompareUserProps) => {
 			</Search.Control>
 			<Search.Portal>
 				<Search.Content class="shadow text-sm">
-					<Search.Listbox class={dropdownStyles.list} />
+					<Search.Listbox class="p-0 m-0 overflow-clip hover:overflow-clip list-none flex w-full border-none rounded-md items-start flex-col bg-surfaceB" />
 				</Search.Content>
 			</Search.Portal>
 		</Search>

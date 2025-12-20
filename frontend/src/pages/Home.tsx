@@ -2,14 +2,7 @@ import { Button } from "@kobalte/core/button";
 import { TextField } from "@kobalte/core/text-field";
 import { createSignal } from "solid-js";
 import Icon from "/src/assets/icon.png";
-import {
-	API_URL,
-	buttonClass,
-	DISCORD_URL,
-	GITHUB_URL,
-	inputClass,
-	linkClass,
-} from "../components/ui/styles";
+
 import { useUserSearch } from "../hooks/useUserSearch";
 
 const linkProps = { target: "_blank", rel: "noopener noreferrer" };
@@ -47,12 +40,12 @@ export default () => {
 						</TextField.Label>
 						<div class="flex gap-2">
 							<TextField.Input
-								class={inputClass}
+								class="flex-1 p-3 text-sm rounded-lg focus:outline-none bg-surfaceA placeholder:font-sans border border-surfaceA hover:border-mauve focus:border-mauve transition-colors placeholder:text-overlayC text-text"
 								onKeyDown={(e) => e.key === "Enter" && searchUser(value())}
 								placeholder="karitham"
 							/>
 							<Button
-								class={buttonClass}
+								class="rounded-lg font-sans border-none hover:cursor-pointer bg-mauve hover:bg-pink text-base transition-colors px-6 py-3 focus:outline-none"
 								onClick={() => searchUser(value())}
 								type="button"
 							>
@@ -69,13 +62,25 @@ export default () => {
 					))}
 				</div>
 				<div class="flex gap-6 text-sm text-subtextA">
-					<a href={DISCORD_URL} class={linkClass} {...linkProps}>
+					<a
+						href="https://discord.com/oauth2/authorize?scope=bot&client_id=712332547694264341&permissions=92224"
+						class="hover:text-mauve transition-colors"
+						{...linkProps}
+					>
 						Discord
 					</a>
-					<a href={GITHUB_URL} class={linkClass} {...linkProps}>
+					<a
+						href="https://github.com/karitham/waifubot"
+						class="hover:text-mauve transition-colors"
+						{...linkProps}
+					>
 						GitHub
 					</a>
-					<a href={API_URL} class={linkClass} {...linkProps}>
+					<a
+						href="https://waifuapi.karitham.dev"
+						class="hover:text-mauve transition-colors"
+						{...linkProps}
+					>
 						API
 					</a>
 				</div>

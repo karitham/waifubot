@@ -37,7 +37,8 @@
             usql
             dbmate
             sqlc
-            deno
+            nodejs
+            nodePackages.npm
             self.packages.${system}.genqlient
           ];
         };

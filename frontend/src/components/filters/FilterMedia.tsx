@@ -5,7 +5,6 @@ import {
 import { createResource, createSignal, Show } from "solid-js";
 import type { SearchMediaResponse } from "../../api/anilist";
 import { searchMedia } from "../../api/anilist";
-import dropdownStyles from "../ui/styles";
 
 export type Option = { value: string; label: string; image?: string };
 
@@ -55,7 +54,10 @@ export default (props: FilterMediaProps) => {
 	);
 
 	const renderItem = (props: SearchRootItemComponentProps<Option>) => (
-		<Search.Item item={props.item} class={dropdownStyles.item}>
+		<Search.Item
+			item={props.item}
+			class="flex flex-row items-center justify-between px-4 py-2 gap-4 hover:bg-surfaceC cursor-pointer text-text w-full"
+		>
 			<div class="flex flex-row items-center gap-4">
 				<Show when={props.item.rawValue.image} fallback={<div />}>
 					<img
@@ -88,14 +90,17 @@ export default (props: FilterMediaProps) => {
 			class="w-full"
 			itemComponent={renderItem}
 		>
-			<Search.Control aria-label="Media" class={dropdownStyles.control}>
+			<Search.Control
+				aria-label="Media"
+				class="flex w-full flex-row rounded-md overflow-clip bg-surfaceA"
+			>
 				<Search.Input
 					value={getSearchValue()}
-					class={dropdownStyles.input}
+					class="w-full text-sm p-4 focus:outline-none bg-surfaceA hover:bg-surfaceB placeholder:font-sans border-none hover:cursor-text placeholder:text-overlayC text-text overflow-clip"
 					placeholder="Search media..."
 				/>
 				<Search.Icon
-					class={dropdownStyles.button}
+					class="bg-surfaceA hover:bg-surfaceB border-none w-16 flex text-center items-center justify-center"
 					onClick={() => {
 						props.onChange(undefined);
 						setSearchValue("");
@@ -106,7 +111,7 @@ export default (props: FilterMediaProps) => {
 			</Search.Control>
 			<Search.Portal>
 				<Search.Content class="shadow text-sm">
-					<Search.Listbox class={dropdownStyles.list} />
+					<Search.Listbox class="p-0 m-0 overflow-clip hover:overflow-clip list-none flex w-full border-none rounded-md items-start flex-col bg-surfaceB" />
 				</Search.Content>
 			</Search.Portal>
 		</Search>

@@ -1,4 +1,5 @@
-import { presetIcons, presetWebFonts, presetWind4 } from "unocss";
+import presetWind4 from "@unocss/preset-wind4";
+import { presetIcons, presetWebFonts } from "unocss";
 import UnoCSS from "unocss/vite";
 import { defineConfig } from "vite";
 import solidPlugin from "vite-plugin-solid";
