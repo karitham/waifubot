@@ -93,8 +93,15 @@ func prometheusMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(rw, r)
 
 		duration := time.Since(start)
-		apiRequestCounter.WithLabelValues(r.Method, r.URL.Path, strconv.Itoa(rw.statusCode)).Inc()
-		apiRequestDuration.WithLabelValues(r.Method, r.URL.Path).Observe(duration.Seconds())
+
+		// Use route pattern instead of URL path to avoid cardinality explosion
+		// Only record metrics for routed endpoints
+		if routeCtx := chi.RouteContext(r.Context()); routeCtx != nil {
+			if pattern := routeCtx.RoutePattern(); pattern != "" {
+				apiRequestCounter.WithLabelValues(r.Method, pattern, strconv.Itoa(rw.statusCode)).Inc()
+				apiRequestDuration.WithLabelValues(r.Method, pattern).Observe(duration.Seconds())
+			}
+		}
 	})
 }
 
