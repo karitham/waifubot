@@ -1,34 +1,21 @@
-import { useParams } from "@solidjs/router";
-import { createResource } from "solid-js";
-import list from "../api/list";
-import CollectionPage from "../components/CollectionPage";
+import { getList } from "../api/list";
+import UserCollectionPage from "../components/UserCollectionPage";
 
-const fetchUser = async (id?: string) => {
-  if (!id) return undefined;
-
-  const { data: user, error } = await list(id);
-  if (error) {
-    console.error(error);
-    return;
-  }
-
-  return user;
+const fetchCharacters = async (id: string) => {
+	const result = await getList(id);
+	if (result.error) return { error: result.error, data: null };
+	return { error: null, data: result.data?.waifus || [] };
 };
 
-export default () => {
-  const params = useParams();
-  const [user] = createResource(params.id, fetchUser);
-
-  return (
-    <CollectionPage
-      user={user()}
-      characters={user()?.waifus}
-      allowEmpty={true}
-      profileTitle="Collection"
-      navbarLink={{
-        href: `/wishlist/${params.id}`,
-        text: "View Wishlist →",
-      }}
-    />
-  );
-};
+export default () => (
+	<UserCollectionPage
+		fetchUser={getList}
+		fetchCharacters={fetchCharacters}
+		title="Collection"
+		allowEmpty={true}
+		navbarLink={(id) => ({
+			href: `/wishlist/${id}`,
+			text: "View Wishlist →",
+		})}
+	/>
+);
