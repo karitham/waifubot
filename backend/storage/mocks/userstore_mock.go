@@ -100,6 +100,21 @@ func (mr *MockUserQuerierMockRecorder) GetByAnilist(ctx, lower any) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByAnilist", reflect.TypeOf((*MockUserQuerier)(nil).GetByAnilist), ctx, lower)
 }
 
+// GetByDiscordUsername mocks base method.
+func (m *MockUserQuerier) GetByDiscordUsername(ctx context.Context, discordUsername string) (userstore.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetByDiscordUsername", ctx, discordUsername)
+	ret0, _ := ret[0].(userstore.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetByDiscordUsername indicates an expected call of GetByDiscordUsername.
+func (mr *MockUserQuerierMockRecorder) GetByDiscordUsername(ctx, discordUsername any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByDiscordUsername", reflect.TypeOf((*MockUserQuerier)(nil).GetByDiscordUsername), ctx, discordUsername)
+}
+
 // IncTokens mocks base method.
 func (m *MockUserQuerier) IncTokens(ctx context.Context, userID uint64) error {
 	m.ctrl.T.Helper()
@@ -140,6 +155,20 @@ func (m *MockUserQuerier) UpdateDate(ctx context.Context, arg userstore.UpdateDa
 func (mr *MockUserQuerierMockRecorder) UpdateDate(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDate", reflect.TypeOf((*MockUserQuerier)(nil).UpdateDate), ctx, arg)
+}
+
+// UpdateDiscordInfo mocks base method.
+func (m *MockUserQuerier) UpdateDiscordInfo(ctx context.Context, arg userstore.UpdateDiscordInfoParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateDiscordInfo", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateDiscordInfo indicates an expected call of UpdateDiscordInfo.
+func (mr *MockUserQuerierMockRecorder) UpdateDiscordInfo(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDiscordInfo", reflect.TypeOf((*MockUserQuerier)(nil).UpdateDiscordInfo), ctx, arg)
 }
 
 // UpdateFavorite mocks base method.
