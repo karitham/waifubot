@@ -9,9 +9,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	characters "github.com/karitham/waifubot/storage/collectionstore"
-	users "github.com/karitham/waifubot/storage/userstore"
-	wishliststore "github.com/karitham/waifubot/storage/wishliststore"
+	collectionstore "github.com/karitham/waifubot/storage/collectionstore"
+	"github.com/karitham/waifubot/storage/userstore"
+	"github.com/karitham/waifubot/storage/wishliststore"
 )
 
 type ErrRollCooldown struct {
@@ -73,7 +73,7 @@ func Roll(ctx context.Context, store Store, animeService AnimeService, config Co
 		return MediaCharacter{}, err
 	}
 
-	_, err = tx.CollectionStore().UpsertCharacter(ctx, characters.UpsertCharacterParams{
+	_, err = tx.CollectionStore().UpsertCharacter(ctx, collectionstore.UpsertCharacterParams{
 		ID:    char.ID,
 		Name:  char.Name,
 		Image: char.ImageURL,
@@ -82,7 +82,7 @@ func Roll(ctx context.Context, store Store, animeService AnimeService, config Co
 		return MediaCharacter{}, err
 	}
 
-	_, err = tx.CollectionStore().Insert(ctx, characters.InsertParams{
+	_, err = tx.CollectionStore().Insert(ctx, collectionstore.InsertParams{
 		UserID:      uint64(userID),
 		CharacterID: char.ID,
 		Source:      "ROLL",
@@ -99,13 +99,13 @@ func Roll(ctx context.Context, store Store, animeService AnimeService, config Co
 	})
 
 	if canRollFree {
-		err = tx.UserStore().UpdateDate(ctx, users.UpdateDateParams{
+		err = tx.UserStore().UpdateDate(ctx, userstore.UpdateDateParams{
 			Date:   pgtype.Timestamp{Time: now, Valid: true},
 			UserID: uint64(userID),
 		})
 	} else {
-		_, err = tx.UserStore().ConsumeTokens(ctx, users.ConsumeTokensParams{
-			Tokens: config.TokensNeeded,
+		_, err = tx.UserStore().UpdateTokens(ctx, userstore.UpdateTokensParams{
+			Tokens: -config.TokensNeeded,
 			UserID: uint64(userID),
 		})
 	}

@@ -243,7 +243,7 @@ func TestRoll(t *testing.T) {
 				coll.EXPECT().UpsertCharacter(gomock.Any(), gomock.Any()).Return(collectionstore.Character{}, nil)
 				coll.EXPECT().Insert(gomock.Any(), gomock.Any()).Return(collectionstore.Collection{}, nil)
 				wishlist.EXPECT().RemoveCharacterFromWishlist(gomock.Any(), wishliststore.RemoveCharacterFromWishlistParams{UserID: 123, CharacterID: 3}).Return(nil)
-				user.EXPECT().ConsumeTokens(gomock.Any(), gomock.Any()).Return(userstore.User{}, errors.New("consume error"))
+				user.EXPECT().UpdateTokens(gomock.Any(), gomock.Any()).Return(userstore.User{}, errors.New("consume error"))
 				store.EXPECT().Rollback(gomock.Any()).Return(nil)
 			},
 			wantErr:     true,

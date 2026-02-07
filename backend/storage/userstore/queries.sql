@@ -12,17 +12,10 @@ FROM
 WHERE
   user_id = $1;
 
--- name: IncTokens :exec
+-- name: UpdateTokens :one
 UPDATE users
 SET
-  tokens = tokens + 1
-WHERE
-  user_id = $1;
-
--- name: ConsumeTokens :one
-UPDATE users
-SET
-  tokens = tokens - $1
+  tokens = tokens + $1
 WHERE
   user_id = $2
 RETURNING
