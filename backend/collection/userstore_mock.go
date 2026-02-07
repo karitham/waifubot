@@ -41,21 +41,6 @@ func (m *MockUserQuerier) EXPECT() *MockUserQuerierMockRecorder {
 	return m.recorder
 }
 
-// ConsumeTokens mocks base method.
-func (m *MockUserQuerier) ConsumeTokens(ctx context.Context, arg userstore.ConsumeTokensParams) (userstore.User, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ConsumeTokens", ctx, arg)
-	ret0, _ := ret[0].(userstore.User)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ConsumeTokens indicates an expected call of ConsumeTokens.
-func (mr *MockUserQuerierMockRecorder) ConsumeTokens(ctx, arg any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConsumeTokens", reflect.TypeOf((*MockUserQuerier)(nil).ConsumeTokens), ctx, arg)
-}
-
 // Create mocks base method.
 func (m *MockUserQuerier) Create(ctx context.Context, userID uint64) error {
 	m.ctrl.T.Helper()
@@ -113,20 +98,6 @@ func (m *MockUserQuerier) GetByDiscordUsername(ctx context.Context, discordUsern
 func (mr *MockUserQuerierMockRecorder) GetByDiscordUsername(ctx, discordUsername any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByDiscordUsername", reflect.TypeOf((*MockUserQuerier)(nil).GetByDiscordUsername), ctx, discordUsername)
-}
-
-// IncTokens mocks base method.
-func (m *MockUserQuerier) IncTokens(ctx context.Context, userID uint64) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IncTokens", ctx, userID)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// IncTokens indicates an expected call of IncTokens.
-func (mr *MockUserQuerierMockRecorder) IncTokens(ctx, userID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncTokens", reflect.TypeOf((*MockUserQuerier)(nil).IncTokens), ctx, userID)
 }
 
 // UpdateAnilistURL mocks base method.
@@ -197,4 +168,19 @@ func (m *MockUserQuerier) UpdateQuote(ctx context.Context, arg userstore.UpdateQ
 func (mr *MockUserQuerierMockRecorder) UpdateQuote(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateQuote", reflect.TypeOf((*MockUserQuerier)(nil).UpdateQuote), ctx, arg)
+}
+
+// UpdateTokens mocks base method.
+func (m *MockUserQuerier) UpdateTokens(ctx context.Context, arg userstore.UpdateTokensParams) (userstore.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateTokens", ctx, arg)
+	ret0, _ := ret[0].(userstore.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateTokens indicates an expected call of UpdateTokens.
+func (mr *MockUserQuerierMockRecorder) UpdateTokens(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateTokens", reflect.TypeOf((*MockUserQuerier)(nil).UpdateTokens), ctx, arg)
 }

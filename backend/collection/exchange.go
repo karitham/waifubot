@@ -9,6 +9,7 @@ import (
 	"github.com/Karitham/corde"
 
 	"github.com/karitham/waifubot/storage/collectionstore"
+	"github.com/karitham/waifubot/storage/userstore"
 )
 
 // Exchange executes the exchange logic for a character
@@ -38,7 +39,10 @@ func Exchange(ctx context.Context, store Store, userID corde.Snowflake, charID i
 		return collectionstore.Character{}, err
 	}
 
-	err = tx.UserStore().IncTokens(ctx, uint64(userID))
+	_, err = tx.UserStore().UpdateTokens(ctx, userstore.UpdateTokensParams{
+		Tokens: +1,
+		UserID: uint64(userID),
+	})
 	if err != nil {
 		return collectionstore.Character{}, err
 	}

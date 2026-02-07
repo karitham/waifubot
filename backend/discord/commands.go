@@ -24,6 +24,17 @@ func (b *Bot) RegisterCommands() error {
 			corde.NewIntOption("id", "ID of the character to exchange", true).CanAutocomplete(),
 		),
 
+		corde.NewSlashCommand("token", "Manage your tokens",
+			corde.NewSubcommand("balance", "View your token balance"),
+			corde.NewSubcommand("give", "Give tokens to another user",
+				corde.NewUserOption("user", "User to give tokens to", true),
+				corde.NewIntOption("amount", "Number of tokens to give", true),
+			),
+			corde.NewSubcommand("sell", "Sell a character for 1 token",
+				corde.NewIntOption("id", "ID of the character to sell", true).CanAutocomplete(),
+			),
+		),
+
 		corde.NewSlashCommand("roll", "Roll for a random character"),
 
 		corde.NewSlashCommand("search", "Search AniList for anime, manga, characters, or users",

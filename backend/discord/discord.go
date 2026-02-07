@@ -93,6 +93,7 @@ func New(b *Bot) *corde.Mux {
 	b.mux.Route("exchange", b.exchange)
 	b.mux.Route("holders", b.holders)
 	b.mux.Route("wishlist", b.wishlist)
+	b.mux.Route("token", b.token)
 	b.mux.SlashCommand("list", wrap(b.list, t, i, idx))
 	b.mux.SlashCommand("roll", wrap(b.roll, t, i, idx))
 	b.mux.SlashCommand("info", wrap(b.info, t))

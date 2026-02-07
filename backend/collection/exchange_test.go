@@ -9,6 +9,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/karitham/waifubot/storage/collectionstore"
+	"github.com/karitham/waifubot/storage/userstore"
 )
 
 func TestExchange(t *testing.T) {
@@ -37,7 +38,10 @@ func TestExchange(t *testing.T) {
 					Image: "img1",
 				}, nil)
 				coll.EXPECT().Delete(gomock.Any(), collectionstore.DeleteParams{UserID: uint64(123), CharacterID: 1}).Return(collectionstore.Collection{}, nil)
-				user.EXPECT().IncTokens(gomock.Any(), uint64(123)).Return(nil)
+				user.EXPECT().UpdateTokens(gomock.Any(), userstore.UpdateTokensParams{
+					UserID: uint64(123),
+					Tokens: 1,
+				}).Return(userstore.User{}, nil)
 				tx.EXPECT().Commit(gomock.Any()).Return(nil)
 			},
 			want: collectionstore.Character{
@@ -93,7 +97,10 @@ func TestExchange(t *testing.T) {
 					Image: "img1",
 				}, nil)
 				coll.EXPECT().Delete(gomock.Any(), collectionstore.DeleteParams{UserID: uint64(123), CharacterID: 1}).Return(collectionstore.Collection{}, nil)
-				user.EXPECT().IncTokens(gomock.Any(), uint64(123)).Return(errors.New("inc error"))
+				user.EXPECT().UpdateTokens(gomock.Any(), userstore.UpdateTokensParams{
+					UserID: uint64(123),
+					Tokens: 1,
+				}).Return(userstore.User{}, errors.New("inc error"))
 				tx.EXPECT().Rollback(gomock.Any()).Return(nil)
 			},
 			want:    collectionstore.Character{},
@@ -113,7 +120,10 @@ func TestExchange(t *testing.T) {
 					Image: "img1",
 				}, nil)
 				coll.EXPECT().Delete(gomock.Any(), collectionstore.DeleteParams{UserID: uint64(123), CharacterID: 1}).Return(collectionstore.Collection{}, nil)
-				user.EXPECT().IncTokens(gomock.Any(), uint64(123)).Return(nil)
+				user.EXPECT().UpdateTokens(gomock.Any(), userstore.UpdateTokensParams{
+					UserID: uint64(123),
+					Tokens: 1,
+				}).Return(userstore.User{}, nil)
 				tx.EXPECT().Commit(gomock.Any()).Return(errors.New("commit error"))
 				tx.EXPECT().Rollback(gomock.Any()).Return(nil)
 			},

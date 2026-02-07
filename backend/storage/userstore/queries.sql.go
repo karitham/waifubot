@@ -11,39 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const consumeTokens = `-- name: ConsumeTokens :one
-UPDATE users
-SET
-  tokens = tokens - $1
-WHERE
-  user_id = $2
-RETURNING
-  id, user_id, quote, date, favorite, tokens, anilist_url, discord_username, discord_avatar, last_updated
-`
-
-type ConsumeTokensParams struct {
-	Tokens int32
-	UserID uint64
-}
-
-func (q *Queries) ConsumeTokens(ctx context.Context, arg ConsumeTokensParams) (User, error) {
-	row := q.db.QueryRow(ctx, consumeTokens, arg.Tokens, arg.UserID)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.Quote,
-		&i.Date,
-		&i.Favorite,
-		&i.Tokens,
-		&i.AnilistUrl,
-		&i.DiscordUsername,
-		&i.DiscordAvatar,
-		&i.LastUpdated,
-	)
-	return i, err
-}
-
 const create = `-- name: Create :exec
 INSERT INTO
   users (user_id)
@@ -136,19 +103,6 @@ func (q *Queries) GetByDiscordUsername(ctx context.Context, discordUsername stri
 		&i.LastUpdated,
 	)
 	return i, err
-}
-
-const incTokens = `-- name: IncTokens :exec
-UPDATE users
-SET
-  tokens = tokens + 1
-WHERE
-  user_id = $1
-`
-
-func (q *Queries) IncTokens(ctx context.Context, userID uint64) error {
-	_, err := q.db.Exec(ctx, incTokens, userID)
-	return err
 }
 
 const updateAnilistURL = `-- name: UpdateAnilistURL :exec
@@ -248,4 +202,37 @@ type UpdateQuoteParams struct {
 func (q *Queries) UpdateQuote(ctx context.Context, arg UpdateQuoteParams) error {
 	_, err := q.db.Exec(ctx, updateQuote, arg.Quote, arg.UserID)
 	return err
+}
+
+const updateTokens = `-- name: UpdateTokens :one
+UPDATE users
+SET
+  tokens = tokens + $1
+WHERE
+  user_id = $2
+RETURNING
+  id, user_id, quote, date, favorite, tokens, anilist_url, discord_username, discord_avatar, last_updated
+`
+
+type UpdateTokensParams struct {
+	Tokens int32
+	UserID uint64
+}
+
+func (q *Queries) UpdateTokens(ctx context.Context, arg UpdateTokensParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateTokens, arg.Tokens, arg.UserID)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Quote,
+		&i.Date,
+		&i.Favorite,
+		&i.Tokens,
+		&i.AnilistUrl,
+		&i.DiscordUsername,
+		&i.DiscordAvatar,
+		&i.LastUpdated,
+	)
+	return i, err
 }
