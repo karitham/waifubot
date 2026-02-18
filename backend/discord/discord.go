@@ -79,6 +79,8 @@ type Bot struct {
 func New(b *Bot) *corde.Mux {
 	prometheus.MustRegister(commandCounter, commandDuration, errorCounter)
 
+	b.MustMigrateCommands()
+
 	b.mux = corde.NewMux(b.PublicKey, b.AppID, b.BotToken)
 	b.mux.OnNotFound = b.RemoveUnknownCommands
 
@@ -90,7 +92,7 @@ func New(b *Bot) *corde.Mux {
 	b.mux.Route("search", b.search)
 	b.mux.Route("profile", b.profile)
 	b.mux.Route("verify", b.verify)
-	b.mux.Route("exchange", b.exchange)
+
 	b.mux.Route("holders", b.holders)
 	b.mux.Route("wishlist", b.wishlist)
 	b.mux.Route("token", b.token)

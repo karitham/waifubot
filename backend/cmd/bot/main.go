@@ -33,7 +33,6 @@ func main() {
 		Description: "A discord gacha bot",
 		Commands: []*cli.Command{
 			RunCommand,
-			RegisterCommand,
 			IndexCommand,
 			HoldersCommand,
 			ProfileCommand,

@@ -15,6 +15,7 @@ import (
 
 	storage "github.com/karitham/waifubot/storage"
 	collectionstore "github.com/karitham/waifubot/storage/collectionstore"
+	commandstore "github.com/karitham/waifubot/storage/commandstore"
 	guildstore "github.com/karitham/waifubot/storage/guildstore"
 	userstore "github.com/karitham/waifubot/storage/userstore"
 	wishliststore "github.com/karitham/waifubot/storage/wishliststore"
@@ -57,6 +58,20 @@ func (m *MockProfileStore) CollectionStore() collectionstore.Querier {
 func (mr *MockProfileStoreMockRecorder) CollectionStore() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CollectionStore", reflect.TypeOf((*MockProfileStore)(nil).CollectionStore))
+}
+
+// CommandStore mocks base method.
+func (m *MockProfileStore) CommandStore() commandstore.Querier {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CommandStore")
+	ret0, _ := ret[0].(commandstore.Querier)
+	return ret0
+}
+
+// CommandStore indicates an expected call of CommandStore.
+func (mr *MockProfileStoreMockRecorder) CommandStore() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CommandStore", reflect.TypeOf((*MockProfileStore)(nil).CommandStore))
 }
 
 // Commit mocks base method.

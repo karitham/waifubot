@@ -17,6 +17,7 @@ import (
 	pgconn "github.com/jackc/pgx/v5/pgconn"
 	storage "github.com/karitham/waifubot/storage"
 	collectionstore "github.com/karitham/waifubot/storage/collectionstore"
+	commandstore "github.com/karitham/waifubot/storage/commandstore"
 	guildstore "github.com/karitham/waifubot/storage/guildstore"
 	userstore "github.com/karitham/waifubot/storage/userstore"
 	wishliststore "github.com/karitham/waifubot/storage/wishliststore"
@@ -157,6 +158,20 @@ func (m *MockStorageStore) CollectionStore() collectionstore.Querier {
 func (mr *MockStorageStoreMockRecorder) CollectionStore() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CollectionStore", reflect.TypeOf((*MockStorageStore)(nil).CollectionStore))
+}
+
+// CommandStore mocks base method.
+func (m *MockStorageStore) CommandStore() commandstore.Querier {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CommandStore")
+	ret0, _ := ret[0].(commandstore.Querier)
+	return ret0
+}
+
+// CommandStore indicates an expected call of CommandStore.
+func (mr *MockStorageStoreMockRecorder) CommandStore() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CommandStore", reflect.TypeOf((*MockStorageStore)(nil).CommandStore))
 }
 
 // Commit mocks base method.
