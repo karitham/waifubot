@@ -21,15 +21,6 @@ func (b *Bot) token(m *corde.Mux) {
 	m.Autocomplete("id", trace(b.userCollectionAutocomplete))
 }
 
-func (b *Bot) exchange(m *corde.Mux) {
-	m.SlashCommand("", wrap(
-		b.tokenSell,
-		trace[corde.SlashCommandInteractionData],
-		interact(b.InterStore, onInteraction[corde.SlashCommandInteractionData](b)),
-	))
-	m.Autocomplete("id", b.userCollectionAutocomplete)
-}
-
 func (b *Bot) tokenBalance(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
 	user, err := b.Store.UserStore().Get(ctx, uint64(i.Member.User.ID))
 	if err != nil {

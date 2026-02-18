@@ -2,7 +2,7 @@ version: "2"
 
 sql:
   - queries: "./collectionstore/queries.sql"
-    schema: "./schema.sql"
+    schema: "./collectionstore/schema.sql"
     engine: "postgresql"
     gen:
       go:
@@ -12,7 +12,7 @@ sql:
         sql_package: pgx/v5
         sql_driver: github.com/jackc/pgx/v5
   - queries: "./userstore/queries.sql"
-    schema: "./schema.sql"
+    schema: "./userstore/schema.sql"
     engine: "postgresql"
     gen:
       go:
@@ -22,7 +22,7 @@ sql:
         sql_package: pgx/v5
         sql_driver: github.com/jackc/pgx/v5
   - queries: "./guildstore/queries.sql"
-    schema: "./schema.sql"
+    schema: "./guildstore/schema.sql"
     engine: "postgresql"
     gen:
       go:
@@ -32,11 +32,21 @@ sql:
         sql_package: pgx/v5
         sql_driver: github.com/jackc/pgx/v5
   - queries: "./wishliststore/queries.sql"
-    schema: "./schema.sql"
+    schema: "./wishliststore/schema.sql"
     engine: "postgresql"
     gen:
       go:
         out: wishliststore
+        emit_interface: true
+        emit_prepared_queries: true
+        sql_package: pgx/v5
+        sql_driver: github.com/jackc/pgx/v5
+  - queries: "./commandstore/queries.sql"
+    schema: "./commandstore/schema.sql"
+    engine: "postgresql"
+    gen:
+      go:
+        out: commandstore
         emit_interface: true
         emit_prepared_queries: true
         sql_package: pgx/v5

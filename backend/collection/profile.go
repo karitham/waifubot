@@ -5,6 +5,7 @@ package collection
 //go:generate mockgen -source=../storage/userstore/querier.go -destination=userstore_mock.go -package=collection -mock_names=Querier=MockUserQuerier
 //go:generate mockgen -source=../storage/wishliststore/querier.go -destination=wishliststore_mock.go -package=collection -mock_names=Querier=MockWishlistQuerier
 //go:generate mockgen -source=../storage/guildstore/querier.go -destination=guildstore_mock.go -package=collection -mock_names=Querier=MockGuildQuerier
+//go:generate mockgen -source=../storage/commandstore/querier.go -destination=commandstore_mock.go -package=collection -mock_names=Querier=MockCommandQuerier
 
 import (
 	"context"
@@ -19,6 +20,7 @@ import (
 
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/collectionstore"
+	"github.com/karitham/waifubot/storage/commandstore"
 	"github.com/karitham/waifubot/storage/guildstore"
 	"github.com/karitham/waifubot/storage/userstore"
 	"github.com/karitham/waifubot/storage/wishliststore"
@@ -33,6 +35,7 @@ type Store interface {
 	UserStore() userstore.Querier
 	GuildStore() guildstore.Querier
 	WishlistStore() wishliststore.Querier
+	CommandStore() commandstore.Querier
 }
 
 // AnimeService defines the interface for anime operations

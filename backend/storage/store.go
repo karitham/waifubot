@@ -2,6 +2,7 @@ package storage
 
 //go:generate mockgen -source=store.go -destination=mocks/store_mock.go -package=mocks -mock_names=Store=MockStorageStore,TXer=MockTXer
 //go:generate mockgen -source=userstore/querier.go -destination=mocks/userstore_mock.go -package=mocks -mock_names=Querier=MockUserQuerier
+//go:generate mockgen -source=commandstore/querier.go -destination=mocks/commandstore_mock.go -package=mocks -mock_names=Querier=MockCommandQuerier
 
 import (
 	"context"
@@ -15,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/tracelog"
 
 	"github.com/karitham/waifubot/storage/collectionstore"
+	"github.com/karitham/waifubot/storage/commandstore"
 	"github.com/karitham/waifubot/storage/guildstore"
 	"github.com/karitham/waifubot/storage/userstore"
 	"github.com/karitham/waifubot/storage/wishliststore"
@@ -47,6 +49,7 @@ type Store interface {
 	CollectionStore() collectionstore.Querier
 	GuildStore() guildstore.Querier
 	WishlistStore() wishliststore.Querier
+	CommandStore() commandstore.Querier
 	Tx(ctx context.Context) (Store, error)
 	Commit(ctx context.Context) error
 	Rollback(ctx context.Context) error
@@ -57,6 +60,7 @@ type DBStore struct {
 	collectionStore *collectionstore.Queries
 	guildStore      *guildstore.Queries
 	wishlistStore   *wishliststore.Queries
+	commandStore    *commandstore.Queries
 	db              TXer
 	tx              pgx.Tx
 }
@@ -87,6 +91,7 @@ func NewStore(ctx context.Context, url string) (*DBStore, error) {
 		collectionStore: collectionstore.New(conn),
 		guildStore:      guildstore.New(conn),
 		wishlistStore:   wishliststore.New(conn),
+		commandStore:    commandstore.New(conn),
 		db:              conn,
 	}, nil
 }
@@ -97,6 +102,7 @@ func (s *DBStore) withTx(tx pgx.Tx) *DBStore {
 		collectionStore: s.collectionStore.WithTx(tx),
 		guildStore:      s.guildStore.WithTx(tx),
 		wishlistStore:   s.wishlistStore.WithTx(tx),
+		commandStore:    s.commandStore.WithTx(tx),
 		db:              tx,
 		tx:              tx,
 	}
@@ -156,6 +162,10 @@ func (s *DBStore) GuildStore() guildstore.Querier {
 
 func (s *DBStore) WishlistStore() wishliststore.Querier {
 	return s.wishlistStore
+}
+
+func (s *DBStore) CommandStore() commandstore.Querier {
+	return s.commandStore
 }
 
 func (s *DBStore) Tx(ctx context.Context) (Store, error) {
