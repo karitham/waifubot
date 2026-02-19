@@ -40,8 +40,8 @@ type Store interface {
 	GetUserCharacterWishlist(ctx context.Context, userID uint64) ([]Character, error)
 
 	// Discovery
-	GetWishlistHolders(ctx context.Context, userID uint64, guildID uint64) ([]WishlistHolder, error)
-	GetWantedCharacters(ctx context.Context, userID uint64, guildID uint64) ([]WantedCharacter, error)
+	GetWishlistHolders(ctx context.Context, userID, guildID uint64) ([]WishlistHolder, error)
+	GetWantedCharacters(ctx context.Context, userID, guildID uint64) ([]WantedCharacter, error)
 	CompareWithUser(ctx context.Context, userID1, userID2 uint64) (WishlistComparison, error)
 }
 
@@ -89,12 +89,12 @@ func GetUserWishlist(ctx context.Context, s Store, userID uint64) ([]Character, 
 }
 
 // GetWishlistHolders gets users who have characters from the user's wishlist
-func GetWishlistHolders(ctx context.Context, s Store, userID uint64, guildID uint64) ([]WishlistHolder, error) {
+func GetWishlistHolders(ctx context.Context, s Store, userID, guildID uint64) ([]WishlistHolder, error) {
 	return s.GetWishlistHolders(ctx, userID, guildID)
 }
 
 // GetWantedCharacters gets users who want characters the user owns
-func GetWantedCharacters(ctx context.Context, s Store, userID uint64, guildID uint64) ([]WantedCharacter, error) {
+func GetWantedCharacters(ctx context.Context, s Store, userID, guildID uint64) ([]WantedCharacter, error) {
 	return s.GetWantedCharacters(ctx, userID, guildID)
 }
 

@@ -59,7 +59,7 @@ type RedisStore[T any] struct {
 	prefix, suffix string
 }
 
-func NewRedis[T any](c redis.UniversalClient, prefix string, suffix string) Store[T] {
+func NewRedis[T any](c redis.UniversalClient, prefix, suffix string) Store[T] {
 	return RedisStore[T]{
 		client: c,
 		prefix: prefix,

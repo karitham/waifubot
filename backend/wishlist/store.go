@@ -52,7 +52,7 @@ func (s *store) GetUserCharacterWishlist(ctx context.Context, userID uint64) ([]
 	return characters, nil
 }
 
-func (s *store) GetWishlistHolders(ctx context.Context, userID uint64, guildID uint64) ([]WishlistHolder, error) {
+func (s *store) GetWishlistHolders(ctx context.Context, userID, guildID uint64) ([]WishlistHolder, error) {
 	// First get the user's wishlist character IDs
 	wishlist, err := s.GetUserCharacterWishlist(ctx, userID)
 	if err != nil {
@@ -102,7 +102,7 @@ func (s *store) GetWishlistHolders(ctx context.Context, userID uint64, guildID u
 	return holders, nil
 }
 
-func (s *store) GetWantedCharacters(ctx context.Context, userID uint64, guildID uint64) ([]WantedCharacter, error) {
+func (s *store) GetWantedCharacters(ctx context.Context, userID, guildID uint64) ([]WantedCharacter, error) {
 	rows, err := s.q.GetWantedCharacters(ctx, wishliststore.GetWantedCharactersParams{
 		UserID:  userID,
 		GuildID: guildID,
