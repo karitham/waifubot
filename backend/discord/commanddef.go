@@ -1,12 +1,11 @@
 package discord
 
 import (
+	"cmp"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"slices"
-
-	"cmp"
 
 	"github.com/Karitham/corde"
 )

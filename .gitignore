@@ -3,3 +3,4 @@
 !.env.example
 *.db
 .direnv
+result

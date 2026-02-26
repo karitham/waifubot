@@ -26,8 +26,17 @@
             vendorHash = "sha256-crVGkQCOG3YsL3TmLVae2/g1GnzaX7jVRy7IvDpUOsM=";
             subPackages = [ "." ];
           };
+
+          waifubot = import ./nix/package.nix {
+            inherit (pkgs) lib;
+            buildGoModule = pkgs.buildGoModule;
+            pkgs = pkgs;
+          };
         }
       );
+
+      nixosModules.waifubot = import ./nix/module.nix;
+
       devShells = forSystems (
         system:
         let

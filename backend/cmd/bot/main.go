@@ -8,6 +8,8 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+var version = "dev"
+
 func parseLogLevel(levelStr string) slog.Level {
 	switch strings.ToUpper(levelStr) {
 	case "DEBUG":
@@ -31,6 +33,7 @@ func main() {
 		Name:        "waifubot",
 		Usage:       "Run the bot, and use utils",
 		Description: "A discord gacha bot",
+		Version:     version,
 		Commands: []*cli.Command{
 			RunCommand,
 			IndexCommand,

@@ -18,6 +18,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/urfave/cli/v2"
 
 	"github.com/karitham/waifubot/discord"
 	"github.com/karitham/waifubot/services"
@@ -26,6 +27,8 @@ import (
 	"github.com/karitham/waifubot/storage/userstore"
 	"github.com/karitham/waifubot/wishlist"
 )
+
+var version = "dev"
 
 var (
 	cacheAge = strconv.Itoa(int((time.Minute * 2).Seconds()))
@@ -94,8 +97,6 @@ func prometheusMiddleware(next http.Handler) http.Handler {
 
 		duration := time.Since(start)
 
-		// Use route pattern instead of URL path to avoid cardinality explosion
-		// Only record metrics for routed endpoints
 		if routeCtx := chi.RouteContext(r.Context()); routeCtx != nil {
 			if pattern := routeCtx.RoutePattern(); pattern != "" {
 				apiRequestCounter.WithLabelValues(r.Method, pattern, strconv.Itoa(rw.statusCode)).Inc()
@@ -106,31 +107,68 @@ func prometheusMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
-	p := os.Getenv("PORT")
-	apiPort, err := strconv.Atoi(p)
+	app := &cli.App{
+		Name:    "waifubot-api",
+		Usage:   "Run the waifubot API server",
+		Version: version,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "port",
+				Aliases: []string{"p"},
+				EnvVars: []string{"PORT"},
+				Value:   "3333",
+			},
+			&cli.StringFlag{
+				Name:    "log-level",
+				Aliases: []string{"l"},
+				EnvVars: []string{"LOG_LEVEL"},
+				Value:   "INFO",
+			},
+			&cli.StringFlag{
+				Name:     "db-url",
+				Aliases:  []string{"d"},
+				EnvVars:  []string{"DB_URL", "DB_STR"},
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:    "bot-token",
+				EnvVars: []string{"BOT_TOKEN"},
+			},
+		},
+		Action: runServer,
+	}
+
+	if err := app.Run(os.Args); err != nil {
+		slog.Error("error running app", "error", err)
+		os.Exit(1)
+	}
+}
+
+func runServer(c *cli.Context) error {
+	apiPort, err := strconv.Atoi(c.String("port"))
 	if err != nil || apiPort == 0 {
 		apiPort = 3333
 	}
 
-	logLevel := parseLogLevel(os.Getenv("LOG_LEVEL"))
+	logLevel := parseLogLevel(c.String("log-level"))
 
-	url := os.Getenv("DB_URL")
+	url := c.String("db-url")
 	db, err := storage.NewStore(context.Background(), url)
 	if err != nil {
-		slog.Error("Could not connect to database", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("could not connect to database: %w", err)
 	}
 
 	prometheus.MustRegister(apiRequestCounter, apiRequestDuration)
 
-	discordToken := os.Getenv("BOT_TOKEN")
-	if discordToken == "" {
-		slog.Warn("BOT_TOKEN not set, Discord user info will not be updated")
+	discordToken := c.String("bot-token")
+	var discordService *services.DiscordService
+	if discordToken != "" {
+		discordService = services.NewDiscordService(discordToken)
 	}
 
 	api := &Handler{
 		db:             db,
-		discordService: services.NewDiscordService(discordToken),
+		discordService: discordService,
 	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
@@ -141,12 +179,11 @@ func main() {
 	r.Use(middleware.Compress(5))
 	r.Use(prometheusMiddleware)
 
-	// CORS
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Content-Type"},
-		MaxAge:           300, // Maximum value not ignored by any of major browsers
+		MaxAge:           300,
 		AllowCredentials: true,
 	}))
 
@@ -157,13 +194,10 @@ func main() {
 		r.Get("/{userID}", api.getUser)
 	}
 
-	// deprecated path
 	r.Route("/user", users)
 	r.Route("/api/v1", func(r chi.Router) {
-		// Implement GET /user/123
 		r.Route("/user", users)
 
-		// Implement GET /wishlist/123
 		r.Route("/wishlist", func(r chi.Router) {
 			r.Use(middleware.SetHeader("Content-Type", "application/json"))
 			r.Use(middleware.SetHeader("Cache-Control", "public, max-age="+cacheAge))
@@ -176,9 +210,10 @@ func main() {
 	slog.Info("API server started successfully", "port", apiPort)
 	if err := http.ListenAndServe(":"+strconv.Itoa(apiPort), r); err != nil {
 		slog.Error("API server crashed", "error", err, "port", apiPort)
-		os.Exit(1)
+		return err
 	}
 	slog.Info("API server shutting down", "port", apiPort)
+	return nil
 }
 
 type Handler struct {
@@ -222,7 +257,6 @@ func (h *Handler) getUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update Discord info synchronously if needed
 	if h.discordService != nil {
 		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 		defer cancel()
