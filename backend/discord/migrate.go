@@ -26,17 +26,6 @@ func (b *Bot) MigrateCommands(ctx context.Context) error {
 
 	slog.Info("command hash changed, migrating", "old", stored, "new", hash)
 
-	existing, err := b.fetchExistingCommands(ctx)
-	if err != nil {
-		return fmt.Errorf("fetch existing commands: %w", err)
-	}
-
-	for _, cmd := range existing {
-		if err := b.deleteCommand(ctx, cmd.ID); err != nil {
-			return fmt.Errorf("delete command %s: %w", cmd.Name, err)
-		}
-	}
-
 	var opts []func(*corde.CommandsOpt)
 	if b.GuildID != nil {
 		opts = append(opts, corde.GuildOpt(*b.GuildID))
@@ -59,37 +48,6 @@ func (b *Bot) MigrateCommands(ctx context.Context) error {
 
 	slog.Info("command migration complete")
 	return nil
-}
-
-type discordCommand struct {
-	ID   corde.Snowflake
-	Name string
-}
-
-func (b *Bot) fetchExistingCommands(ctx context.Context) ([]discordCommand, error) {
-	var opts []func(*corde.CommandsOpt)
-	if b.GuildID != nil {
-		opts = append(opts, corde.GuildOpt(*b.GuildID))
-	}
-
-	commands, err := corde.NewMux(b.PublicKey, b.AppID, b.BotToken).GetCommands(opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]discordCommand, len(commands))
-	for i, cmd := range commands {
-		result[i] = discordCommand{ID: cmd.ID, Name: cmd.Name}
-	}
-	return result, nil
-}
-
-func (b *Bot) deleteCommand(ctx context.Context, id corde.Snowflake) error {
-	var opts []func(*corde.CommandsOpt)
-	if b.GuildID != nil {
-		opts = append(opts, corde.GuildOpt(*b.GuildID))
-	}
-	return corde.NewMux(b.PublicKey, b.AppID, b.BotToken).DeleteCommand(id, opts...)
 }
 
 func (b *Bot) MustMigrateCommands() {
