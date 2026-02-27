@@ -12,10 +12,12 @@ import (
 )
 
 const count = `-- name: Count :one
-SELECT 
-    COUNT(col.character_id)
-FROM collection col
-WHERE col.user_id = $1
+SELECT
+  COUNT(col.character_id)
+FROM
+  collection col
+WHERE
+  col.user_id = $1
 `
 
 func (q *Queries) Count(ctx context.Context, userID uint64) (int64, error) {
@@ -27,9 +29,14 @@ func (q *Queries) Count(ctx context.Context, userID uint64) (int64, error) {
 
 const delete = `-- name: Delete :one
 DELETE FROM collection col
-WHERE col.user_id = $1
-AND col.character_id = $2
-RETURNING user_id, character_id, source, acquired_at
+WHERE
+  col.user_id = $1
+  AND col.character_id = $2
+RETURNING
+  user_id,
+  character_id,
+  source,
+  acquired_at
 `
 
 type DeleteParams struct {
@@ -50,16 +57,19 @@ func (q *Queries) Delete(ctx context.Context, arg DeleteParams) (Collection, err
 }
 
 const get = `-- name: Get :one
-SELECT 
-    c.id,
-    c.name,
-    c.image,
-    col.source,
-    col.acquired_at as date
-FROM collection col
-JOIN characters c ON col.character_id = c.id
-WHERE c.id = $1
-AND col.user_id = $2
+SELECT
+  c.id,
+  c.name,
+  c.image,
+  c.media_title,
+  col.source,
+  col.acquired_at AS date
+FROM
+  collection col
+  JOIN characters c ON col.character_id = c.id
+WHERE
+  c.id = $1
+  AND col.user_id = $2
 `
 
 type GetParams struct {
@@ -68,11 +78,12 @@ type GetParams struct {
 }
 
 type GetRow struct {
-	ID     int64
-	Name   string
-	Image  string
-	Source string
-	Date   pgtype.Timestamp
+	ID         int64
+	Name       string
+	Image      string
+	MediaTitle string
+	Source     string
+	Date       pgtype.Timestamp
 }
 
 func (q *Queries) Get(ctx context.Context, arg GetParams) (GetRow, error) {
@@ -82,6 +93,7 @@ func (q *Queries) Get(ctx context.Context, arg GetParams) (GetRow, error) {
 		&i.ID,
 		&i.Name,
 		&i.Image,
+		&i.MediaTitle,
 		&i.Source,
 		&i.Date,
 	)
@@ -89,30 +101,44 @@ func (q *Queries) Get(ctx context.Context, arg GetParams) (GetRow, error) {
 }
 
 const getByID = `-- name: GetByID :one
-SELECT 
-    id,
-    name,
-    image
-FROM characters
-WHERE id = $1
-LIMIT 1
+SELECT
+  id,
+  name,
+  image,
+  media_title
+FROM
+  characters
+WHERE
+  id = $1
+LIMIT
+  1
 `
 
 func (q *Queries) GetByID(ctx context.Context, id int64) (Character, error) {
 	row := q.db.QueryRow(ctx, getByID, id)
 	var i Character
-	err := row.Scan(&i.ID, &i.Name, &i.Image)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Image,
+		&i.MediaTitle,
+	)
 	return i, err
 }
 
 const give = `-- name: Give :one
 UPDATE collection col
-SET 
-    user_id = $1,
-    source = 'TRADE'
-WHERE col.character_id = $2
-AND col.user_id = $3
-RETURNING user_id, character_id, source, acquired_at
+SET
+  user_id = $1,
+  source = 'TRADE'
+WHERE
+  col.character_id = $2
+  AND col.user_id = $3
+RETURNING
+  user_id,
+  character_id,
+  source,
+  acquired_at
 `
 
 type GiveParams struct {
@@ -134,9 +160,15 @@ func (q *Queries) Give(ctx context.Context, arg GiveParams) (Collection, error) 
 }
 
 const insert = `-- name: Insert :one
-INSERT INTO collection (user_id, character_id, source, acquired_at)
-VALUES ($1, $2, $3, $4)
-RETURNING user_id, character_id, source, acquired_at
+INSERT INTO
+  collection (user_id, character_id, source, acquired_at)
+VALUES
+  ($1, $2, $3, $4)
+RETURNING
+  user_id,
+  character_id,
+  source,
+  acquired_at
 `
 
 type InsertParams struct {
@@ -164,24 +196,29 @@ func (q *Queries) Insert(ctx context.Context, arg InsertParams) (Collection, err
 }
 
 const list = `-- name: List :many
-SELECT 
-    c.id,
-    c.name,
-    c.image,
-    col.source,
-    col.acquired_at as date
-FROM collection col
-JOIN characters c ON col.character_id = c.id
-WHERE col.user_id = $1
-ORDER BY col.acquired_at DESC
+SELECT
+  c.id,
+  c.name,
+  c.image,
+  c.media_title,
+  col.source,
+  col.acquired_at AS date
+FROM
+  collection col
+  JOIN characters c ON col.character_id = c.id
+WHERE
+  col.user_id = $1
+ORDER BY
+  col.acquired_at DESC
 `
 
 type ListRow struct {
-	ID     int64
-	Name   string
-	Image  string
-	Source string
-	Date   pgtype.Timestamp
+	ID         int64
+	Name       string
+	Image      string
+	MediaTitle string
+	Source     string
+	Date       pgtype.Timestamp
 }
 
 func (q *Queries) List(ctx context.Context, userID uint64) ([]ListRow, error) {
@@ -197,6 +234,7 @@ func (q *Queries) List(ctx context.Context, userID uint64) ([]ListRow, error) {
 			&i.ID,
 			&i.Name,
 			&i.Image,
+			&i.MediaTitle,
 			&i.Source,
 			&i.Date,
 		); err != nil {
@@ -211,10 +249,12 @@ func (q *Queries) List(ctx context.Context, userID uint64) ([]ListRow, error) {
 }
 
 const listIDs = `-- name: ListIDs :many
-SELECT 
-    col.character_id as id
-FROM collection col
-WHERE col.user_id = $1
+SELECT
+  col.character_id AS id
+FROM
+  collection col
+WHERE
+  col.user_id = $1
 `
 
 func (q *Queries) ListIDs(ctx context.Context, userID uint64) ([]int64, error) {
@@ -238,22 +278,28 @@ func (q *Queries) ListIDs(ctx context.Context, userID uint64) ([]int64, error) {
 }
 
 const searchCharacters = `-- name: SearchCharacters :many
-SELECT 
-    c.id,
-    c.name,
-    c.image,
-    col.source,
-    col.acquired_at as date
-FROM collection col
-JOIN characters c ON col.character_id = c.id
-WHERE col.user_id = $1
-AND (
+SELECT
+  c.id,
+  c.name,
+  c.image,
+  c.media_title,
+  col.source,
+  col.acquired_at AS date
+FROM
+  collection col
+  JOIN characters c ON col.character_id = c.id
+WHERE
+  col.user_id = $1
+  AND (
     c.id::VARCHAR LIKE $2::VARCHAR || '%'
     OR c.name ILIKE '%' || $2 || '%'
-)
-ORDER BY col.acquired_at DESC
-LIMIT $4
-OFFSET $3
+  )
+ORDER BY
+  col.acquired_at DESC
+LIMIT
+  $4
+OFFSET
+  $3
 `
 
 type SearchCharactersParams struct {
@@ -264,11 +310,12 @@ type SearchCharactersParams struct {
 }
 
 type SearchCharactersRow struct {
-	ID     int64
-	Name   string
-	Image  string
-	Source string
-	Date   pgtype.Timestamp
+	ID         int64
+	Name       string
+	Image      string
+	MediaTitle string
+	Source     string
+	Date       pgtype.Timestamp
 }
 
 func (q *Queries) SearchCharacters(ctx context.Context, arg SearchCharactersParams) ([]SearchCharactersRow, error) {
@@ -289,6 +336,7 @@ func (q *Queries) SearchCharacters(ctx context.Context, arg SearchCharactersPara
 			&i.ID,
 			&i.Name,
 			&i.Image,
+			&i.MediaTitle,
 			&i.Source,
 			&i.Date,
 		); err != nil {
@@ -303,16 +351,17 @@ func (q *Queries) SearchCharacters(ctx context.Context, arg SearchCharactersPara
 }
 
 const searchGlobalCharacters = `-- name: SearchGlobalCharacters :many
-SELECT DISTINCT 
-    c.id,
-    c.name,
-    c.image
-FROM characters c
-WHERE 
-    c.id::VARCHAR LIKE $1::VARCHAR || '%'
-    OR c.name ILIKE '%' || $1 || '%'
-ORDER BY c.id
-LIMIT $2
+SELECT DISTINCT
+  id, name, image, media_title
+FROM
+  characters c
+WHERE
+  c.id::VARCHAR LIKE $1::VARCHAR || '%'
+  OR c.name ILIKE '%' || $1 || '%'
+ORDER BY
+  c.id
+LIMIT
+  $2
 `
 
 type SearchGlobalCharactersParams struct {
@@ -329,7 +378,12 @@ func (q *Queries) SearchGlobalCharacters(ctx context.Context, arg SearchGlobalCh
 	var items []Character
 	for rows.Next() {
 		var i Character
-		if err := rows.Scan(&i.ID, &i.Name, &i.Image); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Image,
+			&i.MediaTitle,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -342,11 +396,13 @@ func (q *Queries) SearchGlobalCharacters(ctx context.Context, arg SearchGlobalCh
 
 const updateImageName = `-- name: UpdateImageName :one
 UPDATE characters c
-SET 
-    image = $1,
-    name = $2
-WHERE c.id = $3
-RETURNING id, name, image
+SET
+  image = $1,
+  name = $2
+WHERE
+  c.id = $3
+RETURNING
+  id, name, image, media_title
 `
 
 type UpdateImageNameParams struct {
@@ -358,17 +414,26 @@ type UpdateImageNameParams struct {
 func (q *Queries) UpdateImageName(ctx context.Context, arg UpdateImageNameParams) (Character, error) {
 	row := q.db.QueryRow(ctx, updateImageName, arg.Image, arg.Name, arg.ID)
 	var i Character
-	err := row.Scan(&i.ID, &i.Name, &i.Image)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Image,
+		&i.MediaTitle,
+	)
 	return i, err
 }
 
 const upsertCharacter = `-- name: UpsertCharacter :one
-INSERT INTO characters (id, name, image)
-VALUES ($1, $2, $3)
-ON CONFLICT (id) DO UPDATE SET
-    name = EXCLUDED.name,
-    image = EXCLUDED.image
-RETURNING id, name, image
+INSERT INTO
+  characters (id, name, image)
+VALUES
+  ($1, $2, $3)
+ON CONFLICT (id) DO UPDATE
+SET
+  name = excluded.name,
+  image = excluded.image
+RETURNING
+  id, name, image, media_title
 `
 
 type UpsertCharacterParams struct {
@@ -380,16 +445,23 @@ type UpsertCharacterParams struct {
 func (q *Queries) UpsertCharacter(ctx context.Context, arg UpsertCharacterParams) (Character, error) {
 	row := q.db.QueryRow(ctx, upsertCharacter, arg.ID, arg.Name, arg.Image)
 	var i Character
-	err := row.Scan(&i.ID, &i.Name, &i.Image)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Image,
+		&i.MediaTitle,
+	)
 	return i, err
 }
 
 const usersOwningCharFiltered = `-- name: UsersOwningCharFiltered :many
-SELECT DISTINCT 
-    col.user_id
-FROM collection col
-WHERE col.character_id = $1
-AND col.user_id = ANY ($2::bigint[])
+SELECT DISTINCT
+  col.user_id
+FROM
+  collection col
+WHERE
+  col.character_id = $1
+  AND col.user_id = ANY ($2::BIGINT[])
 `
 
 type UsersOwningCharFilteredParams struct {

@@ -51,6 +51,26 @@ sql:
         emit_prepared_queries: true
         sql_package: pgx/v5
         sql_driver: github.com/jackc/pgx/v5
+  - queries: "./interactionstore/queries.sql"
+    schema: "./interactionstore/schema.sql"
+    engine: "postgresql"
+    gen:
+      go:
+        out: interactionstore
+        emit_interface: true
+        emit_prepared_queries: true
+        sql_package: pgx/v5
+        sql_driver: github.com/jackc/pgx/v5
+  - queries: "./dropstore/queries.sql"
+    schema: "./dropstore/schema.sql"
+    engine: "postgresql"
+    gen:
+      go:
+        out: dropstore
+        emit_interface: true
+        emit_prepared_queries: true
+        sql_package: pgx/v5
+        sql_driver: github.com/jackc/pgx/v5
 
 overrides:
   go:
@@ -69,6 +89,10 @@ overrides:
         go_type: uint64
       - column: collection.character_id
         go_type: int64
+      - column: channel_interactions.channel_id
+        go_type: uint64
+      - column: channel_drops.channel_id
+        go_type: uint64
       - column: character_wishlist.user_id
         go_type: uint64
       - column: character_wishlist.character_id

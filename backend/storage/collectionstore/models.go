@@ -9,9 +9,10 @@ import (
 )
 
 type Character struct {
-	ID    int64
-	Name  string
-	Image string
+	ID         int64
+	Name       string
+	Image      string
+	MediaTitle string
 }
 
 type Collection struct {

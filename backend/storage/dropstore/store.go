@@ -3,110 +3,68 @@ package dropstore
 import (
 	"context"
 	"fmt"
-	"strings"
-	"sync"
 
 	"github.com/Karitham/corde"
-	"github.com/fxamacker/cbor/v2"
-	"github.com/redis/go-redis/v9"
+	"github.com/jackc/pgx/v5"
 )
 
-type Store[T any] interface {
+type Drop struct {
+	ID         int64
+	Name       string
+	ImageURL   string
+	MediaTitle string
+}
+
+type Store interface {
 	Delete(ctx context.Context, id corde.Snowflake) error
-	Get(ctx context.Context, id corde.Snowflake) (*T, error)
-	Set(ctx context.Context, id corde.Snowflake, data T) error
+	Get(ctx context.Context, id corde.Snowflake) (*Drop, error)
+	Set(ctx context.Context, id corde.Snowflake, data Drop) error
 }
 
-type MemStore[T any] struct {
-	mu     sync.Mutex
-	values map[corde.Snowflake]T
+type PostgresStore struct {
+	q Querier
 }
 
-func NewMemStore[T any]() *MemStore[T] {
-	return &MemStore[T]{
-		values: map[corde.Snowflake]T{},
+func NewPostgresStore(q Querier) *PostgresStore {
+	return &PostgresStore{
+		q: q,
 	}
 }
 
-func (m *MemStore[T]) Delete(ctx context.Context, id corde.Snowflake) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	delete(m.values, id)
-
-	return nil
-}
-
-func (m *MemStore[T]) Get(ctx context.Context, id corde.Snowflake) (*T, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	v := m.values[id]
-	return &v, nil
-}
-
-func (m *MemStore[T]) Set(ctx context.Context, id corde.Snowflake, data T) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	m.values[id] = data
-
-	return nil
-}
-
-type RedisStore[T any] struct {
-	client         redis.UniversalClient
-	prefix, suffix string
-}
-
-func NewRedis[T any](c redis.UniversalClient, prefix, suffix string) Store[T] {
-	return RedisStore[T]{
-		client: c,
-		prefix: prefix,
-		suffix: suffix,
-	}
-}
-
-func (r RedisStore[T]) Set(ctx context.Context, id corde.Snowflake, data T) error {
-	b, err := cbor.Marshal(data)
+func (p *PostgresStore) Set(ctx context.Context, id corde.Snowflake, data Drop) error {
+	err := p.q.UpsertCharacter(ctx, UpsertCharacterParams{
+		ID:         data.ID,
+		Name:       data.Name,
+		Image:      data.ImageURL,
+		MediaTitle: data.MediaTitle,
+	})
 	if err != nil {
-		return fmt.Errorf("failed to marshal char: %w", err)
+		return fmt.Errorf("failed to upsert character: %w", err)
 	}
 
-	return r.client.Set(ctx, redisKey(id, r.prefix, r.suffix), string(b), 0).Err()
+	return p.q.SetDrop(ctx, SetDropParams{
+		ChannelID:   uint64(id),
+		CharacterID: data.ID,
+	})
 }
 
-func (r RedisStore[T]) Get(ctx context.Context, id corde.Snowflake) (*T, error) {
-	s, err := r.client.Get(ctx, redisKey(id, r.prefix, r.suffix)).Result()
+func (p *PostgresStore) Get(ctx context.Context, id corde.Snowflake) (*Drop, error) {
+	row, err := p.q.GetDrop(ctx, uint64(id))
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("no drop found")
+		}
 		return nil, fmt.Errorf("failed to get channel char: %w", err)
 	}
 
-	var data T
-	if err := cbor.Unmarshal([]byte(s), &data); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal char: %w", err)
-	}
-
-	return &data, nil
+	return &Drop{
+		ID:         row.ID,
+		Name:       row.Name,
+		ImageURL:   row.Image,
+		MediaTitle: row.MediaTitle,
+	}, nil
 }
 
-func (r RedisStore[T]) Delete(ctx context.Context, id corde.Snowflake) error {
-	return r.client.Del(ctx, redisKey(id, r.prefix, r.suffix)).Err()
-}
-
-func redisKey(id corde.Snowflake, prefix, suffix string) string {
-	b := strings.Builder{}
-	if prefix != "" {
-		b.WriteString(prefix)
-		b.WriteByte(':')
-	}
-
-	b.WriteString(id.String())
-
-	if suffix != "" {
-		b.WriteByte(':')
-		b.WriteString(suffix)
-	}
-
-	return b.String()
+func (p *PostgresStore) Delete(ctx context.Context, id corde.Snowflake) error {
+	return p.q.DeleteDrop(ctx, uint64(id))
 }

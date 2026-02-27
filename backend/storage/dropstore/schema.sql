@@ -5,9 +5,7 @@ CREATE TABLE public.characters (
   media_title TEXT NOT NULL DEFAULT ''
 );
 
-CREATE TABLE public.collection (
-  user_id BIGINT NOT NULL,
-  character_id BIGINT NOT NULL,
-  source CHARACTER VARYING(50) DEFAULT 'ROLL'::CHARACTER VARYING NOT NULL,
-  acquired_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
+CREATE TABLE public.channel_drops (
+  channel_id BIGINT PRIMARY KEY,
+  character_id BIGINT NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE
 );

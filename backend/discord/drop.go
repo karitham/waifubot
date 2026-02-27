@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage/collectionstore"
+	"github.com/karitham/waifubot/storage/dropstore"
 )
 
 func (b *Bot) drop(ctx context.Context, channelID corde.Snowflake) {
@@ -25,7 +27,12 @@ func (b *Bot) drop(ctx context.Context, channelID corde.Snowflake) {
 		return
 	}
 
-	err = b.DropStore.Set(ctx, channelID, char)
+	err = b.DropStore.Set(ctx, channelID, dropstore.Drop{
+		ID:         char.ID,
+		Name:       char.Name,
+		ImageURL:   char.ImageURL,
+		MediaTitle: char.MediaTitle,
+	})
 	if err != nil {
 		logger.Error("failed to set channel character", "error", err, "character_id", char.ID, "character_name", char.Name)
 		return
@@ -118,7 +125,7 @@ func (b *Bot) claim(ctx context.Context, w corde.ResponseWriter, i *corde.Intera
 
 	w.Respond(corde.NewEmbed().
 		Title(char.Name).
-		URL(char.URL).
+		URL(fmt.Sprintf("https://anilist.co/character/%d", char.ID)).
 		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"}).
 		Thumbnail(corde.Image{URL: char.ImageURL}).
 		Descriptionf("Congratulations!\n%s added to your collection!\nID: %d\nFrom: %s", char.Name, char.ID, char.MediaTitle),

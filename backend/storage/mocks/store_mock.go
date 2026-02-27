@@ -18,7 +18,9 @@ import (
 	storage "github.com/karitham/waifubot/storage"
 	collectionstore "github.com/karitham/waifubot/storage/collectionstore"
 	commandstore "github.com/karitham/waifubot/storage/commandstore"
+	dropstore "github.com/karitham/waifubot/storage/dropstore"
 	guildstore "github.com/karitham/waifubot/storage/guildstore"
+	interactionstore "github.com/karitham/waifubot/storage/interactionstore"
 	userstore "github.com/karitham/waifubot/storage/userstore"
 	wishliststore "github.com/karitham/waifubot/storage/wishliststore"
 	gomock "go.uber.org/mock/gomock"
@@ -188,6 +190,34 @@ func (mr *MockStorageStoreMockRecorder) Commit(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Commit", reflect.TypeOf((*MockStorageStore)(nil).Commit), ctx)
 }
 
+// DB mocks base method.
+func (m *MockStorageStore) DB() storage.TXer {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DB")
+	ret0, _ := ret[0].(storage.TXer)
+	return ret0
+}
+
+// DB indicates an expected call of DB.
+func (mr *MockStorageStoreMockRecorder) DB() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DB", reflect.TypeOf((*MockStorageStore)(nil).DB))
+}
+
+// DropStore mocks base method.
+func (m *MockStorageStore) DropStore() dropstore.Querier {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DropStore")
+	ret0, _ := ret[0].(dropstore.Querier)
+	return ret0
+}
+
+// DropStore indicates an expected call of DropStore.
+func (mr *MockStorageStoreMockRecorder) DropStore() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DropStore", reflect.TypeOf((*MockStorageStore)(nil).DropStore))
+}
+
 // GuildStore mocks base method.
 func (m *MockStorageStore) GuildStore() guildstore.Querier {
 	m.ctrl.T.Helper()
@@ -200,6 +230,20 @@ func (m *MockStorageStore) GuildStore() guildstore.Querier {
 func (mr *MockStorageStoreMockRecorder) GuildStore() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GuildStore", reflect.TypeOf((*MockStorageStore)(nil).GuildStore))
+}
+
+// InteractionStore mocks base method.
+func (m *MockStorageStore) InteractionStore() interactionstore.Querier {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InteractionStore")
+	ret0, _ := ret[0].(interactionstore.Querier)
+	return ret0
+}
+
+// InteractionStore indicates an expected call of InteractionStore.
+func (mr *MockStorageStoreMockRecorder) InteractionStore() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InteractionStore", reflect.TypeOf((*MockStorageStore)(nil).InteractionStore))
 }
 
 // Rollback mocks base method.

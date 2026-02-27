@@ -8,6 +8,7 @@ import (
 	"github.com/Karitham/corde"
 	"go.uber.org/mock/gomock"
 
+	"github.com/karitham/waifubot/storage/mocks"
 	"github.com/karitham/waifubot/storage/userstore"
 )
 
@@ -20,7 +21,7 @@ func TestTransferTokens(t *testing.T) {
 		from       corde.Snowflake
 		to         corde.Snowflake
 		amount     int32
-		setupMocks func(*MockProfileStore, *MockProfileStore, *MockUserQuerier)
+		setupMocks func(*MockProfileStore, *mocks.MockStorageStore, *MockUserQuerier)
 		wantErr    bool
 		wantErrIs  error
 	}{
@@ -29,7 +30,7 @@ func TestTransferTokens(t *testing.T) {
 			from:   1,
 			to:     2,
 			amount: 50,
-			setupMocks: func(store, tx *MockProfileStore, user *MockUserQuerier) {
+			setupMocks: func(store *MockProfileStore, tx *mocks.MockStorageStore, user *MockUserQuerier) {
 				store.EXPECT().Tx(gomock.Any()).Return(tx, nil)
 				tx.EXPECT().UserStore().Return(user).AnyTimes()
 				user.EXPECT().UpdateTokens(gomock.Any(), userstore.UpdateTokensParams{
@@ -49,7 +50,7 @@ func TestTransferTokens(t *testing.T) {
 			from:       1,
 			to:         2,
 			amount:     0,
-			setupMocks: func(store, tx *MockProfileStore, user *MockUserQuerier) {},
+			setupMocks: func(store *MockProfileStore, tx *mocks.MockStorageStore, user *MockUserQuerier) {},
 			wantErr:    true,
 			wantErrIs:  ErrInvalidAmount,
 		},
@@ -58,7 +59,7 @@ func TestTransferTokens(t *testing.T) {
 			from:       1,
 			to:         2,
 			amount:     -10,
-			setupMocks: func(store, tx *MockProfileStore, user *MockUserQuerier) {},
+			setupMocks: func(store *MockProfileStore, tx *mocks.MockStorageStore, user *MockUserQuerier) {},
 			wantErr:    true,
 			wantErrIs:  ErrInvalidAmount,
 		},
@@ -67,7 +68,7 @@ func TestTransferTokens(t *testing.T) {
 			from:   1,
 			to:     2,
 			amount: 100,
-			setupMocks: func(store, tx *MockProfileStore, user *MockUserQuerier) {
+			setupMocks: func(store *MockProfileStore, tx *mocks.MockStorageStore, user *MockUserQuerier) {
 				store.EXPECT().Tx(gomock.Any()).Return(tx, nil)
 				tx.EXPECT().UserStore().Return(user).AnyTimes()
 				user.EXPECT().UpdateTokens(gomock.Any(), userstore.UpdateTokensParams{
@@ -84,7 +85,7 @@ func TestTransferTokens(t *testing.T) {
 			from:   1,
 			to:     2,
 			amount: 50,
-			setupMocks: func(store, tx *MockProfileStore, user *MockUserQuerier) {
+			setupMocks: func(store *MockProfileStore, tx *mocks.MockStorageStore, user *MockUserQuerier) {
 				store.EXPECT().Tx(gomock.Any()).Return(nil, errors.New("tx error"))
 			},
 			wantErr: true,
@@ -94,7 +95,7 @@ func TestTransferTokens(t *testing.T) {
 			from:   1,
 			to:     2,
 			amount: 50,
-			setupMocks: func(store, tx *MockProfileStore, user *MockUserQuerier) {
+			setupMocks: func(store *MockProfileStore, tx *mocks.MockStorageStore, user *MockUserQuerier) {
 				store.EXPECT().Tx(gomock.Any()).Return(tx, nil)
 				tx.EXPECT().UserStore().Return(user).AnyTimes()
 				user.EXPECT().UpdateTokens(gomock.Any(), userstore.UpdateTokensParams{
@@ -104,26 +105,38 @@ func TestTransferTokens(t *testing.T) {
 				user.EXPECT().UpdateTokens(gomock.Any(), userstore.UpdateTokensParams{
 					UserID: 2,
 					Tokens: 50,
-				}).Return(userstore.User{}, errors.New("something went wrong"))
+				}).Return(userstore.User{}, errors.New("recipient update error"))
 				tx.EXPECT().Rollback(gomock.Any()).Return(nil)
 			},
 			wantErr: true,
 		},
 		{
-			name:       "same user transfer",
-			from:       1,
-			to:         1,
-			amount:     50,
-			setupMocks: func(store, tx *MockProfileStore, user *MockUserQuerier) {},
-			wantErr:    true,
-			wantErrIs:  ErrSameUserTransfer,
+			name:   "commit error triggers rollback",
+			from:   1,
+			to:     2,
+			amount: 50,
+			setupMocks: func(store *MockProfileStore, tx *mocks.MockStorageStore, user *MockUserQuerier) {
+				store.EXPECT().Tx(gomock.Any()).Return(tx, nil)
+				tx.EXPECT().UserStore().Return(user).AnyTimes()
+				user.EXPECT().UpdateTokens(gomock.Any(), userstore.UpdateTokensParams{
+					UserID: 1,
+					Tokens: -50,
+				}).Return(userstore.User{}, nil)
+				user.EXPECT().UpdateTokens(gomock.Any(), userstore.UpdateTokensParams{
+					UserID: 2,
+					Tokens: 50,
+				}).Return(userstore.User{}, nil)
+				tx.EXPECT().Commit(gomock.Any()).Return(errors.New("commit error"))
+				tx.EXPECT().Rollback(gomock.Any()).Return(nil)
+			},
+			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store := NewMockProfileStore(ctrl)
-			tx := NewMockProfileStore(ctrl)
+			tx := mocks.NewMockStorageStore(ctrl)
 			user := NewMockUserQuerier(ctrl)
 			tt.setupMocks(store, tx, user)
 

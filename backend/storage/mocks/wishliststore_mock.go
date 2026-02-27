@@ -13,8 +13,9 @@ import (
 	context "context"
 	reflect "reflect"
 
-	wishliststore "github.com/karitham/waifubot/storage/wishliststore"
 	gomock "go.uber.org/mock/gomock"
+
+	wishliststore "github.com/karitham/waifubot/storage/wishliststore"
 )
 
 // MockWishlistQuerier is a mock of Querier interface.

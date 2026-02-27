@@ -9,6 +9,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/karitham/waifubot/storage/collectionstore"
+	"github.com/karitham/waifubot/storage/mocks"
 	"github.com/karitham/waifubot/storage/userstore"
 )
 
@@ -20,7 +21,7 @@ func TestExchange(t *testing.T) {
 		name       string
 		userID     corde.Snowflake
 		charID     int64
-		setupMocks func(*MockProfileStore, *MockProfileStore, *MockCollectionQuerier, *MockUserQuerier)
+		setupMocks func(*MockProfileStore, *mocks.MockStorageStore, *MockCollectionQuerier, *MockUserQuerier)
 		want       collectionstore.Character
 		wantErr    bool
 	}{
@@ -28,7 +29,7 @@ func TestExchange(t *testing.T) {
 			name:   "success",
 			userID: 123,
 			charID: 1,
-			setupMocks: func(store, tx *MockProfileStore, coll *MockCollectionQuerier, user *MockUserQuerier) {
+			setupMocks: func(store *MockProfileStore, tx *mocks.MockStorageStore, coll *MockCollectionQuerier, user *MockUserQuerier) {
 				store.EXPECT().Tx(gomock.Any()).Return(tx, nil)
 				tx.EXPECT().CollectionStore().Return(coll).AnyTimes()
 				tx.EXPECT().UserStore().Return(user).AnyTimes()
@@ -55,7 +56,7 @@ func TestExchange(t *testing.T) {
 			name:   "GetByID error",
 			userID: 123,
 			charID: 1,
-			setupMocks: func(store, tx *MockProfileStore, coll *MockCollectionQuerier, user *MockUserQuerier) {
+			setupMocks: func(store *MockProfileStore, tx *mocks.MockStorageStore, coll *MockCollectionQuerier, user *MockUserQuerier) {
 				store.EXPECT().Tx(gomock.Any()).Return(tx, nil)
 				tx.EXPECT().CollectionStore().Return(coll).AnyTimes()
 				coll.EXPECT().GetByID(gomock.Any(), int64(1)).Return(collectionstore.Character{}, errors.New("get error"))
@@ -68,7 +69,7 @@ func TestExchange(t *testing.T) {
 			name:   "Delete error",
 			userID: 123,
 			charID: 1,
-			setupMocks: func(store, tx *MockProfileStore, coll *MockCollectionQuerier, user *MockUserQuerier) {
+			setupMocks: func(store *MockProfileStore, tx *mocks.MockStorageStore, coll *MockCollectionQuerier, user *MockUserQuerier) {
 				store.EXPECT().Tx(gomock.Any()).Return(tx, nil)
 				tx.EXPECT().CollectionStore().Return(coll).AnyTimes()
 				tx.EXPECT().UserStore().Return(user).AnyTimes()
@@ -87,7 +88,7 @@ func TestExchange(t *testing.T) {
 			name:   "IncTokens error",
 			userID: 123,
 			charID: 1,
-			setupMocks: func(store, tx *MockProfileStore, coll *MockCollectionQuerier, user *MockUserQuerier) {
+			setupMocks: func(store *MockProfileStore, tx *mocks.MockStorageStore, coll *MockCollectionQuerier, user *MockUserQuerier) {
 				store.EXPECT().Tx(gomock.Any()).Return(tx, nil)
 				tx.EXPECT().CollectionStore().Return(coll).AnyTimes()
 				tx.EXPECT().UserStore().Return(user).AnyTimes()
@@ -110,7 +111,7 @@ func TestExchange(t *testing.T) {
 			name:   "Commit error",
 			userID: 123,
 			charID: 1,
-			setupMocks: func(store, tx *MockProfileStore, coll *MockCollectionQuerier, user *MockUserQuerier) {
+			setupMocks: func(store *MockProfileStore, tx *mocks.MockStorageStore, coll *MockCollectionQuerier, user *MockUserQuerier) {
 				store.EXPECT().Tx(gomock.Any()).Return(tx, nil)
 				tx.EXPECT().CollectionStore().Return(coll).AnyTimes()
 				tx.EXPECT().UserStore().Return(user).AnyTimes()
@@ -139,7 +140,7 @@ func TestExchange(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store := NewMockProfileStore(ctrl)
-			tx := NewMockProfileStore(ctrl)
+			tx := mocks.NewMockStorageStore(ctrl)
 			coll := NewMockCollectionQuerier(ctrl)
 			user := NewMockUserQuerier(ctrl)
 			tt.setupMocks(store, tx, coll, user)

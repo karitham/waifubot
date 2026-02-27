@@ -7,11 +7,9 @@ import (
 
 	"github.com/Karitham/corde"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/redis/go-redis/v9"
 	"github.com/urfave/cli/v2"
 
 	"github.com/karitham/waifubot/anilist"
-	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/discord"
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/storage"
@@ -36,10 +34,6 @@ var RunCommand = &cli.Command{
 			Required: true,
 		},
 		dbURLFlag,
-		&cli.StringFlag{
-			Name:    "redis-url",
-			EnvVars: []string{"REDIS_URL"},
-		},
 		rollCooldownFlag,
 		tokensNeededFlag,
 		&cli.Int64Flag{
@@ -61,26 +55,14 @@ var RunCommand = &cli.Command{
 			return fmt.Errorf("error connecting to db: %w", err)
 		}
 
-		var interStore interactionstore.Store = interactionstore.NewMemStore()
-		var dropStore dropstore.Store[collection.MediaCharacter] = dropstore.NewMemStore[collection.MediaCharacter]()
-
-		if redisURL := c.String("redis-url"); redisURL != "" {
-			opts, err := redis.ParseURL(redisURL)
-			if err != nil {
-				return fmt.Errorf("error parsing redis url: %w", err)
-			}
-
-			redis := redis.NewClient(opts)
-
-			dropStore = dropstore.NewRedis[collection.MediaCharacter](redis, "channel", "char")
-			interStore = interactionstore.NewRedis(redis)
-		}
-
 		var guildID *corde.Snowflake
 		if gid := c.Uint64(guildIDFlag.Name); gid != 0 {
 			id := corde.Snowflake(gid)
 			guildID = &id
 		}
+
+		interStore := interactionstore.NewPostgresStore(store.InteractionStore())
+		dropStore := dropstore.NewPostgresStore(store.DropStore())
 
 		slog.Info("Starting WaifuBot Discord bot", "port", c.String("port"), "app_id", c.String("app-id"))
 		mux := discord.New(&discord.Bot{

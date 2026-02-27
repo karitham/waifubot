@@ -1,12 +1,14 @@
 CREATE EXTENSION if NOT EXISTS pg_trgm
-WITH  schema public;
+WITH
+  schema public;
 
 CREATE TYPE public.indexing_status AS ENUM('pending', 'in_progress', 'completed');
 
 CREATE TABLE public.characters (
   id BIGINT CONSTRAINT characters_new_id_not_null NOT NULL,
   name CHARACTER VARYING(128) CONSTRAINT characters_new_name_not_null NOT NULL,
-  image CHARACTER VARYING(256) CONSTRAINT characters_new_image_not_null NOT NULL
+  image CHARACTER VARYING(256) CONSTRAINT characters_new_image_not_null NOT NULL,
+  media_title TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE public.characters_backup (
@@ -63,3 +65,9 @@ CREATE TABLE public.command_migrations (
   deployed_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.channel_interactions (channel_id BIGINT PRIMARY KEY, interaction_count BIGINT NOT NULL DEFAULT 0);
+
+CREATE TABLE IF NOT EXISTS public.channel_drops (
+  channel_id BIGINT PRIMARY KEY,
+  character_id BIGINT NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE
+);

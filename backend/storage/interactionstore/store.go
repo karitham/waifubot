@@ -2,10 +2,8 @@ package interactionstore
 
 import (
 	"context"
-	"sync"
 
 	"github.com/Karitham/corde"
-	"github.com/redis/go-redis/v9"
 )
 
 type Store interface {
@@ -14,63 +12,26 @@ type Store interface {
 	Reset(ctx context.Context, channelID corde.Snowflake) error
 }
 
-type MemStore struct {
-	mu     sync.Mutex
-	values map[corde.Snowflake]int64
+type PostgresStore struct {
+	q Querier
 }
 
-func NewMemStore() *MemStore {
-	return &MemStore{
-		values: map[corde.Snowflake]int64{},
+func NewPostgresStore(q Querier) *PostgresStore {
+	return &PostgresStore{q: q}
+}
+
+func (p *PostgresStore) Increment(ctx context.Context, channelID corde.Snowflake) error {
+	return p.q.Increment(ctx, uint64(channelID))
+}
+
+func (p *PostgresStore) Get(ctx context.Context, channelID corde.Snowflake) (int64, error) {
+	count, err := p.q.Get(ctx, uint64(channelID))
+	if err != nil {
+		return 0, err
 	}
+	return count, nil
 }
 
-func (m *MemStore) Increment(ctx context.Context, channelID corde.Snowflake) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	m.values[channelID]++
-
-	return nil
-}
-
-func (m *MemStore) Get(ctx context.Context, channelID corde.Snowflake) (int64, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	return m.values[channelID], nil
-}
-
-func (m *MemStore) Reset(ctx context.Context, channelID corde.Snowflake) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	delete(m.values, channelID)
-
-	return nil
-}
-
-type RedisStore struct {
-	client redis.UniversalClient
-}
-
-func NewRedis(c redis.UniversalClient) RedisStore {
-	return RedisStore{
-		client: c,
-	}
-}
-
-func (r RedisStore) Increment(ctx context.Context, channelID corde.Snowflake) error {
-	key := "channel:" + channelID.String() + ":interactions"
-	return r.client.Incr(ctx, key).Err()
-}
-
-func (r RedisStore) Get(ctx context.Context, channelID corde.Snowflake) (int64, error) {
-	key := "channel:" + channelID.String() + ":interactions"
-	return r.client.Get(ctx, key).Int64()
-}
-
-func (r RedisStore) Reset(ctx context.Context, channelID corde.Snowflake) error {
-	key := "channel:" + channelID.String() + ":interactions"
-	return r.client.Del(ctx, key).Err()
+func (p *PostgresStore) Reset(ctx context.Context, channelID corde.Snowflake) error {
+	return p.q.Reset(ctx, uint64(channelID))
 }

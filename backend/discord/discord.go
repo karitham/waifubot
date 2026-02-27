@@ -63,7 +63,7 @@ type Bot struct {
 	Store             storage.Store
 	WishlistStore     wishlist.Store
 	AnimeService      TrackingService
-	DropStore         dropstore.Store[collection.MediaCharacter]
+	DropStore         dropstore.Store
 	InterStore        interactionstore.Store
 	GuildIndexer      *guild.Indexer
 	AppID             corde.Snowflake
