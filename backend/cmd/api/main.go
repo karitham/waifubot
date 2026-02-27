@@ -153,6 +153,11 @@ func runServer(c *cli.Context) error {
 	logLevel := parseLogLevel(c.String("log-level"))
 
 	url := c.String("db-url")
+
+	if err := storage.Migrate(url); err != nil {
+		return fmt.Errorf("could not run migrations: %w", err)
+	}
+
 	db, err := storage.NewStore(context.Background(), url)
 	if err != nil {
 		return fmt.Errorf("could not connect to database: %w", err)

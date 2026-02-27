@@ -50,6 +50,11 @@ var RunCommand = &cli.Command{
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
+
+		if err := storage.Migrate(c.String(dbURLFlag.Name)); err != nil {
+			return fmt.Errorf("error running migrations: %w", err)
+		}
+
 		store, err := storage.NewStore(ctx, c.String(dbURLFlag.Name))
 		if err != nil {
 			return fmt.Errorf("error connecting to db: %w", err)
