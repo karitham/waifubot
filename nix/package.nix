@@ -6,7 +6,7 @@ buildGoModule {
   pname = "waifubot";
   inherit version;
   src = ../backend;
-  vendorHash = "sha256-XbS0X/6E+qKkMeoEos75bIuq2BzJnPf0vxNWj8qJVw0=";
+  vendorHash = "sha256-zGRfH2vkd0cslGOPtvqvSxew1ByLOTNrvd5WCG1S4uE=";
   ldflags = [
     "-s"
     "-w"

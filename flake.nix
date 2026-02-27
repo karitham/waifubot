@@ -27,15 +27,15 @@
             subPackages = [ "." ];
           };
 
-          waifubot = import ./nix/package.nix {
-            inherit (pkgs) lib;
-            buildGoModule = pkgs.buildGoModule;
-            pkgs = pkgs;
-          };
+          waifubot = pkgs.callPackage ./nix/package.nix { };
+          default = self.packages.${system}.waifubot;
         }
       );
 
-      nixosModules.waifubot = import ./nix/module.nix;
+      nixosModules = {
+        waifubot = ./nix/module.nix;
+        default = self.nixosModules.default;
+      };
 
       devShells = forSystems (
         system:
