@@ -47,12 +47,19 @@ var RunCommand = &cli.Command{
 			EnvVars: []string{"PORT"},
 			Value:   "8080",
 		},
+		&cli.BoolFlag{
+			Name:    "skip-migrate",
+			Usage:   "Skip database migrations on startup",
+			EnvVars: []string{"SKIP_MIGRATE"},
+		},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 
-		if err := storage.Migrate(c.String(dbURLFlag.Name)); err != nil {
-			return fmt.Errorf("error running migrations: %w", err)
+		if !c.Bool("skip-migrate") {
+			if err := storage.Migrate(c.String(dbURLFlag.Name)); err != nil {
+				return fmt.Errorf("error running migrations: %w", err)
+			}
 		}
 
 		store, err := storage.NewStore(ctx, c.String(dbURLFlag.Name))

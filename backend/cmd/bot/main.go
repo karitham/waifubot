@@ -36,6 +36,7 @@ func main() {
 		Version:     version,
 		Commands: []*cli.Command{
 			RunCommand,
+			MigrateCommand,
 			MigrateRedisCommand,
 			IndexCommand,
 			HoldersCommand,
