@@ -1,7 +1,8 @@
-import { Select } from "@kobalte/core/select";
 import type { Setter } from "solid-js";
+import SelectField from "../ui/SelectField";
 
 type SortFn<T> = {
+	id: string;
 	value: (a: T, b: T) => number;
 	label: string;
 };
@@ -13,47 +14,29 @@ export type CharSortProps<T> = {
 };
 
 export default function <T>(props: CharSortProps<T>) {
+	const handleChange = (value: SortFn<T> | null) => {
+		if (!value) {
+			props.onChange((prev: SortFn<T>) => {
+				return {
+					id: prev.id,
+					label: prev.label,
+					value: (a: T, b: T) => prev.value(b, a),
+				};
+			});
+			return;
+		}
+		props.onChange(value);
+	};
+
 	return (
-		<Select<SortFn<T>>
+		<SelectField<SortFn<T>>
 			options={props.options}
 			value={props.value}
-			allowDuplicateSelectionEvents={true}
-			onChange={(o: SortFn<T>) => {
-				if (!o) {
-					props.onChange((prev: SortFn<T>) => {
-						return {
-							label: prev.label,
-							value: (a: T, b: T) => prev.value(b, a),
-						};
-					});
-
-					return;
-				}
-
-				props.onChange(o);
-			}}
-			optionValue="value"
+			onChange={handleChange}
+			optionValue="id"
 			optionTextValue="label"
-			itemComponent={(props) => (
-				<Select.Item
-					item={props.item}
-					class="p-4 w-full text-text focus:outline-none cursor-pointer hover:bg-surfaceC"
-				>
-					<Select.ItemLabel>{props.item.rawValue.label}</Select.ItemLabel>
-				</Select.Item>
-			)}
-			class="w-full"
-		>
-			<Select.Label />
-			<Select.Trigger class="flex justify-between w-full text-text rounded-md font-sans border-none hover:cursor-pointer bg-surfaceA text-text p-4 focus:outline-none hover:bg-surfaceB transition-colors">
-				<Select.Value<SortFn<T>>>{() => props.value?.label}</Select.Value>
-				<Select.Icon />
-			</Select.Trigger>
-			<Select.Portal>
-				<Select.Content class="shadow-xl text-sm">
-					<Select.Listbox class="p-0 m-0 overflow-clip hover:overflow-clip list-none flex w-full border-none rounded-md items-start flex-col bg-surfaceB" />
-				</Select.Content>
-			</Select.Portal>
-		</Select>
+			allowDuplicateSelectionEvents={true}
+			placeholder="Sort by..."
+		/>
 	);
 }

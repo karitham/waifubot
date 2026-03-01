@@ -1,10 +1,10 @@
 import { Show } from "solid-js";
-import type { Char } from "../../api/list";
+import type { Character } from "../../api/generated";
 import { formatDate, mapCharType } from "../../utils";
 
 const iconStyle = "inline-flex gap-2 items-center";
 
-export default (props: { char: Char; class?: string }) => {
+export default (props: { char: Character; class?: string }) => {
 	const charType = () => mapCharType(props.char.type || "");
 
 	return (
@@ -38,7 +38,7 @@ export default (props: { char: Char; class?: string }) => {
 			<Show when={props.char.date}>
 				<p class={`m-0 ${iconStyle}`}>
 					<span class="i-ph-calendar" />
-					{formatDate(props.char.date as string)}
+					{formatDate(props.char.date)}
 				</p>
 			</Show>
 			<Show when={props.char.type}>

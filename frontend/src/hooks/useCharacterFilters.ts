@@ -1,53 +1,19 @@
 import { createMemo } from "solid-js";
-import type { Char, CharOwned, User } from "../api/list";
-
-function combofilter<T>(
-	filters: Array<(item: T) => boolean>,
-): (item: T) => boolean {
-	return (item: T) => filters.every((filterFn) => filterFn(item));
-}
-
-const filterChars =
-	(characters: Char[]) =>
-	(char: Char): boolean =>
-		!characters || characters.some((c) => c.id === char.id);
-
-const filterCharacters = (v: string) => (a: Char) =>
-	v.length < 2 ||
-	a.id.toString().includes(v) ||
-	(v.length >= 2 && a.name.toLowerCase().includes(v.toLowerCase()));
-
-const enrichCharacterWithOwners = (
-	char: Char,
-	mainUserId: string,
-	compareUsers: User[],
-	users: User[],
-): CharOwned => {
-	const owners = [];
-	if (
-		users
-			.find((u) => u.id === mainUserId)
-			?.waifus?.some((c) => c.id === char.id)
-	) {
-		owners.push(mainUserId);
-	}
-	compareUsers.forEach((user) => {
-		if (user.waifus?.some((c) => c.id === char.id)) {
-			owners.push(user.id);
-		}
-	});
-	return {
-		...char,
-		owners: owners.length > 0 ? owners : undefined,
-	};
-};
+import type { Character, Profile } from "../api/generated";
+import {
+	combineFilters,
+	excludeCharacters,
+	filterBySearchTerm,
+	enrichCharacterWithOwners,
+	type CharOwned,
+} from "../utils/filterUtils";
 
 export function useCharacterFilters(
-	characters: Char[],
-	mediaCharacters: Char[] | undefined,
+	characters: Character[],
+	mediaCharacters: Character[] | undefined,
 	charSearch: string,
-	compareUsers: User[],
-	users: User[],
+	compareUsers: Profile[],
+	users: Profile[],
 	mainUserId: string,
 ) {
 	const compareUsersMemo = createMemo(() => compareUsers || []);
@@ -57,14 +23,14 @@ export function useCharacterFilters(
 		compareUsersMemo().forEach((user) => {
 			if (user.waifus) {
 				user.waifus.forEach((char) => {
-					ids.add(char.id);
+					ids.add(char.id.toString());
 				});
 			}
 		});
 		return ids;
 	});
 
-	const enrichCharacterWithOwnersMemo = (char: Char): CharOwned => {
+	const enrichCharacterWithOwnersMemo = (char: Character): CharOwned => {
 		return enrichCharacterWithOwners(
 			char,
 			mainUserId,
@@ -74,9 +40,9 @@ export function useCharacterFilters(
 	};
 
 	const filters = createMemo(() =>
-		combofilter([
-			filterCharacters(charSearch),
-			filterChars(mediaCharacters || []),
+		combineFilters([
+			filterBySearchTerm(charSearch),
+			excludeCharacters(mediaCharacters || []),
 		]),
 	);
 

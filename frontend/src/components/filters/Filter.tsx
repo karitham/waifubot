@@ -5,5 +5,9 @@ export type CharacterFilterProps = {
 };
 
 export default function (props: CharacterFilterProps) {
-	return <Input onChange={props.onChange} placeholder="Search characters..." />;
+	const handleChange = (value: string) => {
+		props.onChange(value);
+	};
+
+	return <Input onChange={handleChange} placeholder="Search characters..." />;
 }

@@ -1,4 +1,4 @@
-import type { Char } from "../../api/list";
+import type { Character } from "../../api/generated";
 import FilterLabel from "../ui/FilterLabel";
 import CompareUser, { type CompareUserProps } from "./CompareUser";
 import CharFilter, { type CharacterFilterProps } from "./Filter";
@@ -11,7 +11,7 @@ export type FilterBarProps = {
 	mediaFilter: FilterMediaProps;
 	compareFilter: CompareUserProps;
 	charFilter: CharacterFilterProps;
-	charSort: CharSortProps<Char>;
+	charSort: CharSortProps<Character>;
 };
 
 const FilterSection = ({ label, children }) => (

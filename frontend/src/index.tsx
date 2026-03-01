@@ -3,6 +3,10 @@ import { render, Suspense } from "solid-js/web";
 import "./index.css";
 import { lazy } from "solid-js";
 import "virtual:uno.css";
+import { defaults } from "./api/generated";
+
+defaults.baseUrl =
+	import.meta.env.VITE_API_URL || "https://waifuapi.karitham.dev";
 
 const Home = lazy(() => import("./pages/Home"));
 const List = lazy(() => import("./pages/List"));

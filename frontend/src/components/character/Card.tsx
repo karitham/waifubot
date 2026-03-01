@@ -1,10 +1,10 @@
 import { Show } from "solid-js";
-import type { Char } from "../../api/list";
+import type { Character } from "../../api/generated";
 import AvatarStack from "../ui/AvatarStack";
 import CharacterDetails from "./CharacterDetails";
 
 export default (props: {
-	char: Char;
+	char: Character;
 	ownersAvatars?: string[];
 	ownersNames?: string[];
 	missing?: boolean;

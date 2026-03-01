@@ -1,6 +1,6 @@
 import { marked } from "marked";
 import { Show } from "solid-js";
-import type { Char } from "../../api/list";
+import type { Character } from "../../api/generated";
 import CharacterDetails from "../character/CharacterDetails";
 
 const getDisplayName = (
@@ -12,7 +12,7 @@ const getDisplayName = (
 	(anilistURL?.split(/https:\/\/anilist.co\/user\/([\w\d]+)/g)?.[1] ?? user);
 
 export default (props: {
-	favorite: Char | undefined;
+	favorite?: Character;
 	user: string | undefined;
 	anilistURL: string | undefined;
 	discordUsername?: string;

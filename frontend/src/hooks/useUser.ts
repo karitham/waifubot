@@ -1,11 +1,7 @@
 import { createResource } from "solid-js";
-import { getList } from "../api/list";
+import { getUserV1 } from "../api/generated";
 
 export const useUser = (id: string) => {
-	const [user] = createResource(id, async (id) => {
-		const { data, error } = await getList(id);
-		if (error) console.error(error);
-		return data;
-	});
+	const [user] = createResource(id, (id) => getUserV1(id));
 	return user;
 };

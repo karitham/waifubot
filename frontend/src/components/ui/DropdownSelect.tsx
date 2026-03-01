@@ -1,5 +1,5 @@
 import { Select } from "@kobalte/core/select";
-import type { Component } from "solid-js";
+import type { Component, JSX } from "solid-js";
 
 type SelectOption = { value: string | number | undefined; label: string };
 
@@ -13,19 +13,23 @@ type DropdownSelectProps<T extends SelectOption> = {
 	class?: string;
 };
 
-const defaultItemComponent = (props: { item: T }) => (
+const defaultItemComponent = <T extends SelectOption>(props: {
+	item: T;
+}): JSX.Element => (
 	<Select.Item
-		item={props.item}
-		class="p-4 w-full text-text focus:outline-none cursor-pointer hover:bg-surfaceC"
+		item={props.item as any}
+		class="select-item focus:ring-0"
 	>
-		<Select.ItemLabel>{props.item.rawValue.label}</Select.ItemLabel>
+		<Select.ItemLabel>{props.item.label}</Select.ItemLabel>
 	</Select.Item>
 );
 
 export default function <T extends SelectOption>(
 	props: DropdownSelectProps<T>,
 ) {
-	const ItemComponent = props.itemComponent || defaultItemComponent;
+	const ItemComponent = props.itemComponent
+		? (props.itemComponent as any)
+		: defaultItemComponent;
 
 	return (
 		<Select<T>
@@ -39,15 +43,15 @@ export default function <T extends SelectOption>(
 			class={props.class || "w-full"}
 		>
 			<Select.Label />
-			<Select.Trigger class="flex justify-between w-full text-text rounded-md font-sans border-none hover:cursor-pointer bg-surfaceA text-text p-4 focus:outline-none hover:bg-surfaceB">
+			<Select.Trigger class="select-trigger">
 				<Select.Value<T>>
 					{(state) => state.selectedOption()?.label || props.placeholder}
 				</Select.Value>
 				<Select.Icon />
 			</Select.Trigger>
 			<Select.Portal>
-				<Select.Content class="shadow-xl text-sm">
-					<Select.Listbox class="p-0 m-0 overflow-clip hover:overflow-clip list-none flex w-full border-none rounded-md items-start flex-col bg-surfaceB" />
+				<Select.Content>
+					<Select.Listbox class="select-listbox" />
 				</Select.Content>
 			</Select.Portal>
 		</Select>

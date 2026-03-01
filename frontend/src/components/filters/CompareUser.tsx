@@ -1,21 +1,55 @@
-import {
-	Search,
-	type SearchRootItemComponentProps,
-} from "@kobalte/core/search";
+import { Search } from "@kobalte/core/search";
 import { createSignal, Show } from "solid-js";
-import type { User } from "../../api/list.ts";
-import AvatarStack from "../ui/AvatarStack.tsx";
+import type { Profile } from "../../api/generated";
+import AvatarStack from "../ui/AvatarStack";
+import DropdownSearch, { type Option } from "../ui/DropdownSearch";
 
 export type CompareUserProps = {
-	selectedUsers: User[];
+	selectedUsers: Profile[];
 	onAdd: (input: string) => void;
 	onRemove: (id: string) => void;
+};
+
+const renderItem = (itemProps: any) => {
+	const [hovered, setHovered] = createSignal(false);
+	return (
+		<Search.Item
+			item={itemProps.item}
+			class="search-item"
+			onMouseEnter={() => setHovered(true)}
+			onMouseLeave={() => setHovered(false)}
+		>
+			<div class="flex flex-row items-center gap-4">
+				{itemProps.item.rawValue.image ? (
+					<Show
+						when={!hovered()}
+						fallback={
+							<div class="h-12 w-12 flex items-center justify-center bg-surfaceB rounded-full">
+								<span class="i-ph-x text-lg" />
+							</div>
+						}
+					>
+						<img
+							alt={itemProps.item.rawValue.label}
+							src={itemProps.item.rawValue.image}
+							class="h-12 w-12 object-cover rounded-full border-2 border-maroon"
+						/>
+					</Show>
+				) : (
+					<div class="h-12 w-12 flex items-center justify-center bg-surfaceB rounded-full">
+						<span class="i-ph-plus text-lg" />
+					</div>
+				)}
+				<Search.ItemLabel>{itemProps.item.rawValue.label}</Search.ItemLabel>
+			</div>
+		</Search.Item>
+	);
 };
 
 export default (props: CompareUserProps) => {
 	const [getSearchValue, setSearchValue] = createSignal("");
 
-	const options = () => {
+	const options = (): Option[] => {
 		const selectedOptions = props.selectedUsers.map((u) => ({
 			value: u.id,
 			label: u.discord_username || u.id,
@@ -30,107 +64,46 @@ export default (props: CompareUserProps) => {
 		return selectedOptions;
 	};
 
-	const renderItem = (
-		itemProps: SearchRootItemComponentProps<{
-			value: string;
-			label: string;
-			image: string;
-		}>,
-	) => {
-		const [hovered, setHovered] = createSignal(false);
-		return (
-			<Search.Item
-				item={itemProps.item}
-				class="flex flex-row items-center justify-between px-4 py-2 gap-4 hover:bg-surfaceC cursor-pointer text-text w-full"
-				onMouseEnter={() => setHovered(true)}
-				onMouseLeave={() => setHovered(false)}
-			>
-				<div class="flex flex-row items-center gap-4">
-					{itemProps.item.rawValue.image ? (
-						<Show
-							when={!hovered()}
-							fallback={
-								<div class="h-12 w-12 flex items-center justify-center bg-surfaceB rounded-full">
-									<span class="i-ph-x text-lg" />
-								</div>
-							}
-						>
-							<img
-								alt={itemProps.item.rawValue.label}
-								src={itemProps.item.rawValue.image}
-								class="h-12 w-12 object-cover rounded-full border-2 border-maroon"
-							/>
-						</Show>
-					) : (
-						<div class="h-12 w-12 flex items-center justify-center bg-surfaceB rounded-full">
-							<span class="i-ph-plus text-lg" />
-						</div>
-					)}
-					<Search.ItemLabel>{itemProps.item.rawValue.label}</Search.ItemLabel>
+	const avatarWidth = () => 24 + (props.selectedUsers.length - 1) * 16;
+
+	const customControl = (controlProps: { children: JSX.Element }) => (
+		<Search.Control
+			aria-label="Users"
+			class="search-control relative"
+		>
+			<div class="relative w-full">
+				{controlProps.children}
+				<div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-end pointer-events-none">
+					<AvatarStack
+						avatars={[
+							...props.selectedUsers.map((u) => u.discord_avatar),
+						].reverse()}
+						names={[
+							...props.selectedUsers.map((u) => u.discord_username || u.id),
+						].reverse()}
+						small
+					/>
 				</div>
-			</Search.Item>
-		);
-	};
+			</div>
+		</Search.Control>
+	);
 
 	return (
-		<Search
+		<DropdownSearch
 			options={options()}
 			onChange={(option) => {
 				if (option?.value === "add") {
 					props.onAdd(getSearchValue());
+					setSearchValue("");
 				} else if (option) {
-					props.onRemove(option.value);
+					props.onRemove(String(option.value));
 				}
-				setSearchValue("");
 			}}
-			optionLabel="label"
-			optionValue="value"
+			onInputChange={setSearchValue}
 			placeholder="Search users..."
-			class="w-full"
 			triggerMode="focus"
 			itemComponent={renderItem}
-		>
-			<Search.Control
-				aria-label="Users"
-				class="flex w-full flex-row rounded-md overflow-clip bg-surfaceA"
-			>
-				{(_state) => {
-					const avatarWidth = 24 + (props.selectedUsers.length - 1) * 16; // 24px first + 16px each additional (24-8 overlap)
-					return (
-						<div class="relative w-full h-full">
-							<div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-end pointer-events-none">
-								<AvatarStack
-									avatars={[
-										...props.selectedUsers.map((u) => u.discord_avatar),
-									].reverse()}
-									names={[
-										...props.selectedUsers.map(
-											(u) => u.discord_username || u.id,
-										),
-									].reverse()}
-									small
-								/>
-							</div>
-							<Search.Input
-								value={getSearchValue()}
-								onInput={(e) => setSearchValue(e.currentTarget.value)}
-								class="w-full text-sm p-4 focus:outline-none bg-surfaceA hover:bg-surfaceB placeholder:font-sans border-none hover:cursor-text placeholder:text-overlayC text-text overflow-clip"
-								style={{ "padding-right": `${avatarWidth + 24}px` }}
-								placeholder={
-									props.selectedUsers.length > 0
-										? "Add more users..."
-										: "Search users..."
-								}
-							/>
-						</div>
-					);
-				}}
-			</Search.Control>
-			<Search.Portal>
-				<Search.Content class="shadow text-sm">
-					<Search.Listbox class="p-0 m-0 overflow-clip hover:overflow-clip list-none flex w-full border-none rounded-md items-start flex-col bg-surfaceB" />
-				</Search.Content>
-			</Search.Portal>
-		</Search>
+			customControl={customControl}
+		/>
 	);
 };

@@ -1,6 +1,6 @@
 import { useSearchParams } from "@solidjs/router";
 import { Show } from "solid-js";
-import type { Char, User } from "../api/list";
+import type { Character, Profile } from "../api/generated";
 import CollectionBody from "../components/CollectionBody";
 import CollectionNav from "../components/CollectionNav";
 import PageLayout from "../components/layout/Layout";
@@ -10,8 +10,8 @@ import { usePageFilters } from "../hooks/usePageFilters";
 import { getSearchParams } from "../utils";
 
 interface CollectionPageProps {
-	user: User | undefined;
-	characters: Char[] | undefined;
+	user: Profile | undefined;
+	characters: Character[] | undefined;
 	allowEmpty: boolean;
 	profileTitle: string;
 	navbarLink: {

@@ -1,53 +1,47 @@
 import { createMemo, For } from "solid-js";
-import type { Char, CharOwned, User } from "../../api/list";
+import type { Character, Profile } from "../../api/generated";
+import {
+	combineFilters,
+	excludeCharacters,
+	filterBySearchTerm,
+	type CharOwned,
+} from "../../utils/filterUtils";
+
 import CharCard from "./Card";
-
-function combofilter<T>(
-	filters: Array<(item: T) => boolean>,
-): (item: T) => boolean {
-	return (item: T) => filters.every((filterFn) => filterFn(item));
-}
-
-const filterChars =
-	(characters: Char[]) =>
-	(char: Char): boolean =>
-		!characters || characters.some((c) => c.id === char.id);
-
-const filterCharacters = (v: string) => (a: Char) =>
-	v.length < 2 ||
-	a.id.toString().includes(v) ||
-	(v.length >= 2 && a.name.toLowerCase().includes(v.toLowerCase()));
+import EmptyState from "../ui/EmptyState";
 
 export default (props: {
-	charSort: (a: Char, b: Char) => number;
+	charSort: (a: Character, b: Character) => number;
 	charSearch: string;
-	characters: Char[];
-	mediaCharacters: Char[] | undefined;
-	compareUsers: User[];
-	users: User[];
+	characters: Character[];
+	mediaCharacters: Character[] | undefined;
+	compareUsers: Profile[];
+	users: Profile[];
 	showCount: number;
 }) => {
 	const compareUsers = () => props.compareUsers || [];
+	const mainUserId = () => props.users[0]?.id;
+	const allUsers = () => [...props.users, ...compareUsers()];
 
 	const ownershipMap = createMemo(() => {
-		const map = new Map<string, string[]>();
-		props.users.forEach((user) => {
+		const map = new Map<string, Set<string>>();
+		allUsers().forEach((user) => {
 			user.waifus?.forEach((char) => {
-				if (!map.has(char.id)) map.set(char.id, []);
-				map.get(char.id)?.push(user.id);
+				const charId = char.id.toString();
+				if (!map.has(charId)) map.set(charId, new Set());
+				map.get(charId)?.add(user.id);
 			});
 		});
-		compareUsers().forEach((user) => {
-			user.waifus?.forEach((char) => {
-				if (!map.has(char.id)) map.set(char.id, []);
-				map.get(char.id)?.push(user.id);
-			});
-		});
-		return map;
+		return new Map(
+			Array.from(map.entries()).map(([charId, userSet]) => [
+				charId,
+				Array.from(userSet),
+			]),
+		);
 	});
 
-	const enrichCharacterWithOwners = (char: Char): CharOwned => {
-		const owners = ownershipMap().get(char.id) || [];
+	const enrichCharacterWithOwners = (char: Character): CharOwned => {
+		const owners = ownershipMap().get(char.id.toString()) || [];
 		return {
 			...char,
 			owners: owners.length > 0 ? owners : undefined,
@@ -55,10 +49,10 @@ export default (props: {
 	};
 
 	const filters = createMemo(() =>
-		combofilter([
-			filterCharacters(props.charSearch),
+		combineFilters([
+			filterBySearchTerm(props.charSearch),
 			...(props.mediaCharacters && props.mediaCharacters.length > 0
-				? [filterChars(props.mediaCharacters)]
+				? [excludeCharacters(props.mediaCharacters)]
 				: []),
 		]),
 	);
@@ -84,7 +78,16 @@ export default (props: {
 		const allChars = [
 			...filteredOwnedCharacters(),
 			...filteredMissingCharacters(),
-		].sort(props.charSort);
+		].sort((a: CharOwned, b: CharOwned) => {
+			const aOwnedByMain = a.owners?.includes(mainUserId() || "") ? 1 : 0;
+			const bOwnedByMain = b.owners?.includes(mainUserId() || "") ? 1 : 0;
+
+			if (aOwnedByMain !== bOwnedByMain) {
+				return bOwnedByMain - aOwnedByMain;
+			}
+
+			return props.charSort(a, b);
+		});
 
 		return props.showCount !== -1
 			? allChars.slice(0, props.showCount)
@@ -99,13 +102,13 @@ export default (props: {
 					const ownersAvatars =
 						char.owners
 							?.map(
-								(id) => props.users.find((u) => u.id === id)?.discord_avatar,
+								(id) => allUsers().find((u) => u.id === id)?.discord_avatar,
 							)
 							.filter(Boolean) || [];
 					const ownersNames =
 						char.owners?.map(
 							(id) =>
-								props.users.find((u) => u.id === id)?.discord_username || id,
+								allUsers().find((u) => u.id === id)?.discord_username || id,
 						) || [];
 					return (
 						<div class="max-w-140 w-80 flex-grow">
@@ -119,13 +122,9 @@ export default (props: {
 					);
 				}}
 			</For>
-			{list()?.length === 0 ? fallback : null}
+			{list()?.length === 0 ? (
+				<EmptyState message="No characters to display :(" />
+			) : null}
 		</div>
 	);
 };
-
-const fallback = (
-	<div class="text-2xl text-center text-subtextA font-light w-full py-16">
-		No characters to display :(
-	</div>
-);

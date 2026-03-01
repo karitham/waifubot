@@ -4,13 +4,13 @@ import {
 } from "@kobalte/core/search";
 import { type Component, createSignal, type JSX, Show } from "solid-js";
 
-type SearchOption = {
+export type Option = {
 	value: string | number | undefined;
 	label: string;
 	image?: string;
 };
 
-type DropdownSearchProps<T extends SearchOption> = {
+type DropdownSearchProps<T extends Option> = {
 	options: T[];
 	value?: T;
 	defaultValue?: T;
@@ -26,12 +26,10 @@ type DropdownSearchProps<T extends SearchOption> = {
 	onIconClick?: () => void;
 };
 
-const defaultItemComponent = (
-	props: SearchRootItemComponentProps<SearchOption>,
-) => (
+const defaultItemComponent = (props: SearchRootItemComponentProps<Option>) => (
 	<Search.Item
 		item={props.item}
-		class="flex flex-row items-center justify-between px-4 py-2 gap-4 hover:bg-surfaceC cursor-pointer text-text w-full"
+		class="search-item"
 	>
 		<div class="flex flex-row items-center gap-4">
 			<Show when={props.item.rawValue.image} fallback={<div />}>
@@ -49,15 +47,13 @@ const defaultItemComponent = (
 const defaultControl = (props: { children: JSX.Element }) => (
 	<Search.Control
 		aria-label="Search"
-		class="flex w-full flex-row rounded-md overflow-clip bg-surfaceA"
+		class="search-control"
 	>
 		{props.children}
 	</Search.Control>
 );
 
-export default function <T extends SearchOption>(
-	props: DropdownSearchProps<T>,
-) {
+export default function <T extends Option>(props: DropdownSearchProps<T>) {
 	const [getSearchValue, setSearchValue] = createSignal(
 		props.value?.label || "",
 	);
@@ -88,12 +84,12 @@ export default function <T extends SearchOption>(
 			<ControlComponent>
 				<Search.Input
 					value={getSearchValue()}
-					class="w-full text-sm p-4 focus:outline-none bg-surfaceA hover:bg-surfaceB placeholder:font-sans border-none hover:cursor-text placeholder:text-overlayC text-text overflow-clip"
+					class="search-input"
 					placeholder={props.placeholder || "Search..."}
 				/>
 				{props.icon && (
 					<Search.Icon
-						class="bg-surfaceA hover:bg-surfaceB border-none w-16 flex text-center items-center justify-center"
+						class="search-icon"
 						onClick={props.onIconClick}
 					>
 						<props.icon />
@@ -101,8 +97,8 @@ export default function <T extends SearchOption>(
 				)}
 			</ControlComponent>
 			<Search.Portal>
-				<Search.Content class="shadow text-sm">
-					<Search.Listbox class="p-0 m-0 overflow-clip hover:overflow-clip list-none flex w-full border-none rounded-md items-start flex-col bg-surfaceB" />
+				<Search.Content>
+					<Search.Listbox class="search-listbox" />
 				</Search.Content>
 			</Search.Portal>
 		</Search>

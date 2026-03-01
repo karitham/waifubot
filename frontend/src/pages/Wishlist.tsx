@@ -1,21 +1,28 @@
-import { getList, getWishlist } from "../api/list";
+import { getWishlist as getWishlistAPI, getUserV1 } from "../api/generated";
+import type { WishlistResponse } from "../api/generated";
 import UserCollectionPage from "../components/UserCollectionPage";
 
-const fetchCharacters = async (id: string) => {
-	const result = await getWishlist(id);
-	if (result.error) return { error: result.error, data: null };
-	return { error: null, data: result.data?.characters || [] };
+const fetchWishlist = async (id: string) => {
+	const result = await getWishlistAPI(id);
+	return result.characters || [];
 };
 
-export default () => (
-	<UserCollectionPage
-		fetchUser={getList}
-		fetchCharacters={fetchCharacters}
-		title="Wishlist"
-		allowEmpty={false}
-		navbarLink={(id) => ({
-			href: `/list/${id}`,
-			text: "View Collection →",
-		})}
-	/>
-);
+export default () => {
+	const fetchList = async (id: string) => {
+		const wishlist = await fetchWishlist(id);
+		return wishlist;
+	};
+
+	return (
+		<UserCollectionPage
+			fetchUser={(id) => getUserV1(id)}
+			fetchCharacters={fetchList}
+			title="Wishlist"
+			allowEmpty={false}
+			navbarLink={(id) => ({
+				href: `/list/${id}`,
+				text: "View Collection →",
+			})}
+		/>
+	);
+};

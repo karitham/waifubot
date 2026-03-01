@@ -40,12 +40,12 @@ export default () => {
 						</TextField.Label>
 						<div class="flex gap-2">
 							<TextField.Input
-								class="flex-1 p-3 text-sm rounded-lg focus:outline-none bg-surfaceA placeholder:font-sans border border-surfaceA hover:border-mauve focus:border-mauve transition-colors placeholder:text-overlayC text-text"
+								class="input-base input-focus flex-1 text-sm"
 								onKeyDown={(e) => e.key === "Enter" && searchUser(value())}
 								placeholder="karitham"
 							/>
 							<Button
-								class="rounded-lg font-sans border-none hover:cursor-pointer bg-mauve hover:bg-pink text-base transition-colors px-6 py-3 focus:outline-none"
+								class="rounded-lg font-sans border-none hover:cursor-pointer bg-mauve hover:bg-pink text-base transition-colors px-6 py-3 focus:outline-none focus:ring-2 focus:ring-mauve"
 								onClick={() => searchUser(value())}
 								type="button"
 							>

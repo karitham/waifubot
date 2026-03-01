@@ -1,12 +1,11 @@
-import {
-	Search,
-	type SearchRootItemComponentProps,
-} from "@kobalte/core/search";
+import { Search } from "@kobalte/core/search";
 import { createResource, createSignal, Show } from "solid-js";
+import DropdownSearch from "../ui/DropdownSearch";
+import type { Option } from "../ui/DropdownSearch";
 import type { SearchMediaResponse } from "../../api/anilist";
 import { searchMedia } from "../../api/anilist";
 
-export type Option = { value: string; label: string; image?: string };
+export type { Option };
 
 export type FilterMediaProps = {
 	onChange: (media: Option | null) => void;
@@ -14,106 +13,82 @@ export type FilterMediaProps = {
 	defaultValue?: Option;
 };
 
+const Icon = (props: { filled: boolean }) => (
+	<span
+		class="i-ph-television text-lg"
+		classList={{
+			"text-emerald": props.filled,
+		}}
+	/>
+);
+
+const renderItem = (props: any) => (
+	<Search.Item
+		item={props.item}
+		class="search-item"
+	>
+		<div class="flex flex-row items-center gap-4">
+			<Show when={props.item.rawValue.image} fallback={<div />}>
+				<img
+					alt={props.item.rawValue.label}
+					src={props.item.rawValue.image}
+					class="h-12 w-12 object-cover"
+				/>
+			</Show>
+			<Search.ItemLabel>{props.item.rawValue.label}</Search.ItemLabel>
+		</div>
+	</Search.Item>
+);
+
 export default (props: FilterMediaProps) => {
-	const [getSearchValue, setSearchValue] = createSignal(props.value?.label);
 	const [getOptions, setOptions] = createSignal<Option[]>([]);
+	const [getSearchValue, setSearchValue] = createSignal("");
 
-	const [, { refetch: refetchMedia }] = createResource<SearchMediaResponse>(
-		async () => {
-			try {
-				if (!getSearchValue() || getSearchValue() === "") return undefined;
+	const fetcher = async (value: string) => {
+		try {
+			if (!value || value === "") return undefined;
 
-				const m = await searchMedia(getSearchValue(), 10);
-				if (!m) {
-					console.log("no media found for search value");
-					return undefined;
-				}
-
-				setOptions(
-					m.data.Page.media.map((mediaItem) => ({
-						value: mediaItem.id,
-						label: mediaItem.title.romaji,
-						image: mediaItem.coverImage.large,
-					})),
-				);
-				return m;
-			} catch (e) {
-				console.error("Error fetching media:", e);
+			const m = await searchMedia(value, 10);
+			if (!m) {
 				return undefined;
 			}
-		},
-	);
 
-	const icon = (
-		<span
-			class="i-ph-television text-lg"
-			classList={{
-				"text-emerald": !!props.value,
-			}}
-		/>
-	);
+			setOptions(
+				m.data.Page.media.map((mediaItem) => ({
+					value: mediaItem.id,
+					label: mediaItem.title.romaji,
+					image: mediaItem.coverImage.large,
+				})),
+			);
+			return m;
+		} catch (e) {
+			console.error("Error fetching media:", e);
+			return undefined;
+		}
+	};
 
-	const renderItem = (props: SearchRootItemComponentProps<Option>) => (
-		<Search.Item
-			item={props.item}
-			class="flex flex-row items-center justify-between px-4 py-2 gap-4 hover:bg-surfaceC cursor-pointer text-text w-full"
-		>
-			<div class="flex flex-row items-center gap-4">
-				<Show when={props.item.rawValue.image} fallback={<div />}>
-					<img
-						alt={props.item.rawValue.label}
-						src={props.item.rawValue.image}
-						class="h-12 w-12 object-cover"
-					/>
-				</Show>
-				<Search.ItemLabel>{props.item.rawValue.label}</Search.ItemLabel>
-			</div>
-		</Search.Item>
+	const [_, { refetch: refetchMedia }] = createResource(
+		getSearchValue,
+		fetcher,
 	);
 
 	return (
-		<Search
+		<DropdownSearch
 			options={getOptions()}
 			defaultValue={props.defaultValue}
 			onChange={props.onChange}
+			value={props.value}
 			debounceOptionsMillisecond={250}
 			onInputChange={(value) => {
 				setSearchValue(value);
 				refetchMedia(value);
 			}}
-			value={props.value}
-			sameWidth={true}
-			optionLabel="label"
-			optionValue="value"
-			optionTextValue="label"
 			placeholder="Search media..."
-			class="w-full"
 			itemComponent={renderItem}
-		>
-			<Search.Control
-				aria-label="Media"
-				class="flex w-full flex-row rounded-md overflow-clip bg-surfaceA"
-			>
-				<Search.Input
-					value={getSearchValue()}
-					class="w-full text-sm p-4 focus:outline-none bg-surfaceA hover:bg-surfaceB placeholder:font-sans border-none hover:cursor-text placeholder:text-overlayC text-text overflow-clip"
-					placeholder="Search media..."
-				/>
-				<Search.Icon
-					class="bg-surfaceA hover:bg-surfaceB border-none w-16 flex text-center items-center justify-center"
-					onClick={() => {
-						props.onChange(undefined);
-						setSearchValue("");
-					}}
-				>
-					<Search.Icon>{icon}</Search.Icon>
-				</Search.Icon>
-			</Search.Control>
-			<Search.Portal>
-				<Search.Content class="shadow text-sm">
-					<Search.Listbox class="p-0 m-0 overflow-clip hover:overflow-clip list-none flex w-full border-none rounded-md items-start flex-col bg-surfaceB" />
-				</Search.Content>
-			</Search.Portal>
-		</Search>
+			icon={Icon}
+			onIconClick={() => {
+				props.onChange(undefined);
+			}}
+		/>
 	);
 };

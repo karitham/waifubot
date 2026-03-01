@@ -1,18 +1,18 @@
 import type { Setter } from "solid-js";
-import type { Char, User } from "../api/list";
+import type { Character, Profile } from "../api/generated";
 import CharGrid from "../components/character/CharGrid";
 import FilterBar from "../components/filters/FilterBar";
 import type { Option } from "../components/filters/FilterMedia";
 import { selectOptions, sortOptions } from "../hooks/usePageFilters";
 
-type SortFn = { label: string; value: (a: Char, b: Char) => number };
+type SortFn = { label: string; value: (a: Character, b: Character) => number };
 type SelectOption = { value: number; label: string };
 
 interface CollectionBodyProps {
-	characters: Char[] | undefined;
-	mediaCharacters: Char[] | undefined;
-	compareUsers: User[] | undefined;
-	users: User[];
+	characters: Character[] | undefined;
+	mediaCharacters: Character[] | undefined;
+	compareUsers: Profile[] | undefined;
+	users: Profile[];
 	charSearch: string;
 	showCount: SelectOption;
 	charSort: SortFn;

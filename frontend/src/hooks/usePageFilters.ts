@@ -1,8 +1,10 @@
 import { useSearchParams } from "@solidjs/router";
 import { createEffect, createResource, createSignal } from "solid-js";
-import type { Char } from "../api/list";
-import { getList, getUser, getUserByDiscord, type User } from "../api/list";
+import type { Character, Profile } from "../api/generated";
+import { getUserV1, findUserV1 } from "../api/generated";
 import type { Option } from "../components/filters/FilterMedia";
+import { getUserID } from "./useUserSearch";
+import { useDebounce } from "./useDebounce";
 
 export const selectOptions = [
 	{ value: 100, label: "100" },
@@ -13,54 +15,42 @@ export const selectOptions = [
 
 export const sortOptions = [
 	{
+		id: "date",
 		label: "Date",
-		value: (a: Char, b: Char) =>
+		value: (a: Character, b: Character) =>
 			b.date && a.date
 				? new Date(b.date).getTime() - new Date(a.date).getTime()
 				: -1,
 	},
 	{
+		id: "name",
 		label: "Name",
-		value: (a: Char, b: Char) => a.name.localeCompare(b.name),
+		value: (a: Character, b: Character) => a.name.localeCompare(b.name),
 	},
 	{
+		id: "id",
 		label: "ID",
-		value: (a: Char, b: Char) => Number(a.id) - Number(b.id),
+		value: (a: Character, b: Character) => Number(a.id) - Number(b.id),
 	},
 ];
 
-export const fetchCompareUser = async (input?: string) => {
+const fetchCompareUser = async (input?: string) => {
 	if (!input) return undefined;
+	const userId = await getUserID(input);
+	if (!userId) return undefined;
+	return getUserV1(userId);
+};
 
-	if (input.match(/\d{6,}/)) {
-		const { data: directUser, error } = await getList(input);
-		if (error) {
-			console.error(error);
-			return undefined;
-		}
-		return directUser;
-	}
-
-	// Try Discord username
-	const { data: discordUser, error: discordError } =
-		await getUserByDiscord(input);
-	if (!discordError && discordUser?.id) {
-		const { data: backendUser, error: backendError } = await getList(
-			discordUser.id,
-		);
-		if (!backendError) return backendUser;
-	}
-
-	// Try Anilist username
-	const { data: anilistUser, error: anilistError } = await getUser(input);
-	if (!anilistError && anilistUser?.id) {
-		const { data: backendUser, error: backendError } = await getList(
-			anilistUser.id,
-		);
-		if (!backendError) return backendUser;
-	}
-
-	return undefined;
+const parseCompareIds = (param: string | undefined): string[] => {
+	if (!param) return [];
+	return Array.from(
+		new Set(
+			param
+				.split(",")
+				.map((s) => s.trim())
+				.filter(Boolean),
+		),
+	);
 };
 
 export function usePageFilters(userId?: string) {
@@ -72,15 +62,10 @@ export function usePageFilters(userId?: string) {
 
 	const [showCount, setShowCount] = createSignal(selectOptions[1]);
 	const [compareIds, setCompareIds] = createSignal<string[]>(
-		sp.compare
-			? sp.compare
-					.split(",")
-					.map((s) => s.trim())
-					.filter(Boolean)
-			: [],
+		parseCompareIds(sp.compare),
 	);
 	const [charSort, setCharSort] = createSignal(sortOptions[0]);
-	const [charSearch, setCharSearch] = createSignal<string>("");
+	const [charSearch, setCharSearch] = useDebounce("", 250);
 	const [media, setMedia] = createSignal<Option>(
 		sp.media_id && {
 			label: sp.media_label,
@@ -89,7 +74,7 @@ export function usePageFilters(userId?: string) {
 	);
 
 	const [compareUsersResource] = createResource(compareIds, async (ids) => {
-		const users: User[] = [];
+		const users: Profile[] = [];
 		for (const id of ids) {
 			const user = await fetchCompareUser(id);
 			if (user) users.push(user);

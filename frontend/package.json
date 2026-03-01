@@ -6,12 +6,15 @@
 	"scripts": {
 		"dev": "vite",
 		"build": "vite build",
-		"serve": "vite preview"
+		"serve": "vite preview",
+		"typecheck": "tsc --noEmit",
+		"generate:api": "oazapfts ../openapi.yaml --optimistic --useEnumType --optimistic --futureStripLegacyMethods > ./src/api/generated.ts"
 	},
 	"license": "MIT",
 	"devDependencies": {
 		"@iconify-json/ph": "^1.2.2",
 		"@solidjs/router": "^0.15.3",
+		"@types/node": "^25.3.3",
 		"@unocss/preset-icons": "^66.5.10",
 		"@unocss/preset-wind4": "^66.5.10",
 		"@unocss/vite": "^66.5.10",
@@ -22,7 +25,9 @@
 	},
 	"dependencies": {
 		"@kobalte/core": "^0.13.10",
+		"@oazapfts/runtime": "^1.2.0",
 		"marked": "^15.0.12",
+		"oazapfts": "^7.4.0",
 		"solid-js": "^1.8.17"
 	}
 }
