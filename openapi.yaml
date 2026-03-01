@@ -1,0 +1,387 @@
+openapi: 3.0.3
+info:
+  title: WaifuBot API
+  description: API for the WaifuBot application. This service provides user profiles, character collections, wishlist management, and Discord integration.
+  version: dev
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+tags:
+  - name: user
+    description: User management and profile endpoints
+
+paths:
+  /user/{userID}:
+    get:
+      deprecated: true
+      summary: Get user profile
+      description: Retrieve a user's complete profile including user info, collection, and favorite character
+      operationId: getUser
+      tags:
+        - user
+      parameters:
+        - $ref: "#/components/parameters/userID"
+      responses:
+        200:
+          description: User profile successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        400:
+          $ref: "#/components/responses/invalidID"
+        404:
+          $ref: "#/components/responses/userNotFound"
+
+  /user/find:
+    get:
+      deprecated: true
+      summary: Find user by Anilist or Discord
+      description: Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
+      operationId: findUser
+      tags:
+        - user
+      parameters:
+        - $ref: "#/components/parameters/anilist"
+        - $ref: "#/components/parameters/discord"
+      responses:
+        200:
+          description: User ID found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserIdResponse"
+        400:
+          $ref: "#/components/responses/missingQueryParam"
+
+  /api/v1/user/{userID}:
+    get:
+      summary: Get user profile (v1)
+      description: Retrieve a user's complete profile including user info, collection, and favorite character
+      operationId: getUserV1
+      tags:
+        - user
+      parameters:
+        - $ref: "#/components/parameters/userID"
+      responses:
+        200:
+          description: User profile successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        400:
+          $ref: "#/components/responses/invalidID"
+        404:
+          $ref: "#/components/responses/userNotFound"
+
+  /api/v1/user/find:
+    get:
+      summary: Find user by Anilist or Discord (v1)
+      description: Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
+      operationId: findUserV1
+      tags:
+        - user
+      parameters:
+        - $ref: "#/components/parameters/anilist"
+        - $ref: "#/components/parameters/discord"
+      responses:
+        200:
+          description: User ID found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserIdResponse"
+        400:
+          $ref: "#/components/responses/missingQueryParam"
+
+  /api/v1/wishlist/{userID}:
+    get:
+      summary: Get user wishlist
+      description: Retrieve a user's wishlist of characters
+      operationId: getWishlist
+      tags:
+        - user
+      parameters:
+        - $ref: "#/components/parameters/userID"
+      responses:
+        200:
+          description: Wishlist successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishlistResponse"
+
+components:
+  parameters:
+    userID:
+      name: userID
+      in: path
+      required: true
+      description: User ID (can be passed as string or numeric)
+      schema:
+        type: string
+        example: "1234567890"
+    anilist:
+      name: anilist
+      in: query
+      required: false
+      description: Anilist user URL (e.g., "https://anilist.co/user/animefan")
+      schema:
+        type: string
+        example: "https://anilist.co/user/animefan"
+    discord:
+      name: discord
+      in: query
+      required: false
+      description: Discord username
+      schema:
+        type: string
+        example: "karbot"
+
+  examples:
+    byAnilist:
+      summary: Found by Anilist URL
+      value:
+        id: "1234567890"
+    byDiscord:
+      summary: Found by Discord username
+      value:
+        id: "1234567890"
+    profileSuccess:
+      summary: Example profile response
+      value:
+        id: "1234567890"
+        quote: "Dreams are free, but hard work is expensive."
+        tokens: 100
+        anilist_url: "https://anilist.co/user/animefan"
+        discord_username: "waifu_lover"
+        discord_avatar: "https://cdn.discordapp.com/avatars/1234567890/abc123.png"
+        favorite:
+          date: "2024-01-15T10:30:00Z"
+          name: "Rem"
+          image: "https://example.com/rem.jpg"
+          type: "anime"
+          id: 42
+        waifus:
+          - date: "2024-01-15T10:30:00Z"
+            name: "Rem"
+            image: "https://example.com/rem.jpg"
+            type: "anime"
+            id: 42
+          - date: "2024-01-20T14:45:00Z"
+            name: "Nezuko"
+            image: "https://example.com/nezuko.jpg"
+            type: "anime"
+            id: 55
+    wishlistSuccess:
+      summary: Example wishlist response
+      value:
+        characters:
+          - date: "2024-01-15T10:30:00Z"
+            name: "Rem"
+            image: "https://example.com/rem.jpg"
+            type: "anime"
+            id: 42
+          - date: "2024-01-20T14:45:00Z"
+            name: "Nezuko"
+            image: "https://example.com/nezuko.jpg"
+            type: "anime"
+            id: 55
+        total: 2
+
+  responses:
+    userProfile:
+      description: User profile successfully retrieved
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Profile"
+          examples:
+            success:
+              $ref: "#/components/examples/profileSuccess"
+    userId:
+      description: User ID found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UserIdResponse"
+          examples:
+            byAnilist:
+              $ref: "#/components/examples/byAnilist"
+            byDiscord:
+              $ref: "#/components/examples/byDiscord"
+    wishlist:
+      description: Wishlist successfully retrieved
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/WishlistResponse"
+          examples:
+            success:
+              $ref: "#/components/examples/wishlistSuccess"
+    invalidID:
+      description: Invalid user ID provided
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            message: "invalid id provided"
+            error_code: "invalid_id"
+            status_code: 400
+    userNotFound:
+      description: User not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            message: "user not found"
+            error_code: "user_not_found"
+            status_code: 404
+    missingQueryParam:
+      description: Missing required query parameter
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            message: "anilist or discord query param is required"
+            error_code: "missing_query_param"
+            status_code: 400
+
+  schemas:
+    Profile:
+      type: object
+      description: Complete user profile including user information, collection, and favorite character
+      required:
+        - id
+        - discord_username
+        - tokens
+        - waifus
+      properties:
+        id:
+          type: string
+          description: User ID
+          example: "1234567890"
+        quote:
+          type: string
+          description: User's personal quote
+          example: "Dreams are free, but hard work is expensive."
+        tokens:
+          type: integer
+          format: int32
+          description: User's token balance
+          example: 100
+        anilist_url:
+          type: string
+          description: Anilist user URL
+          example: "https://anilist.co/user/animefan"
+        discord_username:
+          type: string
+          description: Discord username
+          example: "waifu_lover"
+        discord_avatar:
+          type: string
+          description: Discord avatar URL
+          example: "https://cdn.discordapp.com/avatars/1234567890/abc123.png"
+        favorite:
+          $ref: "#/components/schemas/Character"
+          nullable: true
+          description: User's favorite character (may be null if no favorite set)
+        waifus:
+          type: array
+          description: List of characters in user's collection
+          minItems: 0
+          items:
+            $ref: "#/components/schemas/Character"
+
+    Character:
+      type: object
+      description: Character information
+      required:
+        - date
+        - name
+        - image
+        - type
+        - id
+      properties:
+        date:
+          type: string
+          format: date-time
+          description: Date the character was added
+          example: "2024-01-15T10:30:00Z"
+        name:
+          type: string
+          description: Character name
+          example: "Rem"
+        image:
+          type: string
+          description: Character image URL
+          example: "https://example.com/rem.jpg"
+        type:
+          type: string
+          enum:
+            - ROLL
+            - CLAIM
+            - GIVE
+            - OLD
+          description: Character source type
+          example: "ROLL"
+        id:
+          type: integer
+          format: int64
+          description: Character ID
+          example: 42
+
+    WishlistResponse:
+      type: object
+      description: User's wishlist response
+      required:
+        - characters
+        - total
+      properties:
+        characters:
+          type: array
+          description: List of characters in wishlist
+          minItems: 0
+          items:
+            $ref: "#/components/schemas/Character"
+        total:
+          type: integer
+          description: Total number of characters in wishlist
+          example: 2
+
+    UserIdResponse:
+      type: object
+      description: Response containing only the user ID
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          description: User ID
+          example: "1234567890"
+
+    Error:
+      type: object
+      description: Standard error response
+      required:
+        - message
+        - error_code
+        - status_code
+      properties:
+        message:
+          type: string
+          description: Error message
+          example: "user not found"
+        error_code:
+          type: string
+          description: Error code
+          example: "user_not_found"
+        status_code:
+          type: integer
+          description: HTTP status code
+          example: 404
