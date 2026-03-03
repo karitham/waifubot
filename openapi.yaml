@@ -54,6 +54,8 @@ paths:
                 $ref: "#/components/schemas/UserIdResponse"
         400:
           $ref: "#/components/responses/missingQueryParam"
+        404:
+          $ref: "#/components/responses/userNotFound"
 
   /api/v1/user/{userID}:
     get:
@@ -95,6 +97,8 @@ paths:
                 $ref: "#/components/schemas/UserIdResponse"
         400:
           $ref: "#/components/responses/missingQueryParam"
+        404:
+          $ref: "#/components/responses/userNotFound"
 
   /api/v1/wishlist/{userID}:
     get:
@@ -112,6 +116,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/WishlistResponse"
+        400:
+          $ref: "#/components/responses/invalidID"
+        404:
+          $ref: "#/components/responses/userNotFound"
 
 components:
   parameters:

@@ -1,4 +1,4 @@
-package main
+package rest
 
 import (
 	"crypto/rand"
@@ -17,9 +17,9 @@ func generateRequestID() string {
 	return hex.EncodeToString(bytes)
 }
 
-func loggerMiddleware(logger *slog.Logger) func(next http.Handler) http.Handler {
+func LoggerMiddleware(logger *slog.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, r *http.Request) {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 			requestID := generateRequestID()
 			reqLogger := logger.With("request_id", requestID)
@@ -28,7 +28,6 @@ func loggerMiddleware(logger *slog.Logger) func(next http.Handler) http.Handler 
 			defer func() {
 				t2 := time.Now()
 
-				// Recover and record stack traces in case of a panic
 				if rec := recover(); rec != nil {
 					reqLogger.Error("request panic",
 						"type", "error",
@@ -37,7 +36,6 @@ func loggerMiddleware(logger *slog.Logger) func(next http.Handler) http.Handler 
 					http.Error(ww, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				}
 
-				// log end request
 				reqLogger.Info("request completed",
 					"type", "access",
 					"remote_ip", r.RemoteAddr,
@@ -51,11 +49,10 @@ func loggerMiddleware(logger *slog.Logger) func(next http.Handler) http.Handler 
 					"bytes_out", ww.BytesWritten())
 			}()
 
-			// Add request ID to response header for client correlation
 			w.Header().Set("X-Request-ID", requestID)
 
 			next.ServeHTTP(ww, r)
-		}
-		return http.HandlerFunc(fn)
+
+		})
 	}
 }

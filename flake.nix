@@ -44,9 +44,6 @@
         in
         {
           default = pkgs.mkShell {
-            shellHook = ''
-              export GOEXPERIMENT=jsonv2
-            '';
             packages = with pkgs; [
               go_1_26
               gofumpt
@@ -57,6 +54,7 @@
               sqlc
               nodejs
               nodePackages.npm
+              ogen
               self.packages.${system}.genqlient
             ];
           };
