@@ -31,8 +31,8 @@ func main() {
 
 	app := &cli.App{
 		Name:        "waifubot",
-		Usage:       "Run the bot, and use utils",
-		Description: "A discord gacha bot",
+		Usage:       "Run the bot, API, and use utils",
+		Description: "A discord gacha bot with REST API",
 		Version:     version,
 		Commands: []*cli.Command{
 			RunCommand,

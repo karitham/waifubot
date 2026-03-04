@@ -4,14 +4,23 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/Karitham/corde"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/cli/v2"
 
 	"github.com/karitham/waifubot/anilist"
 	"github.com/karitham/waifubot/discord"
 	"github.com/karitham/waifubot/guild"
+	"github.com/karitham/waifubot/rest"
+	"github.com/karitham/waifubot/rest/api"
+	"github.com/karitham/waifubot/services"
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/dropstore"
 	"github.com/karitham/waifubot/storage/interactionstore"
@@ -20,7 +29,7 @@ import (
 
 var RunCommand = &cli.Command{
 	Name:  "run",
-	Usage: "Run the Discord bot",
+	Usage: "Run the Discord bot and REST API server",
 	Flags: []cli.Flag{
 		botTokenFlag,
 		&cli.Uint64Flag{
@@ -52,6 +61,8 @@ var RunCommand = &cli.Command{
 			Usage:   "Skip database migrations on startup",
 			EnvVars: []string{"SKIP_MIGRATE"},
 		},
+		logLevelFlag,
+		apiFlag,
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
@@ -68,7 +79,7 @@ var RunCommand = &cli.Command{
 		}
 
 		var guildID *corde.Snowflake
-		if gid := c.Uint64(guildIDFlag.Name); gid != 0 {
+		if gid := c.Uint64("guild-id"); gid != 0 {
 			id := corde.Snowflake(gid)
 			guildID = &id
 		}
@@ -76,7 +87,7 @@ var RunCommand = &cli.Command{
 		interStore := interactionstore.NewPostgresStore(store.InteractionStore())
 		dropStore := dropstore.NewPostgresStore(store.DropStore())
 
-		slog.Info("Starting WaifuBot Discord bot", "port", c.String("port"), "app_id", c.String("app-id"))
+		slog.Info("Starting WaifuBot", "port", c.String("port"), "app_id", c.String("app-id"), "api_enabled", c.Bool(apiFlag.Name))
 		mux := discord.New(&discord.Bot{
 			Store:             store,
 			WishlistStore:     wishlist.New(store.WishlistStore()),
@@ -93,18 +104,66 @@ var RunCommand = &cli.Command{
 			TokensNeeded:      int32(c.Int(tokensNeededFlag.Name)),
 		})
 
-		slog.Info("Discord bot started successfully", "port", c.String("port"))
+		port, err := strconv.Atoi(c.String("port"))
+		if err != nil {
+			return fmt.Errorf("invalid port number: %w", err)
+		}
 
-		r := http.NewServeMux()
+		r := chi.NewRouter()
+		r.Use(middleware.Timeout(5 * time.Second))
+		r.Use(rest.LoggerMiddleware(slog.Default()))
+		r.Use(middleware.Compress(5))
+
+		r.Use(cors.Handler(cors.Options{
+			AllowedOrigins:   []string{"https://*", "http://*"},
+			AllowedMethods:   []string{"GET", "OPTIONS"},
+			AllowedHeaders:   []string{"Accept", "Content-Type"},
+			MaxAge:           300,
+			AllowCredentials: true,
+		}))
+
 		r.Handle("/metrics", promhttp.Handler())
-		r.Handle(mux.BasePath, mux)
+		r.Handle("/", mux)
 
-		if err := http.ListenAndServe(":"+c.String("port"), r); err != nil {
-			slog.Error("Discord bot crashed", "error", err, "port", c.String("port"))
+		if c.Bool(apiFlag.Name) {
+			discordToken := c.String(botTokenFlag.Name)
+			var discordService *services.DiscordService
+			if discordToken != "" {
+				discordService = services.NewDiscordService(discordToken)
+			}
+
+			restServer := rest.New(store, discordService)
+
+			telemetry, err := rest.SetupTelemetry(prometheus.DefaultRegisterer)
+			if err != nil {
+				return fmt.Errorf("failed to setup telemetry: %w", err)
+			}
+			defer func() {
+				if err := telemetry.Shutdown(c.Context); err != nil {
+					slog.Error("Error shutting down telemetry", "error", err)
+				}
+			}()
+
+			apiRouter, err := api.NewServer(
+				restServer,
+				api.WithMeterProvider(telemetry.MeterProvider()),
+			)
+			if err != nil {
+				return fmt.Errorf("failed to create API router: %w", err)
+			}
+
+			r.Mount("/", apiRouter)
+			slog.Info("REST API server started", "port", port)
+		}
+
+		slog.Info("Discord bot started", "port", port)
+
+		if err := http.ListenAndServe(":"+strconv.Itoa(port), r); err != nil {
+			slog.Error("Server crashed", "error", err, "port", port)
 			return err
 		}
 
-		slog.Info("Discord bot shutting down", "port", c.String("port"))
+		slog.Info("Server shutting down", "port", port)
 		return nil
 	},
 }

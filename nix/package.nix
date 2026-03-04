@@ -6,21 +6,18 @@ buildGoModule {
   pname = "waifubot";
   inherit version;
   src = ../backend;
-  vendorHash = "sha256-zGRfH2vkd0cslGOPtvqvSxew1ByLOTNrvd5WCG1S4uE=";
+  vendorHash = "sha256-+19cTLSPkcFlpj7jH6x3WJOfElkqnRRbuOaYDqei5b8=";
   ldflags = [
     "-s"
     "-w"
     "-X=main.version=${version}"
   ];
-  subPackages = [
-    "cmd/bot"
-    "cmd/api"
-  ];
+  subPackages = [ "cmd/waifubot" ];
   GOEXPERIMENT = "jsonv2";
   meta = {
     homepage = "https://github.com/karitham/waifubot";
     description = "Discord gacha bot and API";
     license = lib.licenses.mit;
-    mainProgram = "bot";
+    mainProgram = "waifubot";
   };
 }

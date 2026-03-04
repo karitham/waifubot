@@ -90,7 +90,6 @@ func TestMigrateInteractions(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(executedQueries))
 
-	// Keys are returned in order from our mock
 	assert.Equal(t, uint64(123), executedQueries[0].args[0])
 	assert.Equal(t, int64(10), executedQueries[0].args[1])
 	assert.Equal(t, uint64(456), executedQueries[1].args[0])

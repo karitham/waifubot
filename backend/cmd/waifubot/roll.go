@@ -43,7 +43,7 @@ var RollCommand = &cli.Command{
 			RollCooldown: rollCooldown,
 			TokensNeeded: int32(tokensNeeded),
 		}
-		animeService := anilist.New(anilist.MaxChar(30_000)) // default
+		animeService := anilist.New(anilist.MaxChar(30_000))
 		char, err := collection.Roll(ctx, store, animeService, config, userID)
 		if err != nil {
 			return fmt.Errorf("error rolling: %w", err)

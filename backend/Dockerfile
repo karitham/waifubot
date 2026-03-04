@@ -11,14 +11,12 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -ldflags="-w -s" -o /go/bin/bot ./cmd/bot
-RUN go build -ldflags="-w -s" -o /go/bin/api ./cmd/api
+RUN go build -ldflags="-w -s" -o /go/bin/waifubot ./cmd/waifubot
 
 FROM alpine:latest
 
 RUN apk add --no-cache ca-certificates
 
-COPY --from=builder /go/bin/bot /bin/
-COPY --from=builder /go/bin/api /bin/
+COPY --from=builder /go/bin/waifubot /bin/
 
-CMD ["/bin/bot"]
+CMD ["/bin/waifubot"]

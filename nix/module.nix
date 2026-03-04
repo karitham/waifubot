@@ -1,13 +1,5 @@
 { config, lib, ... }:
 let
-  mkPort =
-    defaultPort:
-    lib.mkOption {
-      type = lib.types.port;
-      default = defaultPort;
-      description = "Port to listen on";
-    };
-
   mkLogLevel = lib.mkOption {
     type = lib.types.enum [
       "DEBUG"
@@ -42,46 +34,34 @@ in
       description = "Data directory for waifubot";
     };
 
-    bot = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Enable waifubot bot";
-    };
-
-    botSettings = lib.mkOption {
+    settings = lib.mkOption {
       type = lib.types.submodule {
         options = {
-          port = mkPort 8080;
+          port = lib.mkOption {
+            type = lib.types.port;
+            default = 8080;
+            description = "Port to listen on";
+          };
           logLevel = mkLogLevel;
+          enableApi = lib.mkOption {
+            type = lib.types.bool;
+            default = true;
+            description = "Enable REST API server";
+          };
         };
       };
       default = {
         port = 8080;
         logLevel = "INFO";
+        enableApi = true;
       };
-      description = "Bot service settings";
-    };
-
-    api = lib.mkEnableOption "waifubot api";
-
-    apiSettings = lib.mkOption {
-      type = lib.types.submodule {
-        options = {
-          port = mkPort 3333;
-          logLevel = mkLogLevel;
-        };
-      };
-      default = {
-        port = 3333;
-        logLevel = "INFO";
-      };
-      description = "API service settings";
+      description = "Waifubot service settings";
     };
   };
 
-  config = lib.mkIf (cfg.enable || cfg.bot) {
-    systemd.services.waifubot-bot = lib.mkIf cfg.bot {
-      description = "Waifubot Discord Bot";
+  config = lib.mkIf cfg.enable {
+    systemd.services.waifubot = {
+      description = "Waifubot Discord Bot and API";
       wantedBy = [ "multi-user.target" ];
       after = [ "network.target" ];
 
@@ -90,7 +70,9 @@ in
         Restart = "always";
         RestartSec = 10;
         EnvironmentFile = cfg.secretsFile;
-        ExecStart = "${cfg.package}/bin/bot run";
+        ExecStart = "${cfg.package}/bin/waifubot run ${
+          lib.optionalString (!cfg.settings.enableApi) "--no-api"
+        }";
         WorkingDirectory = cfg.dataDir;
         RuntimeDirectory = "waifubot";
         StateDirectory = "waifubot";
@@ -100,32 +82,9 @@ in
         ProtectHome = true;
         ReadWritePaths = [ cfg.dataDir ];
         Environment = [
-          "LOG_LEVEL=${cfg.botSettings.logLevel}"
-          "PORT=${toString cfg.botSettings.port}"
+          "LOG_LEVEL=${cfg.settings.logLevel}"
+          "PORT=${toString cfg.settings.port}"
         ];
-      };
-    };
-
-    systemd.services.waifubot-api = lib.mkIf (cfg.enable || cfg.api) {
-      description = "Waifubot API";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" ];
-
-      serviceConfig = {
-        Type = "simple";
-        Restart = "always";
-        RestartSec = 10;
-        EnvironmentFile = cfg.secretsFile;
-        ExecStart = "${cfg.package}/bin/api";
-        WorkingDirectory = cfg.dataDir;
-        RuntimeDirectory = "waifubot-api";
-        StateDirectory = "waifubot-api";
-        PrivateTmp = true;
-        NoNewPrivileges = true;
-        ProtectSystem = "strict";
-        ProtectHome = true;
-        ReadWritePaths = [ cfg.dataDir ];
-        Environment = "PORT=${toString cfg.apiSettings.port}";
       };
     };
   };

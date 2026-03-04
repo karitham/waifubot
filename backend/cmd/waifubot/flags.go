@@ -62,4 +62,17 @@ var (
 		Name:     "name",
 		Required: true,
 	}
+
+	logLevelFlag = &cli.StringFlag{
+		Name:    "log-level",
+		Aliases: []string{"l"},
+		EnvVars: []string{"LOG_LEVEL"},
+		Value:   "INFO",
+	}
+
+	apiFlag = &cli.BoolFlag{
+		Name:  "api",
+		Usage: "Enable REST API server (default: true)",
+		Value: true,
+	}
 )
