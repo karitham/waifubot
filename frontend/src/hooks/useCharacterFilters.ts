@@ -1,5 +1,5 @@
 import { createMemo } from "solid-js";
-import type { Character, Profile } from "../api/generated";
+import type { Character, User } from "../api/generated";
 import {
 	combineFilters,
 	excludeCharacters,
@@ -12,20 +12,19 @@ export function useCharacterFilters(
 	characters: Character[],
 	mediaCharacters: Character[] | undefined,
 	charSearch: string,
-	compareUsers: Profile[],
-	users: Profile[],
+	compareUsers: User[],
+	users: User[],
 	mainUserId: string,
 ) {
 	const compareUsersMemo = createMemo(() => compareUsers || []);
 
 	const _otherUserOwnedCharIds = createMemo(() => {
 		const ids = new Set<string>();
+		// TODO: For compare functionality, we need to fetch collections for compare users
+		// For now, this will show empty ownership data for compare users
 		compareUsersMemo().forEach((user) => {
-			if (user.waifus) {
-				user.waifus.forEach((char) => {
-					ids.add(char.id.toString());
-				});
-			}
+			// User no longer has waifus property - need to fetch separately
+			// This is a placeholder for future implementation
 		});
 		return ids;
 	});

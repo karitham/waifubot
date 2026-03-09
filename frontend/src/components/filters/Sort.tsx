@@ -1,42 +1,48 @@
 import type { Setter } from "solid-js";
+import type { SortOption, Direction } from "../../hooks/usePaginatedCollection";
 import SelectField from "../ui/SelectField";
 
-type SortFn<T> = {
-	id: string;
-	value: (a: T, b: T) => number;
-	label: string;
+export type SortValue = {
+	field: SortOption;
+	direction: Direction;
 };
 
-export type CharSortProps<T> = {
-	value: SortFn<T>;
-	options: Array<SortFn<T>>;
-	onChange: Setter<SortFn<T>>;
+export type CharSortProps = {
+	value: SortValue;
+	onChange: Setter<SortValue>;
+	class?: string;
 };
 
-export default function <T>(props: CharSortProps<T>) {
-	const handleChange = (value: SortFn<T> | null) => {
-		if (!value) {
-			props.onChange((prev: SortFn<T>) => {
-				return {
-					id: prev.id,
-					label: prev.label,
-					value: (a: T, b: T) => prev.value(b, a),
-				};
-			});
-			return;
-		}
-		props.onChange(value);
-	};
+const sortFields: { value: SortOption; label: string }[] = [
+	{ value: "date", label: "Date added" },
+	{ value: "name", label: "Name" },
+	{ value: "anilist_id", label: "Anilist ID" },
+];
 
+export default function Sort(props: CharSortProps) {
 	return (
-		<SelectField<SortFn<T>>
-			options={props.options}
-			value={props.value}
-			onChange={handleChange}
-			optionValue="id"
-			optionTextValue="label"
-			allowDuplicateSelectionEvents={true}
-			placeholder="Sort by..."
-		/>
+		<div class={`flex gap-2 w-full items-center h-full ${props.class ?? ""}`}>
+			<SelectField
+				options={sortFields}
+				value={sortFields.find((f) => f.value === props.value.field) ?? sortFields[0]}
+				onChange={(v) => v && props.onChange((prev) => ({ ...prev, field: v.value }))}
+				optionValue="value"
+				optionTextValue="label"
+				class="flex-1"
+			/>
+			<button
+				type="button"
+				onClick={() =>
+					props.onChange((prev) => ({
+						...prev,
+						direction: prev.direction === "desc" ? "asc" : "desc",
+					}))
+				}
+				class="input-base input-focus w-12 h-full hover:cursor-pointer flex items-center justify-center text-sm"
+				title={props.value.direction === "desc" ? "Descending" : "Ascending"}
+			>
+				{props.value.direction === "desc" ? "↓" : "↑"}
+			</button>
+		</div>
 	);
 }

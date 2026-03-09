@@ -74,3 +74,35 @@ SET
   last_updated = $3
 WHERE
   user_id = $4;
+
+-- name: List :many
+SELECT
+  *
+FROM
+  users
+WHERE
+  (sqlc.arg(user_id)::bigint = 0 OR user_id = sqlc.arg(user_id)::bigint)
+  AND (sqlc.arg(discord_username)::text = '' OR discord_username = sqlc.arg(discord_username)::text)
+  AND (sqlc.arg(anilist_url)::text = '' OR LOWER(anilist_url) = LOWER(sqlc.arg(anilist_url)::text))
+  AND (
+    sqlc.arg(username_prefix)::text = '' OR 
+    discord_username ILIKE sqlc.arg(username_prefix)::text || '%' OR
+    LOWER(anilist_url) ILIKE '%/' || sqlc.arg(username_prefix)::text || '%'
+  )
+ORDER BY user_id
+LIMIT sqlc.arg(page_size) OFFSET sqlc.arg(page_offset);
+
+-- name: CountFiltered :one
+SELECT
+  COUNT(*)
+FROM
+  users
+WHERE
+  (sqlc.arg(user_id)::bigint = 0 OR user_id = sqlc.arg(user_id)::bigint)
+  AND (sqlc.arg(discord_username)::text = '' OR discord_username = sqlc.arg(discord_username)::text)
+  AND (sqlc.arg(anilist_url)::text = '' OR LOWER(anilist_url) = LOWER(sqlc.arg(anilist_url)::text))
+  AND (
+    sqlc.arg(username_prefix)::text = '' OR 
+    discord_username ILIKE sqlc.arg(username_prefix)::text || '%' OR
+    LOWER(anilist_url) ILIKE '%/' || sqlc.arg(username_prefix)::text || '%'
+  );

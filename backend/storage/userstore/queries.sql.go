@@ -11,6 +11,41 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countFiltered = `-- name: CountFiltered :one
+SELECT
+  COUNT(*)
+FROM
+  users
+WHERE
+  ($1::bigint = 0 OR user_id = $1::bigint)
+  AND ($2::text = '' OR discord_username = $2::text)
+  AND ($3::text = '' OR LOWER(anilist_url) = LOWER($3::text))
+  AND (
+    $4::text = '' OR 
+    discord_username ILIKE $4::text || '%' OR
+    LOWER(anilist_url) ILIKE '%/' || $4::text || '%'
+  )
+`
+
+type CountFilteredParams struct {
+	UserID          int64
+	DiscordUsername string
+	AnilistUrl      string
+	UsernamePrefix  string
+}
+
+func (q *Queries) CountFiltered(ctx context.Context, arg CountFilteredParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countFiltered,
+		arg.UserID,
+		arg.DiscordUsername,
+		arg.AnilistUrl,
+		arg.UsernamePrefix,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const create = `-- name: Create :exec
 INSERT INTO
   users (user_id)
@@ -103,6 +138,71 @@ func (q *Queries) GetByDiscordUsername(ctx context.Context, discordUsername stri
 		&i.LastUpdated,
 	)
 	return i, err
+}
+
+const list = `-- name: List :many
+SELECT
+  id, user_id, quote, date, favorite, tokens, anilist_url, discord_username, discord_avatar, last_updated
+FROM
+  users
+WHERE
+  ($1::bigint = 0 OR user_id = $1::bigint)
+  AND ($2::text = '' OR discord_username = $2::text)
+  AND ($3::text = '' OR LOWER(anilist_url) = LOWER($3::text))
+  AND (
+    $4::text = '' OR 
+    discord_username ILIKE $4::text || '%' OR
+    LOWER(anilist_url) ILIKE '%/' || $4::text || '%'
+  )
+ORDER BY user_id
+LIMIT $6 OFFSET $5
+`
+
+type ListParams struct {
+	UserID          int64
+	DiscordUsername string
+	AnilistUrl      string
+	UsernamePrefix  string
+	PageOffset      int32
+	PageSize        int32
+}
+
+func (q *Queries) List(ctx context.Context, arg ListParams) ([]User, error) {
+	rows, err := q.db.Query(ctx, list,
+		arg.UserID,
+		arg.DiscordUsername,
+		arg.AnilistUrl,
+		arg.UsernamePrefix,
+		arg.PageOffset,
+		arg.PageSize,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Quote,
+			&i.Date,
+			&i.Favorite,
+			&i.Tokens,
+			&i.AnilistUrl,
+			&i.DiscordUsername,
+			&i.DiscordAvatar,
+			&i.LastUpdated,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateAnilistURL = `-- name: UpdateAnilistURL :exec

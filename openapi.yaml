@@ -10,6 +10,8 @@ info:
 tags:
   - name: user
     description: User management and profile endpoints
+  - name: collection
+    description: User character collection endpoints
 
 paths:
   /user/{userID}:
@@ -17,6 +19,66 @@ paths:
       deprecated: true
       summary: Get user profile
       description: Retrieve a user's complete profile including user info, collection, and favorite character
+      operationId: getUserLegacy
+      tags:
+        - user
+      parameters:
+        - $ref: "#/components/parameters/userID"
+      responses:
+        200:
+          description: User profile successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        400:
+          $ref: "#/components/responses/invalidID"
+        401:
+          $ref: "#/components/responses/unauthorized"
+        403:
+          $ref: "#/components/responses/forbidden"
+        404:
+          $ref: "#/components/responses/userNotFound"
+        500:
+          $ref: "#/components/responses/internalError"
+        default:
+          $ref: "#/components/responses/internalError"
+
+  /user/find:
+    get:
+      deprecated: true
+      summary: Find user by Anilist or Discord
+      description: Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
+      operationId: findUserLegacy
+      tags:
+        - user
+      parameters:
+        - $ref: "#/components/parameters/anilist"
+        - $ref: "#/components/parameters/discord"
+      responses:
+        200:
+          description: User ID found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserIdResponse"
+        400:
+          $ref: "#/components/responses/missingQueryParam"
+        401:
+          $ref: "#/components/responses/unauthorized"
+        403:
+          $ref: "#/components/responses/forbidden"
+        404:
+          $ref: "#/components/responses/userNotFound"
+        500:
+          $ref: "#/components/responses/internalError"
+        default:
+          $ref: "#/components/responses/internalError"
+
+  /api/v1/users/{userID}:
+    get:
+      summary: Get user profile
+      description: Retrieve a user's profile metadata
       operationId: getUser
       tags:
         - user
@@ -28,98 +90,154 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Profile"
+                $ref: "#/components/schemas/User"
         400:
           $ref: "#/components/responses/invalidID"
+        401:
+          $ref: "#/components/responses/unauthorized"
+        403:
+          $ref: "#/components/responses/forbidden"
         404:
           $ref: "#/components/responses/userNotFound"
+        500:
+          $ref: "#/components/responses/internalError"
+        default:
+          $ref: "#/components/responses/internalError"
 
-  /user/find:
+  /api/v1/users/{userID}/collection:
     get:
-      deprecated: true
-      summary: Find user by Anilist or Discord
-      description: Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
-      operationId: findUser
+      summary: Get user collection
+      description: |
+        Retrieve a user's character collection with pagination and search.
+        Use `q` for free-text search (matches character name or ID).
+        Use `order_by` to change sort order (default: date_desc).
+      operationId: getUserCollection
       tags:
-        - user
+        - collection
       parameters:
-        - $ref: "#/components/parameters/anilist"
-        - $ref: "#/components/parameters/discord"
+        - $ref: "#/components/parameters/userID"
+        - $ref: "#/components/parameters/pageSize"
+        - $ref: "#/components/parameters/pageToken"
+        - $ref: "#/components/parameters/searchQuery"
+        - $ref: "#/components/parameters/orderBy"
+        - $ref: "#/components/parameters/direction"
       responses:
         200:
-          description: User ID found
+          description: Collection successfully retrieved
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserIdResponse"
+                $ref: "#/components/schemas/Collection"
         400:
-          $ref: "#/components/responses/missingQueryParam"
+          $ref: "#/components/responses/invalidID"
+        401:
+          $ref: "#/components/responses/unauthorized"
+        403:
+          $ref: "#/components/responses/forbidden"
         404:
           $ref: "#/components/responses/userNotFound"
+        500:
+          $ref: "#/components/responses/internalError"
+        default:
+          $ref: "#/components/responses/internalError"
 
-  /api/v1/user/{userID}:
+  /api/v1/users/{userID}/favorite:
     get:
-      summary: Get user profile (v1)
-      description: Retrieve a user's complete profile including user info, collection, and favorite character
-      operationId: getUserV1
+      summary: Get user favorite character
+      description: Retrieve a user's favorite character
+      operationId: getUserFavorite
       tags:
-        - user
+        - collection
       parameters:
         - $ref: "#/components/parameters/userID"
       responses:
         200:
-          description: User profile successfully retrieved
+          description: Favorite character successfully retrieved
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Profile"
+                $ref: "#/components/schemas/Character"
+        204:
+          description: No favorite character set
         400:
           $ref: "#/components/responses/invalidID"
+        401:
+          $ref: "#/components/responses/unauthorized"
+        403:
+          $ref: "#/components/responses/forbidden"
         404:
           $ref: "#/components/responses/userNotFound"
+        500:
+          $ref: "#/components/responses/internalError"
+        default:
+          $ref: "#/components/responses/internalError"
 
-  /api/v1/user/find:
+  /api/v1/users:
     get:
-      summary: Find user by Anilist or Discord (v1)
-      description: Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
-      operationId: findUserV1
+      summary: List users
+      description: |
+        List users with optional filtering and search.
+        - Use `username_prefix` for fuzzy/prefix search (autocomplete)
+        - Use exact match params (`id`, `discord_username`, `anilist_url`) for precise lookups
+        - Multiple exact match params are ANDed together
+      operationId: listUsers
       tags:
         - user
       parameters:
-        - $ref: "#/components/parameters/anilist"
-        - $ref: "#/components/parameters/discord"
+        - $ref: "#/components/parameters/usernamePrefix"
+        - $ref: "#/components/parameters/userIdFilter"
+        - $ref: "#/components/parameters/discordUsernameFilter"
+        - $ref: "#/components/parameters/anilistUrlFilter"
+        - $ref: "#/components/parameters/pageSize"
+        - $ref: "#/components/parameters/pageToken"
       responses:
         200:
-          description: User ID found
+          description: Users list successfully retrieved
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserIdResponse"
+                $ref: "#/components/schemas/UserList"
         400:
-          $ref: "#/components/responses/missingQueryParam"
-        404:
-          $ref: "#/components/responses/userNotFound"
+          $ref: "#/components/responses/invalidQueryParam"
+        401:
+          $ref: "#/components/responses/unauthorized"
+        403:
+          $ref: "#/components/responses/forbidden"
+        500:
+          $ref: "#/components/responses/internalError"
+        default:
+          $ref: "#/components/responses/internalError"
 
-  /api/v1/wishlist/{userID}:
+  /api/v1/users/{userID}/wishlist:
     get:
       summary: Get user wishlist
       description: Retrieve a user's wishlist of characters
-      operationId: getWishlist
+      operationId: getUserWishlist
       tags:
         - user
       parameters:
         - $ref: "#/components/parameters/userID"
+        - $ref: "#/components/parameters/pageSize"
+        - $ref: "#/components/parameters/pageToken"
       responses:
         200:
           description: Wishlist successfully retrieved
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/WishlistResponse"
+                $ref: "#/components/schemas/Wishlist"
         400:
           $ref: "#/components/responses/invalidID"
+        401:
+          $ref: "#/components/responses/unauthorized"
+        403:
+          $ref: "#/components/responses/forbidden"
         404:
           $ref: "#/components/responses/userNotFound"
+        500:
+          $ref: "#/components/responses/internalError"
+        default:
+          $ref: "#/components/responses/internalError"
 
 components:
   parameters:
@@ -147,6 +265,95 @@ components:
       schema:
         type: string
         example: "karbot"
+    pageSize:
+      name: pageSize
+      in: query
+      required: false
+      description: Maximum number of items to return
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+        example: 20
+    pageToken:
+      name: pageToken
+      in: query
+      required: false
+      description: Opaque pagination token from previous next_page_token. Omit for first page.
+      schema:
+        type: string
+        example: "eyJsYXN0X2lkIjo0MiwibGFzdF9kYXRlIjoiMjAyNC0wMS0xNVQxMDozMDowMFoifQ=="
+    searchQuery:
+      name: q
+      in: query
+      required: false
+      description: Search query to filter characters by name or Anilist ID prefix
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 100
+        example: "rem"
+    orderBy:
+      name: order_by
+      in: query
+      required: false
+      description: Field to order results by
+      schema:
+        type: string
+        enum:
+          - date
+          - name
+          - anilist_id
+        default: date
+        example: "date"
+    direction:
+      name: direction
+      in: query
+      required: false
+      description: Sort direction
+      schema:
+        type: string
+        enum:
+          - asc
+          - desc
+        default: desc
+        example: "desc"
+    usernamePrefix:
+      name: username_prefix
+      in: query
+      required: false
+      description: Prefix to search for in both anilist_username and discord_username (fuzzy/prefix match for autocomplete)
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 50
+        example: "waif"
+    userIdFilter:
+      name: id
+      in: query
+      required: false
+      description: User ID for exact match lookup
+      schema:
+        type: string
+        example: "1234567890"
+    discordUsernameFilter:
+      name: discord_username
+      in: query
+      required: false
+      description: Discord username for exact match lookup
+      schema:
+        type: string
+        example: "waifu_lover"
+    anilistUrlFilter:
+      name: anilist_url
+      in: query
+      required: false
+      description: Anilist URL for exact match lookup
+      schema:
+        type: string
+        format: uri
+        example: "https://anilist.co/user/animefan"
 
   examples:
     byAnilist:
@@ -158,7 +365,7 @@ components:
       value:
         id: "1234567890"
     profileSuccess:
-      summary: Example profile response
+      summary: Example profile response (deprecated)
       value:
         id: "1234567890"
         quote: "Dreams are free, but hard work is expensive."
@@ -170,21 +377,63 @@ components:
           date: "2024-01-15T10:30:00Z"
           name: "Rem"
           image: "https://example.com/rem.jpg"
-          type: "anime"
+          type: "ROLL"
           id: 42
         waifus:
           - date: "2024-01-15T10:30:00Z"
             name: "Rem"
             image: "https://example.com/rem.jpg"
-            type: "anime"
+            type: "ROLL"
             id: 42
           - date: "2024-01-20T14:45:00Z"
             name: "Nezuko"
             image: "https://example.com/nezuko.jpg"
-            type: "anime"
+            type: "CLAIM"
             id: 55
+    userSuccess:
+      summary: Example user response
+      value:
+        name: "users/1234567890"
+        id: "1234567890"
+        quote: "Dreams are free, but hard work is expensive."
+        tokens: 100
+        anilist_url: "https://anilist.co/user/animefan"
+        discord_username: "waifu_lover"
+        discord_avatar: "https://cdn.discordapp.com/avatars/1234567890/abc123.png"
+    collectionSuccess:
+      summary: Example collection response
+      value:
+        characters:
+          - date: "2024-01-15T10:30:00Z"
+            name: "Rem"
+            image: "https://example.com/rem.jpg"
+            type: "ROLL"
+            id: 42
+          - date: "2024-01-20T14:45:00Z"
+            name: "Nezuko"
+            image: "https://example.com/nezuko.jpg"
+            type: "CLAIM"
+            id: 55
+        total: 2
+        next_page_token: "eyJwYWdlIjoyfQ=="
     wishlistSuccess:
       summary: Example wishlist response
+      value:
+        characters:
+          - date: "2024-01-15T10:30:00Z"
+            name: "Rem"
+            image: "https://example.com/rem.jpg"
+            type: "ROLL"
+            id: 42
+          - date: "2024-01-20T14:45:00Z"
+            name: "Nezuko"
+            image: "https://example.com/nezuko.jpg"
+            type: "CLAIM"
+            id: 55
+        total: 2
+        next_page_token: "eyJwYWdlIjoyfQ=="
+    wishlistSuccessLegacy:
+      summary: Example wishlist response (deprecated)
       value:
         characters:
           - date: "2024-01-15T10:30:00Z"
@@ -198,10 +447,48 @@ components:
             type: "anime"
             id: 55
         total: 2
+    userListSuccess:
+      summary: Example user list response
+      value:
+        users:
+          - name: "users/1234567890"
+            id: "1234567890"
+            quote: "Dreams are free, but hard work is expensive."
+            tokens: 100
+            anilist_url: "https://anilist.co/user/animefan"
+            discord_username: "waifu_lover"
+            discord_avatar: "https://cdn.discordapp.com/avatars/1234567890/abc123.png"
+          - name: "users/9876543210"
+            id: "9876543210"
+            quote: "I love coding!"
+            tokens: 250
+            anilist_url: "https://anilist.co/user/coder"
+            discord_username: "code_wizard"
+            discord_avatar: "https://cdn.discordapp.com/avatars/9876543210/def456.png"
+        total: 2
+        next_page_token: "eyJwYWdlIjoyfQ=="
 
   responses:
+    user:
+      description: User successfully retrieved
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/User"
+          examples:
+            success:
+              $ref: "#/components/examples/userSuccess"
+    collection:
+      description: Collection successfully retrieved
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Collection"
+          examples:
+            success:
+              $ref: "#/components/examples/collectionSuccess"
     userProfile:
-      description: User profile successfully retrieved
+      description: User profile successfully retrieved (deprecated)
       content:
         application/json:
           schema:
@@ -225,10 +512,28 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/WishlistResponse"
+            $ref: "#/components/schemas/Wishlist"
           examples:
             success:
               $ref: "#/components/examples/wishlistSuccess"
+    wishlistLegacy:
+      description: Wishlist successfully retrieved (deprecated)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/WishlistResponse"
+          examples:
+            success:
+              $ref: "#/components/examples/wishlistSuccessLegacy"
+    userList:
+      description: User list successfully retrieved
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UserList"
+          examples:
+            success:
+              $ref: "#/components/examples/userListSuccess"
     invalidID:
       description: Invalid user ID provided
       content:
@@ -259,11 +564,51 @@ components:
             message: "anilist or discord query param is required"
             error_code: "missing_query_param"
             status_code: 400
+    invalidQueryParam:
+      description: Invalid query parameter provided
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            message: "invalid query parameter: username_prefix must be at least 1 character"
+            error_code: "invalid_query_param"
+            status_code: 400
+    unauthorized:
+      description: Unauthorized - authentication required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            message: "authentication required"
+            error_code: "unauthorized"
+            status_code: 401
+    forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            message: "insufficient permissions"
+            error_code: "forbidden"
+            status_code: 403
+    internalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            message: "internal server error"
+            error_code: "internal_error"
+            status_code: 500
 
   schemas:
     Profile:
       type: object
-      description: Complete user profile including user information, collection, and favorite character
+      description: Complete user profile including user information, collection, and favorite character (deprecated)
       required:
         - id
         - discord_username
@@ -305,6 +650,111 @@ components:
           minItems: 0
           items:
             $ref: "#/components/schemas/Character"
+
+    User:
+      type: object
+      description: User resource containing profile metadata
+      required:
+        - name
+        - id
+        - discord_username
+        - tokens
+      properties:
+        name:
+          type: string
+          description: Resource name
+          example: "users/1234567890"
+        id:
+          type: string
+          description: User ID
+          example: "1234567890"
+        quote:
+          type: string
+          description: User's personal quote
+          example: "Dreams are free, but hard work is expensive."
+        tokens:
+          type: integer
+          format: int32
+          description: User's token balance
+          example: 100
+        anilist_url:
+          type: string
+          description: Anilist user URL
+          example: "https://anilist.co/user/animefan"
+        discord_username:
+          type: string
+          description: Discord username
+          example: "waifu_lover"
+        discord_avatar:
+          type: string
+          description: Discord avatar URL
+          example: "https://cdn.discordapp.com/avatars/1234567890/abc123.png"
+
+    UserList:
+      type: object
+      description: List of users with pagination info
+      required:
+        - users
+        - total
+      properties:
+        users:
+          type: array
+          description: List of users matching the query
+          minItems: 0
+          items:
+            $ref: "#/components/schemas/User"
+        total:
+          type: integer
+          description: Total number of users matching the query
+          example: 42
+        next_page_token:
+          type: string
+          description: Token for retrieving the next page of results. Omitted if no more pages.
+          example: "eyJwYWdlIjoyfQ=="
+
+    Collection:
+      type: object
+      description: User's character collection
+      required:
+        - characters
+        - total
+      properties:
+        characters:
+          type: array
+          description: List of characters in the collection
+          minItems: 0
+          items:
+            $ref: "#/components/schemas/Character"
+        total:
+          type: integer
+          description: Total number of characters in the collection across all pages
+          example: 2
+        next_page_token:
+          type: string
+          description: Token for retrieving the next page of results
+          example: "eyJwYWdlIjoyfQ=="
+
+    Wishlist:
+      type: object
+      description: User's wishlist of characters
+      required:
+        - characters
+        - total
+      properties:
+        characters:
+          type: array
+          description: List of characters in wishlist
+          minItems: 0
+          items:
+            $ref: "#/components/schemas/Character"
+        total:
+          type: integer
+          description: Total number of characters in the wishlist across all pages
+          example: 2
+        next_page_token:
+          type: string
+          description: Token for retrieving the next page of results
+          example: "eyJwYWdlIjoyfQ=="
 
     Character:
       type: object

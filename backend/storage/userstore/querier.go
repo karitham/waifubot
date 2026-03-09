@@ -9,10 +9,12 @@ import (
 )
 
 type Querier interface {
+	CountFiltered(ctx context.Context, arg CountFilteredParams) (int64, error)
 	Create(ctx context.Context, userID uint64) error
 	Get(ctx context.Context, userID uint64) (User, error)
 	GetByAnilist(ctx context.Context, lower string) (User, error)
 	GetByDiscordUsername(ctx context.Context, discordUsername string) (User, error)
+	List(ctx context.Context, arg ListParams) ([]User, error)
 	UpdateAnilistURL(ctx context.Context, arg UpdateAnilistURLParams) error
 	UpdateDate(ctx context.Context, arg UpdateDateParams) error
 	UpdateDiscordInfo(ctx context.Context, arg UpdateDiscordInfoParams) error

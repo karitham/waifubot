@@ -1,15 +1,7 @@
 package collection
 
-//go:generate mockgen -source=profile.go -destination=profile_mock.go -package=collection -mock_names=Store=MockProfileStore,AnimeService=MockAnimeService
-//go:generate mockgen -source=../storage/collectionstore/querier.go -destination=collectionstore_mock.go -package=collection -mock_names=Querier=MockCollectionQuerier
-//go:generate mockgen -source=../storage/userstore/querier.go -destination=userstore_mock.go -package=collection -mock_names=Querier=MockUserQuerier
-//go:generate mockgen -source=../storage/wishliststore/querier.go -destination=wishliststore_mock.go -package=collection -mock_names=Querier=MockWishlistQuerier
-//go:generate mockgen -source=../storage/guildstore/querier.go -destination=guildstore_mock.go -package=collection -mock_names=Querier=MockGuildQuerier
-//go:generate mockgen -source=../storage/commandstore/querier.go -destination=commandstore_mock.go -package=collection -mock_names=Querier=MockCommandQuerier
-
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"strings"
 	"time"
@@ -183,15 +175,15 @@ func SetFavorite(ctx context.Context, store Store, userID corde.Snowflake, charI
 func SetAnilistURL(ctx context.Context, store Store, userID corde.Snowflake, anilistURL string) error {
 	parsedURL, err := url.Parse(anilistURL)
 	if err != nil {
-		return fmt.Errorf("invalid URL")
+		return ErrInvalidURL
 	}
 
 	if parsedURL.Host != "anilist.co" {
-		return fmt.Errorf("invalid Anilist URL")
+		return ErrInvalidAnilistURL
 	}
 
 	if !strings.HasPrefix(parsedURL.Path, "/user/") {
-		return fmt.Errorf("invalid Anilist URL")
+		return ErrInvalidAnilistURL
 	}
 
 	return store.UserStore().UpdateAnilistURL(ctx, userstore.UpdateAnilistURLParams{
@@ -203,7 +195,7 @@ func SetAnilistURL(ctx context.Context, store Store, userID corde.Snowflake, ani
 // SetQuote sets a user's quote
 func SetQuote(ctx context.Context, store Store, userID corde.Snowflake, quote string) error {
 	if len(quote) > 1024 {
-		return fmt.Errorf("quote is too long")
+		return ErrQuoteTooLong
 	}
 
 	return store.UserStore().UpdateQuote(ctx, userstore.UpdateQuoteParams{

@@ -27,10 +27,7 @@ type DropdownSearchProps<T extends Option> = {
 };
 
 const defaultItemComponent = (props: SearchRootItemComponentProps<Option>) => (
-	<Search.Item
-		item={props.item}
-		class="search-item"
-	>
+	<Search.Item item={props.item} class="search-item">
 		<div class="flex flex-row items-center gap-4">
 			<Show when={props.item.rawValue.image} fallback={<div />}>
 				<img
@@ -45,10 +42,7 @@ const defaultItemComponent = (props: SearchRootItemComponentProps<Option>) => (
 );
 
 const defaultControl = (props: { children: JSX.Element }) => (
-	<Search.Control
-		aria-label="Search"
-		class="search-control"
-	>
+	<Search.Control aria-label="Search" class="search-control">
 		{props.children}
 	</Search.Control>
 );
@@ -88,10 +82,7 @@ export default function <T extends Option>(props: DropdownSearchProps<T>) {
 					placeholder={props.placeholder || "Search..."}
 				/>
 				{props.icon && (
-					<Search.Icon
-						class="search-icon"
-						onClick={props.onIconClick}
-					>
+					<Search.Icon class="search-icon" onClick={props.onIconClick}>
 						<props.icon />
 					</Search.Icon>
 				)}

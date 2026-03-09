@@ -12,7 +12,7 @@ import (
 // CharacterHolders retrieves users in a guild who own a specific character
 func CharacterHolders(ctx context.Context, store Store, guildID corde.Snowflake, charID int64) (string, []corde.Snowflake, error) {
 	if guildID == 0 {
-		return "", nil, fmt.Errorf("this command can only be used in servers")
+		return "", nil, ErrNotInGuild
 	}
 
 	charRow, err := store.CollectionStore().GetByID(ctx, charID)
@@ -26,7 +26,7 @@ func CharacterHolders(ctx context.Context, store Store, guildID corde.Snowflake,
 	}
 
 	if len(memberIDsInt) == 0 {
-		return "", nil, fmt.Errorf("guild members not indexed yet, please try again later")
+		return "", nil, ErrGuildNotIndexed
 	}
 
 	holderIDsInt, err := store.GuildStore().UsersOwningCharInGuild(ctx, guildstore.UsersOwningCharInGuildParams{CharacterID: charID, GuildID: uint64(guildID)})

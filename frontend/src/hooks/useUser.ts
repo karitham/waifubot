@@ -1,7 +1,7 @@
 import { createResource } from "solid-js";
-import { getUserV1 } from "../api/generated";
+import { getUser } from "../api/generated";
 
 export const useUser = (id: string) => {
-	const [user] = createResource(id, (id) => getUserV1(id));
+	const [user] = createResource(id, (id) => getUser(id));
 	return user;
 };

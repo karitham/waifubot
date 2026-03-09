@@ -14,15 +14,15 @@ import (
 	"github.com/ogen-go/ogen/validate"
 )
 
-// FindUserParams is parameters of findUser operation.
-type FindUserParams struct {
+// FindUserLegacyParams is parameters of findUserLegacy operation.
+type FindUserLegacyParams struct {
 	// Anilist user URL (e.g., "https://anilist.co/user/animefan").
 	Anilist OptString `json:",omitempty,omitzero"`
 	// Discord username.
 	Discord OptString `json:",omitempty,omitzero"`
 }
 
-func unpackFindUserParams(packed middleware.Parameters) (params FindUserParams) {
+func unpackFindUserLegacyParams(packed middleware.Parameters) (params FindUserLegacyParams) {
 	{
 		key := middleware.ParameterKey{
 			Name: "anilist",
@@ -44,124 +44,7 @@ func unpackFindUserParams(packed middleware.Parameters) (params FindUserParams) 
 	return params
 }
 
-func decodeFindUserParams(args [0]string, argsEscaped bool, r *http.Request) (params FindUserParams, _ error) {
-	q := uri.NewQueryDecoder(r.URL.Query())
-	// Decode query: anilist.
-	if err := func() error {
-		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "anilist",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.HasParam(cfg); err == nil {
-			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotAnilistVal string
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToString(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotAnilistVal = c
-					return nil
-				}(); err != nil {
-					return err
-				}
-				params.Anilist.SetTo(paramsDotAnilistVal)
-				return nil
-			}); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "anilist",
-			In:   "query",
-			Err:  err,
-		}
-	}
-	// Decode query: discord.
-	if err := func() error {
-		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "discord",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.HasParam(cfg); err == nil {
-			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotDiscordVal string
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToString(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotDiscordVal = c
-					return nil
-				}(); err != nil {
-					return err
-				}
-				params.Discord.SetTo(paramsDotDiscordVal)
-				return nil
-			}); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "discord",
-			In:   "query",
-			Err:  err,
-		}
-	}
-	return params, nil
-}
-
-// FindUserV1Params is parameters of findUserV1 operation.
-type FindUserV1Params struct {
-	// Anilist user URL (e.g., "https://anilist.co/user/animefan").
-	Anilist OptString `json:",omitempty,omitzero"`
-	// Discord username.
-	Discord OptString `json:",omitempty,omitzero"`
-}
-
-func unpackFindUserV1Params(packed middleware.Parameters) (params FindUserV1Params) {
-	{
-		key := middleware.ParameterKey{
-			Name: "anilist",
-			In:   "query",
-		}
-		if v, ok := packed[key]; ok {
-			params.Anilist = v.(OptString)
-		}
-	}
-	{
-		key := middleware.ParameterKey{
-			Name: "discord",
-			In:   "query",
-		}
-		if v, ok := packed[key]; ok {
-			params.Discord = v.(OptString)
-		}
-	}
-	return params
-}
-
-func decodeFindUserV1Params(args [0]string, argsEscaped bool, r *http.Request) (params FindUserV1Params, _ error) {
+func decodeFindUserLegacyParams(args [0]string, argsEscaped bool, r *http.Request) (params FindUserLegacyParams, _ error) {
 	q := uri.NewQueryDecoder(r.URL.Query())
 	// Decode query: anilist.
 	if err := func() error {
@@ -314,13 +197,437 @@ func decodeGetUserParams(args [1]string, argsEscaped bool, r *http.Request) (par
 	return params, nil
 }
 
-// GetUserV1Params is parameters of getUserV1 operation.
-type GetUserV1Params struct {
+// GetUserCollectionParams is parameters of getUserCollection operation.
+type GetUserCollectionParams struct {
+	// User ID (can be passed as string or numeric).
+	UserID string
+	// Maximum number of items to return.
+	PageSize OptInt `json:",omitempty,omitzero"`
+	// Opaque pagination token from previous next_page_token. Omit for first page.
+	PageToken OptString `json:",omitempty,omitzero"`
+	// Search query to filter characters by name or Anilist ID prefix.
+	Q OptString `json:",omitempty,omitzero"`
+	// Field to order results by.
+	OrderBy OptOrderBy `json:",omitempty,omitzero"`
+	// Sort direction.
+	Direction OptDirection `json:",omitempty,omitzero"`
+}
+
+func unpackGetUserCollectionParams(packed middleware.Parameters) (params GetUserCollectionParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "userID",
+			In:   "path",
+		}
+		params.UserID = packed[key].(string)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "pageSize",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.PageSize = v.(OptInt)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "pageToken",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.PageToken = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "q",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Q = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "order_by",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.OrderBy = v.(OptOrderBy)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "direction",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Direction = v.(OptDirection)
+		}
+	}
+	return params
+}
+
+func decodeGetUserCollectionParams(args [1]string, argsEscaped bool, r *http.Request) (params GetUserCollectionParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	// Decode path: userID.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "userID",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.UserID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "userID",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Set default value for query: pageSize.
+	{
+		val := int(20)
+		params.PageSize.SetTo(val)
+	}
+	// Decode query: pageSize.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "pageSize",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotPageSizeVal int
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToInt(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotPageSizeVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.PageSize.SetTo(paramsDotPageSizeVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.PageSize.Get(); ok {
+					if err := func() error {
+						if err := (validate.Int{
+							MinSet:        true,
+							Min:           1,
+							MaxSet:        true,
+							Max:           100,
+							MinExclusive:  false,
+							MaxExclusive:  false,
+							MultipleOfSet: false,
+							MultipleOf:    0,
+							Pattern:       nil,
+						}).Validate(int64(value)); err != nil {
+							return errors.Wrap(err, "int")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "pageSize",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: pageToken.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "pageToken",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotPageTokenVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotPageTokenVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.PageToken.SetTo(paramsDotPageTokenVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "pageToken",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: q.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "q",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotQVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotQVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Q.SetTo(paramsDotQVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Q.Get(); ok {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     1,
+							MinLengthSet:  true,
+							MaxLength:     100,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         nil,
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "q",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Set default value for query: order_by.
+	{
+		val := OrderBy("date")
+		params.OrderBy.SetTo(val)
+	}
+	// Decode query: order_by.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "order_by",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotOrderByVal OrderBy
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotOrderByVal = OrderBy(c)
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.OrderBy.SetTo(paramsDotOrderByVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.OrderBy.Get(); ok {
+					if err := func() error {
+						if err := value.Validate(); err != nil {
+							return err
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "order_by",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Set default value for query: direction.
+	{
+		val := Direction("desc")
+		params.Direction.SetTo(val)
+	}
+	// Decode query: direction.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "direction",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotDirectionVal Direction
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotDirectionVal = Direction(c)
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Direction.SetTo(paramsDotDirectionVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Direction.Get(); ok {
+					if err := func() error {
+						if err := value.Validate(); err != nil {
+							return err
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "direction",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// GetUserFavoriteParams is parameters of getUserFavorite operation.
+type GetUserFavoriteParams struct {
 	// User ID (can be passed as string or numeric).
 	UserID string
 }
 
-func unpackGetUserV1Params(packed middleware.Parameters) (params GetUserV1Params) {
+func unpackGetUserFavoriteParams(packed middleware.Parameters) (params GetUserFavoriteParams) {
 	{
 		key := middleware.ParameterKey{
 			Name: "userID",
@@ -331,7 +638,7 @@ func unpackGetUserV1Params(packed middleware.Parameters) (params GetUserV1Params
 	return params
 }
 
-func decodeGetUserV1Params(args [1]string, argsEscaped bool, r *http.Request) (params GetUserV1Params, _ error) {
+func decodeGetUserFavoriteParams(args [1]string, argsEscaped bool, r *http.Request) (params GetUserFavoriteParams, _ error) {
 	// Decode path: userID.
 	if err := func() error {
 		param := args[0]
@@ -380,13 +687,13 @@ func decodeGetUserV1Params(args [1]string, argsEscaped bool, r *http.Request) (p
 	return params, nil
 }
 
-// GetWishlistParams is parameters of getWishlist operation.
-type GetWishlistParams struct {
+// GetUserLegacyParams is parameters of getUserLegacy operation.
+type GetUserLegacyParams struct {
 	// User ID (can be passed as string or numeric).
 	UserID string
 }
 
-func unpackGetWishlistParams(packed middleware.Parameters) (params GetWishlistParams) {
+func unpackGetUserLegacyParams(packed middleware.Parameters) (params GetUserLegacyParams) {
 	{
 		key := middleware.ParameterKey{
 			Name: "userID",
@@ -397,7 +704,7 @@ func unpackGetWishlistParams(packed middleware.Parameters) (params GetWishlistPa
 	return params
 }
 
-func decodeGetWishlistParams(args [1]string, argsEscaped bool, r *http.Request) (params GetWishlistParams, _ error) {
+func decodeGetUserLegacyParams(args [1]string, argsEscaped bool, r *http.Request) (params GetUserLegacyParams, _ error) {
 	// Decode path: userID.
 	if err := func() error {
 		param := args[0]
@@ -440,6 +747,590 @@ func decodeGetWishlistParams(args [1]string, argsEscaped bool, r *http.Request) 
 		return params, &ogenerrors.DecodeParamError{
 			Name: "userID",
 			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// GetUserWishlistParams is parameters of getUserWishlist operation.
+type GetUserWishlistParams struct {
+	// User ID (can be passed as string or numeric).
+	UserID string
+	// Maximum number of items to return.
+	PageSize OptInt `json:",omitempty,omitzero"`
+	// Opaque pagination token from previous next_page_token. Omit for first page.
+	PageToken OptString `json:",omitempty,omitzero"`
+}
+
+func unpackGetUserWishlistParams(packed middleware.Parameters) (params GetUserWishlistParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "userID",
+			In:   "path",
+		}
+		params.UserID = packed[key].(string)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "pageSize",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.PageSize = v.(OptInt)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "pageToken",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.PageToken = v.(OptString)
+		}
+	}
+	return params
+}
+
+func decodeGetUserWishlistParams(args [1]string, argsEscaped bool, r *http.Request) (params GetUserWishlistParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	// Decode path: userID.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "userID",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.UserID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "userID",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Set default value for query: pageSize.
+	{
+		val := int(20)
+		params.PageSize.SetTo(val)
+	}
+	// Decode query: pageSize.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "pageSize",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotPageSizeVal int
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToInt(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotPageSizeVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.PageSize.SetTo(paramsDotPageSizeVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.PageSize.Get(); ok {
+					if err := func() error {
+						if err := (validate.Int{
+							MinSet:        true,
+							Min:           1,
+							MaxSet:        true,
+							Max:           100,
+							MinExclusive:  false,
+							MaxExclusive:  false,
+							MultipleOfSet: false,
+							MultipleOf:    0,
+							Pattern:       nil,
+						}).Validate(int64(value)); err != nil {
+							return errors.Wrap(err, "int")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "pageSize",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: pageToken.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "pageToken",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotPageTokenVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotPageTokenVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.PageToken.SetTo(paramsDotPageTokenVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "pageToken",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// ListUsersParams is parameters of listUsers operation.
+type ListUsersParams struct {
+	// Prefix to search for in both anilist_username and discord_username (fuzzy/prefix match for
+	// autocomplete).
+	UsernamePrefix OptString `json:",omitempty,omitzero"`
+	// User ID for exact match lookup.
+	ID OptString `json:",omitempty,omitzero"`
+	// Discord username for exact match lookup.
+	DiscordUsername OptString `json:",omitempty,omitzero"`
+	// Anilist URL for exact match lookup.
+	AnilistURL OptURI `json:",omitempty,omitzero"`
+	// Maximum number of items to return.
+	PageSize OptInt `json:",omitempty,omitzero"`
+	// Opaque pagination token from previous next_page_token. Omit for first page.
+	PageToken OptString `json:",omitempty,omitzero"`
+}
+
+func unpackListUsersParams(packed middleware.Parameters) (params ListUsersParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "username_prefix",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.UsernamePrefix = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "id",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.ID = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "discord_username",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.DiscordUsername = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "anilist_url",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.AnilistURL = v.(OptURI)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "pageSize",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.PageSize = v.(OptInt)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "pageToken",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.PageToken = v.(OptString)
+		}
+	}
+	return params
+}
+
+func decodeListUsersParams(args [0]string, argsEscaped bool, r *http.Request) (params ListUsersParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	// Decode query: username_prefix.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "username_prefix",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotUsernamePrefixVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotUsernamePrefixVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.UsernamePrefix.SetTo(paramsDotUsernamePrefixVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.UsernamePrefix.Get(); ok {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     1,
+							MinLengthSet:  true,
+							MaxLength:     50,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         nil,
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "username_prefix",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: id.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "id",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotIDVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.ID.SetTo(paramsDotIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "id",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: discord_username.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "discord_username",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotDiscordUsernameVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotDiscordUsernameVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.DiscordUsername.SetTo(paramsDotDiscordUsernameVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "discord_username",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: anilist_url.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "anilist_url",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotAnilistURLVal url.URL
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToURL(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotAnilistURLVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.AnilistURL.SetTo(paramsDotAnilistURLVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "anilist_url",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Set default value for query: pageSize.
+	{
+		val := int(20)
+		params.PageSize.SetTo(val)
+	}
+	// Decode query: pageSize.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "pageSize",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotPageSizeVal int
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToInt(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotPageSizeVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.PageSize.SetTo(paramsDotPageSizeVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.PageSize.Get(); ok {
+					if err := func() error {
+						if err := (validate.Int{
+							MinSet:        true,
+							Min:           1,
+							MaxSet:        true,
+							Max:           100,
+							MinExclusive:  false,
+							MaxExclusive:  false,
+							MultipleOfSet: false,
+							MultipleOf:    0,
+							Pattern:       nil,
+						}).Validate(int64(value)); err != nil {
+							return errors.Wrap(err, "int")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "pageSize",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: pageToken.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "pageToken",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotPageTokenVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotPageTokenVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.PageToken.SetTo(paramsDotPageTokenVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "pageToken",
+			In:   "query",
 			Err:  err,
 		}
 	}

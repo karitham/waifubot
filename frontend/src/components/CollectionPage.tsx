@@ -1,17 +1,19 @@
 import { useSearchParams } from "@solidjs/router";
-import { Show } from "solid-js";
-import type { Character, Profile } from "../api/generated";
+import { Show, createMemo } from "solid-js";
+import type { Character, User } from "../api/generated";
+import { getUserCollection } from "../api/generated";
 import CollectionBody from "../components/CollectionBody";
 import CollectionNav from "../components/CollectionNav";
 import PageLayout from "../components/layout/Layout";
 import ProfileBar from "../components/profile/Profile";
 import { useMediaCharacters } from "../hooks/useMediaCharacters";
 import { usePageFilters } from "../hooks/usePageFilters";
+import { useInfiniteCollection } from "../hooks/usePaginatedCollection";
 import { getSearchParams } from "../utils";
 
 interface CollectionPageProps {
-	user: Profile | undefined;
-	characters: Character[] | undefined;
+	user: User | undefined;
+	favorite: Character | undefined;
 	allowEmpty: boolean;
 	profileTitle: string;
 	navbarLink: {
@@ -26,8 +28,6 @@ export default (props: CollectionPageProps) => {
 	const searchParams = () => getSearchParams(sp);
 
 	const {
-		showCount,
-		setShowCount,
 		compareIds,
 		charSort,
 		setCharSort,
@@ -43,23 +43,38 @@ export default (props: CollectionPageProps) => {
 	const [mediaCharacters, { mutate: setMediaCharacters }] =
 		useMediaCharacters(media);
 
+	// Use infinite scroll pagination
+	const userId = () => props.user?.id || "";
+	const {
+		characters,
+		isLoading,
+		isFetchingNextPage,
+		hasNextPage,
+		setTriggerRef,
+	} = useInfiniteCollection({
+		userId,
+		pageSize: 50,
+		sort: () => charSort().field,
+		direction: () => charSort().direction,
+		search: charSearch,
+		fetcher: getUserCollection,
+	});
+
 	return (
 		<Show
-			when={!!props.user && (props.allowEmpty || !!props.characters)}
+			when={!!props.user && (props.allowEmpty || true)}
 			fallback={
 				<div class="p-8 text-center">
 					{!props.user
 						? "User not found"
-						: !props.characters
-							? `${props.profileTitle} not found`
-							: "Unknown error"}
+						: `${props.profileTitle} not found`}
 				</div>
 			}
 		>
 			<PageLayout
 				profile={
 					<ProfileBar
-						favorite={props.user.favorite}
+						favorite={props.favorite}
 						about={props.user.quote}
 						user={props.user.id}
 						anilistURL={props.user.anilist_url}
@@ -75,18 +90,16 @@ export default (props: CollectionPageProps) => {
 				}
 				body={
 					<CollectionBody
-						characters={props.characters}
+						characters={characters()}
 						mediaCharacters={mediaCharacters()}
 						compareUsers={compareUsersResource()}
 						users={[props.user, ...(compareUsersResource() || [])].filter(
-							Boolean,
+							(u): u is User => Boolean(u),
 						)}
 						charSearch={charSearch()}
-						showCount={showCount()}
 						charSort={charSort()}
 						onCharSearchChange={setCharSearch}
 						onCharSortChange={setCharSort}
-						onShowCountChange={setShowCount}
 						onMediaChange={(m) => {
 							setMedia(m);
 							if (!m) setMediaCharacters(null);
@@ -95,6 +108,10 @@ export default (props: CollectionPageProps) => {
 						onCompareAdd={onCompareAdd}
 						onCompareRemove={onCompareRemove}
 						compareIds={compareIds()}
+						setTriggerRef={setTriggerRef}
+						isLoading={isLoading()}
+						isFetchingNextPage={isFetchingNextPage()}
+						hasNextPage={hasNextPage()}
 					/>
 				}
 			/>

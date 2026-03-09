@@ -1,29 +1,30 @@
 import type { Setter } from "solid-js";
-import type { Character, Profile } from "../api/generated";
+import type { Character, User } from "../api/generated";
 import CharGrid from "../components/character/CharGrid";
 import FilterBar from "../components/filters/FilterBar";
 import type { Option } from "../components/filters/FilterMedia";
-import { selectOptions, sortOptions } from "../hooks/usePageFilters";
-
-type SortFn = { label: string; value: (a: Character, b: Character) => number };
-type SelectOption = { value: number; label: string };
+import type { SortOption, Direction } from "../hooks/usePaginatedCollection";
+import type { SortValue, CharSortProps } from "../components/filters/Sort";
 
 interface CollectionBodyProps {
 	characters: Character[] | undefined;
 	mediaCharacters: Character[] | undefined;
-	compareUsers: Profile[] | undefined;
-	users: Profile[];
+	compareUsers: User[] | undefined;
+	users: User[];
 	charSearch: string;
-	showCount: SelectOption;
-	charSort: SortFn;
+	charSort: SortValue;
 	onCharSearchChange: (value: string) => void;
-	onCharSortChange: Setter<SortFn>;
-	onShowCountChange: (value: SelectOption) => void;
+	onCharSortChange: CharSortProps["onChange"];
 	onMediaChange: (media: Option | null) => void;
 	media: Option | null;
 	onCompareAdd: (input: string) => Promise<void>;
 	onCompareRemove: (id: string) => void;
 	compareIds: string[];
+	// Infinite scroll props
+	setTriggerRef: (el: HTMLElement | null) => void;
+	isLoading?: boolean;
+	isFetchingNextPage?: boolean;
+	hasNextPage?: boolean;
 }
 
 export default (props: CollectionBodyProps) => (
@@ -35,13 +36,7 @@ export default (props: CollectionBodyProps) => (
 				}}
 				charSort={{
 					onChange: props.onCharSortChange,
-					options: sortOptions,
 					value: props.charSort,
-				}}
-				pagination={{
-					options: selectOptions,
-					value: props.showCount,
-					onChange: props.onShowCountChange,
 				}}
 				mediaFilter={{
 					onChange: props.onMediaChange,
@@ -58,13 +53,28 @@ export default (props: CollectionBodyProps) => (
 		<div class="content-width pt-0 p-8">
 			<CharGrid
 				charSearch={props.charSearch}
-				showCount={props.showCount.value}
 				characters={props.characters || []}
 				mediaCharacters={props.mediaCharacters}
 				compareUsers={props.compareUsers || []}
 				users={props.users}
-				charSort={props.charSort.value}
+				charSort={props.charSort.field}
 			/>
+			
+			{/* Infinite scroll trigger element */}
+			<div 
+				ref={props.setTriggerRef}
+				class="h-10 w-full flex items-center justify-center mt-8"
+			>
+				{props.isFetchingNextPage && (
+					<div class="flex items-center gap-2 text-subtextA">
+						<div class="animate-spin h-5 w-5 border-2 border-mauve border-t-transparent rounded-full" />
+						<span>Loading more...</span>
+					</div>
+				)}
+				{!props.isFetchingNextPage && !props.hasNextPage && props.characters && props.characters.length > 0 && (
+					<span class="text-subtextA text-sm">No more characters</span>
+				)}
+			</div>
 		</div>
 	</div>
 );

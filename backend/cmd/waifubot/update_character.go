@@ -26,7 +26,7 @@ var UpdateCharacterCommand = &cli.Command{
 
 		s, err := storage.NewStore(c.Context, c.String(dbURLFlag.Name))
 		if err != nil {
-			return fmt.Errorf("error connecting to db %v", err)
+			return fmt.Errorf("error connecting to db: %w", err)
 		}
 
 		char, err := anilist.New(anilist.NoCache).Character(c.Context, c.Args().First())
@@ -42,7 +42,7 @@ var UpdateCharacterCommand = &cli.Command{
 			Name:  strings.Join(strings.Fields(char[0].Name), " "),
 			ID:    char[0].ID,
 		}); err != nil {
-			return fmt.Errorf("error updating db %v", err)
+			return fmt.Errorf("error updating db: %w", err)
 		}
 
 		return nil

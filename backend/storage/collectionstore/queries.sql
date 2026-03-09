@@ -14,6 +14,23 @@ WHERE
 ORDER BY
   col.acquired_at DESC;
 
+-- name: ListPaginated :many
+-- Dynamic query using squirrel query builder - called via ListPaginatedDynamic method
+-- This is a placeholder for sqlc generation, actual query built dynamically
+SELECT
+  c.id,
+  c.name,
+  c.image,
+  c.media_title,
+  col.source,
+  col.acquired_at AS date
+FROM
+  collection col
+  JOIN characters c ON col.character_id = c.id
+WHERE
+  col.user_id = $1
+LIMIT 1;
+
 -- name: ListIDs :many
 SELECT
   col.character_id AS id

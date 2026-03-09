@@ -1,11 +1,11 @@
 import { Search } from "@kobalte/core/search";
-import { createSignal, Show } from "solid-js";
-import type { Profile } from "../../api/generated";
+import { createSignal, Show, type JSX } from "solid-js";
+import type { User } from "../../api/generated";
 import AvatarStack from "../ui/AvatarStack";
 import DropdownSearch, { type Option } from "../ui/DropdownSearch";
 
 export type CompareUserProps = {
-	selectedUsers: Profile[];
+	selectedUsers: User[];
 	onAdd: (input: string) => void;
 	onRemove: (id: string) => void;
 };
@@ -67,10 +67,7 @@ export default (props: CompareUserProps) => {
 	const avatarWidth = () => 24 + (props.selectedUsers.length - 1) * 16;
 
 	const customControl = (controlProps: { children: JSX.Element }) => (
-		<Search.Control
-			aria-label="Users"
-			class="search-control relative"
-		>
+		<Search.Control aria-label="Users" class="search-control relative">
 			<div class="relative w-full">
 				{controlProps.children}
 				<div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-end pointer-events-none">

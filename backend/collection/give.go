@@ -24,7 +24,7 @@ func Give(ctx context.Context, store Store, from, to corde.Snowflake, charID int
 
 	_, err = store.CollectionStore().Get(ctx, collectionstore.GetParams{ID: charID, UserID: uint64(to)})
 	if err == nil {
-		return Character{}, fmt.Errorf("to user already owns char %d", charID)
+		return Character{}, ErrUserAlreadyOwnsCharacter
 	}
 
 	_, err = store.CollectionStore().Give(ctx, collectionstore.GiveParams{UserID: uint64(to), CharacterID: charID, UserID_2: uint64(from)})

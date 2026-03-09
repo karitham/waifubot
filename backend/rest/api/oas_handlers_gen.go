@@ -15,7 +15,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
-	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.39.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -33,24 +33,26 @@ func (c *codeRecorder) Unwrap() http.ResponseWriter {
 	return c.ResponseWriter
 }
 
-// handleFindUserRequest handles findUser operation.
+// handleFindUserLegacyRequest handles findUserLegacy operation.
 //
 // Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
 //
 // Deprecated: schema marks this operation as deprecated.
 //
 // GET /user/find
-func (s *Server) handleFindUserRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleFindUserLegacyRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("findUser"),
+		otelogen.OperationID("findUserLegacy"),
 		semconv.HTTPRequestMethodKey.String("GET"),
 		semconv.HTTPRouteKey.String("/user/find"),
 	}
+	// Add attributes from config.
+	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
 
 	// Start a span for this request.
-	ctx, span := s.cfg.Tracer.Start(r.Context(), FindUserOperation,
+	ctx, span := s.cfg.Tracer.Start(r.Context(), FindUserLegacyOperation,
 		trace.WithAttributes(otelAttrs...),
 		serverSpanKind,
 	)
@@ -105,11 +107,11 @@ func (s *Server) handleFindUserRequest(args [0]string, argsEscaped bool, w http.
 		}
 		err          error
 		opErrContext = ogenerrors.OperationContext{
-			Name: FindUserOperation,
-			ID:   "findUser",
+			Name: FindUserLegacyOperation,
+			ID:   "findUserLegacy",
 		}
 	)
-	params, err := decodeFindUserParams(args, argsEscaped, r)
+	params, err := decodeFindUserLegacyParams(args, argsEscaped, r)
 	if err != nil {
 		err = &ogenerrors.DecodeParamsError{
 			OperationContext: opErrContext,
@@ -122,13 +124,13 @@ func (s *Server) handleFindUserRequest(args [0]string, argsEscaped bool, w http.
 
 	var rawBody []byte
 
-	var response FindUserRes
+	var response FindUserLegacyRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
-			OperationName:    FindUserOperation,
+			OperationName:    FindUserLegacyOperation,
 			OperationSummary: "Find user by Anilist or Discord",
-			OperationID:      "findUser",
+			OperationID:      "findUserLegacy",
 			Body:             nil,
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
@@ -146,8 +148,8 @@ func (s *Server) handleFindUserRequest(args [0]string, argsEscaped bool, w http.
 
 		type (
 			Request  = struct{}
-			Params   = FindUserParams
-			Response = FindUserRes
+			Params   = FindUserLegacyParams
+			Response = FindUserLegacyRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -156,167 +158,33 @@ func (s *Server) handleFindUserRequest(args [0]string, argsEscaped bool, w http.
 		](
 			m,
 			mreq,
-			unpackFindUserParams,
+			unpackFindUserLegacyParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.FindUser(ctx, params)
+				response, err = s.h.FindUserLegacy(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.FindUser(ctx, params)
+		response, err = s.h.FindUserLegacy(ctx, params)
 	}
 	if err != nil {
-		defer recordError("Internal", err)
-		s.cfg.ErrorHandler(ctx, w, r, err)
-		return
-	}
-
-	if err := encodeFindUserResponse(response, w, span); err != nil {
-		defer recordError("EncodeResponse", err)
-		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
+		if errRes, ok := errors.Into[*InternalErrorStatusCode](err); ok {
+			if err := encodeErrorResponse(errRes, w, span); err != nil {
+				defer recordError("Internal", err)
+			}
+			return
+		}
+		if errors.Is(err, ht.ErrNotImplemented) {
 			s.cfg.ErrorHandler(ctx, w, r, err)
+			return
+		}
+		if err := encodeErrorResponse(s.h.NewError(ctx, err), w, span); err != nil {
+			defer recordError("Internal", err)
 		}
 		return
 	}
-}
 
-// handleFindUserV1Request handles findUserV1 operation.
-//
-// Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
-//
-// GET /api/v1/user/find
-func (s *Server) handleFindUserV1Request(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
-	statusWriter := &codeRecorder{ResponseWriter: w}
-	w = statusWriter
-	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("findUserV1"),
-		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/api/v1/user/find"),
-	}
-
-	// Start a span for this request.
-	ctx, span := s.cfg.Tracer.Start(r.Context(), FindUserV1Operation,
-		trace.WithAttributes(otelAttrs...),
-		serverSpanKind,
-	)
-	defer span.End()
-
-	// Add Labeler to context.
-	labeler := &Labeler{attrs: otelAttrs}
-	ctx = contextWithLabeler(ctx, labeler)
-
-	// Run stopwatch.
-	startTime := time.Now()
-	defer func() {
-		elapsedDuration := time.Since(startTime)
-
-		attrSet := labeler.AttributeSet()
-		attrs := attrSet.ToSlice()
-		code := statusWriter.status
-		if code != 0 {
-			codeAttr := semconv.HTTPResponseStatusCode(code)
-			attrs = append(attrs, codeAttr)
-			span.SetAttributes(codeAttr)
-		}
-		attrOpt := metric.WithAttributes(attrs...)
-
-		// Increment request counter.
-		s.requests.Add(ctx, 1, attrOpt)
-
-		// Use floating point division here for higher precision (instead of Millisecond method).
-		s.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), attrOpt)
-	}()
-
-	var (
-		recordError = func(stage string, err error) {
-			span.RecordError(err)
-
-			// https://opentelemetry.io/docs/specs/semconv/http/http-spans/#status
-			// Span Status MUST be left unset if HTTP status code was in the 1xx, 2xx or 3xx ranges,
-			// unless there was another error (e.g., network error receiving the response body; or 3xx codes with
-			// max redirects exceeded), in which case status MUST be set to Error.
-			code := statusWriter.status
-			if code < 100 || code >= 500 {
-				span.SetStatus(codes.Error, stage)
-			}
-
-			attrSet := labeler.AttributeSet()
-			attrs := attrSet.ToSlice()
-			if code != 0 {
-				attrs = append(attrs, semconv.HTTPResponseStatusCode(code))
-			}
-
-			s.errors.Add(ctx, 1, metric.WithAttributes(attrs...))
-		}
-		err          error
-		opErrContext = ogenerrors.OperationContext{
-			Name: FindUserV1Operation,
-			ID:   "findUserV1",
-		}
-	)
-	params, err := decodeFindUserV1Params(args, argsEscaped, r)
-	if err != nil {
-		err = &ogenerrors.DecodeParamsError{
-			OperationContext: opErrContext,
-			Err:              err,
-		}
-		defer recordError("DecodeParams", err)
-		s.cfg.ErrorHandler(ctx, w, r, err)
-		return
-	}
-
-	var rawBody []byte
-
-	var response FindUserV1Res
-	if m := s.cfg.Middleware; m != nil {
-		mreq := middleware.Request{
-			Context:          ctx,
-			OperationName:    FindUserV1Operation,
-			OperationSummary: "Find user by Anilist or Discord (v1)",
-			OperationID:      "findUserV1",
-			Body:             nil,
-			RawBody:          rawBody,
-			Params: middleware.Parameters{
-				{
-					Name: "anilist",
-					In:   "query",
-				}: params.Anilist,
-				{
-					Name: "discord",
-					In:   "query",
-				}: params.Discord,
-			},
-			Raw: r,
-		}
-
-		type (
-			Request  = struct{}
-			Params   = FindUserV1Params
-			Response = FindUserV1Res
-		)
-		response, err = middleware.HookMiddleware[
-			Request,
-			Params,
-			Response,
-		](
-			m,
-			mreq,
-			unpackFindUserV1Params,
-			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.FindUserV1(ctx, params)
-				return response, err
-			},
-		)
-	} else {
-		response, err = s.h.FindUserV1(ctx, params)
-	}
-	if err != nil {
-		defer recordError("Internal", err)
-		s.cfg.ErrorHandler(ctx, w, r, err)
-		return
-	}
-
-	if err := encodeFindUserV1Response(response, w, span); err != nil {
+	if err := encodeFindUserLegacyResponse(response, w, span); err != nil {
 		defer recordError("EncodeResponse", err)
 		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
 			s.cfg.ErrorHandler(ctx, w, r, err)
@@ -327,19 +195,19 @@ func (s *Server) handleFindUserV1Request(args [0]string, argsEscaped bool, w htt
 
 // handleGetUserRequest handles getUser operation.
 //
-// Retrieve a user's complete profile including user info, collection, and favorite character.
+// Retrieve a user's profile metadata.
 //
-// Deprecated: schema marks this operation as deprecated.
-//
-// GET /user/{userID}
+// GET /api/v1/users/{userID}
 func (s *Server) handleGetUserRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("getUser"),
 		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/user/{userID}"),
+		semconv.HTTPRouteKey.String("/api/v1/users/{userID}"),
 	}
+	// Add attributes from config.
+	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
 
 	// Start a span for this request.
 	ctx, span := s.cfg.Tracer.Start(r.Context(), GetUserOperation,
@@ -454,8 +322,19 @@ func (s *Server) handleGetUserRequest(args [1]string, argsEscaped bool, w http.R
 		response, err = s.h.GetUser(ctx, params)
 	}
 	if err != nil {
-		defer recordError("Internal", err)
-		s.cfg.ErrorHandler(ctx, w, r, err)
+		if errRes, ok := errors.Into[*InternalErrorStatusCode](err); ok {
+			if err := encodeErrorResponse(errRes, w, span); err != nil {
+				defer recordError("Internal", err)
+			}
+			return
+		}
+		if errors.Is(err, ht.ErrNotImplemented) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+			return
+		}
+		if err := encodeErrorResponse(s.h.NewError(ctx, err), w, span); err != nil {
+			defer recordError("Internal", err)
+		}
 		return
 	}
 
@@ -468,22 +347,26 @@ func (s *Server) handleGetUserRequest(args [1]string, argsEscaped bool, w http.R
 	}
 }
 
-// handleGetUserV1Request handles getUserV1 operation.
+// handleGetUserCollectionRequest handles getUserCollection operation.
 //
-// Retrieve a user's complete profile including user info, collection, and favorite character.
+// Retrieve a user's character collection with pagination and search.
+// Use `q` for free-text search (matches character name or ID).
+// Use `order_by` to change sort order (default: date_desc).
 //
-// GET /api/v1/user/{userID}
-func (s *Server) handleGetUserV1Request(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+// GET /api/v1/users/{userID}/collection
+func (s *Server) handleGetUserCollectionRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("getUserV1"),
+		otelogen.OperationID("getUserCollection"),
 		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/api/v1/user/{userID}"),
+		semconv.HTTPRouteKey.String("/api/v1/users/{userID}/collection"),
 	}
+	// Add attributes from config.
+	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
 
 	// Start a span for this request.
-	ctx, span := s.cfg.Tracer.Start(r.Context(), GetUserV1Operation,
+	ctx, span := s.cfg.Tracer.Start(r.Context(), GetUserCollectionOperation,
 		trace.WithAttributes(otelAttrs...),
 		serverSpanKind,
 	)
@@ -538,11 +421,11 @@ func (s *Server) handleGetUserV1Request(args [1]string, argsEscaped bool, w http
 		}
 		err          error
 		opErrContext = ogenerrors.OperationContext{
-			Name: GetUserV1Operation,
-			ID:   "getUserV1",
+			Name: GetUserCollectionOperation,
+			ID:   "getUserCollection",
 		}
 	)
-	params, err := decodeGetUserV1Params(args, argsEscaped, r)
+	params, err := decodeGetUserCollectionParams(args, argsEscaped, r)
 	if err != nil {
 		err = &ogenerrors.DecodeParamsError{
 			OperationContext: opErrContext,
@@ -555,13 +438,13 @@ func (s *Server) handleGetUserV1Request(args [1]string, argsEscaped bool, w http
 
 	var rawBody []byte
 
-	var response GetUserV1Res
+	var response GetUserCollectionRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
-			OperationName:    GetUserV1Operation,
-			OperationSummary: "Get user profile (v1)",
-			OperationID:      "getUserV1",
+			OperationName:    GetUserCollectionOperation,
+			OperationSummary: "Get user collection",
+			OperationID:      "getUserCollection",
 			Body:             nil,
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
@@ -569,14 +452,34 @@ func (s *Server) handleGetUserV1Request(args [1]string, argsEscaped bool, w http
 					Name: "userID",
 					In:   "path",
 				}: params.UserID,
+				{
+					Name: "pageSize",
+					In:   "query",
+				}: params.PageSize,
+				{
+					Name: "pageToken",
+					In:   "query",
+				}: params.PageToken,
+				{
+					Name: "q",
+					In:   "query",
+				}: params.Q,
+				{
+					Name: "order_by",
+					In:   "query",
+				}: params.OrderBy,
+				{
+					Name: "direction",
+					In:   "query",
+				}: params.Direction,
 			},
 			Raw: r,
 		}
 
 		type (
 			Request  = struct{}
-			Params   = GetUserV1Params
-			Response = GetUserV1Res
+			Params   = GetUserCollectionParams
+			Response = GetUserCollectionRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -585,22 +488,33 @@ func (s *Server) handleGetUserV1Request(args [1]string, argsEscaped bool, w http
 		](
 			m,
 			mreq,
-			unpackGetUserV1Params,
+			unpackGetUserCollectionParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.GetUserV1(ctx, params)
+				response, err = s.h.GetUserCollection(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.GetUserV1(ctx, params)
+		response, err = s.h.GetUserCollection(ctx, params)
 	}
 	if err != nil {
-		defer recordError("Internal", err)
-		s.cfg.ErrorHandler(ctx, w, r, err)
+		if errRes, ok := errors.Into[*InternalErrorStatusCode](err); ok {
+			if err := encodeErrorResponse(errRes, w, span); err != nil {
+				defer recordError("Internal", err)
+			}
+			return
+		}
+		if errors.Is(err, ht.ErrNotImplemented) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+			return
+		}
+		if err := encodeErrorResponse(s.h.NewError(ctx, err), w, span); err != nil {
+			defer recordError("Internal", err)
+		}
 		return
 	}
 
-	if err := encodeGetUserV1Response(response, w, span); err != nil {
+	if err := encodeGetUserCollectionResponse(response, w, span); err != nil {
 		defer recordError("EncodeResponse", err)
 		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
 			s.cfg.ErrorHandler(ctx, w, r, err)
@@ -609,22 +523,24 @@ func (s *Server) handleGetUserV1Request(args [1]string, argsEscaped bool, w http
 	}
 }
 
-// handleGetWishlistRequest handles getWishlist operation.
+// handleGetUserFavoriteRequest handles getUserFavorite operation.
 //
-// Retrieve a user's wishlist of characters.
+// Retrieve a user's favorite character.
 //
-// GET /api/v1/wishlist/{userID}
-func (s *Server) handleGetWishlistRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+// GET /api/v1/users/{userID}/favorite
+func (s *Server) handleGetUserFavoriteRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("getWishlist"),
+		otelogen.OperationID("getUserFavorite"),
 		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/api/v1/wishlist/{userID}"),
+		semconv.HTTPRouteKey.String("/api/v1/users/{userID}/favorite"),
 	}
+	// Add attributes from config.
+	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
 
 	// Start a span for this request.
-	ctx, span := s.cfg.Tracer.Start(r.Context(), GetWishlistOperation,
+	ctx, span := s.cfg.Tracer.Start(r.Context(), GetUserFavoriteOperation,
 		trace.WithAttributes(otelAttrs...),
 		serverSpanKind,
 	)
@@ -679,11 +595,11 @@ func (s *Server) handleGetWishlistRequest(args [1]string, argsEscaped bool, w ht
 		}
 		err          error
 		opErrContext = ogenerrors.OperationContext{
-			Name: GetWishlistOperation,
-			ID:   "getWishlist",
+			Name: GetUserFavoriteOperation,
+			ID:   "getUserFavorite",
 		}
 	)
-	params, err := decodeGetWishlistParams(args, argsEscaped, r)
+	params, err := decodeGetUserFavoriteParams(args, argsEscaped, r)
 	if err != nil {
 		err = &ogenerrors.DecodeParamsError{
 			OperationContext: opErrContext,
@@ -696,13 +612,13 @@ func (s *Server) handleGetWishlistRequest(args [1]string, argsEscaped bool, w ht
 
 	var rawBody []byte
 
-	var response GetWishlistRes
+	var response GetUserFavoriteRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
-			OperationName:    GetWishlistOperation,
-			OperationSummary: "Get user wishlist",
-			OperationID:      "getWishlist",
+			OperationName:    GetUserFavoriteOperation,
+			OperationSummary: "Get user favorite character",
+			OperationID:      "getUserFavorite",
 			Body:             nil,
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
@@ -716,8 +632,8 @@ func (s *Server) handleGetWishlistRequest(args [1]string, argsEscaped bool, w ht
 
 		type (
 			Request  = struct{}
-			Params   = GetWishlistParams
-			Response = GetWishlistRes
+			Params   = GetUserFavoriteParams
+			Response = GetUserFavoriteRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -726,22 +642,528 @@ func (s *Server) handleGetWishlistRequest(args [1]string, argsEscaped bool, w ht
 		](
 			m,
 			mreq,
-			unpackGetWishlistParams,
+			unpackGetUserFavoriteParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.GetWishlist(ctx, params)
+				response, err = s.h.GetUserFavorite(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.GetWishlist(ctx, params)
+		response, err = s.h.GetUserFavorite(ctx, params)
 	}
 	if err != nil {
-		defer recordError("Internal", err)
+		if errRes, ok := errors.Into[*InternalErrorStatusCode](err); ok {
+			if err := encodeErrorResponse(errRes, w, span); err != nil {
+				defer recordError("Internal", err)
+			}
+			return
+		}
+		if errors.Is(err, ht.ErrNotImplemented) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+			return
+		}
+		if err := encodeErrorResponse(s.h.NewError(ctx, err), w, span); err != nil {
+			defer recordError("Internal", err)
+		}
+		return
+	}
+
+	if err := encodeGetUserFavoriteResponse(response, w, span); err != nil {
+		defer recordError("EncodeResponse", err)
+		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+		}
+		return
+	}
+}
+
+// handleGetUserLegacyRequest handles getUserLegacy operation.
+//
+// Retrieve a user's complete profile including user info, collection, and favorite character.
+//
+// Deprecated: schema marks this operation as deprecated.
+//
+// GET /user/{userID}
+func (s *Server) handleGetUserLegacyRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+	statusWriter := &codeRecorder{ResponseWriter: w}
+	w = statusWriter
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("getUserLegacy"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.HTTPRouteKey.String("/user/{userID}"),
+	}
+	// Add attributes from config.
+	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
+
+	// Start a span for this request.
+	ctx, span := s.cfg.Tracer.Start(r.Context(), GetUserLegacyOperation,
+		trace.WithAttributes(otelAttrs...),
+		serverSpanKind,
+	)
+	defer span.End()
+
+	// Add Labeler to context.
+	labeler := &Labeler{attrs: otelAttrs}
+	ctx = contextWithLabeler(ctx, labeler)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		elapsedDuration := time.Since(startTime)
+
+		attrSet := labeler.AttributeSet()
+		attrs := attrSet.ToSlice()
+		code := statusWriter.status
+		if code != 0 {
+			codeAttr := semconv.HTTPResponseStatusCode(code)
+			attrs = append(attrs, codeAttr)
+			span.SetAttributes(codeAttr)
+		}
+		attrOpt := metric.WithAttributes(attrs...)
+
+		// Increment request counter.
+		s.requests.Add(ctx, 1, attrOpt)
+
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		s.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), attrOpt)
+	}()
+
+	var (
+		recordError = func(stage string, err error) {
+			span.RecordError(err)
+
+			// https://opentelemetry.io/docs/specs/semconv/http/http-spans/#status
+			// Span Status MUST be left unset if HTTP status code was in the 1xx, 2xx or 3xx ranges,
+			// unless there was another error (e.g., network error receiving the response body; or 3xx codes with
+			// max redirects exceeded), in which case status MUST be set to Error.
+			code := statusWriter.status
+			if code < 100 || code >= 500 {
+				span.SetStatus(codes.Error, stage)
+			}
+
+			attrSet := labeler.AttributeSet()
+			attrs := attrSet.ToSlice()
+			if code != 0 {
+				attrs = append(attrs, semconv.HTTPResponseStatusCode(code))
+			}
+
+			s.errors.Add(ctx, 1, metric.WithAttributes(attrs...))
+		}
+		err          error
+		opErrContext = ogenerrors.OperationContext{
+			Name: GetUserLegacyOperation,
+			ID:   "getUserLegacy",
+		}
+	)
+	params, err := decodeGetUserLegacyParams(args, argsEscaped, r)
+	if err != nil {
+		err = &ogenerrors.DecodeParamsError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeParams", err)
 		s.cfg.ErrorHandler(ctx, w, r, err)
 		return
 	}
 
-	if err := encodeGetWishlistResponse(response, w, span); err != nil {
+	var rawBody []byte
+
+	var response GetUserLegacyRes
+	if m := s.cfg.Middleware; m != nil {
+		mreq := middleware.Request{
+			Context:          ctx,
+			OperationName:    GetUserLegacyOperation,
+			OperationSummary: "Get user profile",
+			OperationID:      "getUserLegacy",
+			Body:             nil,
+			RawBody:          rawBody,
+			Params: middleware.Parameters{
+				{
+					Name: "userID",
+					In:   "path",
+				}: params.UserID,
+			},
+			Raw: r,
+		}
+
+		type (
+			Request  = struct{}
+			Params   = GetUserLegacyParams
+			Response = GetUserLegacyRes
+		)
+		response, err = middleware.HookMiddleware[
+			Request,
+			Params,
+			Response,
+		](
+			m,
+			mreq,
+			unpackGetUserLegacyParams,
+			func(ctx context.Context, request Request, params Params) (response Response, err error) {
+				response, err = s.h.GetUserLegacy(ctx, params)
+				return response, err
+			},
+		)
+	} else {
+		response, err = s.h.GetUserLegacy(ctx, params)
+	}
+	if err != nil {
+		if errRes, ok := errors.Into[*InternalErrorStatusCode](err); ok {
+			if err := encodeErrorResponse(errRes, w, span); err != nil {
+				defer recordError("Internal", err)
+			}
+			return
+		}
+		if errors.Is(err, ht.ErrNotImplemented) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+			return
+		}
+		if err := encodeErrorResponse(s.h.NewError(ctx, err), w, span); err != nil {
+			defer recordError("Internal", err)
+		}
+		return
+	}
+
+	if err := encodeGetUserLegacyResponse(response, w, span); err != nil {
+		defer recordError("EncodeResponse", err)
+		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+		}
+		return
+	}
+}
+
+// handleGetUserWishlistRequest handles getUserWishlist operation.
+//
+// Retrieve a user's wishlist of characters.
+//
+// GET /api/v1/users/{userID}/wishlist
+func (s *Server) handleGetUserWishlistRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+	statusWriter := &codeRecorder{ResponseWriter: w}
+	w = statusWriter
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("getUserWishlist"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.HTTPRouteKey.String("/api/v1/users/{userID}/wishlist"),
+	}
+	// Add attributes from config.
+	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
+
+	// Start a span for this request.
+	ctx, span := s.cfg.Tracer.Start(r.Context(), GetUserWishlistOperation,
+		trace.WithAttributes(otelAttrs...),
+		serverSpanKind,
+	)
+	defer span.End()
+
+	// Add Labeler to context.
+	labeler := &Labeler{attrs: otelAttrs}
+	ctx = contextWithLabeler(ctx, labeler)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		elapsedDuration := time.Since(startTime)
+
+		attrSet := labeler.AttributeSet()
+		attrs := attrSet.ToSlice()
+		code := statusWriter.status
+		if code != 0 {
+			codeAttr := semconv.HTTPResponseStatusCode(code)
+			attrs = append(attrs, codeAttr)
+			span.SetAttributes(codeAttr)
+		}
+		attrOpt := metric.WithAttributes(attrs...)
+
+		// Increment request counter.
+		s.requests.Add(ctx, 1, attrOpt)
+
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		s.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), attrOpt)
+	}()
+
+	var (
+		recordError = func(stage string, err error) {
+			span.RecordError(err)
+
+			// https://opentelemetry.io/docs/specs/semconv/http/http-spans/#status
+			// Span Status MUST be left unset if HTTP status code was in the 1xx, 2xx or 3xx ranges,
+			// unless there was another error (e.g., network error receiving the response body; or 3xx codes with
+			// max redirects exceeded), in which case status MUST be set to Error.
+			code := statusWriter.status
+			if code < 100 || code >= 500 {
+				span.SetStatus(codes.Error, stage)
+			}
+
+			attrSet := labeler.AttributeSet()
+			attrs := attrSet.ToSlice()
+			if code != 0 {
+				attrs = append(attrs, semconv.HTTPResponseStatusCode(code))
+			}
+
+			s.errors.Add(ctx, 1, metric.WithAttributes(attrs...))
+		}
+		err          error
+		opErrContext = ogenerrors.OperationContext{
+			Name: GetUserWishlistOperation,
+			ID:   "getUserWishlist",
+		}
+	)
+	params, err := decodeGetUserWishlistParams(args, argsEscaped, r)
+	if err != nil {
+		err = &ogenerrors.DecodeParamsError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeParams", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
+
+	var rawBody []byte
+
+	var response GetUserWishlistRes
+	if m := s.cfg.Middleware; m != nil {
+		mreq := middleware.Request{
+			Context:          ctx,
+			OperationName:    GetUserWishlistOperation,
+			OperationSummary: "Get user wishlist",
+			OperationID:      "getUserWishlist",
+			Body:             nil,
+			RawBody:          rawBody,
+			Params: middleware.Parameters{
+				{
+					Name: "userID",
+					In:   "path",
+				}: params.UserID,
+				{
+					Name: "pageSize",
+					In:   "query",
+				}: params.PageSize,
+				{
+					Name: "pageToken",
+					In:   "query",
+				}: params.PageToken,
+			},
+			Raw: r,
+		}
+
+		type (
+			Request  = struct{}
+			Params   = GetUserWishlistParams
+			Response = GetUserWishlistRes
+		)
+		response, err = middleware.HookMiddleware[
+			Request,
+			Params,
+			Response,
+		](
+			m,
+			mreq,
+			unpackGetUserWishlistParams,
+			func(ctx context.Context, request Request, params Params) (response Response, err error) {
+				response, err = s.h.GetUserWishlist(ctx, params)
+				return response, err
+			},
+		)
+	} else {
+		response, err = s.h.GetUserWishlist(ctx, params)
+	}
+	if err != nil {
+		if errRes, ok := errors.Into[*InternalErrorStatusCode](err); ok {
+			if err := encodeErrorResponse(errRes, w, span); err != nil {
+				defer recordError("Internal", err)
+			}
+			return
+		}
+		if errors.Is(err, ht.ErrNotImplemented) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+			return
+		}
+		if err := encodeErrorResponse(s.h.NewError(ctx, err), w, span); err != nil {
+			defer recordError("Internal", err)
+		}
+		return
+	}
+
+	if err := encodeGetUserWishlistResponse(response, w, span); err != nil {
+		defer recordError("EncodeResponse", err)
+		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+		}
+		return
+	}
+}
+
+// handleListUsersRequest handles listUsers operation.
+//
+// List users with optional filtering and search.
+// - Use `username_prefix` for fuzzy/prefix search (autocomplete)
+// - Use exact match params (`id`, `discord_username`, `anilist_url`) for precise lookups
+// - Multiple exact match params are ANDed together.
+//
+// GET /api/v1/users
+func (s *Server) handleListUsersRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+	statusWriter := &codeRecorder{ResponseWriter: w}
+	w = statusWriter
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("listUsers"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.HTTPRouteKey.String("/api/v1/users"),
+	}
+	// Add attributes from config.
+	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
+
+	// Start a span for this request.
+	ctx, span := s.cfg.Tracer.Start(r.Context(), ListUsersOperation,
+		trace.WithAttributes(otelAttrs...),
+		serverSpanKind,
+	)
+	defer span.End()
+
+	// Add Labeler to context.
+	labeler := &Labeler{attrs: otelAttrs}
+	ctx = contextWithLabeler(ctx, labeler)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		elapsedDuration := time.Since(startTime)
+
+		attrSet := labeler.AttributeSet()
+		attrs := attrSet.ToSlice()
+		code := statusWriter.status
+		if code != 0 {
+			codeAttr := semconv.HTTPResponseStatusCode(code)
+			attrs = append(attrs, codeAttr)
+			span.SetAttributes(codeAttr)
+		}
+		attrOpt := metric.WithAttributes(attrs...)
+
+		// Increment request counter.
+		s.requests.Add(ctx, 1, attrOpt)
+
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		s.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), attrOpt)
+	}()
+
+	var (
+		recordError = func(stage string, err error) {
+			span.RecordError(err)
+
+			// https://opentelemetry.io/docs/specs/semconv/http/http-spans/#status
+			// Span Status MUST be left unset if HTTP status code was in the 1xx, 2xx or 3xx ranges,
+			// unless there was another error (e.g., network error receiving the response body; or 3xx codes with
+			// max redirects exceeded), in which case status MUST be set to Error.
+			code := statusWriter.status
+			if code < 100 || code >= 500 {
+				span.SetStatus(codes.Error, stage)
+			}
+
+			attrSet := labeler.AttributeSet()
+			attrs := attrSet.ToSlice()
+			if code != 0 {
+				attrs = append(attrs, semconv.HTTPResponseStatusCode(code))
+			}
+
+			s.errors.Add(ctx, 1, metric.WithAttributes(attrs...))
+		}
+		err          error
+		opErrContext = ogenerrors.OperationContext{
+			Name: ListUsersOperation,
+			ID:   "listUsers",
+		}
+	)
+	params, err := decodeListUsersParams(args, argsEscaped, r)
+	if err != nil {
+		err = &ogenerrors.DecodeParamsError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeParams", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
+
+	var rawBody []byte
+
+	var response ListUsersRes
+	if m := s.cfg.Middleware; m != nil {
+		mreq := middleware.Request{
+			Context:          ctx,
+			OperationName:    ListUsersOperation,
+			OperationSummary: "List users",
+			OperationID:      "listUsers",
+			Body:             nil,
+			RawBody:          rawBody,
+			Params: middleware.Parameters{
+				{
+					Name: "username_prefix",
+					In:   "query",
+				}: params.UsernamePrefix,
+				{
+					Name: "id",
+					In:   "query",
+				}: params.ID,
+				{
+					Name: "discord_username",
+					In:   "query",
+				}: params.DiscordUsername,
+				{
+					Name: "anilist_url",
+					In:   "query",
+				}: params.AnilistURL,
+				{
+					Name: "pageSize",
+					In:   "query",
+				}: params.PageSize,
+				{
+					Name: "pageToken",
+					In:   "query",
+				}: params.PageToken,
+			},
+			Raw: r,
+		}
+
+		type (
+			Request  = struct{}
+			Params   = ListUsersParams
+			Response = ListUsersRes
+		)
+		response, err = middleware.HookMiddleware[
+			Request,
+			Params,
+			Response,
+		](
+			m,
+			mreq,
+			unpackListUsersParams,
+			func(ctx context.Context, request Request, params Params) (response Response, err error) {
+				response, err = s.h.ListUsers(ctx, params)
+				return response, err
+			},
+		)
+	} else {
+		response, err = s.h.ListUsers(ctx, params)
+	}
+	if err != nil {
+		if errRes, ok := errors.Into[*InternalErrorStatusCode](err); ok {
+			if err := encodeErrorResponse(errRes, w, span); err != nil {
+				defer recordError("Internal", err)
+			}
+			return
+		}
+		if errors.Is(err, ht.ErrNotImplemented) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+			return
+		}
+		if err := encodeErrorResponse(s.h.NewError(ctx, err), w, span); err != nil {
+			defer recordError("Internal", err)
+		}
+		return
+	}
+
+	if err := encodeListUsersResponse(response, w, span); err != nil {
 		defer recordError("EncodeResponse", err)
 		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
 			s.cfg.ErrorHandler(ctx, w, r, err)

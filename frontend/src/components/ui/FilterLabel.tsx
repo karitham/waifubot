@@ -1,5 +1,11 @@
-import type { JSX } from "solid-js";
+import type { Component, JSX } from "solid-js";
 
-export default (props: { children: JSX.Element }) => (
+export type FilterLabelProps = {
+	children: JSX.Element;
+};
+
+const FilterLabel: Component<FilterLabelProps> = (props) => (
 	<div class="text-sm font-medium text-subtextA">{props.children}</div>
 );
+
+export default FilterLabel;

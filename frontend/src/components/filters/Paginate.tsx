@@ -8,14 +8,12 @@ export type PaginationProps = {
 	onChange: (value: SelectOption) => void;
 };
 
-export default function (props: PaginationProps) {
+export default function Pagination(props: PaginationProps) {
 	return (
 		<SelectField<SelectOption>
 			options={props.options}
 			value={props.value}
-			onChange={(v: SelectOption | null) => {
-				if (v) props.onChange(v);
-			}}
+			onChange={(v) => v && props.onChange(v)}
 			optionValue="value"
 			optionTextValue="label"
 			placeholder="Items per page..."

@@ -17,6 +17,9 @@ type Querier interface {
 	Insert(ctx context.Context, arg InsertParams) (Collection, error)
 	List(ctx context.Context, userID uint64) ([]ListRow, error)
 	ListIDs(ctx context.Context, userID uint64) ([]int64, error)
+	// Dynamic query using squirrel query builder - called via ListPaginatedDynamic method
+	// This is a placeholder for sqlc generation, actual query built dynamically
+	ListPaginated(ctx context.Context, userID uint64) ([]ListPaginatedRow, error)
 	SearchCharacters(ctx context.Context, arg SearchCharactersParams) ([]SearchCharactersRow, error)
 	SearchGlobalCharacters(ctx context.Context, arg SearchGlobalCharactersParams) ([]Character, error)
 	UpdateImageName(ctx context.Context, arg UpdateImageNameParams) (Character, error)

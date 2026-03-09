@@ -1,5 +1,5 @@
 import { useNavigate } from "@solidjs/router";
-import { findUserV1 } from "../api/generated";
+import { listUsers } from "../api/generated";
 
 export const useUserSearch = () => {
 	const nav = useNavigate();
@@ -17,19 +17,20 @@ export const useUserSearch = () => {
 };
 
 export const getUserID = async (id: string): Promise<string | undefined> => {
-	if (id.match(/\d{6,}/)) return id;
-	try {
-		const result = await findUserV1({ discord: id });
-		return result.id;
-	} catch (error) {
-		console.error("Discord search failed:", error);
-	}
+	// If it looks like a Discord ID (numeric, 17-20 digits), use it directly
+	if (id.match(/^\d{17,20}$/)) return id;
 
+	// Otherwise, try to find by username prefix (autocomplete style search)
 	try {
-		const result = await findUserV1({ anilist: id });
-		return result.id;
+		const result = await listUsers({
+			usernamePrefix: id,
+			pageSize: 1,
+		});
+		if (result.users.length > 0) {
+			return result.users[0].id;
+		}
 	} catch (error) {
-		console.error("Anilist search failed:", error);
+		console.error("User search failed:", error);
 	}
 
 	return undefined;

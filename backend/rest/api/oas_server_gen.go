@@ -8,40 +8,61 @@ import (
 
 // Handler handles operations described by OpenAPI v3 specification.
 type Handler interface {
-	// FindUser implements findUser operation.
+	// FindUserLegacy implements findUserLegacy operation.
 	//
 	// Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
 	//
 	// Deprecated: schema marks this operation as deprecated.
 	//
 	// GET /user/find
-	FindUser(ctx context.Context, params FindUserParams) (FindUserRes, error)
-	// FindUserV1 implements findUserV1 operation.
-	//
-	// Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
-	//
-	// GET /api/v1/user/find
-	FindUserV1(ctx context.Context, params FindUserV1Params) (FindUserV1Res, error)
+	FindUserLegacy(ctx context.Context, params FindUserLegacyParams) (FindUserLegacyRes, error)
 	// GetUser implements getUser operation.
+	//
+	// Retrieve a user's profile metadata.
+	//
+	// GET /api/v1/users/{userID}
+	GetUser(ctx context.Context, params GetUserParams) (GetUserRes, error)
+	// GetUserCollection implements getUserCollection operation.
+	//
+	// Retrieve a user's character collection with pagination and search.
+	// Use `q` for free-text search (matches character name or ID).
+	// Use `order_by` to change sort order (default: date_desc).
+	//
+	// GET /api/v1/users/{userID}/collection
+	GetUserCollection(ctx context.Context, params GetUserCollectionParams) (GetUserCollectionRes, error)
+	// GetUserFavorite implements getUserFavorite operation.
+	//
+	// Retrieve a user's favorite character.
+	//
+	// GET /api/v1/users/{userID}/favorite
+	GetUserFavorite(ctx context.Context, params GetUserFavoriteParams) (GetUserFavoriteRes, error)
+	// GetUserLegacy implements getUserLegacy operation.
 	//
 	// Retrieve a user's complete profile including user info, collection, and favorite character.
 	//
 	// Deprecated: schema marks this operation as deprecated.
 	//
 	// GET /user/{userID}
-	GetUser(ctx context.Context, params GetUserParams) (GetUserRes, error)
-	// GetUserV1 implements getUserV1 operation.
-	//
-	// Retrieve a user's complete profile including user info, collection, and favorite character.
-	//
-	// GET /api/v1/user/{userID}
-	GetUserV1(ctx context.Context, params GetUserV1Params) (GetUserV1Res, error)
-	// GetWishlist implements getWishlist operation.
+	GetUserLegacy(ctx context.Context, params GetUserLegacyParams) (GetUserLegacyRes, error)
+	// GetUserWishlist implements getUserWishlist operation.
 	//
 	// Retrieve a user's wishlist of characters.
 	//
-	// GET /api/v1/wishlist/{userID}
-	GetWishlist(ctx context.Context, params GetWishlistParams) (GetWishlistRes, error)
+	// GET /api/v1/users/{userID}/wishlist
+	GetUserWishlist(ctx context.Context, params GetUserWishlistParams) (GetUserWishlistRes, error)
+	// ListUsers implements listUsers operation.
+	//
+	// List users with optional filtering and search.
+	// - Use `username_prefix` for fuzzy/prefix search (autocomplete)
+	// - Use exact match params (`id`, `discord_username`, `anilist_url`) for precise lookups
+	// - Multiple exact match params are ANDed together.
+	//
+	// GET /api/v1/users
+	ListUsers(ctx context.Context, params ListUsersParams) (ListUsersRes, error)
+	// NewError creates *InternalErrorStatusCode from error returned by handler.
+	//
+	// Used for common default response.
+	NewError(ctx context.Context, err error) *InternalErrorStatusCode
 }
 
 // Server implements http server based on OpenAPI v3 specification and

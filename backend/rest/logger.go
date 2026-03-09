@@ -52,7 +52,6 @@ func LoggerMiddleware(logger *slog.Logger) func(next http.Handler) http.Handler 
 			w.Header().Set("X-Request-ID", requestID)
 
 			next.ServeHTTP(ww, r)
-
 		})
 	}
 }

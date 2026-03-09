@@ -23,10 +23,7 @@ const Icon = (props: { filled: boolean }) => (
 );
 
 const renderItem = (props: any) => (
-	<Search.Item
-		item={props.item}
-		class="search-item"
-	>
+	<Search.Item item={props.item} class="search-item">
 		<div class="flex flex-row items-center gap-4">
 			<Show when={props.item.rawValue.image} fallback={<div />}>
 				<img

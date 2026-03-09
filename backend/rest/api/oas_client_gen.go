@@ -16,7 +16,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
-	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.39.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -27,40 +27,57 @@ func trimTrailingSlashes(u *url.URL) {
 
 // Invoker invokes operations described by OpenAPI v3 specification.
 type Invoker interface {
-	// FindUser invokes findUser operation.
+	// FindUserLegacy invokes findUserLegacy operation.
 	//
 	// Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
 	//
 	// Deprecated: schema marks this operation as deprecated.
 	//
 	// GET /user/find
-	FindUser(ctx context.Context, params FindUserParams) (FindUserRes, error)
-	// FindUserV1 invokes findUserV1 operation.
-	//
-	// Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
-	//
-	// GET /api/v1/user/find
-	FindUserV1(ctx context.Context, params FindUserV1Params) (FindUserV1Res, error)
+	FindUserLegacy(ctx context.Context, params FindUserLegacyParams) (FindUserLegacyRes, error)
 	// GetUser invokes getUser operation.
+	//
+	// Retrieve a user's profile metadata.
+	//
+	// GET /api/v1/users/{userID}
+	GetUser(ctx context.Context, params GetUserParams) (GetUserRes, error)
+	// GetUserCollection invokes getUserCollection operation.
+	//
+	// Retrieve a user's character collection with pagination and search.
+	// Use `q` for free-text search (matches character name or ID).
+	// Use `order_by` to change sort order (default: date_desc).
+	//
+	// GET /api/v1/users/{userID}/collection
+	GetUserCollection(ctx context.Context, params GetUserCollectionParams) (GetUserCollectionRes, error)
+	// GetUserFavorite invokes getUserFavorite operation.
+	//
+	// Retrieve a user's favorite character.
+	//
+	// GET /api/v1/users/{userID}/favorite
+	GetUserFavorite(ctx context.Context, params GetUserFavoriteParams) (GetUserFavoriteRes, error)
+	// GetUserLegacy invokes getUserLegacy operation.
 	//
 	// Retrieve a user's complete profile including user info, collection, and favorite character.
 	//
 	// Deprecated: schema marks this operation as deprecated.
 	//
 	// GET /user/{userID}
-	GetUser(ctx context.Context, params GetUserParams) (GetUserRes, error)
-	// GetUserV1 invokes getUserV1 operation.
-	//
-	// Retrieve a user's complete profile including user info, collection, and favorite character.
-	//
-	// GET /api/v1/user/{userID}
-	GetUserV1(ctx context.Context, params GetUserV1Params) (GetUserV1Res, error)
-	// GetWishlist invokes getWishlist operation.
+	GetUserLegacy(ctx context.Context, params GetUserLegacyParams) (GetUserLegacyRes, error)
+	// GetUserWishlist invokes getUserWishlist operation.
 	//
 	// Retrieve a user's wishlist of characters.
 	//
-	// GET /api/v1/wishlist/{userID}
-	GetWishlist(ctx context.Context, params GetWishlistParams) (GetWishlistRes, error)
+	// GET /api/v1/users/{userID}/wishlist
+	GetUserWishlist(ctx context.Context, params GetUserWishlistParams) (GetUserWishlistRes, error)
+	// ListUsers invokes listUsers operation.
+	//
+	// List users with optional filtering and search.
+	// - Use `username_prefix` for fuzzy/prefix search (autocomplete)
+	// - Use exact match params (`id`, `discord_username`, `anilist_url`) for precise lookups
+	// - Multiple exact match params are ANDed together.
+	//
+	// GET /api/v1/users
+	ListUsers(ctx context.Context, params ListUsersParams) (ListUsersRes, error)
 }
 
 // Client implements OAS client.
@@ -68,10 +85,6 @@ type Client struct {
 	serverURL *url.URL
 	baseClient
 }
-
-var _ Handler = struct {
-	*Client
-}{}
 
 // NewClient initializes new Client defined by OAS.
 func NewClient(serverURL string, opts ...ClientOption) (*Client, error) {
@@ -106,21 +119,21 @@ func (c *Client) requestURL(ctx context.Context) *url.URL {
 	return u
 }
 
-// FindUser invokes findUser operation.
+// FindUserLegacy invokes findUserLegacy operation.
 //
 // Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
 //
 // Deprecated: schema marks this operation as deprecated.
 //
 // GET /user/find
-func (c *Client) FindUser(ctx context.Context, params FindUserParams) (FindUserRes, error) {
-	res, err := c.sendFindUser(ctx, params)
+func (c *Client) FindUserLegacy(ctx context.Context, params FindUserLegacyParams) (FindUserLegacyRes, error) {
+	res, err := c.sendFindUserLegacy(ctx, params)
 	return res, err
 }
 
-func (c *Client) sendFindUser(ctx context.Context, params FindUserParams) (res FindUserRes, err error) {
+func (c *Client) sendFindUserLegacy(ctx context.Context, params FindUserLegacyParams) (res FindUserLegacyRes, err error) {
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("findUser"),
+		otelogen.OperationID("findUserLegacy"),
 		semconv.HTTPRequestMethodKey.String("GET"),
 		semconv.URLTemplateKey.String("/user/find"),
 	}
@@ -138,7 +151,7 @@ func (c *Client) sendFindUser(ctx context.Context, params FindUserParams) (res F
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, FindUserOperation,
+	ctx, span := c.cfg.Tracer.Start(ctx, FindUserLegacyOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -208,10 +221,11 @@ func (c *Client) sendFindUser(ctx context.Context, params FindUserParams) (res F
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
-	result, err := decodeFindUserResponse(resp)
+	result, err := decodeFindUserLegacyResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -219,21 +233,21 @@ func (c *Client) sendFindUser(ctx context.Context, params FindUserParams) (res F
 	return result, nil
 }
 
-// FindUserV1 invokes findUserV1 operation.
+// GetUser invokes getUser operation.
 //
-// Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
+// Retrieve a user's profile metadata.
 //
-// GET /api/v1/user/find
-func (c *Client) FindUserV1(ctx context.Context, params FindUserV1Params) (FindUserV1Res, error) {
-	res, err := c.sendFindUserV1(ctx, params)
+// GET /api/v1/users/{userID}
+func (c *Client) GetUser(ctx context.Context, params GetUserParams) (GetUserRes, error) {
+	res, err := c.sendGetUser(ctx, params)
 	return res, err
 }
 
-func (c *Client) sendFindUserV1(ctx context.Context, params FindUserV1Params) (res FindUserV1Res, err error) {
+func (c *Client) sendGetUser(ctx context.Context, params GetUserParams) (res GetUserRes, err error) {
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("findUserV1"),
+		otelogen.OperationID("getUser"),
 		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.URLTemplateKey.String("/api/v1/user/find"),
+		semconv.URLTemplateKey.String("/api/v1/users/{userID}"),
 	}
 	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
@@ -249,7 +263,7 @@ func (c *Client) sendFindUserV1(ctx context.Context, params FindUserV1Params) (r
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, FindUserV1Operation,
+	ctx, span := c.cfg.Tracer.Start(ctx, GetUserOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -266,22 +280,152 @@ func (c *Client) sendFindUserV1(ctx context.Context, params FindUserV1Params) (r
 
 	stage = "BuildURL"
 	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [1]string
-	pathParts[0] = "/api/v1/user/find"
+	var pathParts [2]string
+	pathParts[0] = "/api/v1/users/"
+	{
+		// Encode "userID" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "userID",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.StringToString(params.UserID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeGetUserResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// GetUserCollection invokes getUserCollection operation.
+//
+// Retrieve a user's character collection with pagination and search.
+// Use `q` for free-text search (matches character name or ID).
+// Use `order_by` to change sort order (default: date_desc).
+//
+// GET /api/v1/users/{userID}/collection
+func (c *Client) GetUserCollection(ctx context.Context, params GetUserCollectionParams) (GetUserCollectionRes, error) {
+	res, err := c.sendGetUserCollection(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendGetUserCollection(ctx context.Context, params GetUserCollectionParams) (res GetUserCollectionRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("getUserCollection"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/api/v1/users/{userID}/collection"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, GetUserCollectionOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [3]string
+	pathParts[0] = "/api/v1/users/"
+	{
+		// Encode "userID" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "userID",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.StringToString(params.UserID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/collection"
 	uri.AddPathParts(u, pathParts[:]...)
 
 	stage = "EncodeQueryParams"
 	q := uri.NewQueryEncoder()
 	{
-		// Encode "anilist" parameter.
+		// Encode "pageSize" parameter.
 		cfg := uri.QueryParameterEncodingConfig{
-			Name:    "anilist",
+			Name:    "pageSize",
 			Style:   uri.QueryStyleForm,
 			Explode: true,
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if val, ok := params.Anilist.Get(); ok {
+			if val, ok := params.PageSize.Get(); ok {
+				return e.EncodeValue(conv.IntToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "pageToken" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "pageToken",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.PageToken.Get(); ok {
 				return e.EncodeValue(conv.StringToString(val))
 			}
 			return nil
@@ -290,16 +434,50 @@ func (c *Client) sendFindUserV1(ctx context.Context, params FindUserV1Params) (r
 		}
 	}
 	{
-		// Encode "discord" parameter.
+		// Encode "q" parameter.
 		cfg := uri.QueryParameterEncodingConfig{
-			Name:    "discord",
+			Name:    "q",
 			Style:   uri.QueryStyleForm,
 			Explode: true,
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if val, ok := params.Discord.Get(); ok {
+			if val, ok := params.Q.Get(); ok {
 				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "order_by" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "order_by",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.OrderBy.Get(); ok {
+				return e.EncodeValue(conv.StringToString(string(val)))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "direction" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "direction",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.Direction.Get(); ok {
+				return e.EncodeValue(conv.StringToString(string(val)))
 			}
 			return nil
 		}); err != nil {
@@ -319,10 +497,11 @@ func (c *Client) sendFindUserV1(ctx context.Context, params FindUserV1Params) (r
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
-	result, err := decodeFindUserV1Response(resp)
+	result, err := decodeGetUserCollectionResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -330,21 +509,114 @@ func (c *Client) sendFindUserV1(ctx context.Context, params FindUserV1Params) (r
 	return result, nil
 }
 
-// GetUser invokes getUser operation.
+// GetUserFavorite invokes getUserFavorite operation.
+//
+// Retrieve a user's favorite character.
+//
+// GET /api/v1/users/{userID}/favorite
+func (c *Client) GetUserFavorite(ctx context.Context, params GetUserFavoriteParams) (GetUserFavoriteRes, error) {
+	res, err := c.sendGetUserFavorite(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendGetUserFavorite(ctx context.Context, params GetUserFavoriteParams) (res GetUserFavoriteRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("getUserFavorite"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/api/v1/users/{userID}/favorite"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, GetUserFavoriteOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [3]string
+	pathParts[0] = "/api/v1/users/"
+	{
+		// Encode "userID" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "userID",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.StringToString(params.UserID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/favorite"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeGetUserFavoriteResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// GetUserLegacy invokes getUserLegacy operation.
 //
 // Retrieve a user's complete profile including user info, collection, and favorite character.
 //
 // Deprecated: schema marks this operation as deprecated.
 //
 // GET /user/{userID}
-func (c *Client) GetUser(ctx context.Context, params GetUserParams) (GetUserRes, error) {
-	res, err := c.sendGetUser(ctx, params)
+func (c *Client) GetUserLegacy(ctx context.Context, params GetUserLegacyParams) (GetUserLegacyRes, error) {
+	res, err := c.sendGetUserLegacy(ctx, params)
 	return res, err
 }
 
-func (c *Client) sendGetUser(ctx context.Context, params GetUserParams) (res GetUserRes, err error) {
+func (c *Client) sendGetUserLegacy(ctx context.Context, params GetUserLegacyParams) (res GetUserLegacyRes, err error) {
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("getUser"),
+		otelogen.OperationID("getUserLegacy"),
 		semconv.HTTPRequestMethodKey.String("GET"),
 		semconv.URLTemplateKey.String("/user/{userID}"),
 	}
@@ -362,7 +634,7 @@ func (c *Client) sendGetUser(ctx context.Context, params GetUserParams) (res Get
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, GetUserOperation,
+	ctx, span := c.cfg.Tracer.Start(ctx, GetUserLegacyOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -412,10 +684,11 @@ func (c *Client) sendGetUser(ctx context.Context, params GetUserParams) (res Get
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
-	result, err := decodeGetUserResponse(resp)
+	result, err := decodeGetUserLegacyResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -423,112 +696,21 @@ func (c *Client) sendGetUser(ctx context.Context, params GetUserParams) (res Get
 	return result, nil
 }
 
-// GetUserV1 invokes getUserV1 operation.
-//
-// Retrieve a user's complete profile including user info, collection, and favorite character.
-//
-// GET /api/v1/user/{userID}
-func (c *Client) GetUserV1(ctx context.Context, params GetUserV1Params) (GetUserV1Res, error) {
-	res, err := c.sendGetUserV1(ctx, params)
-	return res, err
-}
-
-func (c *Client) sendGetUserV1(ctx context.Context, params GetUserV1Params) (res GetUserV1Res, err error) {
-	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("getUserV1"),
-		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.URLTemplateKey.String("/api/v1/user/{userID}"),
-	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
-
-	// Run stopwatch.
-	startTime := time.Now()
-	defer func() {
-		// Use floating point division here for higher precision (instead of Millisecond method).
-		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
-	}()
-
-	// Increment request counter.
-	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-
-	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, GetUserV1Operation,
-		trace.WithAttributes(otelAttrs...),
-		clientSpanKind,
-	)
-	// Track stage for error reporting.
-	var stage string
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, stage)
-			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-		}
-		span.End()
-	}()
-
-	stage = "BuildURL"
-	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [2]string
-	pathParts[0] = "/api/v1/user/"
-	{
-		// Encode "userID" parameter.
-		e := uri.NewPathEncoder(uri.PathEncoderConfig{
-			Param:   "userID",
-			Style:   uri.PathStyleSimple,
-			Explode: false,
-		})
-		if err := func() error {
-			return e.EncodeValue(conv.StringToString(params.UserID))
-		}(); err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		encoded, err := e.Result()
-		if err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		pathParts[1] = encoded
-	}
-	uri.AddPathParts(u, pathParts[:]...)
-
-	stage = "EncodeRequest"
-	r, err := ht.NewRequest(ctx, "GET", u)
-	if err != nil {
-		return res, errors.Wrap(err, "create request")
-	}
-
-	stage = "SendRequest"
-	resp, err := c.cfg.Client.Do(r)
-	if err != nil {
-		return res, errors.Wrap(err, "do request")
-	}
-	defer resp.Body.Close()
-
-	stage = "DecodeResponse"
-	result, err := decodeGetUserV1Response(resp)
-	if err != nil {
-		return res, errors.Wrap(err, "decode response")
-	}
-
-	return result, nil
-}
-
-// GetWishlist invokes getWishlist operation.
+// GetUserWishlist invokes getUserWishlist operation.
 //
 // Retrieve a user's wishlist of characters.
 //
-// GET /api/v1/wishlist/{userID}
-func (c *Client) GetWishlist(ctx context.Context, params GetWishlistParams) (GetWishlistRes, error) {
-	res, err := c.sendGetWishlist(ctx, params)
+// GET /api/v1/users/{userID}/wishlist
+func (c *Client) GetUserWishlist(ctx context.Context, params GetUserWishlistParams) (GetUserWishlistRes, error) {
+	res, err := c.sendGetUserWishlist(ctx, params)
 	return res, err
 }
 
-func (c *Client) sendGetWishlist(ctx context.Context, params GetWishlistParams) (res GetWishlistRes, err error) {
+func (c *Client) sendGetUserWishlist(ctx context.Context, params GetUserWishlistParams) (res GetUserWishlistRes, err error) {
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("getWishlist"),
+		otelogen.OperationID("getUserWishlist"),
 		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.URLTemplateKey.String("/api/v1/wishlist/{userID}"),
+		semconv.URLTemplateKey.String("/api/v1/users/{userID}/wishlist"),
 	}
 	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
@@ -544,7 +726,7 @@ func (c *Client) sendGetWishlist(ctx context.Context, params GetWishlistParams) 
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, GetWishlistOperation,
+	ctx, span := c.cfg.Tracer.Start(ctx, GetUserWishlistOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -561,8 +743,8 @@ func (c *Client) sendGetWishlist(ctx context.Context, params GetWishlistParams) 
 
 	stage = "BuildURL"
 	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [2]string
-	pathParts[0] = "/api/v1/wishlist/"
+	var pathParts [3]string
+	pathParts[0] = "/api/v1/users/"
 	{
 		// Encode "userID" parameter.
 		e := uri.NewPathEncoder(uri.PathEncoderConfig{
@@ -581,7 +763,46 @@ func (c *Client) sendGetWishlist(ctx context.Context, params GetWishlistParams) 
 		}
 		pathParts[1] = encoded
 	}
+	pathParts[2] = "/wishlist"
 	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeQueryParams"
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "pageSize" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "pageSize",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.PageSize.Get(); ok {
+				return e.EncodeValue(conv.IntToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "pageToken" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "pageToken",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.PageToken.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
 
 	stage = "EncodeRequest"
 	r, err := ht.NewRequest(ctx, "GET", u)
@@ -594,10 +815,194 @@ func (c *Client) sendGetWishlist(ctx context.Context, params GetWishlistParams) 
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
-	result, err := decodeGetWishlistResponse(resp)
+	result, err := decodeGetUserWishlistResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ListUsers invokes listUsers operation.
+//
+// List users with optional filtering and search.
+// - Use `username_prefix` for fuzzy/prefix search (autocomplete)
+// - Use exact match params (`id`, `discord_username`, `anilist_url`) for precise lookups
+// - Multiple exact match params are ANDed together.
+//
+// GET /api/v1/users
+func (c *Client) ListUsers(ctx context.Context, params ListUsersParams) (ListUsersRes, error) {
+	res, err := c.sendListUsers(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendListUsers(ctx context.Context, params ListUsersParams) (res ListUsersRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("listUsers"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/api/v1/users"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ListUsersOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/api/v1/users"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeQueryParams"
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "username_prefix" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "username_prefix",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.UsernamePrefix.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "id" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "id",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.ID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "discord_username" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "discord_username",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.DiscordUsername.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "anilist_url" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "anilist_url",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.AnilistURL.Get(); ok {
+				return e.EncodeValue(conv.URLToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "pageSize" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "pageSize",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.PageSize.Get(); ok {
+				return e.EncodeValue(conv.IntToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "pageToken" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "pageToken",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.PageToken.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeListUsersResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

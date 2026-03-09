@@ -13,51 +13,82 @@ type UnimplementedHandler struct{}
 
 var _ Handler = UnimplementedHandler{}
 
-// FindUser implements findUser operation.
+// FindUserLegacy implements findUserLegacy operation.
 //
 // Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
 //
 // Deprecated: schema marks this operation as deprecated.
 //
 // GET /user/find
-func (UnimplementedHandler) FindUser(ctx context.Context, params FindUserParams) (r FindUserRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
-// FindUserV1 implements findUserV1 operation.
-//
-// Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
-//
-// GET /api/v1/user/find
-func (UnimplementedHandler) FindUserV1(ctx context.Context, params FindUserV1Params) (r FindUserV1Res, _ error) {
+func (UnimplementedHandler) FindUserLegacy(ctx context.Context, params FindUserLegacyParams) (r FindUserLegacyRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
 // GetUser implements getUser operation.
+//
+// Retrieve a user's profile metadata.
+//
+// GET /api/v1/users/{userID}
+func (UnimplementedHandler) GetUser(ctx context.Context, params GetUserParams) (r GetUserRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetUserCollection implements getUserCollection operation.
+//
+// Retrieve a user's character collection with pagination and search.
+// Use `q` for free-text search (matches character name or ID).
+// Use `order_by` to change sort order (default: date_desc).
+//
+// GET /api/v1/users/{userID}/collection
+func (UnimplementedHandler) GetUserCollection(ctx context.Context, params GetUserCollectionParams) (r GetUserCollectionRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetUserFavorite implements getUserFavorite operation.
+//
+// Retrieve a user's favorite character.
+//
+// GET /api/v1/users/{userID}/favorite
+func (UnimplementedHandler) GetUserFavorite(ctx context.Context, params GetUserFavoriteParams) (r GetUserFavoriteRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetUserLegacy implements getUserLegacy operation.
 //
 // Retrieve a user's complete profile including user info, collection, and favorite character.
 //
 // Deprecated: schema marks this operation as deprecated.
 //
 // GET /user/{userID}
-func (UnimplementedHandler) GetUser(ctx context.Context, params GetUserParams) (r GetUserRes, _ error) {
+func (UnimplementedHandler) GetUserLegacy(ctx context.Context, params GetUserLegacyParams) (r GetUserLegacyRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
-// GetUserV1 implements getUserV1 operation.
-//
-// Retrieve a user's complete profile including user info, collection, and favorite character.
-//
-// GET /api/v1/user/{userID}
-func (UnimplementedHandler) GetUserV1(ctx context.Context, params GetUserV1Params) (r GetUserV1Res, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
-// GetWishlist implements getWishlist operation.
+// GetUserWishlist implements getUserWishlist operation.
 //
 // Retrieve a user's wishlist of characters.
 //
-// GET /api/v1/wishlist/{userID}
-func (UnimplementedHandler) GetWishlist(ctx context.Context, params GetWishlistParams) (r GetWishlistRes, _ error) {
+// GET /api/v1/users/{userID}/wishlist
+func (UnimplementedHandler) GetUserWishlist(ctx context.Context, params GetUserWishlistParams) (r GetUserWishlistRes, _ error) {
 	return r, ht.ErrNotImplemented
+}
+
+// ListUsers implements listUsers operation.
+//
+// List users with optional filtering and search.
+// - Use `username_prefix` for fuzzy/prefix search (autocomplete)
+// - Use exact match params (`id`, `discord_username`, `anilist_url`) for precise lookups
+// - Multiple exact match params are ANDed together.
+//
+// GET /api/v1/users
+func (UnimplementedHandler) ListUsers(ctx context.Context, params ListUsersParams) (r ListUsersRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// NewError creates *InternalErrorStatusCode from error returned by handler.
+//
+// Used for common default response.
+func (UnimplementedHandler) NewError(ctx context.Context, err error) (r *InternalErrorStatusCode) {
+	r = new(InternalErrorStatusCode)
+	return r
 }

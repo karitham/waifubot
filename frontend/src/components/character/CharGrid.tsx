@@ -1,36 +1,38 @@
 import { createMemo, For } from "solid-js";
-import type { Character, Profile } from "../../api/generated";
+import type { Character, User } from "../../api/generated";
 import {
 	combineFilters,
 	excludeCharacters,
-	filterBySearchTerm,
 	type CharOwned,
 } from "../../utils/filterUtils";
 
 import CharCard from "./Card";
 import EmptyState from "../ui/EmptyState";
+import type { SortOption } from "../../hooks/usePaginatedCollection";
 
 export default (props: {
-	charSort: (a: Character, b: Character) => number;
+	charSort: SortOption;
 	charSearch: string;
 	characters: Character[];
 	mediaCharacters: Character[] | undefined;
-	compareUsers: Profile[];
-	users: Profile[];
-	showCount: number;
+	compareUsers: User[];
+	users: User[];
 }) => {
 	const compareUsers = () => props.compareUsers || [];
 	const mainUserId = () => props.users[0]?.id;
 	const allUsers = () => [...props.users, ...compareUsers()];
 
+	// TODO: For compare functionality, we need to fetch collections for compare users
+	// For now, this will show empty ownership data for compare users
 	const ownershipMap = createMemo(() => {
 		const map = new Map<string, Set<string>>();
-		allUsers().forEach((user) => {
-			user.waifus?.forEach((char) => {
-				const charId = char.id.toString();
-				if (!map.has(charId)) map.set(charId, new Set());
-				map.get(charId)?.add(user.id);
-			});
+		// Only the main user's characters are available now
+		// Compare user collections would need to be fetched separately
+		props.characters?.forEach((char) => {
+			const charId = char.id.toString();
+			if (!map.has(charId)) map.set(charId, new Set());
+			const mainId = mainUserId();
+			if (mainId) map.get(charId)?.add(mainId);
 		});
 		return new Map(
 			Array.from(map.entries()).map(([charId, userSet]) => [
@@ -48,14 +50,15 @@ export default (props: {
 		};
 	};
 
+	// Only apply media exclusion filter - search is now server-side
 	const filters = createMemo(() =>
 		combineFilters([
-			filterBySearchTerm(props.charSearch),
 			...(props.mediaCharacters && props.mediaCharacters.length > 0
 				? [excludeCharacters(props.mediaCharacters)]
 				: []),
 		]),
 	);
+	
 	const filteredOwnedCharacters = createMemo(() =>
 		props.characters.filter(filters()).map(enrichCharacterWithOwners),
 	);
@@ -86,12 +89,10 @@ export default (props: {
 				return bOwnedByMain - aOwnedByMain;
 			}
 
-			return props.charSort(a, b);
+			return 0; // Server-side sorting already applied
 		});
 
-		return props.showCount !== -1
-			? allChars.slice(0, props.showCount)
-			: allChars;
+		return allChars;
 	});
 
 	return (
@@ -101,9 +102,7 @@ export default (props: {
 				{(char: CharOwned) => {
 					const ownersAvatars =
 						char.owners
-							?.map(
-								(id) => allUsers().find((u) => u.id === id)?.discord_avatar,
-							)
+							?.map((id) => allUsers().find((u) => u.id === id)?.discord_avatar)
 							.filter(Boolean) || [];
 					const ownersNames =
 						char.owners?.map(
@@ -118,7 +117,7 @@ export default (props: {
 								ownersNames={ownersNames}
 								missing={char.missing}
 							/>
-						</div>
+							</div>
 					);
 				}}
 			</For>

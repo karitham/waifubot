@@ -3,10 +3,16 @@
 package api
 
 import (
+	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/go-faster/errors"
 )
+
+func (s *InternalErrorStatusCode) Error() string {
+	return fmt.Sprintf("code %d: %+v", s.StatusCode, s.Response)
+}
 
 // Character information.
 // Ref: #/components/schemas/Character
@@ -73,6 +79,8 @@ func (s *Character) SetID(val int64) {
 	s.ID = val
 }
 
+func (*Character) getUserFavoriteRes() {}
+
 // Character source type.
 type CharacterType string
 
@@ -129,6 +137,90 @@ func (s *CharacterType) UnmarshalText(data []byte) error {
 	}
 }
 
+// User's character collection.
+// Ref: #/components/schemas/Collection
+type Collection struct {
+	// List of characters in the collection.
+	Characters []Character `json:"characters"`
+	// Total number of characters in the collection across all pages.
+	Total int `json:"total"`
+	// Token for retrieving the next page of results.
+	NextPageToken OptString `json:"next_page_token"`
+}
+
+// GetCharacters returns the value of Characters.
+func (s *Collection) GetCharacters() []Character {
+	return s.Characters
+}
+
+// GetTotal returns the value of Total.
+func (s *Collection) GetTotal() int {
+	return s.Total
+}
+
+// GetNextPageToken returns the value of NextPageToken.
+func (s *Collection) GetNextPageToken() OptString {
+	return s.NextPageToken
+}
+
+// SetCharacters sets the value of Characters.
+func (s *Collection) SetCharacters(val []Character) {
+	s.Characters = val
+}
+
+// SetTotal sets the value of Total.
+func (s *Collection) SetTotal(val int) {
+	s.Total = val
+}
+
+// SetNextPageToken sets the value of NextPageToken.
+func (s *Collection) SetNextPageToken(val OptString) {
+	s.NextPageToken = val
+}
+
+func (*Collection) getUserCollectionRes() {}
+
+type Direction string
+
+const (
+	DirectionAsc  Direction = "asc"
+	DirectionDesc Direction = "desc"
+)
+
+// AllValues returns all Direction values.
+func (Direction) AllValues() []Direction {
+	return []Direction{
+		DirectionAsc,
+		DirectionDesc,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s Direction) MarshalText() ([]byte, error) {
+	switch s {
+	case DirectionAsc:
+		return []byte(s), nil
+	case DirectionDesc:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *Direction) UnmarshalText(data []byte) error {
+	switch Direction(data) {
+	case DirectionAsc:
+		*s = DirectionAsc
+		return nil
+	case DirectionDesc:
+		*s = DirectionDesc
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Standard error response.
 // Ref: #/components/schemas/Error
 type Error struct {
@@ -170,45 +262,152 @@ func (s *Error) SetStatusCode(val int) {
 	s.StatusCode = val
 }
 
-type FindUserBadRequest Error
+type FindUserLegacyBadRequest Error
 
-func (*FindUserBadRequest) findUserRes() {}
+func (*FindUserLegacyBadRequest) findUserLegacyRes() {}
 
-type FindUserNotFound Error
+type FindUserLegacyForbidden Error
 
-func (*FindUserNotFound) findUserRes() {}
+func (*FindUserLegacyForbidden) findUserLegacyRes() {}
 
-type FindUserV1BadRequest Error
+type FindUserLegacyNotFound Error
 
-func (*FindUserV1BadRequest) findUserV1Res() {}
+func (*FindUserLegacyNotFound) findUserLegacyRes() {}
 
-type FindUserV1NotFound Error
+type FindUserLegacyUnauthorized Error
 
-func (*FindUserV1NotFound) findUserV1Res() {}
+func (*FindUserLegacyUnauthorized) findUserLegacyRes() {}
 
 type GetUserBadRequest Error
 
 func (*GetUserBadRequest) getUserRes() {}
 
+type GetUserCollectionBadRequest Error
+
+func (*GetUserCollectionBadRequest) getUserCollectionRes() {}
+
+type GetUserCollectionForbidden Error
+
+func (*GetUserCollectionForbidden) getUserCollectionRes() {}
+
+type GetUserCollectionNotFound Error
+
+func (*GetUserCollectionNotFound) getUserCollectionRes() {}
+
+type GetUserCollectionUnauthorized Error
+
+func (*GetUserCollectionUnauthorized) getUserCollectionRes() {}
+
+type GetUserFavoriteBadRequest Error
+
+func (*GetUserFavoriteBadRequest) getUserFavoriteRes() {}
+
+type GetUserFavoriteForbidden Error
+
+func (*GetUserFavoriteForbidden) getUserFavoriteRes() {}
+
+// GetUserFavoriteNoContent is response for GetUserFavorite operation.
+type GetUserFavoriteNoContent struct{}
+
+func (*GetUserFavoriteNoContent) getUserFavoriteRes() {}
+
+type GetUserFavoriteNotFound Error
+
+func (*GetUserFavoriteNotFound) getUserFavoriteRes() {}
+
+type GetUserFavoriteUnauthorized Error
+
+func (*GetUserFavoriteUnauthorized) getUserFavoriteRes() {}
+
+type GetUserForbidden Error
+
+func (*GetUserForbidden) getUserRes() {}
+
+type GetUserLegacyBadRequest Error
+
+func (*GetUserLegacyBadRequest) getUserLegacyRes() {}
+
+type GetUserLegacyForbidden Error
+
+func (*GetUserLegacyForbidden) getUserLegacyRes() {}
+
+type GetUserLegacyNotFound Error
+
+func (*GetUserLegacyNotFound) getUserLegacyRes() {}
+
+type GetUserLegacyUnauthorized Error
+
+func (*GetUserLegacyUnauthorized) getUserLegacyRes() {}
+
 type GetUserNotFound Error
 
 func (*GetUserNotFound) getUserRes() {}
 
-type GetUserV1BadRequest Error
+type GetUserUnauthorized Error
 
-func (*GetUserV1BadRequest) getUserV1Res() {}
+func (*GetUserUnauthorized) getUserRes() {}
 
-type GetUserV1NotFound Error
+type GetUserWishlistBadRequest Error
 
-func (*GetUserV1NotFound) getUserV1Res() {}
+func (*GetUserWishlistBadRequest) getUserWishlistRes() {}
 
-type GetWishlistBadRequest Error
+type GetUserWishlistForbidden Error
 
-func (*GetWishlistBadRequest) getWishlistRes() {}
+func (*GetUserWishlistForbidden) getUserWishlistRes() {}
 
-type GetWishlistNotFound Error
+type GetUserWishlistNotFound Error
 
-func (*GetWishlistNotFound) getWishlistRes() {}
+func (*GetUserWishlistNotFound) getUserWishlistRes() {}
+
+type GetUserWishlistUnauthorized Error
+
+func (*GetUserWishlistUnauthorized) getUserWishlistRes() {}
+
+// InternalErrorStatusCode wraps Error with StatusCode.
+type InternalErrorStatusCode struct {
+	StatusCode int
+	Response   Error
+}
+
+// GetStatusCode returns the value of StatusCode.
+func (s *InternalErrorStatusCode) GetStatusCode() int {
+	return s.StatusCode
+}
+
+// GetResponse returns the value of Response.
+func (s *InternalErrorStatusCode) GetResponse() Error {
+	return s.Response
+}
+
+// SetStatusCode sets the value of StatusCode.
+func (s *InternalErrorStatusCode) SetStatusCode(val int) {
+	s.StatusCode = val
+}
+
+// SetResponse sets the value of Response.
+func (s *InternalErrorStatusCode) SetResponse(val Error) {
+	s.Response = val
+}
+
+func (*InternalErrorStatusCode) findUserLegacyRes()    {}
+func (*InternalErrorStatusCode) getUserCollectionRes() {}
+func (*InternalErrorStatusCode) getUserFavoriteRes()   {}
+func (*InternalErrorStatusCode) getUserLegacyRes()     {}
+func (*InternalErrorStatusCode) getUserRes()           {}
+func (*InternalErrorStatusCode) getUserWishlistRes()   {}
+func (*InternalErrorStatusCode) listUsersRes()         {}
+
+type ListUsersBadRequest Error
+
+func (*ListUsersBadRequest) listUsersRes() {}
+
+type ListUsersForbidden Error
+
+func (*ListUsersForbidden) listUsersRes() {}
+
+type ListUsersUnauthorized Error
+
+func (*ListUsersUnauthorized) listUsersRes() {}
 
 // NewOptCharacter returns new OptCharacter with value set to v.
 func NewOptCharacter(v Character) OptCharacter {
@@ -250,6 +449,144 @@ func (o OptCharacter) Get() (v Character, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptCharacter) Or(d Character) Character {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptDirection returns new OptDirection with value set to v.
+func NewOptDirection(v Direction) OptDirection {
+	return OptDirection{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptDirection is optional Direction.
+type OptDirection struct {
+	Value Direction
+	Set   bool
+}
+
+// IsSet returns true if OptDirection was set.
+func (o OptDirection) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptDirection) Reset() {
+	var v Direction
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptDirection) SetTo(v Direction) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptDirection) Get() (v Direction, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptDirection) Or(d Direction) Direction {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptInt returns new OptInt with value set to v.
+func NewOptInt(v int) OptInt {
+	return OptInt{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptInt is optional int.
+type OptInt struct {
+	Value int
+	Set   bool
+}
+
+// IsSet returns true if OptInt was set.
+func (o OptInt) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptInt) Reset() {
+	var v int
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptInt) SetTo(v int) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptInt) Get() (v int, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptInt) Or(d int) int {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptOrderBy returns new OptOrderBy with value set to v.
+func NewOptOrderBy(v OrderBy) OptOrderBy {
+	return OptOrderBy{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptOrderBy is optional OrderBy.
+type OptOrderBy struct {
+	Value OrderBy
+	Set   bool
+}
+
+// IsSet returns true if OptOrderBy was set.
+func (o OptOrderBy) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptOrderBy) Reset() {
+	var v OrderBy
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptOrderBy) SetTo(v OrderBy) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptOrderBy) Get() (v OrderBy, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptOrderBy) Or(d OrderBy) OrderBy {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -302,7 +639,101 @@ func (o OptString) Or(d string) string {
 	return d
 }
 
-// Complete user profile including user information, collection, and favorite character.
+// NewOptURI returns new OptURI with value set to v.
+func NewOptURI(v url.URL) OptURI {
+	return OptURI{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptURI is optional url.URL.
+type OptURI struct {
+	Value url.URL
+	Set   bool
+}
+
+// IsSet returns true if OptURI was set.
+func (o OptURI) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptURI) Reset() {
+	var v url.URL
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptURI) SetTo(v url.URL) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptURI) Get() (v url.URL, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptURI) Or(d url.URL) url.URL {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+type OrderBy string
+
+const (
+	OrderByDate      OrderBy = "date"
+	OrderByName      OrderBy = "name"
+	OrderByAnilistID OrderBy = "anilist_id"
+)
+
+// AllValues returns all OrderBy values.
+func (OrderBy) AllValues() []OrderBy {
+	return []OrderBy{
+		OrderByDate,
+		OrderByName,
+		OrderByAnilistID,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s OrderBy) MarshalText() ([]byte, error) {
+	switch s {
+	case OrderByDate:
+		return []byte(s), nil
+	case OrderByName:
+		return []byte(s), nil
+	case OrderByAnilistID:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *OrderBy) UnmarshalText(data []byte) error {
+	switch OrderBy(data) {
+	case OrderByDate:
+		*s = OrderByDate
+		return nil
+	case OrderByName:
+		*s = OrderByName
+		return nil
+	case OrderByAnilistID:
+		*s = OrderByAnilistID
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Complete user profile including user information, collection, and favorite character (deprecated).
 // Ref: #/components/schemas/Profile
 type Profile struct {
 	// User ID.
@@ -403,8 +834,98 @@ func (s *Profile) SetWaifus(val []Character) {
 	s.Waifus = val
 }
 
-func (*Profile) getUserRes()   {}
-func (*Profile) getUserV1Res() {}
+func (*Profile) getUserLegacyRes() {}
+
+// User resource containing profile metadata.
+// Ref: #/components/schemas/User
+type User struct {
+	// Resource name.
+	Name string `json:"name"`
+	// User ID.
+	ID string `json:"id"`
+	// User's personal quote.
+	Quote OptString `json:"quote"`
+	// User's token balance.
+	Tokens int32 `json:"tokens"`
+	// Anilist user URL.
+	AnilistURL OptString `json:"anilist_url"`
+	// Discord username.
+	DiscordUsername string `json:"discord_username"`
+	// Discord avatar URL.
+	DiscordAvatar OptString `json:"discord_avatar"`
+}
+
+// GetName returns the value of Name.
+func (s *User) GetName() string {
+	return s.Name
+}
+
+// GetID returns the value of ID.
+func (s *User) GetID() string {
+	return s.ID
+}
+
+// GetQuote returns the value of Quote.
+func (s *User) GetQuote() OptString {
+	return s.Quote
+}
+
+// GetTokens returns the value of Tokens.
+func (s *User) GetTokens() int32 {
+	return s.Tokens
+}
+
+// GetAnilistURL returns the value of AnilistURL.
+func (s *User) GetAnilistURL() OptString {
+	return s.AnilistURL
+}
+
+// GetDiscordUsername returns the value of DiscordUsername.
+func (s *User) GetDiscordUsername() string {
+	return s.DiscordUsername
+}
+
+// GetDiscordAvatar returns the value of DiscordAvatar.
+func (s *User) GetDiscordAvatar() OptString {
+	return s.DiscordAvatar
+}
+
+// SetName sets the value of Name.
+func (s *User) SetName(val string) {
+	s.Name = val
+}
+
+// SetID sets the value of ID.
+func (s *User) SetID(val string) {
+	s.ID = val
+}
+
+// SetQuote sets the value of Quote.
+func (s *User) SetQuote(val OptString) {
+	s.Quote = val
+}
+
+// SetTokens sets the value of Tokens.
+func (s *User) SetTokens(val int32) {
+	s.Tokens = val
+}
+
+// SetAnilistURL sets the value of AnilistURL.
+func (s *User) SetAnilistURL(val OptString) {
+	s.AnilistURL = val
+}
+
+// SetDiscordUsername sets the value of DiscordUsername.
+func (s *User) SetDiscordUsername(val string) {
+	s.DiscordUsername = val
+}
+
+// SetDiscordAvatar sets the value of DiscordAvatar.
+func (s *User) SetDiscordAvatar(val OptString) {
+	s.DiscordAvatar = val
+}
+
+func (*User) getUserRes() {}
 
 // Response containing only the user ID.
 // Ref: #/components/schemas/UserIdResponse
@@ -423,36 +944,90 @@ func (s *UserIdResponse) SetID(val string) {
 	s.ID = val
 }
 
-func (*UserIdResponse) findUserRes()   {}
-func (*UserIdResponse) findUserV1Res() {}
+func (*UserIdResponse) findUserLegacyRes() {}
 
-// User's wishlist response.
-// Ref: #/components/schemas/WishlistResponse
-type WishlistResponse struct {
+// List of users with pagination info.
+// Ref: #/components/schemas/UserList
+type UserList struct {
+	// List of users matching the query.
+	Users []User `json:"users"`
+	// Total number of users matching the query.
+	Total int `json:"total"`
+	// Token for retrieving the next page of results. Omitted if no more pages.
+	NextPageToken OptString `json:"next_page_token"`
+}
+
+// GetUsers returns the value of Users.
+func (s *UserList) GetUsers() []User {
+	return s.Users
+}
+
+// GetTotal returns the value of Total.
+func (s *UserList) GetTotal() int {
+	return s.Total
+}
+
+// GetNextPageToken returns the value of NextPageToken.
+func (s *UserList) GetNextPageToken() OptString {
+	return s.NextPageToken
+}
+
+// SetUsers sets the value of Users.
+func (s *UserList) SetUsers(val []User) {
+	s.Users = val
+}
+
+// SetTotal sets the value of Total.
+func (s *UserList) SetTotal(val int) {
+	s.Total = val
+}
+
+// SetNextPageToken sets the value of NextPageToken.
+func (s *UserList) SetNextPageToken(val OptString) {
+	s.NextPageToken = val
+}
+
+func (*UserList) listUsersRes() {}
+
+// User's wishlist of characters.
+// Ref: #/components/schemas/Wishlist
+type Wishlist struct {
 	// List of characters in wishlist.
 	Characters []Character `json:"characters"`
-	// Total number of characters in wishlist.
+	// Total number of characters in the wishlist across all pages.
 	Total int `json:"total"`
+	// Token for retrieving the next page of results.
+	NextPageToken OptString `json:"next_page_token"`
 }
 
 // GetCharacters returns the value of Characters.
-func (s *WishlistResponse) GetCharacters() []Character {
+func (s *Wishlist) GetCharacters() []Character {
 	return s.Characters
 }
 
 // GetTotal returns the value of Total.
-func (s *WishlistResponse) GetTotal() int {
+func (s *Wishlist) GetTotal() int {
 	return s.Total
 }
 
+// GetNextPageToken returns the value of NextPageToken.
+func (s *Wishlist) GetNextPageToken() OptString {
+	return s.NextPageToken
+}
+
 // SetCharacters sets the value of Characters.
-func (s *WishlistResponse) SetCharacters(val []Character) {
+func (s *Wishlist) SetCharacters(val []Character) {
 	s.Characters = val
 }
 
 // SetTotal sets the value of Total.
-func (s *WishlistResponse) SetTotal(val int) {
+func (s *Wishlist) SetTotal(val int) {
 	s.Total = val
 }
 
-func (*WishlistResponse) getWishlistRes() {}
+// SetNextPageToken sets the value of NextPageToken.
+func (s *Wishlist) SetNextPageToken(val OptString) {
+	s.NextPageToken = val
+}
+
+func (*Wishlist) getUserWishlistRes() {}

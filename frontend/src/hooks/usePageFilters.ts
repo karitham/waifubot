@@ -1,44 +1,23 @@
 import { useSearchParams } from "@solidjs/router";
 import { createEffect, createResource, createSignal } from "solid-js";
-import type { Character, Profile } from "../api/generated";
-import { getUserV1, findUserV1 } from "../api/generated";
+import type { User } from "../api/generated";
+import { getUser, listUsers } from "../api/generated";
 import type { Option } from "../components/filters/FilterMedia";
 import { getUserID } from "./useUserSearch";
 import { useDebounce } from "./useDebounce";
+import type { SortOption, Direction } from "./usePaginatedCollection";
+import type { SortValue } from "../components/filters/Sort";
 
-export const selectOptions = [
-	{ value: 100, label: "100" },
-	{ value: 200, label: "200" },
-	{ value: 500, label: "500" },
-	{ value: -1, label: "All" },
-];
-
-export const sortOptions = [
-	{
-		id: "date",
-		label: "Date",
-		value: (a: Character, b: Character) =>
-			b.date && a.date
-				? new Date(b.date).getTime() - new Date(a.date).getTime()
-				: -1,
-	},
-	{
-		id: "name",
-		label: "Name",
-		value: (a: Character, b: Character) => a.name.localeCompare(b.name),
-	},
-	{
-		id: "id",
-		label: "ID",
-		value: (a: Character, b: Character) => Number(a.id) - Number(b.id),
-	},
-];
+export const defaultSort: SortValue = {
+	field: "date",
+	direction: "desc",
+};
 
 const fetchCompareUser = async (input?: string) => {
 	if (!input) return undefined;
 	const userId = await getUserID(input);
 	if (!userId) return undefined;
-	return getUserV1(userId);
+	return getUser(userId);
 };
 
 const parseCompareIds = (param: string | undefined): string[] => {
@@ -60,12 +39,12 @@ export function usePageFilters(userId?: string) {
 		compare: string;
 	}>();
 
-	const [showCount, setShowCount] = createSignal(selectOptions[1]);
 	const [compareIds, setCompareIds] = createSignal<string[]>(
 		parseCompareIds(sp.compare),
 	);
-	const [charSort, setCharSort] = createSignal(sortOptions[0]);
-	const [charSearch, setCharSearch] = useDebounce("", 250);
+	const [charSort, setCharSort] = createSignal<SortValue>(defaultSort);
+	// Server-side search with debounce
+	const [charSearch, setCharSearch] = useDebounce("", 300);
 	const [media, setMedia] = createSignal<Option>(
 		sp.media_id && {
 			label: sp.media_label,
@@ -74,7 +53,7 @@ export function usePageFilters(userId?: string) {
 	);
 
 	const [compareUsersResource] = createResource(compareIds, async (ids) => {
-		const users: Profile[] = [];
+		const users: User[] = [];
 		for (const id of ids) {
 			const user = await fetchCompareUser(id);
 			if (user) users.push(user);
@@ -106,8 +85,6 @@ export function usePageFilters(userId?: string) {
 	};
 
 	return {
-		showCount,
-		setShowCount,
 		compareIds,
 		setCompareIds,
 		charSort,

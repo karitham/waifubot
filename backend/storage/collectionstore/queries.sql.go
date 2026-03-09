@@ -277,6 +277,60 @@ func (q *Queries) ListIDs(ctx context.Context, userID uint64) ([]int64, error) {
 	return items, nil
 }
 
+const listPaginated = `-- name: ListPaginated :many
+SELECT
+  c.id,
+  c.name,
+  c.image,
+  c.media_title,
+  col.source,
+  col.acquired_at AS date
+FROM
+  collection col
+  JOIN characters c ON col.character_id = c.id
+WHERE
+  col.user_id = $1
+LIMIT 1
+`
+
+type ListPaginatedRow struct {
+	ID         int64
+	Name       string
+	Image      string
+	MediaTitle string
+	Source     string
+	Date       pgtype.Timestamp
+}
+
+// Dynamic query using squirrel query builder - called via ListPaginatedDynamic method
+// This is a placeholder for sqlc generation, actual query built dynamically
+func (q *Queries) ListPaginated(ctx context.Context, userID uint64) ([]ListPaginatedRow, error) {
+	rows, err := q.db.Query(ctx, listPaginated, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPaginatedRow
+	for rows.Next() {
+		var i ListPaginatedRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Image,
+			&i.MediaTitle,
+			&i.Source,
+			&i.Date,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const searchCharacters = `-- name: SearchCharacters :many
 SELECT
   c.id,

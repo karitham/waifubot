@@ -6,9 +6,11 @@ package api
 type OperationName = string
 
 const (
-	FindUserOperation    OperationName = "FindUser"
-	FindUserV1Operation  OperationName = "FindUserV1"
-	GetUserOperation     OperationName = "GetUser"
-	GetUserV1Operation   OperationName = "GetUserV1"
-	GetWishlistOperation OperationName = "GetWishlist"
+	FindUserLegacyOperation    OperationName = "FindUserLegacy"
+	GetUserOperation           OperationName = "GetUser"
+	GetUserCollectionOperation OperationName = "GetUserCollection"
+	GetUserFavoriteOperation   OperationName = "GetUserFavorite"
+	GetUserLegacyOperation     OperationName = "GetUserLegacy"
+	GetUserWishlistOperation   OperationName = "GetUserWishlist"
+	ListUsersOperation         OperationName = "ListUsers"
 )

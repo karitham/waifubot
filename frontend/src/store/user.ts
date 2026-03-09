@@ -1,9 +1,9 @@
 import { createSignal } from "solid-js";
-import type { Character, Profile } from "../api/generated";
-import { getUserV1 } from "../api/generated";
+import type { Character, User, Collection } from "../api/generated";
+import { getUser, getUserCollection } from "../api/generated";
 
 interface UserState {
-	profile: Profile | null;
+	user: User | null;
 	characters: Character[] | null;
 	loading: boolean;
 	error: string | null;
@@ -11,7 +11,7 @@ interface UserState {
 
 export const useUserStore = () => {
 	const [state, setState] = createSignal<UserState>({
-		profile: null,
+		user: null,
 		characters: null,
 		loading: false,
 		error: null,
@@ -20,16 +20,21 @@ export const useUserStore = () => {
 	const fetchProfile = async (userId: string) => {
 		setState({ ...state(), loading: true, error: null });
 		try {
-			const result = await getUserV1(userId);
+			// Fetch user profile and collection in parallel
+			const [userResult, collectionResult] = await Promise.all([
+				getUser(userId),
+				getUserCollection(userId),
+			]);
+
 			setState({
-				profile: result,
-				characters: result.waifus,
+				user: userResult,
+				characters: collectionResult.characters,
 				loading: false,
 				error: null,
 			});
 		} catch (error) {
 			setState({
-				profile: null,
+				user: null,
 				characters: null,
 				loading: false,
 				error: error instanceof Error ? error.message : "Unknown error",
@@ -40,12 +45,12 @@ export const useUserStore = () => {
 
 	const fetchCharacters = async (userId: string) => {
 		try {
-			const result = await getUserV1(userId);
+			const result = await getUserCollection(userId);
 			setState({
 				...state(),
-				characters: result.waifus,
+				characters: result.characters,
 			});
-			return result.waifus;
+			return result.characters;
 		} catch (error) {
 			setState({
 				...state(),
@@ -55,10 +60,10 @@ export const useUserStore = () => {
 		}
 	};
 
-	const updateUser = (profile: Profile) => {
+	const updateUser = (user: User) => {
 		setState({
-			profile,
-			characters: profile.waifus,
+			user,
+			characters: state().characters,
 			loading: state().loading,
 			error: state().error,
 		});

@@ -61,104 +61,160 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 			switch elem[0] {
-			case 'a': // Prefix: "api/v1/"
+			case 'a': // Prefix: "api/v1/users"
 
-				if l := len("api/v1/"); len(elem) >= l && elem[0:l] == "api/v1/" {
+				if l := len("api/v1/users"); len(elem) >= l && elem[0:l] == "api/v1/users" {
 					elem = elem[l:]
 				} else {
 					break
 				}
 
 				if len(elem) == 0 {
-					break
+					switch r.Method {
+					case "GET":
+						s.handleListUsersRequest([0]string{}, elemIsEscaped, w, r)
+					default:
+						s.notAllowed(w, r, notAllowedParams{
+							allowedMethods: "GET",
+							allowedHeaders: nil,
+							acceptPost:     "",
+							acceptPatch:    "",
+						})
+					}
+
+					return
 				}
 				switch elem[0] {
-				case 'u': // Prefix: "user/"
+				case '/': // Prefix: "/"
 
-					if l := len("user/"); len(elem) >= l && elem[0:l] == "user/" {
+					if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
 						elem = elem[l:]
 					} else {
 						break
 					}
 
+					// Param: "userID"
+					// Match until "/"
+					idx := strings.IndexByte(elem, '/')
+					if idx < 0 {
+						idx = len(elem)
+					}
+					args[0] = elem[:idx]
+					elem = elem[idx:]
+
 					if len(elem) == 0 {
-						break
+						switch r.Method {
+						case "GET":
+							s.handleGetUserRequest([1]string{
+								args[0],
+							}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, notAllowedParams{
+								allowedMethods: "GET",
+								allowedHeaders: nil,
+								acceptPost:     "",
+								acceptPatch:    "",
+							})
+						}
+
+						return
 					}
 					switch elem[0] {
-					case 'f': // Prefix: "find"
-						origElem := elem
-						if l := len("find"); len(elem) >= l && elem[0:l] == "find" {
+					case '/': // Prefix: "/"
+
+						if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
 							elem = elem[l:]
 						} else {
 							break
 						}
 
 						if len(elem) == 0 {
-							// Leaf node.
-							switch r.Method {
-							case "GET":
-								s.handleFindUserV1Request([0]string{}, elemIsEscaped, w, r)
-							default:
-								s.notAllowed(w, r, "GET")
+							break
+						}
+						switch elem[0] {
+						case 'c': // Prefix: "collection"
+
+							if l := len("collection"); len(elem) >= l && elem[0:l] == "collection" {
+								elem = elem[l:]
+							} else {
+								break
 							}
 
-							return
+							if len(elem) == 0 {
+								// Leaf node.
+								switch r.Method {
+								case "GET":
+									s.handleGetUserCollectionRequest([1]string{
+										args[0],
+									}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, notAllowedParams{
+										allowedMethods: "GET",
+										allowedHeaders: nil,
+										acceptPost:     "",
+										acceptPatch:    "",
+									})
+								}
+
+								return
+							}
+
+						case 'f': // Prefix: "favorite"
+
+							if l := len("favorite"); len(elem) >= l && elem[0:l] == "favorite" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch r.Method {
+								case "GET":
+									s.handleGetUserFavoriteRequest([1]string{
+										args[0],
+									}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, notAllowedParams{
+										allowedMethods: "GET",
+										allowedHeaders: nil,
+										acceptPost:     "",
+										acceptPatch:    "",
+									})
+								}
+
+								return
+							}
+
+						case 'w': // Prefix: "wishlist"
+
+							if l := len("wishlist"); len(elem) >= l && elem[0:l] == "wishlist" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch r.Method {
+								case "GET":
+									s.handleGetUserWishlistRequest([1]string{
+										args[0],
+									}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, notAllowedParams{
+										allowedMethods: "GET",
+										allowedHeaders: nil,
+										acceptPost:     "",
+										acceptPatch:    "",
+									})
+								}
+
+								return
+							}
+
 						}
 
-						elem = origElem
-					}
-					// Param: "userID"
-					// Leaf parameter, slashes are prohibited
-					idx := strings.IndexByte(elem, '/')
-					if idx >= 0 {
-						break
-					}
-					args[0] = elem
-					elem = ""
-
-					if len(elem) == 0 {
-						// Leaf node.
-						switch r.Method {
-						case "GET":
-							s.handleGetUserV1Request([1]string{
-								args[0],
-							}, elemIsEscaped, w, r)
-						default:
-							s.notAllowed(w, r, "GET")
-						}
-
-						return
-					}
-
-				case 'w': // Prefix: "wishlist/"
-
-					if l := len("wishlist/"); len(elem) >= l && elem[0:l] == "wishlist/" {
-						elem = elem[l:]
-					} else {
-						break
-					}
-
-					// Param: "userID"
-					// Leaf parameter, slashes are prohibited
-					idx := strings.IndexByte(elem, '/')
-					if idx >= 0 {
-						break
-					}
-					args[0] = elem
-					elem = ""
-
-					if len(elem) == 0 {
-						// Leaf node.
-						switch r.Method {
-						case "GET":
-							s.handleGetWishlistRequest([1]string{
-								args[0],
-							}, elemIsEscaped, w, r)
-						default:
-							s.notAllowed(w, r, "GET")
-						}
-
-						return
 					}
 
 				}
@@ -187,9 +243,14 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						// Leaf node.
 						switch r.Method {
 						case "GET":
-							s.handleFindUserRequest([0]string{}, elemIsEscaped, w, r)
+							s.handleFindUserLegacyRequest([0]string{}, elemIsEscaped, w, r)
 						default:
-							s.notAllowed(w, r, "GET")
+							s.notAllowed(w, r, notAllowedParams{
+								allowedMethods: "GET",
+								allowedHeaders: nil,
+								acceptPost:     "",
+								acceptPatch:    "",
+							})
 						}
 
 						return
@@ -210,11 +271,16 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					// Leaf node.
 					switch r.Method {
 					case "GET":
-						s.handleGetUserRequest([1]string{
+						s.handleGetUserLegacyRequest([1]string{
 							args[0],
 						}, elemIsEscaped, w, r)
 					default:
-						s.notAllowed(w, r, "GET")
+						s.notAllowed(w, r, notAllowedParams{
+							allowedMethods: "GET",
+							allowedHeaders: nil,
+							acceptPost:     "",
+							acceptPatch:    "",
+						})
 					}
 
 					return
@@ -320,115 +386,152 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 				break
 			}
 			switch elem[0] {
-			case 'a': // Prefix: "api/v1/"
+			case 'a': // Prefix: "api/v1/users"
 
-				if l := len("api/v1/"); len(elem) >= l && elem[0:l] == "api/v1/" {
+				if l := len("api/v1/users"); len(elem) >= l && elem[0:l] == "api/v1/users" {
 					elem = elem[l:]
 				} else {
 					break
 				}
 
 				if len(elem) == 0 {
-					break
+					switch method {
+					case "GET":
+						r.name = ListUsersOperation
+						r.summary = "List users"
+						r.operationID = "listUsers"
+						r.operationGroup = ""
+						r.pathPattern = "/api/v1/users"
+						r.args = args
+						r.count = 0
+						return r, true
+					default:
+						return
+					}
 				}
 				switch elem[0] {
-				case 'u': // Prefix: "user/"
+				case '/': // Prefix: "/"
 
-					if l := len("user/"); len(elem) >= l && elem[0:l] == "user/" {
+					if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
 						elem = elem[l:]
 					} else {
 						break
 					}
 
+					// Param: "userID"
+					// Match until "/"
+					idx := strings.IndexByte(elem, '/')
+					if idx < 0 {
+						idx = len(elem)
+					}
+					args[0] = elem[:idx]
+					elem = elem[idx:]
+
 					if len(elem) == 0 {
-						break
+						switch method {
+						case "GET":
+							r.name = GetUserOperation
+							r.summary = "Get user profile"
+							r.operationID = "getUser"
+							r.operationGroup = ""
+							r.pathPattern = "/api/v1/users/{userID}"
+							r.args = args
+							r.count = 1
+							return r, true
+						default:
+							return
+						}
 					}
 					switch elem[0] {
-					case 'f': // Prefix: "find"
-						origElem := elem
-						if l := len("find"); len(elem) >= l && elem[0:l] == "find" {
+					case '/': // Prefix: "/"
+
+						if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
 							elem = elem[l:]
 						} else {
 							break
 						}
 
 						if len(elem) == 0 {
-							// Leaf node.
-							switch method {
-							case "GET":
-								r.name = FindUserV1Operation
-								r.summary = "Find user by Anilist or Discord (v1)"
-								r.operationID = "findUserV1"
-								r.operationGroup = ""
-								r.pathPattern = "/api/v1/user/find"
-								r.args = args
-								r.count = 0
-								return r, true
-							default:
-								return
+							break
+						}
+						switch elem[0] {
+						case 'c': // Prefix: "collection"
+
+							if l := len("collection"); len(elem) >= l && elem[0:l] == "collection" {
+								elem = elem[l:]
+							} else {
+								break
 							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch method {
+								case "GET":
+									r.name = GetUserCollectionOperation
+									r.summary = "Get user collection"
+									r.operationID = "getUserCollection"
+									r.operationGroup = ""
+									r.pathPattern = "/api/v1/users/{userID}/collection"
+									r.args = args
+									r.count = 1
+									return r, true
+								default:
+									return
+								}
+							}
+
+						case 'f': // Prefix: "favorite"
+
+							if l := len("favorite"); len(elem) >= l && elem[0:l] == "favorite" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch method {
+								case "GET":
+									r.name = GetUserFavoriteOperation
+									r.summary = "Get user favorite character"
+									r.operationID = "getUserFavorite"
+									r.operationGroup = ""
+									r.pathPattern = "/api/v1/users/{userID}/favorite"
+									r.args = args
+									r.count = 1
+									return r, true
+								default:
+									return
+								}
+							}
+
+						case 'w': // Prefix: "wishlist"
+
+							if l := len("wishlist"); len(elem) >= l && elem[0:l] == "wishlist" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch method {
+								case "GET":
+									r.name = GetUserWishlistOperation
+									r.summary = "Get user wishlist"
+									r.operationID = "getUserWishlist"
+									r.operationGroup = ""
+									r.pathPattern = "/api/v1/users/{userID}/wishlist"
+									r.args = args
+									r.count = 1
+									return r, true
+								default:
+									return
+								}
+							}
+
 						}
 
-						elem = origElem
-					}
-					// Param: "userID"
-					// Leaf parameter, slashes are prohibited
-					idx := strings.IndexByte(elem, '/')
-					if idx >= 0 {
-						break
-					}
-					args[0] = elem
-					elem = ""
-
-					if len(elem) == 0 {
-						// Leaf node.
-						switch method {
-						case "GET":
-							r.name = GetUserV1Operation
-							r.summary = "Get user profile (v1)"
-							r.operationID = "getUserV1"
-							r.operationGroup = ""
-							r.pathPattern = "/api/v1/user/{userID}"
-							r.args = args
-							r.count = 1
-							return r, true
-						default:
-							return
-						}
-					}
-
-				case 'w': // Prefix: "wishlist/"
-
-					if l := len("wishlist/"); len(elem) >= l && elem[0:l] == "wishlist/" {
-						elem = elem[l:]
-					} else {
-						break
-					}
-
-					// Param: "userID"
-					// Leaf parameter, slashes are prohibited
-					idx := strings.IndexByte(elem, '/')
-					if idx >= 0 {
-						break
-					}
-					args[0] = elem
-					elem = ""
-
-					if len(elem) == 0 {
-						// Leaf node.
-						switch method {
-						case "GET":
-							r.name = GetWishlistOperation
-							r.summary = "Get user wishlist"
-							r.operationID = "getWishlist"
-							r.operationGroup = ""
-							r.pathPattern = "/api/v1/wishlist/{userID}"
-							r.args = args
-							r.count = 1
-							return r, true
-						default:
-							return
-						}
 					}
 
 				}
@@ -457,9 +560,9 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 						// Leaf node.
 						switch method {
 						case "GET":
-							r.name = FindUserOperation
+							r.name = FindUserLegacyOperation
 							r.summary = "Find user by Anilist or Discord"
-							r.operationID = "findUser"
+							r.operationID = "findUserLegacy"
 							r.operationGroup = ""
 							r.pathPattern = "/user/find"
 							r.args = args
@@ -485,9 +588,9 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 					// Leaf node.
 					switch method {
 					case "GET":
-						r.name = GetUserOperation
+						r.name = GetUserLegacyOperation
 						r.summary = "Get user profile"
-						r.operationID = "getUser"
+						r.operationID = "getUserLegacy"
 						r.operationGroup = ""
 						r.pathPattern = "/user/{userID}"
 						r.args = args

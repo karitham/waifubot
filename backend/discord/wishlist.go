@@ -204,7 +204,7 @@ func (b *Bot) wishlistHolders(ctx context.Context, w corde.ResponseWriter, i *co
 		if len(h.Characters) == 0 {
 			continue
 		}
-		desc.WriteString(fmt.Sprintf("%s: ", formatUser(h.UserID)))
+		fmt.Fprintf(&desc, "%s: ", formatUser(h.UserID))
 		desc.WriteString(buildCharacterList(h.Characters, len(h.Characters)))
 		desc.WriteString("\n")
 	}
@@ -234,7 +234,7 @@ func (b *Bot) wishlistWanted(ctx context.Context, w corde.ResponseWriter, i *cor
 	var desc strings.Builder
 	desc.WriteString("People who want characters from your collection:\n")
 	for _, w := range wanted {
-		desc.WriteString(fmt.Sprintf("%s: ", formatUser(w.UserID)))
+		fmt.Fprintf(&desc, "%s: ", formatUser(w.UserID))
 		desc.WriteString(buildCharacterList(w.Characters, len(w.Characters)))
 		desc.WriteString("\n")
 	}
