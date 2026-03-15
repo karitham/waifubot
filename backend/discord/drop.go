@@ -2,19 +2,15 @@ package discord
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/Karitham/corde"
-	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/karitham/waifubot/collection"
-	"github.com/karitham/waifubot/storage/collectionstore"
 	"github.com/karitham/waifubot/storage/dropstore"
 )
 
@@ -59,81 +55,31 @@ func (b *Bot) claim(ctx context.Context, w corde.ResponseWriter, i *corde.Intera
 		return
 	}
 
-	// impl claim.
-	char, err := b.DropStore.Get(ctx, i.ChannelID)
+	char, err := collection.Claim(ctx, b.Store, uint64(i.Member.User.ID), uint64(i.ChannelID), sanitizeName(name))
 	if err != nil {
-		logger.Debug("failed to get channel character for claim", "error", err)
-		w.Respond(rspErr("No character to claim"))
-		return
-	}
-
-	if !equalStrings(char.Name, name) {
-		w.Respond(rspErr("Wrong!"))
-		return
-	}
-
-	// Ensure user exists
-	_, err = b.Store.UserStore().Get(ctx, uint64(i.Member.User.ID))
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			err = b.Store.UserStore().Create(ctx, uint64(i.Member.User.ID))
-			if err != nil {
-				w.Respond(rspErr("Failed to create user"))
-				return
-			}
-		} else {
-			w.Respond(rspErr("Failed to get user"))
-			return
+		logger.Debug("failed to claim", "error", err)
+		switch {
+		case errors.Is(err, collection.ErrNoDropInChannel):
+			w.Respond(rspErr("No character to claim"))
+		case errors.Is(err, collection.ErrWrongCharacterName):
+			w.Respond(rspErr("Wrong!"))
+		default:
+			w.Respond(rspErr("Failed to claim character"))
 		}
-	}
-
-	// First create the character if it doesn't exist
-	_, err = b.Store.CollectionStore().UpsertCharacter(ctx, collectionstore.UpsertCharacterParams{
-		ID:    char.ID,
-		Name:  sanitizeName(char.Name),
-		Image: char.ImageURL,
-	})
-	if err != nil {
-		logger.Debug("failed to create character", "error", err, "character_id", char.ID, "character_name", char.Name)
-		w.Respond(rspErr("Failed to claim character"))
-		return
-	}
-
-	// Insert char into collection
-	_, err = b.Store.CollectionStore().Insert(ctx, collectionstore.InsertParams{
-		UserID:      uint64(i.Member.User.ID),
-		CharacterID: char.ID,
-		Source:      "CLAIM",
-		AcquiredAt:  pgtype.Timestamp{Time: time.Now(), Valid: true},
-	})
-	if err != nil {
-		logger.Debug("failed to insert claimed character", "error", err, "character_id", char.ID, "character_name", char.Name)
-		w.Respond(rspErr("Already in your collection!"))
-		return
-	}
-
-	err = b.DropStore.Delete(ctx, i.ChannelID)
-	if err != nil {
-		logger.Error("failed to remove channel character after claim", "error", err, "character_id", char.ID, "character_name", char.Name)
 		return
 	}
 
 	logger.Info("user claimed character",
 		"character_id", char.ID,
-		"character_name", char.Name,
-		"media_title", char.MediaTitle)
+		"character_name", char.Name)
 
 	w.Respond(corde.NewEmbed().
 		Title(char.Name).
 		URL(fmt.Sprintf("https://anilist.co/character/%d", char.ID)).
 		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"}).
-		Thumbnail(corde.Image{URL: char.ImageURL}).
-		Descriptionf("Congratulations!\n%s added to your collection!\nID: %d\nFrom: %s", char.Name, char.ID, char.MediaTitle),
+		Thumbnail(corde.Image{URL: char.Image}).
+		Descriptionf("Congratulations!\n%s added to your collection!\nID: %d", char.Name, char.ID),
 	)
-}
-
-func equalStrings(this, that string) bool {
-	return strings.EqualFold(sanitizeName(this), sanitizeName(that))
 }
 
 func sanitizeName(name string) string {

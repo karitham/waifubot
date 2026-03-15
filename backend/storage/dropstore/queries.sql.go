@@ -45,6 +45,32 @@ func (q *Queries) GetDrop(ctx context.Context, channelID uint64) (Character, err
 	return i, err
 }
 
+const getDropForUpdate = `-- name: GetDropForUpdate :one
+SELECT
+  c.id,
+  c.name,
+  c.image,
+  c.media_title
+FROM
+  channel_drops cd
+  JOIN characters c ON cd.character_id = c.id
+WHERE
+  cd.channel_id = $1
+FOR UPDATE
+`
+
+func (q *Queries) GetDropForUpdate(ctx context.Context, channelID uint64) (Character, error) {
+	row := q.db.QueryRow(ctx, getDropForUpdate, channelID)
+	var i Character
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Image,
+		&i.MediaTitle,
+	)
+	return i, err
+}
+
 const setDrop = `-- name: SetDrop :exec
 INSERT INTO
   channel_drops (channel_id, character_id)

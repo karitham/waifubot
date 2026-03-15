@@ -16,6 +16,7 @@ import (
 	storage "github.com/karitham/waifubot/storage"
 	collectionstore "github.com/karitham/waifubot/storage/collectionstore"
 	commandstore "github.com/karitham/waifubot/storage/commandstore"
+	dropstore "github.com/karitham/waifubot/storage/dropstore"
 	guildstore "github.com/karitham/waifubot/storage/guildstore"
 	userstore "github.com/karitham/waifubot/storage/userstore"
 	wishliststore "github.com/karitham/waifubot/storage/wishliststore"
@@ -86,6 +87,20 @@ func (m *MockProfileStore) Commit(ctx context.Context) error {
 func (mr *MockProfileStoreMockRecorder) Commit(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Commit", reflect.TypeOf((*MockProfileStore)(nil).Commit), ctx)
+}
+
+// DropStore mocks base method.
+func (m *MockProfileStore) DropStore() dropstore.Querier {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DropStore")
+	ret0, _ := ret[0].(dropstore.Querier)
+	return ret0
+}
+
+// DropStore indicates an expected call of DropStore.
+func (mr *MockProfileStoreMockRecorder) DropStore() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DropStore", reflect.TypeOf((*MockProfileStore)(nil).DropStore))
 }
 
 // GuildStore mocks base method.

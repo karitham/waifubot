@@ -21,6 +21,7 @@ import (
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/collectionstore"
 	"github.com/karitham/waifubot/storage/commandstore"
+	"github.com/karitham/waifubot/storage/dropstore"
 	"github.com/karitham/waifubot/storage/guildstore"
 	"github.com/karitham/waifubot/storage/userstore"
 	"github.com/karitham/waifubot/storage/wishliststore"
@@ -36,6 +37,7 @@ type Store interface {
 	GuildStore() guildstore.Querier
 	WishlistStore() wishliststore.Querier
 	CommandStore() commandstore.Querier
+	DropStore() dropstore.Querier
 }
 
 // AnimeService defines the interface for anime operations

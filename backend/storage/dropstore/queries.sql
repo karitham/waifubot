@@ -34,3 +34,16 @@ WHERE
 DELETE FROM channel_drops
 WHERE
   channel_id = $1;
+
+-- name: GetDropForUpdate :one
+SELECT
+  c.id,
+  c.name,
+  c.image,
+  c.media_title
+FROM
+  channel_drops cd
+  JOIN characters c ON cd.character_id = c.id
+WHERE
+  cd.channel_id = $1
+FOR UPDATE;
