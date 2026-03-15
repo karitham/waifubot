@@ -4,12 +4,16 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Karitham/corde"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/storage/userstore"
 )
 
 func (b *Bot) profile(m *corde.Mux) {
@@ -70,7 +74,10 @@ func (b *Bot) profileEditFavorite(ctx context.Context, w corde.ResponseWriter, i
 	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
 
 	optID, _ := i.Data.Options.Int64("id")
-	if err := collection.SetFavorite(ctx, b.Store, i.Member.User.ID, optID); err != nil {
+	if err := b.Store.UserStore().UpdateFavorite(ctx, userstore.UpdateFavoriteParams{
+		Favorite: pgtype.Int8{Int64: optID, Valid: true},
+		UserID:   uint64(i.Member.User.ID),
+	}); err != nil {
 		logger.Error("error setting favorite character", "error", err, "character_id", optID)
 		w.Respond(corde.NewResp().Content("An error occurred setting this character").Ephemeral())
 		return
@@ -102,7 +109,26 @@ func (b *Bot) userCollectionAutocomplete(ctx context.Context, w corde.ResponseWr
 
 func (b *Bot) profileEditAnilistURL(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
 	anilistURL, _ := i.Data.Options.String("url")
-	if err := collection.SetAnilistURL(ctx, b.Store, i.Member.User.ID, anilistURL); err != nil {
+	parsedURL, err := url.Parse(anilistURL)
+	if err != nil {
+		w.Respond(corde.NewResp().Content("invalid URL").Ephemeral())
+		return
+	}
+
+	if parsedURL.Host != "anilist.co" {
+		w.Respond(corde.NewResp().Content("invalid Anilist URL").Ephemeral())
+		return
+	}
+
+	if !strings.HasPrefix(parsedURL.Path, "/user/") {
+		w.Respond(corde.NewResp().Content("invalid Anilist URL").Ephemeral())
+		return
+	}
+
+	if err := b.Store.UserStore().UpdateAnilistURL(ctx, userstore.UpdateAnilistURLParams{
+		AnilistUrl: anilistURL,
+		UserID:     uint64(i.Member.User.ID),
+	}); err != nil {
 		w.Respond(corde.NewResp().Content(err.Error()).Ephemeral())
 		return
 	}
@@ -112,7 +138,15 @@ func (b *Bot) profileEditAnilistURL(ctx context.Context, w corde.ResponseWriter,
 
 func (b *Bot) profileEditQuote(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
 	quote, _ := i.Data.Options.String("value")
-	if err := collection.SetQuote(ctx, b.Store, i.Member.User.ID, quote); err != nil {
+	if len(quote) > 1024 {
+		w.Respond(corde.NewResp().Content("quote is too long").Ephemeral())
+		return
+	}
+
+	if err := b.Store.UserStore().UpdateQuote(ctx, userstore.UpdateQuoteParams{
+		Quote:  quote,
+		UserID: uint64(i.Member.User.ID),
+	}); err != nil {
 		w.Respond(corde.NewResp().Content(err.Error()).Ephemeral())
 		return
 	}

@@ -33,12 +33,14 @@ func TestCharacterHolders(t *testing.T) {
 			setupMocks: func(store *MockProfileStore, coll *MockCollectionQuerier, guild *MockGuildQuerier) {
 				store.EXPECT().CollectionStore().Return(coll).AnyTimes()
 				store.EXPECT().GuildStore().Return(guild).AnyTimes()
+				guild.EXPECT().IsGuildIndexed(gomock.Any(), uint64(123)).Return(guildstore.IsGuildIndexedRow{
+					Status: guildstore.IndexingStatusCompleted,
+				}, nil)
 				coll.EXPECT().GetByID(gomock.Any(), int64(456)).Return(collectionstore.Character{
 					ID:    456,
 					Name:  "TestChar",
 					Image: "img",
 				}, nil)
-				guild.EXPECT().GetGuildMembers(gomock.Any(), uint64(123)).Return([]uint64{1, 2, 3}, nil)
 				guild.EXPECT().UsersOwningCharInGuild(gomock.Any(), guildstore.UsersOwningCharInGuildParams{
 					CharacterID: 456,
 					GuildID:     123,
@@ -53,7 +55,6 @@ func TestCharacterHolders(t *testing.T) {
 			guildID: 0,
 			charID:  456,
 			setupMocks: func(store *MockProfileStore, coll *MockCollectionQuerier, guild *MockGuildQuerier) {
-				// No mocks needed
 			},
 			wantErr: true,
 			errMsg:  "this command can only be used in servers",
@@ -63,6 +64,10 @@ func TestCharacterHolders(t *testing.T) {
 			guildID: 123,
 			charID:  456,
 			setupMocks: func(store *MockProfileStore, coll *MockCollectionQuerier, guild *MockGuildQuerier) {
+				store.EXPECT().GuildStore().Return(guild)
+				guild.EXPECT().IsGuildIndexed(gomock.Any(), uint64(123)).Return(guildstore.IsGuildIndexedRow{
+					Status: guildstore.IndexingStatusCompleted,
+				}, nil)
 				store.EXPECT().CollectionStore().Return(coll)
 				coll.EXPECT().GetByID(gomock.Any(), int64(456)).Return(collectionstore.Character{}, errors.New("get error"))
 			},
@@ -70,35 +75,14 @@ func TestCharacterHolders(t *testing.T) {
 			errMsg:  "no one in this server has 456",
 		},
 		{
-			name:    "GetGuildMembers error",
+			name:    "not indexed",
 			guildID: 123,
 			charID:  456,
 			setupMocks: func(store *MockProfileStore, coll *MockCollectionQuerier, guild *MockGuildQuerier) {
-				store.EXPECT().CollectionStore().Return(coll)
 				store.EXPECT().GuildStore().Return(guild)
-				coll.EXPECT().GetByID(gomock.Any(), int64(456)).Return(collectionstore.Character{
-					ID:    456,
-					Name:  "TestChar",
-					Image: "img",
+				guild.EXPECT().IsGuildIndexed(gomock.Any(), uint64(123)).Return(guildstore.IsGuildIndexedRow{
+					Status: guildstore.IndexingStatusPending,
 				}, nil)
-				guild.EXPECT().GetGuildMembers(gomock.Any(), uint64(123)).Return(nil, errors.New("members error"))
-			},
-			wantErr: true,
-			errMsg:  "failed to fetch guild members: members error",
-		},
-		{
-			name:    "empty members",
-			guildID: 123,
-			charID:  456,
-			setupMocks: func(store *MockProfileStore, coll *MockCollectionQuerier, guild *MockGuildQuerier) {
-				store.EXPECT().CollectionStore().Return(coll)
-				store.EXPECT().GuildStore().Return(guild)
-				coll.EXPECT().GetByID(gomock.Any(), int64(456)).Return(collectionstore.Character{
-					ID:    456,
-					Name:  "TestChar",
-					Image: "img",
-				}, nil)
-				guild.EXPECT().GetGuildMembers(gomock.Any(), uint64(123)).Return([]uint64{}, nil)
 			},
 			wantErr: true,
 			errMsg:  "guild members not indexed yet, please try again later",
@@ -110,12 +94,14 @@ func TestCharacterHolders(t *testing.T) {
 			setupMocks: func(store *MockProfileStore, coll *MockCollectionQuerier, guild *MockGuildQuerier) {
 				store.EXPECT().CollectionStore().Return(coll).AnyTimes()
 				store.EXPECT().GuildStore().Return(guild).AnyTimes()
+				guild.EXPECT().IsGuildIndexed(gomock.Any(), uint64(123)).Return(guildstore.IsGuildIndexedRow{
+					Status: guildstore.IndexingStatusCompleted,
+				}, nil)
 				coll.EXPECT().GetByID(gomock.Any(), int64(456)).Return(collectionstore.Character{
 					ID:    456,
 					Name:  "TestChar",
 					Image: "img",
 				}, nil)
-				guild.EXPECT().GetGuildMembers(gomock.Any(), uint64(123)).Return([]uint64{1, 2, 3}, nil)
 				guild.EXPECT().UsersOwningCharInGuild(gomock.Any(), guildstore.UsersOwningCharInGuildParams{
 					CharacterID: 456,
 					GuildID:     123,

@@ -9,14 +9,10 @@ package collection
 
 import (
 	"context"
-	"fmt"
-	"net/url"
-	"strings"
 	"time"
 
 	"github.com/Karitham/corde"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/collectionstore"
@@ -171,47 +167,6 @@ func UserProfile(ctx context.Context, store Store, userID corde.Snowflake) (Prof
 		Favorite:       favorite,
 		CharacterCount: int(count),
 	}, nil
-}
-
-// SetFavorite sets a user's favorite character
-func SetFavorite(ctx context.Context, store Store, userID corde.Snowflake, charID int64) error {
-	return store.UserStore().UpdateFavorite(ctx, userstore.UpdateFavoriteParams{
-		Favorite: pgtype.Int8{Int64: charID, Valid: true},
-		UserID:   uint64(userID),
-	})
-}
-
-// SetAnilistURL sets a user's anilist URL
-func SetAnilistURL(ctx context.Context, store Store, userID corde.Snowflake, anilistURL string) error {
-	parsedURL, err := url.Parse(anilistURL)
-	if err != nil {
-		return fmt.Errorf("invalid URL")
-	}
-
-	if parsedURL.Host != "anilist.co" {
-		return fmt.Errorf("invalid Anilist URL")
-	}
-
-	if !strings.HasPrefix(parsedURL.Path, "/user/") {
-		return fmt.Errorf("invalid Anilist URL")
-	}
-
-	return store.UserStore().UpdateAnilistURL(ctx, userstore.UpdateAnilistURLParams{
-		AnilistUrl: anilistURL,
-		UserID:     uint64(userID),
-	})
-}
-
-// SetQuote sets a user's quote
-func SetQuote(ctx context.Context, store Store, userID corde.Snowflake, quote string) error {
-	if len(quote) > 1024 {
-		return fmt.Errorf("quote is too long")
-	}
-
-	return store.UserStore().UpdateQuote(ctx, userstore.UpdateQuoteParams{
-		Quote:  quote,
-		UserID: uint64(userID),
-	})
 }
 
 // SearchCharacters searches for characters in a user's collection for autocomplete

@@ -15,18 +15,14 @@ func CharacterHolders(ctx context.Context, store Store, guildID corde.Snowflake,
 		return "", nil, fmt.Errorf("this command can only be used in servers")
 	}
 
+	indexed, err := store.GuildStore().IsGuildIndexed(ctx, uint64(guildID))
+	if err != nil || indexed.Status != guildstore.IndexingStatusCompleted {
+		return "", nil, fmt.Errorf("guild members not indexed yet, please try again later")
+	}
+
 	charRow, err := store.CollectionStore().GetByID(ctx, charID)
 	if err != nil {
 		return "", nil, fmt.Errorf("no one in this server has %d", charID)
-	}
-
-	memberIDsInt, err := store.GuildStore().GetGuildMembers(ctx, uint64(guildID))
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to fetch guild members: %w", err)
-	}
-
-	if len(memberIDsInt) == 0 {
-		return "", nil, fmt.Errorf("guild members not indexed yet, please try again later")
 	}
 
 	holderIDsInt, err := store.GuildStore().UsersOwningCharInGuild(ctx, guildstore.UsersOwningCharInGuildParams{CharacterID: charID, GuildID: uint64(guildID)})

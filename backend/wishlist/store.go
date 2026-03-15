@@ -78,7 +78,7 @@ func (s *store) GetWantedCharacters(ctx context.Context, userID, guildID uint64)
 		return nil, err
 	}
 
-	return groupWantedByUser(rows), nil
+	return groupByUserWanted(rows), nil
 }
 
 func groupByUser(rows []wishliststore.GetWishlistHoldersRow) []UserCharacterSet {
@@ -101,7 +101,7 @@ func groupByUser(rows []wishliststore.GetWishlistHoldersRow) []UserCharacterSet 
 	return result
 }
 
-func groupWantedByUser(rows []wishliststore.GetWantedCharactersRow) []UserCharacterSet {
+func groupByUserWanted(rows []wishliststore.GetWantedCharactersRow) []UserCharacterSet {
 	m := make(map[uint64]*UserCharacterSet)
 	for _, r := range rows {
 		id := uint64(r.UserID)
