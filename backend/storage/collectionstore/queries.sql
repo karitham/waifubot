@@ -89,7 +89,8 @@ RETURNING
 UPDATE collection col
 SET
   user_id = $1,
-  source = 'TRADE'
+  source = 'TRADE',
+  acquired_at = NOW()
 WHERE
   col.character_id = $2
   AND col.user_id = $3
