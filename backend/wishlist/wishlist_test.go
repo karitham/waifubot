@@ -75,7 +75,7 @@ func TestAddCharacter(t *testing.T) {
 		Column2: []int64{charID},
 	}).Return(nil)
 
-	err := AddCharacter(ctx, store, userID, charID)
+	err := store.AddMultipleCharactersToWishlist(ctx, userID, []int64{charID})
 	require.NoError(t, err)
 }
 
@@ -95,7 +95,7 @@ func TestRemoveCharacter(t *testing.T) {
 		Column2: []int64{charID},
 	}).Return(nil)
 
-	err := RemoveCharacter(ctx, store, userID, charID)
+	err := store.RemoveMultipleCharactersFromWishlist(ctx, userID, []int64{charID})
 	require.NoError(t, err)
 }
 
@@ -111,7 +111,7 @@ func TestRemoveAll(t *testing.T) {
 
 	mockStore.EXPECT().RemoveAllFromWishlist(ctx, userID).Return(nil)
 
-	err := RemoveAll(ctx, store, userID)
+	err := store.RemoveAllFromWishlist(ctx, userID)
 	require.NoError(t, err)
 }
 
@@ -134,7 +134,7 @@ func TestGetUserWishlist(t *testing.T) {
 		},
 	}, nil)
 
-	chars, err := GetUserWishlist(ctx, store, userID)
+	chars, err := store.GetUserCharacterWishlist(ctx, userID)
 	require.NoError(t, err)
 	assert.Len(t, chars, 1)
 	assert.Equal(t, int64(456), chars[0].ID)
@@ -151,10 +151,6 @@ func TestGetWishlistHolders(t *testing.T) {
 	ctx := context.Background()
 	userID := uint64(123)
 
-	mockStore.EXPECT().GetUserCharacterWishlist(ctx, userID).Return([]wishliststore.GetUserCharacterWishlistRow{
-		{ID: 456},
-	}, nil)
-
 	mockStore.EXPECT().GetWishlistHolders(ctx, wishliststore.GetWishlistHoldersParams{
 		Column1: []int64{456},
 		UserID:  userID,
@@ -164,11 +160,11 @@ func TestGetWishlistHolders(t *testing.T) {
 			UserID:         789,
 			CharacterID:    456,
 			CharacterName:  "Test Character",
-			CharacterImage: "http://example.com/image.jpg",
+			CharacterImage: "http://example.com/image.png",
 		},
 	}, nil)
 
-	holders, err := GetWishlistHolders(ctx, store, userID, 123)
+	holders, err := store.GetWishlistHolders(ctx, []int64{456}, userID, 123)
 	require.NoError(t, err)
 	assert.Len(t, holders, 1)
 	assert.Equal(t, uint64(789), holders[0].UserID)
@@ -197,7 +193,7 @@ func TestGetWantedCharacters(t *testing.T) {
 		},
 	}, nil)
 
-	wanted, err := GetWantedCharacters(ctx, store, userID, 123)
+	wanted, err := store.GetWantedCharacters(ctx, userID, 123)
 	require.NoError(t, err)
 	assert.Len(t, wanted, 1)
 	assert.Equal(t, uint64(789), wanted[0].UserID)
@@ -242,7 +238,7 @@ func TestCompareWithUser(t *testing.T) {
 		},
 	}, nil)
 
-	comparison, err := CompareWithUser(ctx, store, userID1, userID2)
+	comparison, err := store.CompareWithUser(ctx, userID1, userID2)
 	require.NoError(t, err)
 	assert.Len(t, comparison.UserHasCharacters, 1)
 	assert.Len(t, comparison.UserWantsCharacters, 2)

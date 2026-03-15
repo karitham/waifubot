@@ -16,12 +16,7 @@ type Character struct {
 	Date  string `json:"date"`
 }
 
-type WishlistHolder struct {
-	UserID     uint64      `json:"user_id"`
-	Characters []Character `json:"characters"`
-}
-
-type WantedCharacter struct {
+type UserCharacterSet struct {
 	UserID     uint64      `json:"user_id"`
 	Characters []Character `json:"characters"`
 }
@@ -40,8 +35,8 @@ type Store interface {
 	GetUserCharacterWishlist(ctx context.Context, userID uint64) ([]Character, error)
 
 	// Discovery
-	GetWishlistHolders(ctx context.Context, userID, guildID uint64) ([]WishlistHolder, error)
-	GetWantedCharacters(ctx context.Context, userID, guildID uint64) ([]WantedCharacter, error)
+	GetWishlistHolders(ctx context.Context, characterIDs []int64, userID, guildID uint64) ([]UserCharacterSet, error)
+	GetWantedCharacters(ctx context.Context, userID, guildID uint64) ([]UserCharacterSet, error)
 	CompareWithUser(ctx context.Context, userID1, userID2 uint64) (WishlistComparison, error)
 }
 
@@ -56,51 +51,6 @@ type CollectionService interface {
 	CheckOwnership(ctx context.Context, userID corde.Snowflake, charID int64) (bool, collectionstore.Character, error)
 	GetUserCollectionIDs(ctx context.Context, userID corde.Snowflake) ([]int64, error)
 	UpsertCharacter(ctx context.Context, charID int64, name, image string) error
-}
-
-// AddCharacter adds a character to the user's wishlist
-func AddCharacter(ctx context.Context, s Store, userID uint64, characterID int64) error {
-	return s.AddMultipleCharactersToWishlist(ctx, userID, []int64{characterID})
-}
-
-// AddMultipleCharacters adds multiple characters to the user's wishlist
-func AddMultipleCharacters(ctx context.Context, s Store, userID uint64, characterIDs []int64) error {
-	return s.AddMultipleCharactersToWishlist(ctx, userID, characterIDs)
-}
-
-// RemoveCharacter removes a character from the user's wishlist
-func RemoveCharacter(ctx context.Context, s Store, userID uint64, characterID int64) error {
-	return s.RemoveMultipleCharactersFromWishlist(ctx, userID, []int64{characterID})
-}
-
-// RemoveMultipleCharacters removes multiple characters from the user's wishlist
-func RemoveMultipleCharacters(ctx context.Context, s Store, userID uint64, characterIDs []int64) error {
-	return s.RemoveMultipleCharactersFromWishlist(ctx, userID, characterIDs)
-}
-
-// RemoveAll removes all characters from the user's wishlist
-func RemoveAll(ctx context.Context, s Store, userID uint64) error {
-	return s.RemoveAllFromWishlist(ctx, userID)
-}
-
-// GetUserWishlist gets the user's wishlist
-func GetUserWishlist(ctx context.Context, s Store, userID uint64) ([]Character, error) {
-	return s.GetUserCharacterWishlist(ctx, userID)
-}
-
-// GetWishlistHolders gets users who have characters from the user's wishlist
-func GetWishlistHolders(ctx context.Context, s Store, userID, guildID uint64) ([]WishlistHolder, error) {
-	return s.GetWishlistHolders(ctx, userID, guildID)
-}
-
-// GetWantedCharacters gets users who want characters the user owns
-func GetWantedCharacters(ctx context.Context, s Store, userID, guildID uint64) ([]WantedCharacter, error) {
-	return s.GetWantedCharacters(ctx, userID, guildID)
-}
-
-// CompareWithUser compares the user's collection with another user's wishlist
-func CompareWithUser(ctx context.Context, s Store, userID1, userID2 uint64) (WishlistComparison, error) {
-	return s.CompareWithUser(ctx, userID1, userID2)
 }
 
 // AddMediaToWishlist adds all characters from a media to the user's wishlist, filtering out owned characters

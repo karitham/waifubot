@@ -164,7 +164,6 @@ func (s *Server) FindUserV1(ctx context.Context, params api.FindUserV1Params) (a
 
 var (
 	errUserNotFound = errors.New("user not found")
-	errInvalidID    = errors.New("invalid id provided")
 )
 
 func (s *Server) findUserByQuery(ctx context.Context, anilist, discord string, useAnilist bool) (*api.UserIdResponse, error) {
@@ -196,7 +195,8 @@ func (s *Server) GetWishlist(ctx context.Context, params api.GetWishlistParams) 
 		}, nil
 	}
 
-	chars, err := wishlist.GetUserWishlist(ctx, wishlist.New(s.db.WishlistStore()), id)
+	ws := wishlist.New(s.db.WishlistStore())
+	chars, err := ws.GetUserCharacterWishlist(ctx, id)
 	if err != nil {
 		return &api.GetWishlistNotFound{
 			Message:    "user not found",

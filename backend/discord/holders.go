@@ -55,9 +55,9 @@ func (b *Bot) holdersCommand(ctx context.Context, w corde.ResponseWriter, i *cor
 
 	var mentions strings.Builder
 
-	mentions.WriteString(fmt.Sprintf("Users in this server who have **%s** (ID: %d):\n", charName, charID))
+	fmt.Fprintf(&mentions, "Users in this server who have **%s** (ID: %d):\n", charName, charID)
 	for _, holderID := range holderIDs {
-		mentions.WriteString(fmt.Sprintf("- <@%d>\n", holderID))
+		fmt.Fprintf(&mentions, "- <@%d>\n", holderID)
 	}
 
 	w.Respond(corde.NewResp().Content(mentions.String()).Ephemeral())

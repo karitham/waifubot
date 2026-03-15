@@ -112,7 +112,7 @@ func (b *Bot) wishlistCharacterAdd(ctx context.Context, w corde.ResponseWriter, 
 		return
 	}
 
-	err = wishlist.AddCharacter(ctx, b.WishlistStore, uint64(i.Member.User.ID), charID)
+	err = b.WishlistStore.AddMultipleCharactersToWishlist(ctx, uint64(i.Member.User.ID), []int64{charID})
 	if err != nil {
 		logger.Error("error adding character to wishlist", "error", err, "character_id", charID)
 		w.Respond(rspErr("Unable to add character to wishlist. Please try again."))
@@ -127,7 +127,7 @@ func (b *Bot) wishlistCharacterRemove(ctx context.Context, w corde.ResponseWrite
 
 	charID, _ := i.Data.Options.Int64("character")
 
-	err := wishlist.RemoveCharacter(ctx, b.WishlistStore, uint64(i.Member.User.ID), charID)
+	err := b.WishlistStore.RemoveMultipleCharactersFromWishlist(ctx, uint64(i.Member.User.ID), []int64{charID})
 	if err != nil {
 		logger.Error("error removing character from wishlist", "error", err, "character_id", charID)
 		w.Respond(rspErr("Unable to remove character from wishlist. Please try again."))
@@ -140,7 +140,7 @@ func (b *Bot) wishlistCharacterRemove(ctx context.Context, w corde.ResponseWrite
 func (b *Bot) wishlistCharacterList(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
 	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
 
-	chars, err := wishlist.GetUserWishlist(ctx, b.WishlistStore, uint64(i.Member.User.ID))
+	chars, err := b.WishlistStore.GetUserCharacterWishlist(ctx, uint64(i.Member.User.ID))
 	if err != nil {
 		logger.Error("error getting user wishlist", "error", err)
 		w.Respond(rspErr("Unable to retrieve your wishlist. Please try again."))
@@ -165,7 +165,7 @@ func (b *Bot) wishlistCharacterList(ctx context.Context, w corde.ResponseWriter,
 func (b *Bot) wishlistCharacterRemoveAll(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
 	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
 
-	err := wishlist.RemoveAll(ctx, b.WishlistStore, uint64(i.Member.User.ID))
+	err := b.WishlistStore.RemoveAllFromWishlist(ctx, uint64(i.Member.User.ID))
 	if err != nil {
 		logger.Error("error removing all from wishlist", "error", err)
 		w.Respond(rspErr("Unable to clear your wishlist. Please try again."))
@@ -183,7 +183,24 @@ func formatUser(userID uint64) string {
 func (b *Bot) wishlistHolders(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
 	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
 
-	holders, err := wishlist.GetWishlistHolders(ctx, b.WishlistStore, uint64(i.Member.User.ID), uint64(i.GuildID))
+	wishlist, err := b.WishlistStore.GetUserCharacterWishlist(ctx, uint64(i.Member.User.ID))
+	if err != nil {
+		logger.Error("error getting user wishlist", "error", err)
+		w.Respond(rspErr("Unable to retrieve your wishlist. Please try again."))
+		return
+	}
+
+	if len(wishlist) == 0 {
+		w.Respond(corde.NewResp().Content("Your wishlist is empty.").Ephemeral())
+		return
+	}
+
+	characterIDs := make([]int64, len(wishlist))
+	for j, c := range wishlist {
+		characterIDs[j] = c.ID
+	}
+
+	holders, err := b.WishlistStore.GetWishlistHolders(ctx, characterIDs, uint64(i.Member.User.ID), uint64(i.GuildID))
 	if err != nil {
 		logger.Error("error getting wishlist holders", "error", err)
 		w.Respond(rspErr("Unable to retrieve wishlist holders. Please try again."))
@@ -204,7 +221,7 @@ func (b *Bot) wishlistHolders(ctx context.Context, w corde.ResponseWriter, i *co
 		if len(h.Characters) == 0 {
 			continue
 		}
-		desc.WriteString(fmt.Sprintf("%s: ", formatUser(h.UserID)))
+		fmt.Fprintf(&desc, "%s: ", formatUser(h.UserID))
 		desc.WriteString(buildCharacterList(h.Characters, len(h.Characters)))
 		desc.WriteString("\n")
 	}
@@ -216,7 +233,7 @@ func (b *Bot) wishlistHolders(ctx context.Context, w corde.ResponseWriter, i *co
 func (b *Bot) wishlistWanted(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
 	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
 
-	wanted, err := wishlist.GetWantedCharacters(ctx, b.WishlistStore, uint64(i.Member.User.ID), uint64(i.GuildID))
+	wanted, err := b.WishlistStore.GetWantedCharacters(ctx, uint64(i.Member.User.ID), uint64(i.GuildID))
 	if err != nil {
 		logger.Error("error getting wanted characters", "error", err)
 		w.Respond(rspErr("Unable to retrieve wanted characters. Please try again."))
@@ -234,7 +251,7 @@ func (b *Bot) wishlistWanted(ctx context.Context, w corde.ResponseWriter, i *cor
 	var desc strings.Builder
 	desc.WriteString("People who want characters from your collection:\n")
 	for _, w := range wanted {
-		desc.WriteString(fmt.Sprintf("%s: ", formatUser(w.UserID)))
+		fmt.Fprintf(&desc, "%s: ", formatUser(w.UserID))
 		desc.WriteString(buildCharacterList(w.Characters, len(w.Characters)))
 		desc.WriteString("\n")
 	}
@@ -253,7 +270,7 @@ func (b *Bot) wishlistCompare(ctx context.Context, w corde.ResponseWriter, i *co
 
 	user := i.Data.Resolved.Users.First()
 
-	comparison, err := wishlist.CompareWithUser(ctx, b.WishlistStore, uint64(i.Member.User.ID), uint64(user.ID))
+	comparison, err := b.WishlistStore.CompareWithUser(ctx, uint64(i.Member.User.ID), uint64(user.ID))
 	if err != nil {
 		logger.Error("error comparing wishlists", "error", err, "other_user_id", uint64(user.ID))
 		w.Respond(rspErr("Unable to compare wishlists. Please try again."))
@@ -295,7 +312,7 @@ func (b *Bot) wishlistAutocomplete(ctx context.Context, w corde.ResponseWriter, 
 		}
 	}
 
-	chars, err := wishlist.GetUserWishlist(ctx, b.WishlistStore, uint64(i.Member.User.ID))
+	chars, err := b.WishlistStore.GetUserCharacterWishlist(ctx, uint64(i.Member.User.ID))
 	if err != nil {
 		slog.Error("Error getting user's wishlist", "error", err, "user", uint64(i.Member.User.ID))
 		return

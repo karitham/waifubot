@@ -52,20 +52,9 @@ func (s *store) GetUserCharacterWishlist(ctx context.Context, userID uint64) ([]
 	return characters, nil
 }
 
-func (s *store) GetWishlistHolders(ctx context.Context, userID, guildID uint64) ([]WishlistHolder, error) {
-	// First get the user's wishlist character IDs
-	wishlist, err := s.GetUserCharacterWishlist(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(wishlist) == 0 {
-		return []WishlistHolder{}, nil
-	}
-
-	characterIDs := make([]int64, len(wishlist))
-	for i, c := range wishlist {
-		characterIDs[i] = c.ID
+func (s *store) GetWishlistHolders(ctx context.Context, characterIDs []int64, userID, guildID uint64) ([]UserCharacterSet, error) {
+	if len(characterIDs) == 0 {
+		return []UserCharacterSet{}, nil
 	}
 
 	rows, err := s.q.GetWishlistHolders(ctx, wishliststore.GetWishlistHoldersParams{
@@ -77,32 +66,10 @@ func (s *store) GetWishlistHolders(ctx context.Context, userID, guildID uint64) 
 		return nil, err
 	}
 
-	// Group by user
-	holdersMap := make(map[uint64]*WishlistHolder)
-	for _, row := range rows {
-		userID := uint64(row.UserID)
-		if _, exists := holdersMap[userID]; !exists {
-			holdersMap[userID] = &WishlistHolder{
-				UserID:     userID,
-				Characters: []Character{},
-			}
-		}
-		holdersMap[userID].Characters = append(holdersMap[userID].Characters, Character{
-			ID:    row.CharacterID,
-			Name:  row.CharacterName,
-			Image: row.CharacterImage,
-		})
-	}
-
-	holders := make([]WishlistHolder, 0, len(holdersMap))
-	for _, h := range holdersMap {
-		holders = append(holders, *h)
-	}
-
-	return holders, nil
+	return groupByUser(rows), nil
 }
 
-func (s *store) GetWantedCharacters(ctx context.Context, userID, guildID uint64) ([]WantedCharacter, error) {
+func (s *store) GetWantedCharacters(ctx context.Context, userID, guildID uint64) ([]UserCharacterSet, error) {
 	rows, err := s.q.GetWantedCharacters(ctx, wishliststore.GetWantedCharactersParams{
 		UserID:  userID,
 		GuildID: guildID,
@@ -111,29 +78,47 @@ func (s *store) GetWantedCharacters(ctx context.Context, userID, guildID uint64)
 		return nil, err
 	}
 
-	// Group by user
-	wantedMap := make(map[uint64]*WantedCharacter)
-	for _, row := range rows {
-		userID := uint64(row.UserID)
-		if _, exists := wantedMap[userID]; !exists {
-			wantedMap[userID] = &WantedCharacter{
-				UserID:     userID,
-				Characters: []Character{},
-			}
+	return groupWantedByUser(rows), nil
+}
+
+func groupByUser(rows []wishliststore.GetWishlistHoldersRow) []UserCharacterSet {
+	m := make(map[uint64]*UserCharacterSet)
+	for _, r := range rows {
+		id := uint64(r.UserID)
+		if _, ok := m[id]; !ok {
+			m[id] = &UserCharacterSet{UserID: id}
 		}
-		wantedMap[userID].Characters = append(wantedMap[userID].Characters, Character{
-			ID:    row.CharacterID,
-			Name:  row.CharacterName,
-			Image: row.CharacterImage,
+		m[id].Characters = append(m[id].Characters, Character{
+			ID:    r.CharacterID,
+			Name:  r.CharacterName,
+			Image: r.CharacterImage,
 		})
 	}
-
-	wanted := make([]WantedCharacter, 0, len(wantedMap))
-	for _, w := range wantedMap {
-		wanted = append(wanted, *w)
+	result := make([]UserCharacterSet, 0, len(m))
+	for _, v := range m {
+		result = append(result, *v)
 	}
+	return result
+}
 
-	return wanted, nil
+func groupWantedByUser(rows []wishliststore.GetWantedCharactersRow) []UserCharacterSet {
+	m := make(map[uint64]*UserCharacterSet)
+	for _, r := range rows {
+		id := uint64(r.UserID)
+		if _, ok := m[id]; !ok {
+			m[id] = &UserCharacterSet{UserID: id}
+		}
+		m[id].Characters = append(m[id].Characters, Character{
+			ID:    r.CharacterID,
+			Name:  r.CharacterName,
+			Image: r.CharacterImage,
+		})
+	}
+	result := make([]UserCharacterSet, 0, len(m))
+	for _, v := range m {
+		result = append(result, *v)
+	}
+	return result
 }
 
 func (s *store) CompareWithUser(ctx context.Context, userID1, userID2 uint64) (WishlistComparison, error) {
@@ -167,7 +152,6 @@ func (s *store) CompareWithUser(ctx context.Context, userID1, userID2 uint64) (W
 		}
 	}
 
-	// Count mutual matches efficiently using set intersection
 	mutual := 0
 	for id := range hasIDs {
 		if wantsIDs[id] {
