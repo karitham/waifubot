@@ -1,15 +1,10 @@
 package storage
 
-//go:generate mockgen -source=store.go -destination=mocks/store_mock.go -package=mocks -mock_names=Store=MockStorageStore,TXer=MockTXer
-//go:generate mockgen -source=userstore/querier.go -destination=mocks/userstore_mock.go -package=mocks -mock_names=Querier=MockUserQuerier
-//go:generate mockgen -source=commandstore/querier.go -destination=mocks/commandstore_mock.go -package=mocks -mock_names=Querier=MockCommandQuerier
-
 import (
 	"context"
 	"fmt"
 	"log/slog"
 	"strings"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -27,23 +22,6 @@ import (
 type TXer interface {
 	Begin(context.Context) (pgx.Tx, error)
 	userstore.DBTX
-}
-
-type APIProfile struct {
-	ID         uint64    `json:"id,string"`
-	Quote      string    `json:"quote,omitempty"`
-	Tokens     int32     `json:"tokens,omitempty"`
-	AnilistURL string    `json:"anilist_url,omitempty"`
-	Favorite   APIChar   `json:"favorite,omitzero"`
-	Waifus     []APIChar `json:"waifus,omitempty"`
-}
-
-type APIChar struct {
-	Date  time.Time `json:"date"`
-	Name  string    `json:"name"`
-	Image string    `json:"image"`
-	Type  string    `json:"type"`
-	ID    int64     `json:"id"`
 }
 
 type Store interface {

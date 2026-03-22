@@ -11,35 +11,19 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const addCharacterToWishlist = `-- name: AddCharacterToWishlist :exec
-INSERT INTO character_wishlist (user_id, character_id)
-VALUES ($1, $2)
-ON CONFLICT (user_id, character_id) DO NOTHING
-`
-
-type AddCharacterToWishlistParams struct {
-	UserID      uint64
-	CharacterID int64
-}
-
-func (q *Queries) AddCharacterToWishlist(ctx context.Context, arg AddCharacterToWishlistParams) error {
-	_, err := q.db.Exec(ctx, addCharacterToWishlist, arg.UserID, arg.CharacterID)
-	return err
-}
-
-const addMultipleCharactersToWishlist = `-- name: AddMultipleCharactersToWishlist :exec
+const addCharactersToWishlist = `-- name: AddCharactersToWishlist :exec
 INSERT INTO character_wishlist (user_id, character_id)
 SELECT $1, unnest($2::bigint[])
 ON CONFLICT (user_id, character_id) DO NOTHING
 `
 
-type AddMultipleCharactersToWishlistParams struct {
+type AddCharactersToWishlistParams struct {
 	UserID  uint64
 	Column2 []int64
 }
 
-func (q *Queries) AddMultipleCharactersToWishlist(ctx context.Context, arg AddMultipleCharactersToWishlistParams) error {
-	_, err := q.db.Exec(ctx, addMultipleCharactersToWishlist, arg.UserID, arg.Column2)
+func (q *Queries) AddCharactersToWishlist(ctx context.Context, arg AddCharactersToWishlistParams) error {
+	_, err := q.db.Exec(ctx, addCharactersToWishlist, arg.UserID, arg.Column2)
 	return err
 }
 
@@ -277,32 +261,17 @@ func (q *Queries) RemoveAllFromWishlist(ctx context.Context, userID uint64) erro
 	return err
 }
 
-const removeCharacterFromWishlist = `-- name: RemoveCharacterFromWishlist :exec
-DELETE FROM character_wishlist
-WHERE user_id = $1 AND character_id = $2
-`
-
-type RemoveCharacterFromWishlistParams struct {
-	UserID      uint64
-	CharacterID int64
-}
-
-func (q *Queries) RemoveCharacterFromWishlist(ctx context.Context, arg RemoveCharacterFromWishlistParams) error {
-	_, err := q.db.Exec(ctx, removeCharacterFromWishlist, arg.UserID, arg.CharacterID)
-	return err
-}
-
-const removeMultipleCharactersFromWishlist = `-- name: RemoveMultipleCharactersFromWishlist :exec
+const removeCharactersFromWishlist = `-- name: RemoveCharactersFromWishlist :exec
 DELETE FROM character_wishlist
 WHERE user_id = $1 AND character_id = ANY($2::bigint[])
 `
 
-type RemoveMultipleCharactersFromWishlistParams struct {
+type RemoveCharactersFromWishlistParams struct {
 	UserID  uint64
 	Column2 []int64
 }
 
-func (q *Queries) RemoveMultipleCharactersFromWishlist(ctx context.Context, arg RemoveMultipleCharactersFromWishlistParams) error {
-	_, err := q.db.Exec(ctx, removeMultipleCharactersFromWishlist, arg.UserID, arg.Column2)
+func (q *Queries) RemoveCharactersFromWishlist(ctx context.Context, arg RemoveCharactersFromWishlistParams) error {
+	_, err := q.db.Exec(ctx, removeCharactersFromWishlist, arg.UserID, arg.Column2)
 	return err
 }

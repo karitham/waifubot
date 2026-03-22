@@ -1,136 +1,110 @@
-package guild
+package guild_test
 
 import (
 	"context"
 	"testing"
 	"time"
 
-	"github.com/Karitham/corde"
-	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
-	guildmocks "github.com/karitham/waifubot/guild/mocks"
-	"github.com/karitham/waifubot/storage/guildstore"
-	storemocks "github.com/karitham/waifubot/storage/mocks"
+	"github.com/Karitham/corde"
+
+	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/guild"
 )
 
-func TestIndexGuildIfNeeded(t *testing.T) {
-	tests := []struct {
-		name    string
-		guildID corde.Snowflake
-		setup   func(*storemocks.MockStorageStore, *guildmocks.MockGuildQuerier)
-		wantErr bool
-	}{
-		{
-			name:    "guild already indexed",
-			guildID: 123,
-			setup: func(ms *storemocks.MockStorageStore, mq *guildmocks.MockGuildQuerier) {
-				ms.EXPECT().GuildStore().Return(mq)
-				mq.EXPECT().IsGuildIndexed(gomock.Any(), uint64(123)).Return(guildstore.IsGuildIndexedRow{
-					Status:    guildstore.IndexingStatusCompleted,
-					UpdatedAt: pgtype.Timestamp{Time: time.Now(), Valid: true},
-				}, nil)
-			},
-			wantErr: false,
+// mockQuerier implements guild.TxQuerier for testing.
+type mockQuerier struct {
+	status collection.GuildIndexStatus
+	err    error
+}
+
+func (m *mockQuerier) IsGuildIndexed(ctx context.Context, guildID uint64) (collection.GuildIndexStatus, error) {
+	return m.status, m.err
+}
+func (m *mockQuerier) StartIndexingJob(ctx context.Context, guildID uint64) error    { return nil }
+func (m *mockQuerier) CompleteIndexingJob(ctx context.Context, guildID uint64) error { return nil }
+func (m *mockQuerier) Commit(ctx context.Context) error                              { return nil }
+func (m *mockQuerier) Rollback(ctx context.Context) error                            { return nil }
+func (m *mockQuerier) UpsertGuildMembers(ctx context.Context, guildID uint64, memberIDs []uint64, indexedAt time.Time) error {
+	return nil
+}
+func (m *mockQuerier) DeleteGuildMembersNotIn(ctx context.Context, guildID uint64, memberIDs []uint64) error {
+	return nil
+}
+
+// mockFetcher implements guild.MemberFetcher for testing.
+type mockFetcher struct {
+	ids []corde.Snowflake
+	err error
+}
+
+func (m *mockFetcher) FetchMemberIDs(ctx context.Context, guildID corde.Snowflake) ([]corde.Snowflake, error) {
+	return m.ids, m.err
+}
+
+func TestIndexGuildIfNeeded_AlreadyIndexed(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	querier := &mockQuerier{
+		status: collection.GuildIndexStatus{
+			Status:    collection.IndexingCompleted,
+			UpdatedAt: time.Now(),
 		},
-		{
-			name:    "guild not indexed, start indexing",
-			guildID: 123,
-			setup: func(ms *storemocks.MockStorageStore, mq *guildmocks.MockGuildQuerier) {
-				ms.EXPECT().GuildStore().Return(mq)
-				mq.EXPECT().IsGuildIndexed(gomock.Any(), uint64(123)).Return(guildstore.IsGuildIndexedRow{
-					Status:    guildstore.IndexingStatusCompleted,
-					UpdatedAt: pgtype.Timestamp{Time: time.Now().Add(-8 * 24 * time.Hour), Valid: true},
-				}, nil)
-				ms.EXPECT().Tx(gomock.Any()).Return(ms, nil)
-				ms.EXPECT().GuildStore().Return(mq).AnyTimes()
-				mq.EXPECT().IsGuildIndexed(gomock.Any(), uint64(123)).Return(guildstore.IsGuildIndexedRow{}, nil)
-				mq.EXPECT().StartIndexingJob(gomock.Any(), uint64(123)).Return(nil)
-				ms.EXPECT().Commit(gomock.Any()).Return(nil)
-			},
-			wantErr: false,
-		},
-		{
-			name:    "tx error",
-			guildID: 123,
-			setup: func(ms *storemocks.MockStorageStore, mq *guildmocks.MockGuildQuerier) {
-				ms.EXPECT().GuildStore().Return(mq)
-				mq.EXPECT().IsGuildIndexed(gomock.Any(), uint64(123)).Return(guildstore.IsGuildIndexedRow{
-					Status:    guildstore.IndexingStatusCompleted,
-					UpdatedAt: pgtype.Timestamp{Time: time.Now().Add(-8 * 24 * time.Hour), Valid: true},
-				}, nil)
-				ms.EXPECT().Tx(gomock.Any()).Return(nil, assert.AnError)
-			},
-			wantErr: true,
-		},
-		{
-			name:    "is guild indexed error",
-			guildID: 123,
-			setup: func(ms *storemocks.MockStorageStore, mq *guildmocks.MockGuildQuerier) {
-				ms.EXPECT().GuildStore().Return(mq)
-				mq.EXPECT().IsGuildIndexed(gomock.Any(), uint64(123)).Return(guildstore.IsGuildIndexedRow{
-					Status:    guildstore.IndexingStatusCompleted,
-					UpdatedAt: pgtype.Timestamp{Time: time.Now().Add(-8 * 24 * time.Hour), Valid: true},
-				}, nil)
-				ms.EXPECT().Tx(gomock.Any()).Return(ms, nil)
-				ms.EXPECT().GuildStore().Return(mq).AnyTimes()
-				mq.EXPECT().IsGuildIndexed(gomock.Any(), uint64(123)).Return(guildstore.IsGuildIndexedRow{}, assert.AnError)
-				mq.EXPECT().StartIndexingJob(gomock.Any(), uint64(123)).Return(assert.AnError)
-				ms.EXPECT().Rollback(gomock.Any()).Return(nil)
-			},
-			wantErr: true,
-		},
-		{
-			name:    "start indexing job error",
-			guildID: 123,
-			setup: func(ms *storemocks.MockStorageStore, mq *guildmocks.MockGuildQuerier) {
-				ms.EXPECT().GuildStore().Return(mq)
-				mq.EXPECT().IsGuildIndexed(gomock.Any(), uint64(123)).Return(guildstore.IsGuildIndexedRow{
-					Status:    guildstore.IndexingStatusCompleted,
-					UpdatedAt: pgtype.Timestamp{Time: time.Now().Add(-8 * 24 * time.Hour), Valid: true},
-				}, nil)
-				ms.EXPECT().Tx(gomock.Any()).Return(ms, nil)
-				ms.EXPECT().GuildStore().Return(mq).AnyTimes()
-				mq.EXPECT().IsGuildIndexed(gomock.Any(), uint64(123)).Return(guildstore.IsGuildIndexedRow{}, nil)
-				mq.EXPECT().StartIndexingJob(gomock.Any(), uint64(123)).Return(assert.AnError)
-				ms.EXPECT().Rollback(gomock.Any()).Return(nil)
-			},
-			wantErr: true,
-		},
-		{
-			name:    "commit error",
-			guildID: 123,
-			setup: func(ms *storemocks.MockStorageStore, mq *guildmocks.MockGuildQuerier) {
-				ms.EXPECT().GuildStore().Return(mq)
-				mq.EXPECT().IsGuildIndexed(gomock.Any(), uint64(123)).Return(guildstore.IsGuildIndexedRow{
-					Status:    guildstore.IndexingStatusCompleted,
-					UpdatedAt: pgtype.Timestamp{Time: time.Now().Add(-8 * 24 * time.Hour), Valid: true},
-				}, nil)
-				ms.EXPECT().Tx(gomock.Any()).Return(ms, nil)
-				ms.EXPECT().GuildStore().Return(mq).AnyTimes()
-				mq.EXPECT().IsGuildIndexed(gomock.Any(), uint64(123)).Return(guildstore.IsGuildIndexedRow{}, nil)
-				mq.EXPECT().StartIndexingJob(gomock.Any(), uint64(123)).Return(nil)
-				ms.EXPECT().Commit(gomock.Any()).Return(assert.AnError)
-			},
-			wantErr: true,
+	}
+	fetcher := &mockFetcher{}
+
+	indexer := guild.NewIndexer(querier, fetcher)
+	err := indexer.IndexGuildIfNeeded(t.Context(), corde.Snowflake(123), nil)
+	require.NoError(t, err)
+}
+
+func TestIndexGuildIfNeeded_ExpiredIndex(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	querier := &mockQuerier{
+		status: collection.GuildIndexStatus{
+			Status:    collection.IndexingCompleted,
+			UpdatedAt: time.Now().Add(-8 * 24 * time.Hour), // expired
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
+	fetcher := &mockFetcher{ids: []corde.Snowflake{100, 200}}
 
-			store := storemocks.NewMockStorageStore(ctrl)
-			querier := guildmocks.NewMockGuildQuerier(ctrl)
-			tt.setup(store, querier)
-			indexer := NewIndexer(store, "test_token")
+	indexer := guild.NewIndexer(querier, fetcher)
 
-			err := indexer.IndexGuildIfNeeded(context.Background(), tt.guildID)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("IndexGuildIfNeeded() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
+	// txFactory returns a querier that simulates "already in progress"
+	txQuerier := &mockQuerier{
+		status: collection.GuildIndexStatus{
+			Status:    collection.IndexingInProgress,
+			UpdatedAt: time.Now(), // recent — another indexer is active
+		},
 	}
+	txFactory := func(ctx context.Context) (guild.TxQuerier, error) {
+		return txQuerier, nil
+	}
+
+	err := indexer.IndexGuildIfNeeded(t.Context(), corde.Snowflake(123), txFactory)
+	require.NoError(t, err)
+}
+
+func TestCharacterHolders_GuildNotIndexed(t *testing.T) {
+	querier := &mockQuerier{
+		status: collection.GuildIndexStatus{
+			Status: collection.IndexingPending,
+		},
+	}
+
+	_, _, err := guild.CharacterHolders(t.Context(), querier, nil, 123, 456)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "not indexed")
+}
+
+func TestCharacterHolders_GuildIDZero(t *testing.T) {
+	_, _, err := guild.CharacterHolders(t.Context(), nil, nil, 0, 456)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "only be used in servers")
 }

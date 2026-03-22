@@ -18,7 +18,7 @@ func (b *Bot) roll(ctx context.Context, w corde.ResponseWriter, i *corde.Interac
 		TokensNeeded: b.TokensNeeded,
 	}
 
-	char, err := collection.Roll(ctx, b.Store, b.AnimeService, config, i.Member.User.ID)
+	char, err := collection.Roll(ctx, b.Store, b.AnimeService, config, uint64(i.Member.User.ID))
 
 	var cd collection.ErrRollCooldown
 	switch {

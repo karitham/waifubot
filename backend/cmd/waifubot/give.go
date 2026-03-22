@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 
-	"github.com/Karitham/corde"
 	"github.com/urfave/cli/v2"
 
 	"github.com/karitham/waifubot/collection"
@@ -39,17 +39,17 @@ var GiveCommand = &cli.Command{
 			return fmt.Errorf("error connecting to db: %w", err)
 		}
 
-		from := corde.SnowflakeFromString(fromStr)
-		if from == 0 {
+		from, err := strconv.ParseUint(fromStr, 10, 64)
+		if err != nil || from == 0 {
 			return fmt.Errorf("invalid from user ID: %s", fromStr)
 		}
 
-		to := corde.SnowflakeFromString(toStr)
-		if to == 0 {
+		to, err := strconv.ParseUint(toStr, 10, 64)
+		if err != nil || to == 0 {
 			return fmt.Errorf("invalid to user ID: %s", toStr)
 		}
 
-		char, err := collection.Give(ctx, store, from, to, charID)
+		char, err := collection.Give(ctx, newCollectionStore(store), from, to, charID)
 		if err != nil {
 			return fmt.Errorf("error giving: %w", err)
 		}

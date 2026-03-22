@@ -8,14 +8,14 @@ import (
 
 	"github.com/Karitham/corde"
 
-	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/guild"
 )
 
 func indexMiddleware[T corde.InteractionDataConstraint](b *Bot) func(func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T])) func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]) {
 	return func(next func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T])) func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]) {
 		return func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]) {
 			go func() {
-				if err := b.GuildIndexer.IndexGuildIfNeeded(context.Background(), i.GuildID); err != nil {
+				if err := b.GuildIndexer.IndexGuildIfNeeded(context.Background(), i.GuildID, b.guildTxFn); err != nil {
 					slog.Error("failed to index guild", "error", err, "guild_id", i.GuildID)
 				}
 			}()
@@ -42,7 +42,7 @@ func (b *Bot) holdersCommand(ctx context.Context, w corde.ResponseWriter, i *cor
 		return
 	}
 
-	charName, holderIDs, err := collection.CharacterHolders(ctx, b.Store, i.GuildID, int64(charID))
+	charName, holderIDs, err := guild.CharacterHolders(ctx, b.GuildOps, b.Catalog, uint64(i.GuildID), int64(charID))
 	if err != nil {
 		w.Respond(newErrf("Error: %s", err.Error()))
 		return

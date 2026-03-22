@@ -13,24 +13,24 @@ import (
 
 	"github.com/Karitham/corde"
 
+	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/discord"
 	"github.com/karitham/waifubot/services"
-	"github.com/karitham/waifubot/storage"
-	"github.com/karitham/waifubot/storage/collectionstore"
-	"github.com/karitham/waifubot/storage/userstore"
 	"github.com/karitham/waifubot/wishlist"
 
 	"github.com/karitham/waifubot/rest/api"
 )
 
 type Server struct {
-	db             storage.Store
+	db             collection.Store
+	wishlistStore  wishlist.Store
 	discordService *services.DiscordService
 }
 
-func New(db storage.Store, discordService *services.DiscordService) *Server {
+func New(db collection.Store, ws wishlist.Store, discordService *services.DiscordService) *Server {
 	return &Server{
 		db:             db,
+		wishlistStore:  ws,
 		discordService: discordService,
 	}
 }
@@ -93,12 +93,12 @@ func (s *Server) getUserProfileData(ctx context.Context, id uint64) (*api.Profil
 		}
 	}
 
-	u, err := s.db.UserStore().Get(ctx, id)
+	u, err := s.db.GetUser(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	chars, err := s.db.CollectionStore().List(ctx, id)
+	chars, err := s.db.GetCollection(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -167,13 +167,13 @@ var (
 )
 
 func (s *Server) findUserByQuery(ctx context.Context, anilist, discord string, useAnilist bool) (*api.UserIdResponse, error) {
-	var user userstore.User
+	var user collection.User
 	var err error
 
 	if useAnilist {
-		user, err = s.db.UserStore().GetByAnilist(ctx, normalizeAnilistURL(anilist))
+		user, err = s.db.GetUserByAnilist(ctx, normalizeAnilistURL(anilist))
 	} else {
-		user, err = s.db.UserStore().GetByDiscordUsername(ctx, discord)
+		user, err = s.db.GetUserByDiscordUsername(ctx, discord)
 	}
 
 	if err != nil || user.UserID == 0 {
@@ -195,8 +195,7 @@ func (s *Server) GetWishlist(ctx context.Context, params api.GetWishlistParams) 
 		}, nil
 	}
 
-	ws := wishlist.New(s.db.WishlistStore())
-	chars, err := ws.GetUserCharacterWishlist(ctx, id)
+	chars, err := s.wishlistStore.GetUserCharacterWishlist(ctx, id)
 	if err != nil {
 		return &api.GetWishlistNotFound{
 			Message:    "user not found",
@@ -222,7 +221,7 @@ func (s *Server) GetWishlist(ctx context.Context, params api.GetWishlistParams) 
 	}, nil
 }
 
-func (s *Server) mapUser(u userstore.User, list []collectionstore.ListRow) *api.Profile {
+func (s *Server) mapUser(u collection.User, list []collection.OwnedCharacter) *api.Profile {
 	waifus := make([]api.Character, 0, len(list))
 	var fav api.OptCharacter
 	for _, entry := range list {
@@ -231,10 +230,10 @@ func (s *Server) mapUser(u userstore.User, list []collectionstore.ListRow) *api.
 			Name:  entry.Name,
 			Image: entry.Image,
 			Type:  api.CharacterType(entry.Source),
-			Date:  entry.Date.Time,
+			Date:  entry.Date,
 		}
 
-		if u.Favorite.Valid && entry.ID == u.Favorite.Int64 {
+		if u.Favorite != 0 && entry.ID == u.Favorite {
 			fav = api.NewOptCharacter(c)
 		}
 
@@ -246,7 +245,7 @@ func (s *Server) mapUser(u userstore.User, list []collectionstore.ListRow) *api.
 		Quote:           api.NewOptString(u.Quote),
 		Tokens:          u.Tokens,
 		Favorite:        fav,
-		AnilistURL:      api.NewOptString(u.AnilistUrl),
+		AnilistURL:      api.NewOptString(u.AnilistURL),
 		DiscordUsername: u.DiscordUsername,
 		DiscordAvatar:   api.NewOptString(discord.DiscordAvatarURL(u.UserID, u.DiscordAvatar)),
 		Waifus:          waifus,

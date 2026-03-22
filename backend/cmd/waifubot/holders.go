@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Karitham/corde"
 	"github.com/urfave/cli/v2"
 
-	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/storage"
 )
 
@@ -21,7 +20,7 @@ var HoldersCommand = &cli.Command{
 		dbURLFlag,
 	},
 	Action: func(c *cli.Context) error {
-		guildID := corde.Snowflake(c.Uint64(guildIDFlag.Name))
+		guildID := c.Uint64(guildIDFlag.Name)
 		charID := c.Int64(charIDFlag.Name)
 		dbURL := c.String(dbURLFlag.Name)
 
@@ -35,7 +34,8 @@ var HoldersCommand = &cli.Command{
 			return fmt.Errorf("invalid guild ID: %d", guildID)
 		}
 
-		charName, holderIDs, err := collection.CharacterHolders(ctx, store, guildID, charID)
+		collStore := newCollectionStore(store)
+		charName, holderIDs, err := guild.CharacterHolders(ctx, collStore, collStore, guildID, charID)
 		if err != nil {
 			return fmt.Errorf("failed to get character holders: %w", err)
 		}

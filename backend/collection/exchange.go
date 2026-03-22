@@ -2,56 +2,54 @@ package collection
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
-
-	"github.com/Karitham/corde"
-
-	"github.com/karitham/waifubot/storage/collectionstore"
-	"github.com/karitham/waifubot/storage/userstore"
 )
 
-// Exchange executes the exchange logic for a character
-func Exchange(ctx context.Context, store Store, userID corde.Snowflake, charID int64) (collectionstore.Character, error) {
-	tx, err := store.Tx(ctx)
+// Exchange sells a character for 1 token.
+func Exchange(ctx context.Context, store Store, userID UserID, charID int64) (OwnedCharacter, error) {
+	tx, err := store.WithTx(ctx)
 	if err != nil {
-		return collectionstore.Character{}, err
+		return OwnedCharacter{}, err
 	}
 
+	committed := false
 	defer func() {
-		if err != nil {
+		if !committed {
 			_ = tx.Rollback(ctx)
 		}
 	}()
 
-	// First get the character info before deleting
-	charInfo, err := tx.CollectionStore().GetByID(ctx, charID)
+	charInfo, err := tx.GetCharacterByID(ctx, charID)
 	if err != nil {
-		return collectionstore.Character{}, err
+		return OwnedCharacter{}, err
 	}
 
-	_, err = tx.CollectionStore().Delete(ctx, collectionstore.DeleteParams{UserID: uint64(userID), CharacterID: charID})
+	owned, err := tx.GetOwnedCharacter(ctx, userID, charID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return collectionstore.Character{}, fmt.Errorf("%w %d", ErrUserDoesNotOwnCharacter, charID)
+		if errors.Is(err, ErrNotFound) {
+			return OwnedCharacter{}, fmt.Errorf("%w %d", ErrUserDoesNotOwnCharacter, charID)
 		}
-		return collectionstore.Character{}, err
+		return OwnedCharacter{}, err
 	}
 
-	_, err = tx.UserStore().UpdateTokens(ctx, userstore.UpdateTokensParams{
-		Tokens: +1,
-		UserID: uint64(userID),
-	})
+	err = tx.RemoveFromCollection(ctx, userID, charID)
 	if err != nil {
-		return collectionstore.Character{}, err
+		return OwnedCharacter{}, err
+	}
+
+	_, err = tx.AddTokens(ctx, userID, 1)
+	if err != nil {
+		return OwnedCharacter{}, err
 	}
 
 	err = tx.Commit(ctx)
+	committed = err == nil
 
-	return collectionstore.Character{
-		ID:    charInfo.ID,
-		Name:  charInfo.Name,
-		Image: charInfo.Image,
+	return OwnedCharacter{
+		Character: charInfo,
+		Date:      owned.Date,
+		Source:    "EXCHANGE",
+		UserID:    userID,
 	}, err
 }

@@ -36,7 +36,7 @@ func (b *Bot) giveCommand(ctx context.Context, w corde.ResponseWriter, i *corde.
 	}
 	logger.Debug("giving character", "to_user_id", uint64(user.ID), "character_id", charID)
 
-	char, err := collection.Give(ctx, b.Store, i.Member.User.ID, user.ID, int64(charID))
+	char, err := collection.Give(ctx, b.Store, uint64(i.Member.User.ID), uint64(user.ID), int64(charID))
 	if err != nil {
 		if errors.Is(err, collection.ErrUserDoesNotOwnCharacter) {
 			w.Respond(rspErr("You don't own that character"))

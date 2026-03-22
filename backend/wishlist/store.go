@@ -15,15 +15,15 @@ func New(q wishliststore.Querier) Store {
 	return &store{q: q}
 }
 
-func (s *store) AddMultipleCharactersToWishlist(ctx context.Context, userID uint64, characterIDs []int64) error {
-	return s.q.AddMultipleCharactersToWishlist(ctx, wishliststore.AddMultipleCharactersToWishlistParams{
+func (s *store) AddCharactersToWishlist(ctx context.Context, userID uint64, characterIDs []int64) error {
+	return s.q.AddCharactersToWishlist(ctx, wishliststore.AddCharactersToWishlistParams{
 		UserID:  userID,
 		Column2: characterIDs,
 	})
 }
 
-func (s *store) RemoveMultipleCharactersFromWishlist(ctx context.Context, userID uint64, characterIDs []int64) error {
-	return s.q.RemoveMultipleCharactersFromWishlist(ctx, wishliststore.RemoveMultipleCharactersFromWishlistParams{
+func (s *store) RemoveCharactersFromWishlist(ctx context.Context, userID uint64, characterIDs []int64) error {
+	return s.q.RemoveCharactersFromWishlist(ctx, wishliststore.RemoveCharactersFromWishlistParams{
 		UserID:  userID,
 		Column2: characterIDs,
 	})

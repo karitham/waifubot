@@ -25,6 +25,7 @@ import (
 type Anilist struct {
 	c             graphql.Client
 	seed          rand.Source64
+	seedMu        sync.Mutex
 	MaxChars      int64
 	internalCache map[string]querier
 	cache         bool
@@ -121,7 +122,10 @@ two:
 	}
 
 	if len(rest) > 0 {
-		char := rest[a.seed.Int63()%(int64(len(rest)))]
+		a.seedMu.Lock()
+		idx := a.seed.Int63() % int64(len(rest))
+		a.seedMu.Unlock()
+		char := rest[idx]
 		slog.Debug("Hit cache", "char", char.Name, "cache_size", len(c.cache))
 		delete(c.cache, char.ID)
 		return char, nil
@@ -131,7 +135,10 @@ two:
 }
 
 func (a *Anilist) randomChar(ctx context.Context, notIn ...int64) (collection.MediaCharacter, error) {
-	r, err := charactersRandom(ctx, a.c, a.seed.Int63()%a.MaxChars, notIn)
+	a.seedMu.Lock()
+	offset := a.seed.Int63() % a.MaxChars
+	a.seedMu.Unlock()
+	r, err := charactersRandom(ctx, a.c, offset, notIn)
 	if err != nil {
 		return collection.MediaCharacter{}, err
 	}

@@ -110,6 +110,7 @@ FROM
   guild_indexing_jobs
 WHERE
   guild_id = $1
+FOR UPDATE
 `
 
 type IsGuildIndexedRow struct {

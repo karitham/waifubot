@@ -21,6 +21,16 @@ WHERE
 RETURNING
   *;
 
+-- name: SpendTokens :one
+UPDATE users
+SET
+  tokens = tokens - $1
+WHERE
+  user_id = $2
+  AND tokens >= $1
+RETURNING
+  *;
+
 -- name: GetByAnilist :one
 SELECT
   *

@@ -7,8 +7,6 @@ import (
 	"strconv"
 
 	"github.com/Karitham/corde"
-
-	"github.com/karitham/waifubot/collection"
 )
 
 func (b *Bot) verify(m *corde.Mux) {
@@ -28,7 +26,7 @@ func (b *Bot) verifyCommand(ctx context.Context, w corde.ResponseWriter, i *cord
 	}
 	charID, _ := i.Data.Options.Int64("id")
 
-	has, char, err := collection.CheckOwnership(ctx, b.Store, user.ID, charID)
+	has, char, err := collectionCheckOwnership(ctx, b.Store, uint64(user.ID), charID)
 	if err != nil {
 		w.Respond(newErrf("Error checking ownership: %s", err.Error()))
 		return
@@ -49,7 +47,7 @@ func (b *Bot) verifyAutocomplete(ctx context.Context, w corde.ResponseWriter, i 
 		id = strconv.Itoa(i)
 	}
 
-	chars, err := collection.SearchGlobalCharacters(ctx, b.Store, id)
+	chars, err := b.Store.SearchGlobalCharacters(ctx, id)
 	if err != nil {
 		slog.Error("Error searching global characters", "error", err)
 		return

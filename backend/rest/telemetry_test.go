@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"context"
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -22,7 +21,7 @@ func TestSetupTelemetry(t *testing.T) {
 		telemetry, err := SetupTelemetry(registry)
 		require.NoError(t, err)
 
-		err = telemetry.Shutdown(context.Background())
+		err = telemetry.Shutdown(t.Context())
 		require.NoError(t, err)
 	})
 }

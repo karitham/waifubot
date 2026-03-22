@@ -10,10 +10,8 @@ import (
 	"time"
 
 	"github.com/Karitham/corde"
-	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/karitham/waifubot/collection"
-	"github.com/karitham/waifubot/storage/userstore"
 )
 
 func (b *Bot) profile(m *corde.Mux) {
@@ -36,7 +34,7 @@ func (b *Bot) profileView(ctx context.Context, w corde.ResponseWriter, i *corde.
 		user = i.Data.Resolved.Users.First()
 	}
 
-	data, err := collection.UserProfile(ctx, b.Store, user.ID)
+	data, err := collection.UserProfile(ctx, b.Store, uint64(user.ID))
 	if err != nil {
 		logger.Error("error getting profile", "error", err, "target_user_id", uint64(user.ID))
 		w.Respond(corde.NewResp().Content("An error occurred dialing the database, please try again later").Ephemeral())
@@ -74,10 +72,7 @@ func (b *Bot) profileEditFavorite(ctx context.Context, w corde.ResponseWriter, i
 	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
 
 	optID, _ := i.Data.Options.Int64("id")
-	if err := b.Store.UserStore().UpdateFavorite(ctx, userstore.UpdateFavoriteParams{
-		Favorite: pgtype.Int8{Int64: optID, Valid: true},
-		UserID:   uint64(i.Member.User.ID),
-	}); err != nil {
+	if err := b.Store.UpdateFavorite(ctx, uint64(i.Member.User.ID), optID); err != nil {
 		logger.Error("error setting favorite character", "error", err, "character_id", optID)
 		w.Respond(corde.NewResp().Content("An error occurred setting this character").Ephemeral())
 		return
@@ -93,7 +88,7 @@ func (b *Bot) userCollectionAutocomplete(ctx context.Context, w corde.ResponseWr
 		id = strconv.Itoa(i)
 	}
 
-	chars, err := collection.SearchCharacters(ctx, b.Store, i.Member.User.ID, id)
+	chars, err := b.Store.SearchCharacters(ctx, uint64(i.Member.User.ID), id)
 	if err != nil {
 		slog.Error("Error getting user's characters", "error", err, "user", i.Member.User.ID)
 		return
@@ -125,10 +120,7 @@ func (b *Bot) profileEditAnilistURL(ctx context.Context, w corde.ResponseWriter,
 		return
 	}
 
-	if err := b.Store.UserStore().UpdateAnilistURL(ctx, userstore.UpdateAnilistURLParams{
-		AnilistUrl: anilistURL,
-		UserID:     uint64(i.Member.User.ID),
-	}); err != nil {
+	if err := b.Store.UpdateAnilistURL(ctx, uint64(i.Member.User.ID), anilistURL); err != nil {
 		w.Respond(corde.NewResp().Content(err.Error()).Ephemeral())
 		return
 	}
@@ -143,10 +135,7 @@ func (b *Bot) profileEditQuote(ctx context.Context, w corde.ResponseWriter, i *c
 		return
 	}
 
-	if err := b.Store.UserStore().UpdateQuote(ctx, userstore.UpdateQuoteParams{
-		Quote:  quote,
-		UserID: uint64(i.Member.User.ID),
-	}); err != nil {
+	if err := b.Store.UpdateQuote(ctx, uint64(i.Member.User.ID), quote); err != nil {
 		w.Respond(corde.NewResp().Content(err.Error()).Ephemeral())
 		return
 	}

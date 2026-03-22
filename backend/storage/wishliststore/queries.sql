@@ -1,18 +1,9 @@
--- name: AddCharacterToWishlist :exec
-INSERT INTO character_wishlist (user_id, character_id)
-VALUES ($1, $2)
-ON CONFLICT (user_id, character_id) DO NOTHING;
-
--- name: AddMultipleCharactersToWishlist :exec
+-- name: AddCharactersToWishlist :exec
 INSERT INTO character_wishlist (user_id, character_id)
 SELECT $1, unnest($2::bigint[])
 ON CONFLICT (user_id, character_id) DO NOTHING;
 
--- name: RemoveCharacterFromWishlist :exec
-DELETE FROM character_wishlist
-WHERE user_id = $1 AND character_id = $2;
-
--- name: RemoveMultipleCharactersFromWishlist :exec
+-- name: RemoveCharactersFromWishlist :exec
 DELETE FROM character_wishlist
 WHERE user_id = $1 AND character_id = ANY($2::bigint[]);
 

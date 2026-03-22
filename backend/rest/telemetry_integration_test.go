@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,7 +16,7 @@ func TestOgenTelemetryIntegration(t *testing.T) {
 
 	telemetry, err := SetupTelemetry(registry)
 	require.NoError(t, err)
-	defer telemetry.Shutdown(context.Background())
+	defer telemetry.Shutdown(t.Context())
 
 	srv, err := api.NewServer(
 		api.UnimplementedHandler{},

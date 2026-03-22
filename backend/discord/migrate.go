@@ -2,20 +2,18 @@ package discord
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 
 	"github.com/Karitham/corde"
-	"github.com/jackc/pgx/v5"
 )
 
 func (b *Bot) MigrateCommands(ctx context.Context) error {
 	hash := Hash(commandDefinitions)
 
-	stored, err := b.Store.CommandStore().GetCommandHash(ctx)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+	stored, err := b.CommandStore.GetCommandHash(ctx)
+	if err != nil {
 		return fmt.Errorf("get command hash: %w", err)
 	}
 
@@ -37,11 +35,11 @@ func (b *Bot) MigrateCommands(ctx context.Context) error {
 	}
 
 	if stored == "" {
-		if err := b.Store.CommandStore().SetCommandHash(ctx, hash); err != nil {
+		if err := b.CommandStore.SetCommandHash(ctx, hash); err != nil {
 			return fmt.Errorf("set command hash: %w", err)
 		}
 	} else {
-		if err := b.Store.CommandStore().UpdateCommandHash(ctx, hash); err != nil {
+		if err := b.CommandStore.UpdateCommandHash(ctx, hash); err != nil {
 			return fmt.Errorf("update command hash: %w", err)
 		}
 	}

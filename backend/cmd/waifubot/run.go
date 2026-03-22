@@ -22,6 +22,7 @@ import (
 	"github.com/karitham/waifubot/rest/api"
 	"github.com/karitham/waifubot/services"
 	"github.com/karitham/waifubot/storage"
+	"github.com/karitham/waifubot/storage/commandpg"
 	"github.com/karitham/waifubot/storage/dropstore"
 	"github.com/karitham/waifubot/storage/interactionstore"
 	"github.com/karitham/waifubot/wishlist"
@@ -86,15 +87,20 @@ var RunCommand = &cli.Command{
 
 		interStore := interactionstore.NewPostgresStore(store.InteractionStore())
 		dropStore := dropstore.NewPostgresStore(store.DropStore())
+		collStore := newCollectionStore(store)
+		wishStore := wishlist.New(store.WishlistStore())
 
 		slog.Info("Starting WaifuBot", "port", c.String("port"), "app_id", c.String("app-id"), "api_enabled", c.Bool(apiFlag.Name))
 		mux := discord.New(&discord.Bot{
-			Store:             store,
-			WishlistStore:     wishlist.New(store.WishlistStore()),
+			Store:             collStore,
+			Catalog:           newCatalogStore(store),
+			CommandStore:      commandpg.New(store.CommandStore()),
+			WishlistStore:     wishStore,
 			AnimeService:      anilist.New(anilist.MaxChar(c.Int64(anilistMaxCharsFlag.Name))),
 			DropStore:         dropStore,
 			InterStore:        interStore,
-			GuildIndexer:      guild.NewIndexer(store, c.String(botTokenFlag.Name)),
+			GuildIndexer:      guild.NewIndexer(collStore, guild.NewDiscordFetcher(c.String(botTokenFlag.Name))),
+			GuildOps:          collStore,
 			AppID:             corde.Snowflake(c.Uint64("app-id")),
 			GuildID:           guildID,
 			BotToken:          c.String(botTokenFlag.Name),
@@ -132,7 +138,7 @@ var RunCommand = &cli.Command{
 				discordService = services.NewDiscordService(discordToken)
 			}
 
-			restServer := rest.New(store, discordService)
+			restServer := rest.New(collStore, wishStore, discordService)
 
 			telemetry, err := rest.SetupTelemetry(prometheus.DefaultRegisterer)
 			if err != nil {

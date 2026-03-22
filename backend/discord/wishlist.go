@@ -4,38 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"strconv"
 	"strings"
 
 	"github.com/Karitham/corde"
 
-	"github.com/karitham/waifubot/collection"
-	"github.com/karitham/waifubot/storage"
-	"github.com/karitham/waifubot/storage/collectionstore"
 	"github.com/karitham/waifubot/wishlist"
 )
-
-// collectionServiceWrapper wraps the storage.Store to implement wishlist.CollectionService
-type collectionServiceWrapper struct {
-	store storage.Store
-}
-
-func (c *collectionServiceWrapper) CheckOwnership(ctx context.Context, userID corde.Snowflake, charID int64) (bool, collectionstore.Character, error) {
-	return collection.CheckOwnership(ctx, c.store, userID, charID)
-}
-
-func (c *collectionServiceWrapper) GetUserCollectionIDs(ctx context.Context, userID corde.Snowflake) ([]int64, error) {
-	return c.store.CollectionStore().ListIDs(ctx, uint64(userID))
-}
-
-func (c *collectionServiceWrapper) UpsertCharacter(ctx context.Context, charID int64, name, image string) error {
-	_, err := c.store.CollectionStore().UpsertCharacter(ctx, collectionstore.UpsertCharacterParams{
-		ID:    charID,
-		Name:  name,
-		Image: image,
-	})
-	return err
-}
 
 // formatCharacter formats a character as "Name (ID)"
 func formatCharacter(name string, id int64) string {
@@ -101,7 +75,7 @@ func (b *Bot) wishlistCharacterAdd(ctx context.Context, w corde.ResponseWriter, 
 	charID, _ := i.Data.Options.Int64("character")
 
 	// Check if user already owns this character
-	has, char, err := collection.CheckOwnership(ctx, b.Store, i.Member.User.ID, charID)
+	has, char, err := collectionCheckOwnership(ctx, b.Store, uint64(i.Member.User.ID), charID)
 	if err != nil {
 		logger.Error("error checking ownership", "error", err, "character_id", charID)
 		w.Respond(rspErr("Unable to verify character ownership. Please try again."))
@@ -112,7 +86,7 @@ func (b *Bot) wishlistCharacterAdd(ctx context.Context, w corde.ResponseWriter, 
 		return
 	}
 
-	err = b.WishlistStore.AddMultipleCharactersToWishlist(ctx, uint64(i.Member.User.ID), []int64{charID})
+	err = b.WishlistStore.AddCharactersToWishlist(ctx, uint64(i.Member.User.ID), []int64{charID})
 	if err != nil {
 		logger.Error("error adding character to wishlist", "error", err, "character_id", charID)
 		w.Respond(rspErr("Unable to add character to wishlist. Please try again."))
@@ -127,7 +101,7 @@ func (b *Bot) wishlistCharacterRemove(ctx context.Context, w corde.ResponseWrite
 
 	charID, _ := i.Data.Options.Int64("character")
 
-	err := b.WishlistStore.RemoveMultipleCharactersFromWishlist(ctx, uint64(i.Member.User.ID), []int64{charID})
+	err := b.WishlistStore.RemoveCharactersFromWishlist(ctx, uint64(i.Member.User.ID), []int64{charID})
 	if err != nil {
 		logger.Error("error removing character from wishlist", "error", err, "character_id", charID)
 		w.Respond(rspErr("Unable to remove character from wishlist. Please try again."))
@@ -183,20 +157,20 @@ func formatUser(userID uint64) string {
 func (b *Bot) wishlistHolders(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
 	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
 
-	wishlist, err := b.WishlistStore.GetUserCharacterWishlist(ctx, uint64(i.Member.User.ID))
+	wl, err := b.WishlistStore.GetUserCharacterWishlist(ctx, uint64(i.Member.User.ID))
 	if err != nil {
 		logger.Error("error getting user wishlist", "error", err)
 		w.Respond(rspErr("Unable to retrieve your wishlist. Please try again."))
 		return
 	}
 
-	if len(wishlist) == 0 {
+	if len(wl) == 0 {
 		w.Respond(corde.NewResp().Content("Your wishlist is empty.").Ephemeral())
 		return
 	}
 
-	characterIDs := make([]int64, len(wishlist))
-	for j, c := range wishlist {
+	characterIDs := make([]int64, len(wl))
+	for j, c := range wl {
 		characterIDs[j] = c.ID
 	}
 
@@ -301,10 +275,30 @@ func (b *Bot) wishlistCompare(ctx context.Context, w corde.ResponseWriter, i *co
 	w.Respond(corde.NewResp().Embeds(embed).Ephemeral())
 }
 
+func (b *Bot) characterAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
+	id, err := i.Data.Options.String("character")
+	if err != nil {
+		i, _ := i.Data.Options.Int("character")
+		id = fmt.Sprintf("%d", i)
+	}
+
+	chars, err := b.Catalog.SearchGlobalCharacters(ctx, id)
+	if err != nil {
+		slog.Error("Error searching global characters", "error", err, "term", id)
+		return
+	}
+
+	resp := corde.NewResp()
+	for _, c := range chars {
+		resp.Choice(formatCharacter(c.Name, c.ID), c.ID)
+	}
+
+	w.Autocomplete(resp)
+}
+
 func (b *Bot) wishlistAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
 	input, err := i.Data.Options.String("character")
 	if err != nil {
-		// If it's an int, convert to string for filtering
 		if intVal, intErr := i.Data.Options.Int("character"); intErr == nil {
 			input = fmt.Sprintf("%d", intVal)
 		} else {
@@ -321,57 +315,12 @@ func (b *Bot) wishlistAutocomplete(ctx context.Context, w corde.ResponseWriter, 
 	resp := corde.NewResp()
 	for _, c := range chars {
 		charIDStr := fmt.Sprintf("%d", c.ID)
-		// Show characters whose name or ID starts with the input
 		if input == "" || strings.HasPrefix(strings.ToLower(c.Name), strings.ToLower(input)) || strings.HasPrefix(charIDStr, input) {
 			resp.Choice(formatCharacter(c.Name, c.ID), c.ID)
 		}
 	}
 
 	w.Autocomplete(resp)
-}
-
-func (b *Bot) characterAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
-	id, err := i.Data.Options.String("character")
-	if err != nil {
-		i, _ := i.Data.Options.Int("character")
-		id = strconv.Itoa(i)
-	}
-
-	chars, err := collection.SearchGlobalCharacters(ctx, b.Store, id)
-	if err != nil {
-		slog.Error("Error searching global characters", "error", err, "term", id)
-		return
-	}
-
-	resp := corde.NewResp()
-	for _, c := range chars {
-		resp.Choice(formatCharacter(c.Name, c.ID), c.ID)
-	}
-
-	w.Autocomplete(resp)
-}
-
-func (b *Bot) wishlistMediaAdd(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
-
-	mediaID, _ := i.Data.Options.Int64("media")
-
-	// Create a collection service wrapper
-	collectionService := &collectionServiceWrapper{store: b.Store}
-
-	count, err := wishlist.AddMediaToWishlist(ctx, b.WishlistStore, b.AnimeService, collectionService, i.Member.User.ID, mediaID)
-	if err != nil {
-		logger.Error("error adding media to wishlist", "error", err, "media_id", mediaID)
-		w.Respond(rspErr("Unable to add characters from this media to your wishlist. Please try again."))
-		return
-	}
-
-	if count == 0 {
-		w.Respond(rspErr("No characters found for this media, or you already own all of them."))
-		return
-	}
-
-	w.Respond(corde.NewResp().Contentf("Added %d characters from this media to your wishlist.", count).Ephemeral())
 }
 
 func (b *Bot) mediaAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
@@ -394,4 +343,24 @@ func (b *Bot) mediaAutocomplete(ctx context.Context, w corde.ResponseWriter, i *
 	}
 
 	w.Autocomplete(resp)
+}
+
+func (b *Bot) wishlistMediaAdd(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
+	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
+
+	mediaID, _ := i.Data.Options.Int64("media")
+
+	count, err := wishlist.AddMediaToWishlist(ctx, b.WishlistStore, b.AnimeService, b.Store, uint64(i.Member.User.ID), mediaID)
+	if err != nil {
+		logger.Error("error adding media to wishlist", "error", err, "media_id", mediaID)
+		w.Respond(rspErr("Unable to add characters from this media to your wishlist. Please try again."))
+		return
+	}
+
+	if count == 0 {
+		w.Respond(rspErr("No characters found for this media, or you already own all of them."))
+		return
+	}
+
+	w.Respond(corde.NewResp().Contentf("Added %d characters from this media to your wishlist.", count).Ephemeral())
 }

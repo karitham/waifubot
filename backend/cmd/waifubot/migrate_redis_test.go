@@ -47,7 +47,7 @@ func (m *mockDropStore) Set(ctx context.Context, id corde.Snowflake, data dropst
 }
 
 func TestMigrateInteractions(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	keys := []string{"channel:123:interactions", "channel:456:interactions"}
 	counts := map[string]int64{
 		"channel:123:interactions": 10,
@@ -97,7 +97,7 @@ func TestMigrateInteractions(t *testing.T) {
 }
 
 func TestMigrateDrops(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	keys := []string{"channel:123:char"}
 	char := collection.MediaCharacter{
 		ID:          1,

@@ -2,29 +2,23 @@ package collection
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/Karitham/corde"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgtype"
-
-	collectionstore "github.com/karitham/waifubot/storage/collectionstore"
-	"github.com/karitham/waifubot/storage/wishliststore"
+	"github.com/karitham/waifubot/catalog"
 )
 
-var (
-	ErrNoDropInChannel    = errors.New("no drop in this channel")
-	ErrWrongCharacterName = errors.New("wrong character name")
-	ErrAlreadyOwned       = errors.New("character already in collection")
-)
+// ErrNoDropInChannel is returned when there is no drop in the channel.
+var ErrNoDropInChannel = errors.New("no drop in this channel")
 
+// ErrWrongCharacterName is returned when the character name is wrong.
+var ErrWrongCharacterName = errors.New("wrong character name")
+
+// Claim claims a dropped character for a user.
 func Claim(ctx context.Context, store Store, userID, channelID uint64, charName string) (Character, error) {
-	tx, err := store.Tx(ctx)
+	tx, err := store.WithTx(ctx)
 	if err != nil {
 		return Character{}, fmt.Errorf("failed to begin transaction: %w", err)
 	}
@@ -35,9 +29,9 @@ func Claim(ctx context.Context, store Store, userID, channelID uint64, charName 
 		}
 	}()
 
-	drop, err := tx.DropStore().GetDropForUpdate(ctx, channelID)
+	drop, err := tx.GetDropForUpdate(ctx, channelID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, catalog.ErrNotFound) {
 			return Character{}, ErrNoDropInChannel
 		}
 		return Character{}, fmt.Errorf("failed to get drop: %w", err)
@@ -47,11 +41,11 @@ func Claim(ctx context.Context, store Store, userID, channelID uint64, charName 
 		return Character{}, ErrWrongCharacterName
 	}
 
-	_, err = tx.UserStore().Get(ctx, userID)
+	// Ensure user exists
+	_, err = tx.GetUser(ctx, userID)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			err = tx.UserStore().Create(ctx, userID)
-			if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			if err = tx.CreateUser(ctx, userID); err != nil {
 				return Character{}, fmt.Errorf("failed to create user: %w", err)
 			}
 		} else {
@@ -59,7 +53,7 @@ func Claim(ctx context.Context, store Store, userID, channelID uint64, charName 
 		}
 	}
 
-	_, err = tx.CollectionStore().UpsertCharacter(ctx, collectionstore.UpsertCharacterParams{
+	err = tx.UpsertCharacter(ctx, Character{
 		ID:    drop.ID,
 		Name:  drop.Name,
 		Image: drop.Image,
@@ -69,26 +63,17 @@ func Claim(ctx context.Context, store Store, userID, channelID uint64, charName 
 	}
 
 	now := time.Now()
-	_, err = tx.CollectionStore().Insert(ctx, collectionstore.InsertParams{
-		UserID:      userID,
-		CharacterID: drop.ID,
-		Source:      "CLAIM",
-		AcquiredAt:  pgtype.Timestamp{Time: now, Valid: true},
-	})
+	err = tx.AddToCollection(ctx, userID, Character(drop), "CLAIM", now)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		if errors.Is(err, ErrAlreadyOwned) {
 			return Character{}, ErrAlreadyOwned
 		}
 		return Character{}, fmt.Errorf("failed to insert character into collection: %w", err)
 	}
 
-	_ = tx.WishlistStore().RemoveCharacterFromWishlist(ctx, wishliststore.RemoveCharacterFromWishlistParams{
-		UserID:      userID,
-		CharacterID: drop.ID,
-	})
+	_ = tx.RemoveFromWishlist(ctx, userID, drop.ID)
 
-	err = tx.DropStore().DeleteDrop(ctx, channelID)
+	err = tx.DeleteDrop(ctx, channelID)
 	if err != nil {
 		return Character{}, fmt.Errorf("failed to delete drop: %w", err)
 	}
@@ -99,15 +84,7 @@ func Claim(ctx context.Context, store Store, userID, channelID uint64, charName 
 		return Character{}, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	return Character{
-		Date:       now,
-		Image:      drop.Image,
-		Name:       drop.Name,
-		Type:       "CLAIM",
-		MediaTitle: drop.MediaTitle,
-		UserID:     corde.Snowflake(userID),
-		ID:         drop.ID,
-	}, nil
+	return Character(drop), nil
 }
 
 func sanitizeName(name string) string {

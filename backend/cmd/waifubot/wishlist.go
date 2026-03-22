@@ -40,7 +40,7 @@ var WishlistCommand = &cli.Command{
 				}
 
 				wishlistStore := wishlist.New(store.WishlistStore())
-				err = wishlistStore.AddMultipleCharactersToWishlist(ctx, uint64(userID), []int64{charID})
+				err = wishlistStore.AddCharactersToWishlist(ctx, uint64(userID), []int64{charID})
 				if err != nil {
 					return fmt.Errorf("error adding character to wishlist: %w", err)
 				}
@@ -78,7 +78,7 @@ var WishlistCommand = &cli.Command{
 				}
 
 				wishlistStore := wishlist.New(store.WishlistStore())
-				err = wishlistStore.RemoveMultipleCharactersFromWishlist(ctx, uint64(userID), []int64{charID})
+				err = wishlistStore.RemoveCharactersFromWishlist(ctx, uint64(userID), []int64{charID})
 				if err != nil {
 					return fmt.Errorf("error removing character from wishlist: %w", err)
 				}

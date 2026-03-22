@@ -13,16 +13,18 @@ import (
 func (b *Bot) token(m *corde.Mux) {
 	m.SlashCommand("balance", trace(b.tokenBalance))
 	m.SlashCommand("give", wrap(b.tokenGive, trace[corde.SlashCommandInteractionData]))
-	m.SlashCommand("sell", wrap(
-		b.tokenSell,
-		trace[corde.SlashCommandInteractionData],
-		interact(b.InterStore, onInteraction[corde.SlashCommandInteractionData](b)),
-	))
-	m.Autocomplete("id", trace(b.userCollectionAutocomplete))
+	m.Route("sell", func(m *corde.Mux) {
+		m.SlashCommand("", wrap(
+			b.tokenSell,
+			trace[corde.SlashCommandInteractionData],
+			interact(b.InterStore, onInteraction[corde.SlashCommandInteractionData](b)),
+		))
+		m.Autocomplete("id", trace(b.userCollectionAutocomplete))
+	})
 }
 
 func (b *Bot) tokenBalance(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	user, err := b.Store.UserStore().Get(ctx, uint64(i.Member.User.ID))
+	user, err := b.Store.GetUser(ctx, uint64(i.Member.User.ID))
 	if err != nil {
 		w.Respond(rspErr("Failed to get your balance"))
 		return
@@ -47,7 +49,7 @@ func (b *Bot) tokenGive(ctx context.Context, w corde.ResponseWriter, i *corde.In
 		return
 	}
 
-	err := collection.TransferTokens(ctx, b.Store, i.Member.User.ID, recipient.ID, int32(amount))
+	err := collection.TransferTokens(ctx, b.Store, uint64(i.Member.User.ID), uint64(recipient.ID), int32(amount))
 	if err != nil {
 		if errors.Is(err, collection.ErrInsufficientTokens) {
 			w.Respond(rspErr("You don't have enough tokens"))
@@ -86,7 +88,7 @@ func (b *Bot) tokenSell(ctx context.Context, w corde.ResponseWriter, i *corde.In
 		return
 	}
 
-	char, err := collection.Exchange(ctx, b.Store, i.Member.User.ID, int64(charID))
+	char, err := collection.Exchange(ctx, b.Store, uint64(i.Member.User.ID), int64(charID))
 	if err != nil {
 		if errors.Is(err, collection.ErrUserDoesNotOwnCharacter) {
 			w.Respond(rspErr("You don't own that character"))

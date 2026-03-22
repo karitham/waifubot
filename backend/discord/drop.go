@@ -60,11 +60,11 @@ func (b *Bot) claim(ctx context.Context, w corde.ResponseWriter, i *corde.Intera
 		logger.Debug("failed to claim", "error", err)
 		switch {
 		case errors.Is(err, collection.ErrNoDropInChannel):
-			w.Respond(rspErr("No character to claim"))
+			w.Respond(rspErr("No character to claim in this channel. Wait for the next drop!"))
 		case errors.Is(err, collection.ErrWrongCharacterName):
-			w.Respond(rspErr("Wrong!"))
+			w.Respond(rspErr("Wrong name! Check the hint and try again."))
 		case errors.Is(err, collection.ErrAlreadyOwned):
-			w.Respond(rspErr("Already in your collection!"))
+			w.Respond(rspErr("You already have this character in your collection!"))
 		default:
 			w.Respond(rspErr("Failed to claim character"))
 		}

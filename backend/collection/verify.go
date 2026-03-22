@@ -2,31 +2,17 @@ package collection
 
 import (
 	"context"
-	"database/sql"
 	"errors"
-
-	"github.com/Karitham/corde"
-
-	"github.com/karitham/waifubot/storage/collectionstore"
 )
 
-// CheckOwnership checks if a user owns a specific character
-func CheckOwnership(ctx context.Context, store Store, userID corde.Snowflake, charID int64) (bool, collectionstore.Character, error) {
-	char, err := store.CollectionStore().Get(ctx, collectionstore.GetParams{ID: charID, UserID: uint64(userID)})
+// CheckOwnership checks if a user owns a specific character.
+func CheckOwnership(ctx context.Context, store Store, userID UserID, charID int64) (bool, Character, error) {
+	char, err := store.GetOwnedCharacter(ctx, userID, charID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return false, collectionstore.Character{}, nil
+		if errors.Is(err, ErrNotFound) {
+			return false, Character{}, nil
 		}
-		return false, collectionstore.Character{}, err
+		return false, Character{}, err
 	}
-	return char.ID == charID, collectionstore.Character{
-		ID:    char.ID,
-		Name:  char.Name,
-		Image: char.Image,
-	}, nil
-}
-
-// SearchGlobalCharacters searches for characters globally for autocomplete
-func SearchGlobalCharacters(ctx context.Context, store Store, term string) ([]collectionstore.Character, error) {
-	return store.CollectionStore().SearchGlobalCharacters(ctx, collectionstore.SearchGlobalCharactersParams{Term: term, Lim: 25})
+	return true, char.Character, nil
 }

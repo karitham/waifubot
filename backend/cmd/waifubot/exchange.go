@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 
-	"github.com/Karitham/corde"
 	"github.com/urfave/cli/v2"
 
 	"github.com/karitham/waifubot/collection"
@@ -31,12 +31,12 @@ var ExchangeCommand = &cli.Command{
 			return fmt.Errorf("error connecting to db: %w", err)
 		}
 
-		userID := corde.SnowflakeFromString(userIDStr)
-		if userID == 0 {
+		userID, err := strconv.ParseUint(userIDStr, 10, 64)
+		if err != nil || userID == 0 {
 			return fmt.Errorf("invalid user ID: %s", userIDStr)
 		}
 
-		char, err := collection.Exchange(ctx, store, userID, charID)
+		char, err := collection.Exchange(ctx, newCollectionStore(store), userID, charID)
 		if err != nil {
 			return fmt.Errorf("error exchanging: %w", err)
 		}

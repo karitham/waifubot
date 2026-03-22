@@ -4,19 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
-	"github.com/Karitham/corde"
-
-	"github.com/karitham/waifubot/storage/userstore"
 )
 
-var (
-	ErrInsufficientTokens = errors.New("insufficient tokens")
-	ErrInvalidAmount      = errors.New("amount must be positive")
-	ErrSameUserTransfer   = errors.New("cannot transfer to yourself")
-)
-
-func TransferTokens(ctx context.Context, store Store, from, to corde.Snowflake, amount int32) (err error) {
+// TransferTokens transfers tokens between users.
+func TransferTokens(ctx context.Context, store Store, from, to UserID, amount int32) (err error) {
 	if amount <= 0 {
 		return ErrInvalidAmount
 	}
@@ -24,7 +15,7 @@ func TransferTokens(ctx context.Context, store Store, from, to corde.Snowflake, 
 		return ErrSameUserTransfer
 	}
 
-	tx, err := store.Tx(ctx)
+	tx, err := store.WithTx(ctx)
 	if err != nil {
 		return err
 	}
@@ -34,22 +25,15 @@ func TransferTokens(ctx context.Context, store Store, from, to corde.Snowflake, 
 		}
 	}()
 
-	fromUser, err := tx.UserStore().UpdateTokens(ctx, userstore.UpdateTokensParams{
-		Tokens: -amount,
-		UserID: uint64(from),
-	})
+	_, err = tx.SpendTokens(ctx, from, amount)
 	if err != nil {
+		if errors.Is(err, ErrInsufficientTokens) {
+			return err
+		}
 		return fmt.Errorf("failed to update source token count: %w", err)
 	}
 
-	if fromUser.Tokens < 0 {
-		return ErrInsufficientTokens
-	}
-
-	_, err = tx.UserStore().UpdateTokens(ctx, userstore.UpdateTokensParams{
-		Tokens: amount,
-		UserID: uint64(to),
-	})
+	_, err = tx.AddTokens(ctx, to, amount)
 	if err != nil {
 		return err
 	}

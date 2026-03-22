@@ -13,6 +13,7 @@ type Querier interface {
 	Get(ctx context.Context, userID uint64) (User, error)
 	GetByAnilist(ctx context.Context, lower string) (User, error)
 	GetByDiscordUsername(ctx context.Context, discordUsername string) (User, error)
+	SpendTokens(ctx context.Context, arg SpendTokensParams) (User, error)
 	UpdateAnilistURL(ctx context.Context, arg UpdateAnilistURLParams) error
 	UpdateDate(ctx context.Context, arg UpdateDateParams) error
 	UpdateDiscordInfo(ctx context.Context, arg UpdateDiscordInfoParams) error

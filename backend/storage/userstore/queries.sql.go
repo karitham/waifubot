@@ -105,6 +105,40 @@ func (q *Queries) GetByDiscordUsername(ctx context.Context, discordUsername stri
 	return i, err
 }
 
+const spendTokens = `-- name: SpendTokens :one
+UPDATE users
+SET
+  tokens = tokens - $1
+WHERE
+  user_id = $2
+  AND tokens >= $1
+RETURNING
+  id, user_id, quote, date, favorite, tokens, anilist_url, discord_username, discord_avatar, last_updated
+`
+
+type SpendTokensParams struct {
+	Tokens int32
+	UserID uint64
+}
+
+func (q *Queries) SpendTokens(ctx context.Context, arg SpendTokensParams) (User, error) {
+	row := q.db.QueryRow(ctx, spendTokens, arg.Tokens, arg.UserID)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Quote,
+		&i.Date,
+		&i.Favorite,
+		&i.Tokens,
+		&i.AnilistUrl,
+		&i.DiscordUsername,
+		&i.DiscordAvatar,
+		&i.LastUpdated,
+	)
+	return i, err
+}
+
 const updateAnilistURL = `-- name: UpdateAnilistURL :exec
 UPDATE users
 SET

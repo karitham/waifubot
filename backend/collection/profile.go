@@ -1,42 +1,12 @@
 package collection
 
-//go:generate mockgen -source=profile.go -destination=profile_mock.go -package=collection -mock_names=Store=MockProfileStore,AnimeService=MockAnimeService
-//go:generate mockgen -source=../storage/collectionstore/querier.go -destination=collectionstore_mock.go -package=collection -mock_names=Querier=MockCollectionQuerier
-//go:generate mockgen -source=../storage/userstore/querier.go -destination=userstore_mock.go -package=collection -mock_names=Querier=MockUserQuerier
-//go:generate mockgen -source=../storage/wishliststore/querier.go -destination=wishliststore_mock.go -package=collection -mock_names=Querier=MockWishlistQuerier
-//go:generate mockgen -source=../storage/guildstore/querier.go -destination=guildstore_mock.go -package=collection -mock_names=Querier=MockGuildQuerier
-//go:generate mockgen -source=../storage/commandstore/querier.go -destination=commandstore_mock.go -package=collection -mock_names=Querier=MockCommandQuerier
-
 import (
 	"context"
+	"errors"
 	"time"
-
-	"github.com/Karitham/corde"
-	"github.com/jackc/pgx/v5"
-
-	"github.com/karitham/waifubot/storage"
-	"github.com/karitham/waifubot/storage/collectionstore"
-	"github.com/karitham/waifubot/storage/commandstore"
-	"github.com/karitham/waifubot/storage/dropstore"
-	"github.com/karitham/waifubot/storage/guildstore"
-	"github.com/karitham/waifubot/storage/userstore"
-	"github.com/karitham/waifubot/storage/wishliststore"
 )
 
-// Store defines the interface for database operations
-type Store interface {
-	Tx(ctx context.Context) (storage.Store, error)
-	Commit(ctx context.Context) error
-	Rollback(ctx context.Context) error
-	CollectionStore() collectionstore.Querier
-	UserStore() userstore.Querier
-	GuildStore() guildstore.Querier
-	WishlistStore() wishliststore.Querier
-	CommandStore() commandstore.Querier
-	DropStore() dropstore.Querier
-}
-
-// AnimeService defines the interface for anime operations
+// AnimeService defines the interface for anime operations.
 type AnimeService interface {
 	RandomChar(ctx context.Context, notIn ...int64) (MediaCharacter, error)
 	Anime(ctx context.Context, name string) ([]Media, error)
@@ -45,13 +15,13 @@ type AnimeService interface {
 	Character(ctx context.Context, name string) ([]MediaCharacter, error)
 }
 
-// Config holds configuration values
+// Config holds configuration values.
 type Config struct {
 	RollCooldown time.Duration
 	TokensNeeded int32
 }
 
-// MediaCharacter represents a character from the anime service
+// MediaCharacter represents a character from the anime service.
 type MediaCharacter struct {
 	ID          int64
 	Name        string
@@ -61,37 +31,7 @@ type MediaCharacter struct {
 	MediaTitle  string
 }
 
-// Character represents a character in a user's collection
-type Character struct {
-	Date       time.Time       `json:"date"`
-	Image      string          `json:"image"`
-	Name       string          `json:"name"`
-	Type       string          `json:"type"`
-	MediaTitle string          `json:"media_title,omitempty"`
-	UserID     corde.Snowflake `json:"user_id"`
-	ID         int64           `json:"id"`
-}
-
-// User represents a user profile
-type User struct {
-	Date            time.Time       `json:"date"`
-	Quote           string          `json:"quote"`
-	Favorite        uint64          `json:"favorite"`
-	UserID          corde.Snowflake `json:"user_id"`
-	AnilistURL      string          `json:"anilist_url,omitempty"`
-	Tokens          int32           `json:"tokens"`
-	DiscordUsername string          `json:"discord_username,omitempty"`
-	DiscordAvatar   string          `json:"discord_avatar,omitempty"`
-}
-
-// Profile represents a complete user profile with character count and favorite
-type Profile struct {
-	User
-	CharacterCount int
-	Favorite       Character
-}
-
-// Media represents an anime or manga
+// Media represents an anime or manga.
 type Media struct {
 	ID              int64
 	Title           string
@@ -103,7 +43,7 @@ type Media struct {
 	Type            string
 }
 
-// TrackerUser represents an anime tracker user
+// TrackerUser represents an anime tracker user.
 type TrackerUser struct {
 	Name     string
 	URL      string
@@ -111,17 +51,22 @@ type TrackerUser struct {
 	About    string
 }
 
-// UserProfile retrieves a user's profile
-func UserProfile(ctx context.Context, store Store, userID corde.Snowflake) (Profile, error) {
-	// Get user
-	u, err := store.UserStore().Get(ctx, uint64(userID))
+// Profile represents a complete user profile with character count and favorite.
+type Profile struct {
+	User
+	CharacterCount int
+	Favorite       Character
+}
+
+// UserProfile retrieves a user's profile.
+func UserProfile(ctx context.Context, store Store, userID UserID) (Profile, error) {
+	u, err := store.GetUser(ctx, userID)
 	if err != nil {
-		if err == pgx.ErrNoRows {
-			err = store.UserStore().Create(ctx, uint64(userID))
-			if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			if err = store.CreateUser(ctx, userID); err != nil {
 				return Profile{}, err
 			}
-			u, err = store.UserStore().Get(ctx, uint64(userID))
+			u, err = store.GetUser(ctx, userID)
 			if err != nil {
 				return Profile{}, err
 			}
@@ -130,70 +75,22 @@ func UserProfile(ctx context.Context, store Store, userID corde.Snowflake) (Prof
 		}
 	}
 
-	// Get favorite if any
 	var favorite Character
-	if u.Favorite.Valid {
-		favRow, err := store.CollectionStore().Get(ctx, collectionstore.GetParams{ID: u.Favorite.Int64, UserID: uint64(userID)})
-		if err != nil {
-			// Error getting favorite, continue without it
-		} else {
-			favorite = Character{
-				Date:   favRow.Date.Time,
-				Image:  favRow.Image,
-				Name:   favRow.Name,
-				Type:   favRow.Source,
-				UserID: userID,
-				ID:     int64(favRow.ID),
-			}
+	if u.Favorite != 0 {
+		fav, err := store.GetCharacterByID(ctx, u.Favorite)
+		if err == nil {
+			favorite = fav
 		}
 	}
 
-	// Count chars
-	count, err := store.CollectionStore().Count(ctx, uint64(userID))
+	count, err := store.CountCollection(ctx, userID)
 	if err != nil {
 		return Profile{}, err
 	}
 
 	return Profile{
-		User: User{
-			Date:            u.Date.Time,
-			Quote:           u.Quote,
-			UserID:          corde.Snowflake(u.UserID),
-			Favorite:        uint64(u.Favorite.Int64),
-			Tokens:          u.Tokens,
-			AnilistURL:      u.AnilistUrl,
-			DiscordUsername: u.DiscordUsername,
-			DiscordAvatar:   u.DiscordAvatar,
-		},
+		User:           u,
 		Favorite:       favorite,
 		CharacterCount: int(count),
 	}, nil
-}
-
-// SearchCharacters searches for characters in a user's collection for autocomplete
-func SearchCharacters(ctx context.Context, store Store, userID corde.Snowflake, term string) ([]collectionstore.Character, error) {
-	rows, err := store.CollectionStore().SearchCharacters(ctx, collectionstore.SearchCharactersParams{
-		UserID: uint64(userID),
-		Term:   term,
-		Lim:    25,
-		Off:    0,
-	})
-	if err != nil {
-		return nil, err
-	}
-	if len(rows) > 25 {
-		rows = rows[:25]
-	}
-
-	// Convert SearchCharactersRow to Character
-	chars := make([]collectionstore.Character, len(rows))
-	for i, row := range rows {
-		chars[i] = collectionstore.Character{
-			ID:    row.ID,
-			Name:  row.Name,
-			Image: row.Image,
-		}
-	}
-
-	return chars, nil
 }

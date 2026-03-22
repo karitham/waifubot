@@ -23,7 +23,8 @@ SELECT
 FROM
   guild_indexing_jobs
 WHERE
-  guild_id = $1;
+  guild_id = $1
+FOR UPDATE;
 
 -- name: GetIndexingStatus :one
 SELECT
