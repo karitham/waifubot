@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/karitham/waifubot/catalog"
+	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage/dropstore"
 )
 
@@ -22,7 +23,7 @@ func (p *Pg) GetDropForUpdate(ctx context.Context, channelID uint64) (catalog.Dr
 	c, err := p.Q.GetDropForUpdate(ctx, channelID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return catalog.Drop{}, catalog.ErrNotFound
+			return catalog.Drop{}, collection.ErrNotFound
 		}
 		return catalog.Drop{}, err
 	}

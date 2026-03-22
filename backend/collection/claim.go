@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"github.com/karitham/waifubot/catalog"
 )
 
 // ErrNoDropInChannel is returned when there is no drop in the channel.
@@ -31,7 +29,7 @@ func Claim(ctx context.Context, store Store, userID, channelID uint64, charName 
 
 	drop, err := tx.GetDropForUpdate(ctx, channelID)
 	if err != nil {
-		if errors.Is(err, catalog.ErrNotFound) {
+		if errors.Is(err, ErrNotFound) {
 			return Character{}, ErrNoDropInChannel
 		}
 		return Character{}, fmt.Errorf("failed to get drop: %w", err)

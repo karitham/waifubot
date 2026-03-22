@@ -36,7 +36,7 @@ func (p *Pg) GetCharacterByID(ctx context.Context, charID int64) (catalog.Charac
 	c, err := p.C.GetByID(ctx, charID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return catalog.Character{}, catalog.ErrNotFound
+			return catalog.Character{}, collection.ErrNotFound
 		}
 		return catalog.Character{}, err
 	}

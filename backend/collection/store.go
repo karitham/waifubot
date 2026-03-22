@@ -8,8 +8,6 @@ import (
 	"github.com/karitham/waifubot/catalog"
 )
 
-//go:generate mockgen -source=store.go -destination=mocks/store_mock.go -package=mocks -mock_names=Store=MockStore
-
 var (
 	ErrNotFound                = errors.New("not found")
 	ErrAlreadyOwned            = errors.New("character already in collection")

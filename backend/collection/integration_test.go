@@ -1,13 +1,17 @@
+//go:build integration
+
 package collection_test
 
 import (
-	"fmt"
-	"os"
+	"context"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/modules/postgres"
+	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage"
@@ -16,24 +20,42 @@ import (
 	"github.com/karitham/waifubot/storage/droppg"
 	"github.com/karitham/waifubot/storage/guildpg"
 	"github.com/karitham/waifubot/storage/userpg"
+	"github.com/karitham/waifubot/storage/userstore"
 )
 
 var testDBURL string
 
 func TestMain(m *testing.M) {
-	testDBURL = os.Getenv("TEST_DATABASE_URL")
-	if testDBURL == "" {
-		fmt.Println("TEST_DATABASE_URL not set, skipping integration tests")
-		os.Exit(0)
+	ctx := context.Background()
+
+	pgContainer, err := postgres.Run(ctx, "postgres:17-alpine",
+		postgres.WithDatabase("waifubot_test"),
+		testcontainers.WithWaitStrategy(
+			wait.ForLog("database system is ready to accept connections").
+				WithOccurrence(2).
+				WithStartupTimeout(30*time.Second),
+		),
+	)
+	if err != nil {
+		panic("failed to start postgres container: " + err.Error())
 	}
+	defer func() {
+		if err := testcontainers.TerminateContainer(pgContainer); err != nil {
+			panic("failed to terminate container: " + err.Error())
+		}
+	}()
+
+	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
+	if err != nil {
+		panic("failed to get connection string: " + err.Error())
+	}
+	testDBURL = connStr
 
 	if err := storage.Migrate(testDBURL); err != nil {
-		fmt.Fprintf(os.Stderr, "migration failed: %v\n", err)
-		os.Exit(1)
+		panic("migration failed: " + err.Error())
 	}
 
-	code := m.Run()
-	os.Exit(code)
+	m.Run()
 }
 
 func buildStore(s storage.Store) collection.Store {
@@ -48,7 +70,6 @@ func buildStore(s storage.Store) collection.Store {
 	)
 }
 
-// setupStore opens a connection, starts a transaction, and rolls it back on cleanup.
 func setupStore(t *testing.T) collection.Store {
 	t.Helper()
 
@@ -126,9 +147,6 @@ func TestIntegration_CharacterAndCollection(t *testing.T) {
 	err = store.AddToCollection(ctx, uid, collection.Character{ID: 1001}, "ROLL", time.Now())
 	require.NoError(t, err, "first AddToCollection should succeed")
 
-	err = store.AddToCollection(ctx, uid, collection.Character{ID: 1001}, "ROLL", time.Now())
-	require.ErrorIs(t, err, collection.ErrAlreadyOwned)
-
 	chars, err := store.GetCollection(ctx, uid)
 	require.NoError(t, err)
 	require.Len(t, chars, 1)
@@ -154,6 +172,18 @@ func TestIntegration_CharacterAndCollection(t *testing.T) {
 	require.NoError(t, store.RemoveFromCollection(ctx, uid, 1001))
 	chars, _ = store.GetCollection(ctx, uid)
 	assert.Empty(t, chars)
+}
+
+func TestIntegration_CharacterAlreadyOwned(t *testing.T) {
+	const uid uint64 = 900099
+	store := setupStoreWithSeed(t, uid)
+	ctx := t.Context()
+
+	require.NoError(t, store.UpsertCharacter(ctx, collection.Character{ID: 1099, Name: "DupeChar", Image: "dupe.jpg"}))
+	require.NoError(t, store.AddToCollection(ctx, uid, collection.Character{ID: 1099}, "ROLL", time.Now()))
+
+	err := store.AddToCollection(ctx, uid, collection.Character{ID: 1099}, "ROLL", time.Now())
+	require.ErrorIs(t, err, collection.ErrAlreadyOwned)
 }
 
 func TestIntegration_GiveCharacter(t *testing.T) {
@@ -203,25 +233,35 @@ func TestIntegration_SearchCharacters(t *testing.T) {
 
 func TestIntegration_Transaction(t *testing.T) {
 	const uid uint64 = 900006
-	store := setupStore(t)
+
+	dbStore, err := storage.NewStore(t.Context(), testDBURL)
+	require.NoError(t, err)
 	ctx := t.Context()
 
-	require.NoError(t, store.CreateUser(ctx, uid))
+	require.NoError(t, dbStore.UserStore().Create(ctx, uid))
 
-	tx, err := store.WithTx(ctx)
+	txStore, err := dbStore.Tx(ctx)
 	require.NoError(t, err)
-	require.NoError(t, tx.UpdateQuote(ctx, uid, "committed"))
-	require.NoError(t, tx.Commit(ctx))
+	require.NoError(t, txStore.UserStore().UpdateQuote(ctx, userstore.UpdateQuoteParams{
+		Quote:  "committed",
+		UserID: uid,
+	}))
+	require.NoError(t, txStore.Commit(ctx))
 
-	user, _ := store.GetUser(ctx, uid)
+	user, err := dbStore.UserStore().Get(ctx, uid)
+	require.NoError(t, err)
 	assert.Equal(t, "committed", user.Quote)
 
-	tx, err = store.WithTx(ctx)
+	txStore, err = dbStore.Tx(ctx)
 	require.NoError(t, err)
-	require.NoError(t, tx.UpdateQuote(ctx, uid, "rolled back"))
-	require.NoError(t, tx.Rollback(ctx))
+	require.NoError(t, txStore.UserStore().UpdateQuote(ctx, userstore.UpdateQuoteParams{
+		Quote:  "rolled back",
+		UserID: uid,
+	}))
+	require.NoError(t, txStore.Rollback(ctx))
 
-	user, _ = store.GetUser(ctx, uid)
+	user, err = dbStore.UserStore().Get(ctx, uid)
+	require.NoError(t, err)
 	assert.Equal(t, "committed", user.Quote)
 }
 

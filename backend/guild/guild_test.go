@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 
 	"github.com/Karitham/corde"
 
@@ -45,9 +44,6 @@ func (m *mockFetcher) FetchMemberIDs(ctx context.Context, guildID corde.Snowflak
 }
 
 func TestIndexGuildIfNeeded_AlreadyIndexed(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
 	querier := &mockQuerier{
 		status: collection.GuildIndexStatus{
 			Status:    collection.IndexingCompleted,
@@ -62,13 +58,10 @@ func TestIndexGuildIfNeeded_AlreadyIndexed(t *testing.T) {
 }
 
 func TestIndexGuildIfNeeded_ExpiredIndex(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
 	querier := &mockQuerier{
 		status: collection.GuildIndexStatus{
 			Status:    collection.IndexingCompleted,
-			UpdatedAt: time.Now().Add(-8 * 24 * time.Hour), // expired
+			UpdatedAt: time.Now().Add(-8 * 24 * time.Hour),
 		},
 	}
 
@@ -76,11 +69,10 @@ func TestIndexGuildIfNeeded_ExpiredIndex(t *testing.T) {
 
 	indexer := guild.NewIndexer(querier, fetcher)
 
-	// txFactory returns a querier that simulates "already in progress"
 	txQuerier := &mockQuerier{
 		status: collection.GuildIndexStatus{
 			Status:    collection.IndexingInProgress,
-			UpdatedAt: time.Now(), // recent — another indexer is active
+			UpdatedAt: time.Now(),
 		},
 	}
 	txFactory := func(ctx context.Context) (guild.TxQuerier, error) {
