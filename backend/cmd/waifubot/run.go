@@ -123,7 +123,7 @@ var RunCommand = &cli.Command{
 		r.Use(cors.Handler(cors.Options{
 			AllowedOrigins:   []string{"https://*", "http://*"},
 			AllowedMethods:   []string{"GET", "OPTIONS"},
-			AllowedHeaders:   []string{"Accept", "Content-Type"},
+			AllowedHeaders:   []string{"Accept", "Content-Type", "If-None-Match"},
 			MaxAge:           300,
 			AllowCredentials: true,
 		}))
@@ -158,7 +158,7 @@ var RunCommand = &cli.Command{
 				return fmt.Errorf("failed to create API router: %w", err)
 			}
 
-			r.Mount("/", apiRouter)
+			r.Mount("/", rest.ETagMiddleware(apiRouter))
 			slog.Info("REST API server started", "port", port)
 		}
 
