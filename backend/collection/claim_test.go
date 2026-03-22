@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/mock/gomock"
 
 	"github.com/karitham/waifubot/storage/collectionstore"
@@ -68,10 +69,11 @@ func TestClaim(t *testing.T) {
 			},
 			wantErr: false,
 			wantChar: Character{
-				ID:    1,
-				Name:  "Test Character",
-				Image: "test.jpg",
-				Type:  "CLAIM",
+				ID:         1,
+				Name:       "Test Character",
+				Image:      "test.jpg",
+				Type:       "CLAIM",
+				MediaTitle: "Test Anime",
 			},
 		},
 		{
@@ -114,6 +116,83 @@ func TestClaim(t *testing.T) {
 			errContains: "wrong character name",
 		},
 		{
+			name:      "name with extra whitespace matches",
+			userID:    123,
+			channelID: 456,
+			charName:  "Monkey D Luffy",
+			setupMocks: func(store *MockProfileStore, tx *mocks.MockStorageStore, drop *mocks.MockDropstoreQuerier, coll *MockCollectionQuerier, user *MockUserQuerier, wishlist *mocks.MockWishlistQuerier) {
+				store.EXPECT().Tx(gomock.Any()).Return(tx, nil)
+				tx.EXPECT().DropStore().Return(drop).AnyTimes()
+				tx.EXPECT().UserStore().Return(user).AnyTimes()
+				tx.EXPECT().CollectionStore().Return(coll).AnyTimes()
+				tx.EXPECT().WishlistStore().Return(wishlist).AnyTimes()
+
+				drop.EXPECT().GetDropForUpdate(gomock.Any(), uint64(456)).Return(dropstore.Character{
+					ID:         2,
+					Name:       "Monkey  D  Luffy",
+					Image:      "luffy.jpg",
+					MediaTitle: "One Piece",
+				}, nil)
+
+				user.EXPECT().Get(gomock.Any(), uint64(123)).Return(userstore.User{UserID: 123}, nil)
+
+				coll.EXPECT().UpsertCharacter(gomock.Any(), collectionstore.UpsertCharacterParams{
+					ID: 2, Name: "Monkey  D  Luffy", Image: "luffy.jpg",
+				}).Return(collectionstore.Character{}, nil)
+
+				coll.EXPECT().Insert(gomock.Any(), gomock.Any()).Return(collectionstore.Collection{}, nil)
+
+				wishlist.EXPECT().RemoveCharacterFromWishlist(gomock.Any(), gomock.Any()).Return(nil)
+
+				drop.EXPECT().DeleteDrop(gomock.Any(), uint64(456)).Return(nil)
+
+				tx.EXPECT().Commit(gomock.Any()).Return(nil)
+			},
+			wantErr: false,
+			wantChar: Character{
+				ID:         2,
+				Name:       "Monkey  D  Luffy",
+				Image:      "luffy.jpg",
+				Type:       "CLAIM",
+				MediaTitle: "One Piece",
+			},
+		},
+		{
+			name:      "already owned",
+			userID:    123,
+			channelID: 456,
+			charName:  "Test Character",
+			setupMocks: func(store *MockProfileStore, tx *mocks.MockStorageStore, drop *mocks.MockDropstoreQuerier, coll *MockCollectionQuerier, user *MockUserQuerier, wishlist *mocks.MockWishlistQuerier) {
+				store.EXPECT().Tx(gomock.Any()).Return(tx, nil)
+				tx.EXPECT().DropStore().Return(drop).AnyTimes()
+				tx.EXPECT().UserStore().Return(user).AnyTimes()
+				tx.EXPECT().CollectionStore().Return(coll).AnyTimes()
+				tx.EXPECT().WishlistStore().Return(wishlist).AnyTimes()
+
+				drop.EXPECT().GetDropForUpdate(gomock.Any(), uint64(456)).Return(dropstore.Character{
+					ID:         1,
+					Name:       "Test Character",
+					Image:      "test.jpg",
+					MediaTitle: "Test Anime",
+				}, nil)
+
+				user.EXPECT().Get(gomock.Any(), uint64(123)).Return(userstore.User{UserID: 123}, nil)
+
+				coll.EXPECT().UpsertCharacter(gomock.Any(), collectionstore.UpsertCharacterParams{
+					ID: 1, Name: "Test Character", Image: "test.jpg",
+				}).Return(collectionstore.Character{}, nil)
+
+				coll.EXPECT().Insert(gomock.Any(), gomock.Any()).Return(collectionstore.Collection{}, &pgconn.PgError{
+					Code: "23505",
+				})
+
+				tx.EXPECT().Rollback(gomock.Any()).Return(nil)
+			},
+			wantErr:     true,
+			errIs:       ErrAlreadyOwned,
+			errContains: "already in collection",
+		},
+		{
 			name:      "new user created",
 			userID:    123,
 			channelID: 456,
@@ -143,10 +222,11 @@ func TestClaim(t *testing.T) {
 			},
 			wantErr: false,
 			wantChar: Character{
-				ID:    1,
-				Name:  "Test Character",
-				Image: "test.jpg",
-				Type:  "CLAIM",
+				ID:         1,
+				Name:       "Test Character",
+				Image:      "test.jpg",
+				Type:       "CLAIM",
+				MediaTitle: "Test Anime",
 			},
 		},
 		{
@@ -241,6 +321,9 @@ func TestClaim(t *testing.T) {
 				}
 				if got.Image != tt.wantChar.Image {
 					t.Errorf("got Image %q, want %q", got.Image, tt.wantChar.Image)
+				}
+				if got.MediaTitle != tt.wantChar.MediaTitle {
+					t.Errorf("got MediaTitle %q, want %q", got.MediaTitle, tt.wantChar.MediaTitle)
 				}
 			}
 		})

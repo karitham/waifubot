@@ -10,6 +10,7 @@ import (
 
 	"github.com/Karitham/corde"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	collectionstore "github.com/karitham/waifubot/storage/collectionstore"
@@ -19,6 +20,7 @@ import (
 var (
 	ErrNoDropInChannel    = errors.New("no drop in this channel")
 	ErrWrongCharacterName = errors.New("wrong character name")
+	ErrAlreadyOwned       = errors.New("character already in collection")
 )
 
 func Claim(ctx context.Context, store Store, userID, channelID uint64, charName string) (Character, error) {
@@ -41,7 +43,7 @@ func Claim(ctx context.Context, store Store, userID, channelID uint64, charName 
 		return Character{}, fmt.Errorf("failed to get drop: %w", err)
 	}
 
-	if !strings.EqualFold(drop.Name, charName) {
+	if !strings.EqualFold(sanitizeName(drop.Name), charName) {
 		return Character{}, ErrWrongCharacterName
 	}
 
@@ -74,6 +76,10 @@ func Claim(ctx context.Context, store Store, userID, channelID uint64, charName 
 		AcquiredAt:  pgtype.Timestamp{Time: now, Valid: true},
 	})
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return Character{}, ErrAlreadyOwned
+		}
 		return Character{}, fmt.Errorf("failed to insert character into collection: %w", err)
 	}
 
@@ -94,11 +100,16 @@ func Claim(ctx context.Context, store Store, userID, channelID uint64, charName 
 	}
 
 	return Character{
-		Date:   now,
-		Image:  drop.Image,
-		Name:   drop.Name,
-		Type:   "CLAIM",
-		UserID: corde.Snowflake(userID),
-		ID:     drop.ID,
+		Date:       now,
+		Image:      drop.Image,
+		Name:       drop.Name,
+		Type:       "CLAIM",
+		MediaTitle: drop.MediaTitle,
+		UserID:     corde.Snowflake(userID),
+		ID:         drop.ID,
 	}, nil
+}
+
+func sanitizeName(name string) string {
+	return strings.Join(strings.Fields(name), " ")
 }

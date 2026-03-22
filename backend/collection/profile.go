@@ -63,12 +63,13 @@ type MediaCharacter struct {
 
 // Character represents a character in a user's collection
 type Character struct {
-	Date   time.Time       `json:"date"`
-	Image  string          `json:"image"`
-	Name   string          `json:"name"`
-	Type   string          `json:"type"`
-	UserID corde.Snowflake `json:"user_id"`
-	ID     int64           `json:"id"`
+	Date       time.Time       `json:"date"`
+	Image      string          `json:"image"`
+	Name       string          `json:"name"`
+	Type       string          `json:"type"`
+	MediaTitle string          `json:"media_title,omitempty"`
+	UserID     corde.Snowflake `json:"user_id"`
+	ID         int64           `json:"id"`
 }
 
 // User represents a user profile
