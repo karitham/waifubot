@@ -31,11 +31,22 @@ func (b *Bot) roll(ctx context.Context, w corde.ResponseWriter, i *corde.Interac
 		return
 	}
 
+	wantingUsers, err := b.WishlistStore.GetUsersWantingCharacter(ctx, char.ID, uint64(i.GuildID), uint64(i.Member.User.ID))
+	if err != nil {
+		logger.Error("error getting users wanting character", "error", err)
+	}
+
 	w.Respond(corde.NewEmbed().
 		Title(char.Name).
 		URL(char.URL).
 		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"}).
 		Thumbnail(corde.Image{URL: char.ImageURL}).
-		Descriptionf("You rolled %s!\nID: %d\nFrom: %s", char.Name, char.ID, char.MediaTitle),
+		Descriptionf(
+			"You rolled %s!\nID: %d\nFrom: %s%s",
+			char.Name,
+			char.ID,
+			char.MediaTitle,
+			formatUsersWantingCharacter(wantingUsers, uint64(i.Member.User.ID)),
+		),
 	)
 }

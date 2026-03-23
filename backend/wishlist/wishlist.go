@@ -34,6 +34,7 @@ type Store interface {
 	GetWishlistHolders(ctx context.Context, characterIDs []int64, userID, guildID uint64) ([]UserCharacterSet, error)
 	GetWantedCharacters(ctx context.Context, userID, guildID uint64) ([]UserCharacterSet, error)
 	CompareWithUser(ctx context.Context, userID1, userID2 uint64) (WishlistComparison, error)
+	GetUsersWantingCharacter(ctx context.Context, charID int64, guildID, excludeUserID uint64) ([]uint64, error)
 }
 
 // MediaService defines the interface for media operations.

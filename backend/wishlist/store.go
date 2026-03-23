@@ -165,3 +165,11 @@ func (s *store) CompareWithUser(ctx context.Context, userID1, userID2 uint64) (W
 		MutualMatches:       mutual,
 	}, nil
 }
+
+func (s *store) GetUsersWantingCharacter(ctx context.Context, charID int64, guildID, excludeUserID uint64) ([]uint64, error) {
+	return s.q.GetUsersWantingCharacter(ctx, wishliststore.GetUsersWantingCharacterParams{
+		CharacterID: charID,
+		GuildID:     guildID,
+		UserID:      excludeUserID,
+	})
+}
