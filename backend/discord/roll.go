@@ -42,11 +42,11 @@ func (b *Bot) roll(ctx context.Context, w corde.ResponseWriter, i *corde.Interac
 		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"}).
 		Thumbnail(corde.Image{URL: char.ImageURL}).
 		Descriptionf(
-			"You rolled %s!\nID: %d\nFrom: %s%s",
+			"You got %s (%s)%s\n\nID: %d",
 			char.Name,
-			char.ID,
 			char.MediaTitle,
 			formatUsersWantingCharacter(wantingUsers, uint64(i.Member.User.ID)),
+			char.ID,
 		),
 	)
 }

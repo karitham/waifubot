@@ -39,10 +39,10 @@ func formatUsersWantingCharacter(userIDs []uint64, excludeUserID uint64) string 
 	}
 
 	if len(filtered) > maxDisplay {
-		sb.WriteString("...")
+		sb.WriteString(fmt.Sprintf(" +%d more", len(filtered)-maxDisplay))
 	}
 
-	return "\n\n" + sb.String() + " also want this character"
+	return "\n\n🤝 " + sb.String() + " is looking to trade!"
 }
 
 func formatUserMention(userID uint64) string {

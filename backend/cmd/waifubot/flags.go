@@ -1,78 +1,21 @@
 package main
 
 import (
-	"time"
-
-	"github.com/urfave/cli/v2"
+	"github.com/karitham/waifubot/cmd/waifubot/flags"
 )
 
+// Re-export flags from shared package with original names for backwards compatibility
 var (
-	dbURLFlag = &cli.StringFlag{
-		Name:    "db-url",
-		EnvVars: []string{"DB_STR", "DB_URL"},
-	}
-
-	userFlag = &cli.StringFlag{
-		Name:     "user",
-		EnvVars:  []string{"USER_ID"},
-		Required: true,
-	}
-
-	guildIDFlag = &cli.Uint64Flag{
-		Name:     "guild-id",
-		EnvVars:  []string{"GUILD_ID"},
-		Required: true,
-	}
-
-	appIDFlag = &cli.StringFlag{
-		Name:     "app-id",
-		EnvVars:  []string{"DISCORD_APP_ID", "APP_ID"},
-		Required: true,
-	}
-
-	charIDFlag = &cli.Int64Flag{
-		Name:     "id",
-		Usage:    "Character ID",
-		Required: true,
-	}
-
-	botTokenFlag = &cli.StringFlag{
-		Name:    "bot-token",
-		EnvVars: []string{"DISCORD_TOKEN", "BOT_TOKEN"},
-	}
-
-	rollCooldownFlag = &cli.DurationFlag{
-		Name:    "roll-cooldown",
-		EnvVars: []string{"ROLL_TIMEOUT", "ROLL_COOLDOWN"},
-		Value:   time.Hour * 2,
-	}
-
-	tokensNeededFlag = &cli.IntFlag{
-		Name:    "tokens-needed",
-		EnvVars: []string{"TOKENS_NEEDED"},
-		Value:   3,
-	}
-
-	anilistMaxCharsFlag = &cli.Int64Flag{
-		Name:  "anilist-max-chars",
-		Value: 30000,
-	}
-
-	nameFlag = &cli.StringFlag{
-		Name:     "name",
-		Required: true,
-	}
-
-	logLevelFlag = &cli.StringFlag{
-		Name:    "log-level",
-		Aliases: []string{"l"},
-		EnvVars: []string{"LOG_LEVEL"},
-		Value:   "INFO",
-	}
-
-	apiFlag = &cli.BoolFlag{
-		Name:  "api",
-		Usage: "Enable REST API server (default: true)",
-		Value: true,
-	}
+	dbURLFlag           = flags.DbURLFlag
+	userFlag            = flags.UserFlag
+	guildIDFlag         = flags.GuildIDFlag
+	appIDFlag           = flags.AppIDFlag
+	charIDFlag          = flags.CharIDFlag
+	botTokenFlag        = flags.BotTokenFlag
+	rollCooldownFlag    = flags.RollCooldownFlag
+	tokensNeededFlag    = flags.TokensNeededFlag
+	anilistMaxCharsFlag = flags.AnilistMaxCharsFlag
+	nameFlag            = flags.NameFlag
+	logLevelFlag        = flags.LogLevelFlag
+	apiFlag             = flags.ApiFlag
 )
