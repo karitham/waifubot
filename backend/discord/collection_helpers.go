@@ -39,7 +39,7 @@ func formatUsersWantingCharacter(userIDs []uint64, excludeUserID uint64) string 
 	}
 
 	if len(filtered) > maxDisplay {
-		sb.WriteString(fmt.Sprintf(" +%d more", len(filtered)-maxDisplay))
+		fmt.Fprintf(&sb, " +%d more", len(filtered)-maxDisplay)
 	}
 
 	return "\n\n🤝 " + sb.String() + " is looking to trade!"

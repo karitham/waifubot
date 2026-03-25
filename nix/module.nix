@@ -70,9 +70,7 @@ in
         Restart = "always";
         RestartSec = 10;
         EnvironmentFile = cfg.secretsFile;
-        ExecStart = "${cfg.package}/bin/waifubot run ${
-          lib.optionalString (!cfg.settings.enableApi) "--no-api"
-        }";
+        ExecStart = "${cfg.package}/bin/waifubot run ${lib.optionalString (!cfg.settings.enableApi) "--api=false"}";
         WorkingDirectory = cfg.dataDir;
         RuntimeDirectory = "waifubot";
         StateDirectory = "waifubot";

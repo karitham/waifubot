@@ -81,7 +81,7 @@ func (b *Bot) claim(ctx context.Context, w corde.ResponseWriter, i *corde.Intera
 	w.Respond(corde.NewEmbed().
 		Title(char.Name).
 		URL(fmt.Sprintf("https://anilist.co/character/%d", char.ID)).
-		Color(rarity.Color()).
+		Color(collection.GradientColor(char.Favorites)).
 		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"}).
 		Thumbnail(corde.Image{URL: char.Image}).
 		Descriptionf(
@@ -126,9 +126,9 @@ func DropEmbed(ctx context.Context, char collection.MediaCharacter) (corde.Messa
 	return corde.Message{
 			Embeds: []corde.Embed{{
 				Title:       "Character Drop!",
-				Description: "A character has appeared! Use `/claim <name>` to add them to your collection.\n\n**Hint:** " + initials.String(),
+				Description: "A character has appeared! Use `/claim <name>` to add them to your collection.\n\n**Hint:** " + initials.String() + "\n\n⭐ Rarity: " + char.Rarity().String(),
 				Image:       corde.Image{URL: "attachment://image.png"},
-				Color:       char.Rarity().Color(),
+				Color:       collection.GradientColor(char.Favorites),
 			}},
 			Attachments: []corde.Attachment{{
 				Filename: "image.png",

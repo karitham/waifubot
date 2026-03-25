@@ -39,7 +39,7 @@ func (b *Bot) roll(ctx context.Context, w corde.ResponseWriter, i *corde.Interac
 	w.Respond(corde.NewEmbed().
 		Title(char.Name).
 		URL(char.URL).
-		Color(char.Rarity().Color()).
+		Color(collection.GradientColor(char.Favorites)).
 		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"}).
 		Thumbnail(corde.Image{URL: char.ImageURL}).
 		Descriptionf(

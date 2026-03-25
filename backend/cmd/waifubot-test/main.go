@@ -164,7 +164,7 @@ func runTestHarness(c *cli.Context) error {
 	// Parse wishing users
 	var wishingUserIDs []uint64
 	if testWishingUsers != "" {
-		for _, idStr := range strings.Split(testWishingUsers, ",") {
+		for idStr := range strings.SplitSeq(testWishingUsers, ",") {
 			idStr = strings.TrimSpace(idStr)
 			if idStr == "" {
 				continue
