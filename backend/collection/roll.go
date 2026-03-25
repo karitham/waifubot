@@ -67,9 +67,10 @@ func Roll(ctx context.Context, store Store, animeService AnimeService, config Co
 	}
 
 	err = tx.UpsertCharacter(ctx, Character{
-		ID:    char.ID,
-		Name:  char.Name,
-		Image: char.ImageURL,
+		ID:        char.ID,
+		Name:      char.Name,
+		Image:     char.ImageURL,
+		Favorites: char.Favorites,
 	})
 	if err != nil {
 		return MediaCharacter{}, err

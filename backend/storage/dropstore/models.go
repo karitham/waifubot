@@ -14,4 +14,5 @@ type Character struct {
 	Name       string
 	Image      string
 	MediaTitle string
+	Favorites  int32
 }

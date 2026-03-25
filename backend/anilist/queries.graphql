@@ -1,4 +1,4 @@
-query character($name: String) {
+	query character($name: String) {
 	Page(page: 1, perPage: 3) {
 		characters(search: $name) {
 			id
@@ -10,6 +10,7 @@ query character($name: String) {
 			image {
 				large
 			}
+			favourites
 		}
 	}
 }
@@ -25,6 +26,7 @@ query charactersRandom($pageNumber: Int, $not_in: [Int]) {
 			name {
 				full
 			}
+			favourites
 			media(perPage: 1, sort: POPULARITY_DESC) {
 				nodes {
 					title {

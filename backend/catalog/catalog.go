@@ -12,6 +12,7 @@ type Character struct {
 	Name       string
 	Image      string
 	MediaTitle string
+	Favorites  int
 }
 
 // Drop is a Character that appeared in a channel drop.

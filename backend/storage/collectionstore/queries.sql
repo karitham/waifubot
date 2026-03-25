@@ -4,6 +4,7 @@ SELECT
   c.name,
   c.image,
   c.media_title,
+  c.favorites,
   col.source,
   col.acquired_at AS date
 FROM
@@ -28,6 +29,7 @@ SELECT
   c.name,
   c.image,
   c.media_title,
+  c.favorites,
   col.source,
   col.acquired_at AS date
 FROM
@@ -52,6 +54,7 @@ SELECT
   c.name,
   c.image,
   c.media_title,
+  c.favorites,
   col.source,
   col.acquired_at AS date
 FROM
@@ -66,7 +69,8 @@ SELECT
   id,
   name,
   image,
-  media_title
+  media_title,
+  favorites
 FROM
   characters
 WHERE
@@ -153,12 +157,13 @@ WHERE
 
 -- name: UpsertCharacter :one
 INSERT INTO
-  characters (id, name, image)
+  characters (id, name, image, favorites)
 VALUES
-  ($1, $2, $3)
+  ($1, $2, $3, $4)
 ON CONFLICT (id) DO UPDATE
 SET
   name = excluded.name,
-  image = excluded.image
+  image = excluded.image,
+  favorites = excluded.favorites
 RETURNING
   *;

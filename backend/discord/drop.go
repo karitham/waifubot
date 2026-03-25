@@ -28,6 +28,7 @@ func (b *Bot) drop(ctx context.Context, channelID corde.Snowflake) {
 		Name:       char.Name,
 		ImageURL:   char.ImageURL,
 		MediaTitle: char.MediaTitle,
+		Favorites:  char.Favorites,
 	})
 	if err != nil {
 		logger.Error("failed to set channel character", "error", err, "character_id", char.ID, "character_name", char.Name)
@@ -75,12 +76,22 @@ func (b *Bot) claim(ctx context.Context, w corde.ResponseWriter, i *corde.Intera
 		"character_id", char.ID,
 		"character_name", char.Name)
 
+	rarity := collection.RarityFromFavorites(char.Favorites)
+
 	w.Respond(corde.NewEmbed().
 		Title(char.Name).
 		URL(fmt.Sprintf("https://anilist.co/character/%d", char.ID)).
+		Color(rarity.Color()).
 		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"}).
 		Thumbnail(corde.Image{URL: char.Image}).
-		Descriptionf("You got %s (%s)\nID: %d", char.Name, char.MediaTitle, char.ID),
+		Descriptionf(
+			"You got %s (%s)\n⭐ Rarity: %s | ❤️ %d favorites\nID: %d",
+			char.Name,
+			char.MediaTitle,
+			rarity.String(),
+			char.Favorites,
+			char.ID,
+		),
 	)
 }
 
@@ -115,8 +126,9 @@ func DropEmbed(ctx context.Context, char collection.MediaCharacter) (corde.Messa
 	return corde.Message{
 			Embeds: []corde.Embed{{
 				Title:       "Character Drop!",
-				Description: "Can you guess who this is?\nUse `/claim name` to add them to your collection.\n\n**Hint:** " + initials.String(),
+				Description: "A character has appeared! Use `/claim <name>` to add them to your collection.\n\n**Hint:** " + initials.String(),
 				Image:       corde.Image{URL: "attachment://image.png"},
+				Color:       char.Rarity().Color(),
 			}},
 			Attachments: []corde.Attachment{{
 				Filename: "image.png",

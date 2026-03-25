@@ -39,12 +39,15 @@ func (b *Bot) roll(ctx context.Context, w corde.ResponseWriter, i *corde.Interac
 	w.Respond(corde.NewEmbed().
 		Title(char.Name).
 		URL(char.URL).
+		Color(char.Rarity().Color()).
 		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"}).
 		Thumbnail(corde.Image{URL: char.ImageURL}).
 		Descriptionf(
-			"You got %s (%s)%s\n\nID: %d",
+			"You got %s (%s)\n⭐ Rarity: %s | ❤️ %d favorites%s\n\nID: %d",
 			char.Name,
 			char.MediaTitle,
+			char.Rarity(),
+			char.Favorites,
 			formatUsersWantingCharacter(wantingUsers, uint64(i.Member.User.ID)),
 			char.ID,
 		),

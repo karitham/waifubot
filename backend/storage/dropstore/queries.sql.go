@@ -25,7 +25,8 @@ SELECT
   c.id,
   c.name,
   c.image,
-  c.media_title
+  c.media_title,
+  c.favorites
 FROM
   channel_drops cd
   JOIN characters c ON cd.character_id = c.id
@@ -41,6 +42,7 @@ func (q *Queries) GetDrop(ctx context.Context, channelID uint64) (Character, err
 		&i.Name,
 		&i.Image,
 		&i.MediaTitle,
+		&i.Favorites,
 	)
 	return i, err
 }
@@ -50,7 +52,8 @@ SELECT
   c.id,
   c.name,
   c.image,
-  c.media_title
+  c.media_title,
+  c.favorites
 FROM
   channel_drops cd
   JOIN characters c ON cd.character_id = c.id
@@ -67,6 +70,7 @@ func (q *Queries) GetDropForUpdate(ctx context.Context, channelID uint64) (Chara
 		&i.Name,
 		&i.Image,
 		&i.MediaTitle,
+		&i.Favorites,
 	)
 	return i, err
 }
@@ -93,14 +97,15 @@ func (q *Queries) SetDrop(ctx context.Context, arg SetDropParams) error {
 
 const upsertCharacter = `-- name: UpsertCharacter :exec
 INSERT INTO
-  characters (id, name, image, media_title)
+  characters (id, name, image, media_title, favorites)
 VALUES
-  ($1, $2, $3, $4)
+  ($1, $2, $3, $4, $5)
 ON CONFLICT (id) DO UPDATE
 SET
   name = excluded.name,
   image = excluded.image,
-  media_title = excluded.media_title
+  media_title = excluded.media_title,
+  favorites = excluded.favorites
 `
 
 type UpsertCharacterParams struct {
@@ -108,6 +113,7 @@ type UpsertCharacterParams struct {
 	Name       string
 	Image      string
 	MediaTitle string
+	Favorites  int32
 }
 
 func (q *Queries) UpsertCharacter(ctx context.Context, arg UpsertCharacterParams) error {
@@ -116,6 +122,7 @@ func (q *Queries) UpsertCharacter(ctx context.Context, arg UpsertCharacterParams
 		arg.Name,
 		arg.Image,
 		arg.MediaTitle,
+		arg.Favorites,
 	)
 	return err
 }

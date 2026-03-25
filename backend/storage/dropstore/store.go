@@ -13,6 +13,7 @@ type Drop struct {
 	Name       string
 	ImageURL   string
 	MediaTitle string
+	Favorites  int
 }
 
 type Store interface {
@@ -37,6 +38,7 @@ func (p *PostgresStore) Set(ctx context.Context, id corde.Snowflake, data Drop) 
 		Name:       data.Name,
 		Image:      data.ImageURL,
 		MediaTitle: data.MediaTitle,
+		Favorites:  int32(data.Favorites),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to upsert character: %w", err)
@@ -62,6 +64,7 @@ func (p *PostgresStore) Get(ctx context.Context, id corde.Snowflake) (*Drop, err
 		Name:       row.Name,
 		ImageURL:   row.Image,
 		MediaTitle: row.MediaTitle,
+		Favorites:  int(row.Favorites),
 	}, nil
 }
 

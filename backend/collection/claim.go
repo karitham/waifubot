@@ -52,9 +52,10 @@ func Claim(ctx context.Context, store Store, userID, channelID uint64, charName 
 	}
 
 	err = tx.UpsertCharacter(ctx, Character{
-		ID:    drop.ID,
-		Name:  drop.Name,
-		Image: drop.Image,
+		ID:        drop.ID,
+		Name:      drop.Name,
+		Image:     drop.Image,
+		Favorites: drop.Favorites,
 	})
 	if err != nil {
 		return Character{}, fmt.Errorf("failed to upsert character: %w", err)

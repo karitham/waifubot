@@ -25,9 +25,10 @@ func New(c collectionstore.Querier, g guildstore.Querier) *Pg {
 
 func (p *Pg) UpsertCharacter(ctx context.Context, char catalog.Character) error {
 	_, err := p.C.UpsertCharacter(ctx, collectionstore.UpsertCharacterParams{
-		ID:    char.ID,
-		Name:  char.Name,
-		Image: char.Image,
+		ID:        char.ID,
+		Name:      char.Name,
+		Image:     char.Image,
+		Favorites: int32(char.Favorites),
 	})
 	return err
 }
@@ -40,7 +41,7 @@ func (p *Pg) GetCharacterByID(ctx context.Context, charID int64) (catalog.Charac
 		}
 		return catalog.Character{}, err
 	}
-	return catalog.Character{ID: c.ID, Name: c.Name, Image: c.Image, MediaTitle: c.MediaTitle}, nil
+	return catalog.Character{ID: c.ID, Name: c.Name, Image: c.Image, MediaTitle: c.MediaTitle, Favorites: int(c.Favorites)}, nil
 }
 
 func (p *Pg) SearchCharacters(ctx context.Context, userID uint64, term string) ([]catalog.Character, error) {
@@ -55,7 +56,7 @@ func (p *Pg) SearchCharacters(ctx context.Context, userID uint64, term string) (
 	}
 	chars := make([]catalog.Character, len(rows))
 	for i, r := range rows {
-		chars[i] = catalog.Character{ID: r.ID, Name: r.Name, Image: r.Image, MediaTitle: r.MediaTitle}
+		chars[i] = catalog.Character{ID: r.ID, Name: r.Name, Image: r.Image, MediaTitle: r.MediaTitle, Favorites: int(r.Favorites)}
 	}
 	return chars, nil
 }
@@ -67,7 +68,7 @@ func (p *Pg) SearchGlobalCharacters(ctx context.Context, term string) ([]catalog
 	}
 	chars := make([]catalog.Character, len(rows))
 	for i, r := range rows {
-		chars[i] = catalog.Character{ID: r.ID, Name: r.Name, Image: r.Image, MediaTitle: r.MediaTitle}
+		chars[i] = catalog.Character{ID: r.ID, Name: r.Name, Image: r.Image, MediaTitle: r.MediaTitle, Favorites: int(r.Favorites)}
 	}
 	return chars, nil
 }

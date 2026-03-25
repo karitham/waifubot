@@ -1,13 +1,14 @@
 -- name: UpsertCharacter :exec
 INSERT INTO
-  characters (id, name, image, media_title)
+  characters (id, name, image, media_title, favorites)
 VALUES
-  ($1, $2, $3, $4)
+  ($1, $2, $3, $4, $5)
 ON CONFLICT (id) DO UPDATE
 SET
   name = excluded.name,
   image = excluded.image,
-  media_title = excluded.media_title;
+  media_title = excluded.media_title,
+  favorites = excluded.favorites;
 
 -- name: SetDrop :exec
 INSERT INTO
@@ -23,7 +24,8 @@ SELECT
   c.id,
   c.name,
   c.image,
-  c.media_title
+  c.media_title,
+  c.favorites
 FROM
   channel_drops cd
   JOIN characters c ON cd.character_id = c.id
@@ -40,7 +42,8 @@ SELECT
   c.id,
   c.name,
   c.image,
-  c.media_title
+  c.media_title,
+  c.favorites
 FROM
   channel_drops cd
   JOIN characters c ON cd.character_id = c.id

@@ -27,7 +27,7 @@ func (p *Pg) GetDropForUpdate(ctx context.Context, channelID uint64) (catalog.Dr
 		}
 		return catalog.Drop{}, err
 	}
-	return catalog.Drop{ID: c.ID, Name: c.Name, Image: c.Image, MediaTitle: c.MediaTitle}, nil
+	return catalog.Drop{ID: c.ID, Name: c.Name, Image: c.Image, MediaTitle: c.MediaTitle, Favorites: int(c.Favorites)}, nil
 }
 
 func (p *Pg) DeleteDrop(ctx context.Context, channelID uint64) error {

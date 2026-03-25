@@ -109,6 +109,8 @@ type characterPageCharactersCharacter struct {
 	SiteUrl string `json:"siteUrl"`
 	// Character images
 	Image characterPageCharactersCharacterImage `json:"image"`
+	// The amount of user's who have favourited the character
+	Favourites int64 `json:"favourites"`
 }
 
 // GetId returns characterPageCharactersCharacter.Id, and is useful for accessing the field via an interface.
@@ -129,6 +131,9 @@ func (v *characterPageCharactersCharacter) GetSiteUrl() string { return v.SiteUr
 func (v *characterPageCharactersCharacter) GetImage() characterPageCharactersCharacterImage {
 	return v.Image
 }
+
+// GetFavourites returns characterPageCharactersCharacter.Favourites, and is useful for accessing the field via an interface.
+func (v *characterPageCharactersCharacter) GetFavourites() int64 { return v.Favourites }
 
 // characterPageCharactersCharacterImage includes the requested fields of the GraphQL type CharacterImage.
 type characterPageCharactersCharacterImage struct {
@@ -185,6 +190,8 @@ type charactersRandomPageCharactersCharacter struct {
 	Image charactersRandomPageCharactersCharacterImage `json:"image"`
 	// The names of the character
 	Name charactersRandomPageCharactersCharacterName `json:"name"`
+	// The amount of user's who have favourited the character
+	Favourites int64 `json:"favourites"`
 	// Media that includes the character
 	Media charactersRandomPageCharactersCharacterMediaMediaConnection `json:"media"`
 }
@@ -204,6 +211,9 @@ func (v *charactersRandomPageCharactersCharacter) GetImage() charactersRandomPag
 func (v *charactersRandomPageCharactersCharacter) GetName() charactersRandomPageCharactersCharacterName {
 	return v.Name
 }
+
+// GetFavourites returns charactersRandomPageCharactersCharacter.Favourites, and is useful for accessing the field via an interface.
+func (v *charactersRandomPageCharactersCharacter) GetFavourites() int64 { return v.Favourites }
 
 // GetMedia returns charactersRandomPageCharactersCharacter.Media, and is useful for accessing the field via an interface.
 func (v *charactersRandomPageCharactersCharacter) GetMedia() charactersRandomPageCharactersCharacterMediaMediaConnection {
@@ -662,6 +672,7 @@ query character ($name: String) {
 			image {
 				large
 			}
+			favourites
 		}
 	}
 }
@@ -705,6 +716,7 @@ query charactersRandom ($pageNumber: Int, $not_in: [Int]) {
 			name {
 				full
 			}
+			favourites
 			media(perPage: 1, sort: POPULARITY_DESC) {
 				nodes {
 					title {

@@ -62,6 +62,7 @@ SELECT
   c.name,
   c.image,
   c.media_title,
+  c.favorites,
   col.source,
   col.acquired_at AS date
 FROM
@@ -82,6 +83,7 @@ type GetRow struct {
 	Name       string
 	Image      string
 	MediaTitle string
+	Favorites  int32
 	Source     string
 	Date       pgtype.Timestamp
 }
@@ -94,6 +96,7 @@ func (q *Queries) Get(ctx context.Context, arg GetParams) (GetRow, error) {
 		&i.Name,
 		&i.Image,
 		&i.MediaTitle,
+		&i.Favorites,
 		&i.Source,
 		&i.Date,
 	)
@@ -105,7 +108,8 @@ SELECT
   id,
   name,
   image,
-  media_title
+  media_title,
+  favorites
 FROM
   characters
 WHERE
@@ -122,6 +126,7 @@ func (q *Queries) GetByID(ctx context.Context, id int64) (Character, error) {
 		&i.Name,
 		&i.Image,
 		&i.MediaTitle,
+		&i.Favorites,
 	)
 	return i, err
 }
@@ -202,6 +207,7 @@ SELECT
   c.name,
   c.image,
   c.media_title,
+  c.favorites,
   col.source,
   col.acquired_at AS date
 FROM
@@ -218,6 +224,7 @@ type ListRow struct {
 	Name       string
 	Image      string
 	MediaTitle string
+	Favorites  int32
 	Source     string
 	Date       pgtype.Timestamp
 }
@@ -236,6 +243,7 @@ func (q *Queries) List(ctx context.Context, userID uint64) ([]ListRow, error) {
 			&i.Name,
 			&i.Image,
 			&i.MediaTitle,
+			&i.Favorites,
 			&i.Source,
 			&i.Date,
 		); err != nil {
@@ -284,6 +292,7 @@ SELECT
   c.name,
   c.image,
   c.media_title,
+  c.favorites,
   col.source,
   col.acquired_at AS date
 FROM
@@ -315,6 +324,7 @@ type SearchCharactersRow struct {
 	Name       string
 	Image      string
 	MediaTitle string
+	Favorites  int32
 	Source     string
 	Date       pgtype.Timestamp
 }
@@ -338,6 +348,7 @@ func (q *Queries) SearchCharacters(ctx context.Context, arg SearchCharactersPara
 			&i.Name,
 			&i.Image,
 			&i.MediaTitle,
+			&i.Favorites,
 			&i.Source,
 			&i.Date,
 		); err != nil {
@@ -353,7 +364,7 @@ func (q *Queries) SearchCharacters(ctx context.Context, arg SearchCharactersPara
 
 const searchGlobalCharacters = `-- name: SearchGlobalCharacters :many
 SELECT DISTINCT
-  id, name, image, media_title
+  id, name, image, media_title, favorites
 FROM
   characters c
 WHERE
@@ -384,6 +395,7 @@ func (q *Queries) SearchGlobalCharacters(ctx context.Context, arg SearchGlobalCh
 			&i.Name,
 			&i.Image,
 			&i.MediaTitle,
+			&i.Favorites,
 		); err != nil {
 			return nil, err
 		}
@@ -403,7 +415,7 @@ SET
 WHERE
   c.id = $3
 RETURNING
-  id, name, image, media_title
+  id, name, image, media_title, favorites
 `
 
 type UpdateImageNameParams struct {
@@ -420,37 +432,46 @@ func (q *Queries) UpdateImageName(ctx context.Context, arg UpdateImageNameParams
 		&i.Name,
 		&i.Image,
 		&i.MediaTitle,
+		&i.Favorites,
 	)
 	return i, err
 }
 
 const upsertCharacter = `-- name: UpsertCharacter :one
 INSERT INTO
-  characters (id, name, image)
+  characters (id, name, image, favorites)
 VALUES
-  ($1, $2, $3)
+  ($1, $2, $3, $4)
 ON CONFLICT (id) DO UPDATE
 SET
   name = excluded.name,
-  image = excluded.image
+  image = excluded.image,
+  favorites = excluded.favorites
 RETURNING
-  id, name, image, media_title
+  id, name, image, media_title, favorites
 `
 
 type UpsertCharacterParams struct {
-	ID    int64
-	Name  string
-	Image string
+	ID        int64
+	Name      string
+	Image     string
+	Favorites int32
 }
 
 func (q *Queries) UpsertCharacter(ctx context.Context, arg UpsertCharacterParams) (Character, error) {
-	row := q.db.QueryRow(ctx, upsertCharacter, arg.ID, arg.Name, arg.Image)
+	row := q.db.QueryRow(ctx, upsertCharacter,
+		arg.ID,
+		arg.Name,
+		arg.Image,
+		arg.Favorites,
+	)
 	var i Character
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Image,
 		&i.MediaTitle,
+		&i.Favorites,
 	)
 	return i, err
 }

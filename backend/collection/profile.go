@@ -29,6 +29,7 @@ type MediaCharacter struct {
 	URL         string
 	Description string
 	MediaTitle  string
+	Favorites   int
 }
 
 // Media represents an anime or manga.

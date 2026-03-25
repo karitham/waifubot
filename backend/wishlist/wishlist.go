@@ -60,6 +60,7 @@ func AddMediaToWishlist(ctx context.Context, wishlistStore Store, mediaService M
 			Name:       char.Name,
 			Image:      char.ImageURL,
 			MediaTitle: char.MediaTitle,
+			Favorites:  char.Favorites,
 		})
 	}
 

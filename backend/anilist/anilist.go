@@ -159,6 +159,7 @@ func (a *Anilist) randomChar(ctx context.Context, notIn ...int64) (collection.Me
 		ImageURL:   c.Image.Large,
 		URL:        c.SiteUrl,
 		MediaTitle: strings.Join(strings.Fields(mediaTitle), " "),
+		Favorites:  int(c.Favourites),
 	}, nil
 }
 
@@ -224,6 +225,7 @@ func (a *Anilist) Character(ctx context.Context, name string) ([]collection.Medi
 			ImageURL:    c.Image.Large,
 			URL:         c.SiteUrl,
 			Description: c.Description,
+			Favorites:   int(c.Favourites),
 		}
 	}
 
