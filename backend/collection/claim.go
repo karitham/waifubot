@@ -35,7 +35,7 @@ func Claim(ctx context.Context, store Store, userID, channelID uint64, charName 
 		return Character{}, fmt.Errorf("failed to get drop: %w", err)
 	}
 
-	if !strings.EqualFold(sanitizeName(drop.Name), charName) {
+	if !strings.EqualFold(SanitizeName(drop.Name), charName) {
 		return Character{}, ErrWrongCharacterName
 	}
 
@@ -86,6 +86,7 @@ func Claim(ctx context.Context, store Store, userID, channelID uint64, charName 
 	return Character(drop), nil
 }
 
-func sanitizeName(name string) string {
+// SanitizeName collapses whitespace in a character name to a single space.
+func SanitizeName(name string) string {
 	return strings.Join(strings.Fields(name), " ")
 }

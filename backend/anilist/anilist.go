@@ -248,6 +248,41 @@ func (a *Anilist) Character(ctx context.Context, name string) ([]collection.Medi
 	return resp, nil
 }
 
+// CharactersByIDs fetches multiple characters by their AniList IDs
+func (a *Anilist) CharactersByIDs(ctx context.Context, ids []int64) ([]collection.MediaCharacter, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	if len(ids) > 50 {
+		slog.Warn("charactersByIds called with more than 50 IDs, truncating", "count", len(ids))
+		ids = ids[:50]
+	}
+
+	resp, err := charactersByIds(ctx, a.c, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]collection.MediaCharacter, 0, len(resp.Page.Characters))
+	for _, c := range resp.Page.Characters {
+		mediaTitle := ""
+		if len(c.Media.Nodes) > 0 {
+			mediaTitle = c.Media.Nodes[0].Title.Romaji
+		}
+
+		result = append(result, collection.MediaCharacter{
+			ID:         c.Id,
+			Name:       c.Name.Full,
+			ImageURL:   c.Image.Large,
+			Favorites:  int(c.Favourites),
+			MediaTitle: mediaTitle,
+		})
+	}
+
+	return result, nil
+}
+
 // Manga returns a manga by title
 func (a *Anilist) Manga(ctx context.Context, title string) ([]collection.Media, error) {
 	return a.media(ctx, title, MediaTypeManga)

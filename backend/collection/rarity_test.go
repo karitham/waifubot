@@ -50,24 +50,6 @@ func TestRarityTierString(t *testing.T) {
 	}
 }
 
-func TestRarityTierColor(t *testing.T) {
-	tests := []struct {
-		tier RarityTier
-		want uint32
-	}{
-		{RarityCommon, 0x969696},
-		{RarityUncommon, 0x2ECC71},
-		{RarityRare, 0x3498DB},
-		{RarityLegendary, 0xF1C40F},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.tier.String(), func(t *testing.T) {
-			assert.Equal(t, tt.want, tt.tier.Color())
-		})
-	}
-}
-
 func TestGetRarityHex(t *testing.T) {
 	tests := []struct {
 		val     int

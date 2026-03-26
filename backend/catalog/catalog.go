@@ -3,6 +3,7 @@ package catalog
 import (
 	"context"
 	"errors"
+	"time"
 )
 
 var ErrNotFound = errors.New("not found")
@@ -13,6 +14,7 @@ type Character struct {
 	Image      string
 	MediaTitle string
 	Favorites  int
+	UpdatedAt  time.Time // for cursor tracking
 }
 
 // Drop is a Character that appeared in a channel drop.
@@ -26,4 +28,6 @@ type Store interface {
 	SearchCharacters(ctx context.Context, userID uint64, term string) ([]Character, error)
 	SearchGlobalCharacters(ctx context.Context, term string) ([]Character, error)
 	GetCharacterHoldersInGuild(ctx context.Context, guildID uint64, charID int64) ([]uint64, error)
+	GetStaleCharacters(ctx context.Context, cursorUpdatedAt time.Time, cursorID int64, limit int) ([]Character, error)
+	UpdateCharacterSync(ctx context.Context, char Character) (Character, error)
 }

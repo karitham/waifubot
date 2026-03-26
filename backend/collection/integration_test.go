@@ -156,11 +156,6 @@ func TestIntegration_CharacterAndCollection(t *testing.T) {
 	ids, _ := store.GetCollectionIDs(ctx, uid)
 	assert.Equal(t, []int64{1001}, ids)
 
-	owned, _ := store.CharacterOwnedByUser(ctx, uid, 1001)
-	assert.True(t, owned)
-	owned, _ = store.CharacterOwnedByUser(ctx, uid, 9999)
-	assert.False(t, owned)
-
 	oc, _ := store.GetOwnedCharacter(ctx, uid, 1001)
 	assert.Equal(t, int64(1001), oc.ID)
 	_, err = store.GetOwnedCharacter(ctx, uid, 9999)
@@ -198,11 +193,6 @@ func TestIntegration_GiveCharacter(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "TRADE", oc.Source)
 	assert.Equal(t, u2, oc.UserID)
-
-	owned, _ := store.CharacterOwnedByUser(ctx, u1, 2001)
-	assert.False(t, owned)
-	owned, _ = store.CharacterOwnedByUser(ctx, u2, 2001)
-	assert.True(t, owned)
 }
 
 func TestIntegration_SearchCharacters(t *testing.T) {

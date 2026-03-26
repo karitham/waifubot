@@ -14,6 +14,7 @@ type Character struct {
 	Image      string
 	MediaTitle string
 	Favorites  int32
+	UpdatedAt  pgtype.Timestamp
 }
 
 type Collection struct {

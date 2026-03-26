@@ -109,7 +109,8 @@ SELECT
   name,
   image,
   media_title,
-  favorites
+  favorites,
+  updated_at
 FROM
   characters
 WHERE
@@ -127,8 +128,51 @@ func (q *Queries) GetByID(ctx context.Context, id int64) (Character, error) {
 		&i.Image,
 		&i.MediaTitle,
 		&i.Favorites,
+		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getStaleCharacters = `-- name: GetStaleCharacters :many
+SELECT id, name, image, media_title, favorites, updated_at
+FROM characters
+WHERE (updated_at, id) > ($1, $2::bigint)
+  AND updated_at < NOW() - interval '24 hours'
+ORDER BY updated_at, id
+LIMIT $3
+`
+
+type GetStaleCharactersParams struct {
+	UpdatedAt pgtype.Timestamp
+	CursorID  int64
+	Lim       int32
+}
+
+func (q *Queries) GetStaleCharacters(ctx context.Context, arg GetStaleCharactersParams) ([]Character, error) {
+	rows, err := q.db.Query(ctx, getStaleCharacters, arg.UpdatedAt, arg.CursorID, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Character
+	for rows.Next() {
+		var i Character
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Image,
+			&i.MediaTitle,
+			&i.Favorites,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const give = `-- name: Give :one
@@ -364,7 +408,7 @@ func (q *Queries) SearchCharacters(ctx context.Context, arg SearchCharactersPara
 
 const searchGlobalCharacters = `-- name: SearchGlobalCharacters :many
 SELECT DISTINCT
-  id, name, image, media_title, favorites
+  id, name, image, media_title, favorites, updated_at
 FROM
   characters c
 WHERE
@@ -396,6 +440,7 @@ func (q *Queries) SearchGlobalCharacters(ctx context.Context, arg SearchGlobalCh
 			&i.Image,
 			&i.MediaTitle,
 			&i.Favorites,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -407,6 +452,41 @@ func (q *Queries) SearchGlobalCharacters(ctx context.Context, arg SearchGlobalCh
 	return items, nil
 }
 
+const updateCharacterSync = `-- name: UpdateCharacterSync :one
+UPDATE characters
+SET name = $1, image = $2, media_title = $3, favorites = $4, updated_at = NOW()
+WHERE id = $5
+RETURNING id, name, image, media_title, favorites, updated_at
+`
+
+type UpdateCharacterSyncParams struct {
+	Name       string
+	Image      string
+	MediaTitle string
+	Favorites  int32
+	ID         int64
+}
+
+func (q *Queries) UpdateCharacterSync(ctx context.Context, arg UpdateCharacterSyncParams) (Character, error) {
+	row := q.db.QueryRow(ctx, updateCharacterSync,
+		arg.Name,
+		arg.Image,
+		arg.MediaTitle,
+		arg.Favorites,
+		arg.ID,
+	)
+	var i Character
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Image,
+		&i.MediaTitle,
+		&i.Favorites,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const updateImageName = `-- name: UpdateImageName :one
 UPDATE characters c
 SET
@@ -415,7 +495,7 @@ SET
 WHERE
   c.id = $3
 RETURNING
-  id, name, image, media_title, favorites
+  id, name, image, media_title, favorites, updated_at
 `
 
 type UpdateImageNameParams struct {
@@ -433,6 +513,7 @@ func (q *Queries) UpdateImageName(ctx context.Context, arg UpdateImageNameParams
 		&i.Image,
 		&i.MediaTitle,
 		&i.Favorites,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -448,7 +529,7 @@ SET
   image = excluded.image,
   favorites = excluded.favorites
 RETURNING
-  id, name, image, media_title, favorites
+  id, name, image, media_title, favorites, updated_at
 `
 
 type UpsertCharacterParams struct {
@@ -472,6 +553,7 @@ func (q *Queries) UpsertCharacter(ctx context.Context, arg UpsertCharacterParams
 		&i.Image,
 		&i.MediaTitle,
 		&i.Favorites,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

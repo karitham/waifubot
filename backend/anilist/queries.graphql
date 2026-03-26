@@ -114,3 +114,25 @@ query getMediaCharacters($mediaId: Int!, $page: Int) {
 		}
 	}
 }
+
+query charactersByIds($ids: [Int!]!) {
+	Page(page: 1, perPage: 50) {
+		characters(id_in: $ids) {
+			id
+			name {
+				full
+			}
+			image {
+				large
+			}
+			favourites
+			media(perPage: 1, sort: POPULARITY_DESC) {
+				nodes {
+					title {
+						romaji
+					}
+				}
+			}
+		}
+	}
+}

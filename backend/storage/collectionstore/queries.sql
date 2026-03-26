@@ -70,7 +70,8 @@ SELECT
   name,
   image,
   media_title,
-  favorites
+  favorites,
+  updated_at
 FROM
   characters
 WHERE
@@ -167,3 +168,17 @@ SET
   favorites = excluded.favorites
 RETURNING
   *;
+
+-- name: GetStaleCharacters :many
+SELECT id, name, image, media_title, favorites, updated_at
+FROM characters
+WHERE (updated_at, id) > (sqlc.arg(updated_at), sqlc.arg(cursor_id)::bigint)
+  AND updated_at < NOW() - interval '24 hours'
+ORDER BY updated_at, id
+LIMIT sqlc.arg(lim);
+
+-- name: UpdateCharacterSync :one
+UPDATE characters
+SET name = $1, image = $2, media_title = $3, favorites = $4, updated_at = NOW()
+WHERE id = $5
+RETURNING id, name, image, media_title, favorites, updated_at;

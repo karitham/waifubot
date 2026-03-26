@@ -60,17 +60,6 @@ func (p *Pg) GetOwnedCharacter(ctx context.Context, userID collection.UserID, ch
 	}, nil
 }
 
-func (p *Pg) CharacterOwnedByUser(ctx context.Context, userID collection.UserID, charID int64) (bool, error) {
-	_, err := p.GetOwnedCharacter(ctx, userID, charID)
-	if err != nil {
-		if errors.Is(err, collection.ErrNotFound) {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
-}
-
 func (p *Pg) AddToCollection(ctx context.Context, userID collection.UserID, char collection.Character, source string, acquiredAt time.Time) error {
 	_, err := p.C.Insert(ctx, collectionstore.InsertParams{
 		UserID:      userID,

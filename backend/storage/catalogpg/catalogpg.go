@@ -41,7 +41,7 @@ func (p *Pg) GetCharacterByID(ctx context.Context, charID int64) (catalog.Charac
 		}
 		return catalog.Character{}, err
 	}
-	return catalog.Character{ID: c.ID, Name: c.Name, Image: c.Image, MediaTitle: c.MediaTitle, Favorites: int(c.Favorites)}, nil
+	return catalog.Character{ID: c.ID, Name: c.Name, Image: c.Image, MediaTitle: c.MediaTitle, Favorites: int(c.Favorites), UpdatedAt: c.UpdatedAt.Time}, nil
 }
 
 func (p *Pg) SearchCharacters(ctx context.Context, userID uint64, term string) ([]catalog.Character, error) {
@@ -79,7 +79,7 @@ func (p *Pg) IsGuildIndexed(ctx context.Context, guildID uint64) (collection.Gui
 		return collection.GuildIndexStatus{}, err
 	}
 	return collection.GuildIndexStatus{
-		Status:    convertIndexingStatus(row.Status),
+		Status:    collection.ConvertIndexingStatus(string(row.Status)),
 		UpdatedAt: row.UpdatedAt.Time,
 	}, nil
 }
@@ -122,13 +122,46 @@ func (p *Pg) DeleteGuildMembersNotIn(ctx context.Context, guildID uint64, member
 	})
 }
 
-func convertIndexingStatus(s guildstore.IndexingStatus) collection.IndexingStatus {
-	switch s {
-	case guildstore.IndexingStatusCompleted:
-		return collection.IndexingCompleted
-	case guildstore.IndexingStatusInProgress:
-		return collection.IndexingInProgress
-	default:
-		return collection.IndexingPending
+func (p *Pg) GetStaleCharacters(ctx context.Context, cursorUpdatedAt time.Time, cursorID int64, limit int) ([]catalog.Character, error) {
+	rows, err := p.C.GetStaleCharacters(ctx, collectionstore.GetStaleCharactersParams{
+		UpdatedAt: pgtype.Timestamp{Time: cursorUpdatedAt.UTC(), Valid: true},
+		CursorID:  cursorID,
+		Lim:       int32(limit),
+	})
+	if err != nil {
+		return nil, err
 	}
+	chars := make([]catalog.Character, len(rows))
+	for i, r := range rows {
+		chars[i] = catalog.Character{
+			ID:         r.ID,
+			Name:       r.Name,
+			Image:      r.Image,
+			MediaTitle: r.MediaTitle,
+			Favorites:  int(r.Favorites),
+			UpdatedAt:  r.UpdatedAt.Time,
+		}
+	}
+	return chars, nil
+}
+
+func (p *Pg) UpdateCharacterSync(ctx context.Context, char catalog.Character) (catalog.Character, error) {
+	c, err := p.C.UpdateCharacterSync(ctx, collectionstore.UpdateCharacterSyncParams{
+		Name:       char.Name,
+		Image:      char.Image,
+		MediaTitle: char.MediaTitle,
+		Favorites:  int32(char.Favorites),
+		ID:         char.ID,
+	})
+	if err != nil {
+		return catalog.Character{}, err
+	}
+	return catalog.Character{
+		ID:         c.ID,
+		Name:       c.Name,
+		Image:      c.Image,
+		MediaTitle: c.MediaTitle,
+		Favorites:  int(c.Favorites),
+		UpdatedAt:  c.UpdatedAt.Time,
+	}, nil
 }

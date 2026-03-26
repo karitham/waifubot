@@ -3,7 +3,8 @@ CREATE TABLE public.characters (
   name CHARACTER VARYING(128) CONSTRAINT characters_new_name_not_null NOT NULL,
   image CHARACTER VARYING(256) CONSTRAINT characters_new_image_not_null NOT NULL,
   media_title TEXT NOT NULL DEFAULT '',
-  favorites INTEGER NOT NULL DEFAULT 0
+  favorites INTEGER NOT NULL DEFAULT 0,
+  updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
 );
 
 CREATE TABLE public.collection (

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"strings"
 
 	"github.com/Karitham/corde"
 
@@ -60,7 +59,7 @@ func (b *Bot) claim(ctx context.Context, w corde.ResponseWriter, i *corde.Intera
 		return
 	}
 
-	char, err := collection.Claim(ctx, b.Store, uint64(i.Member.User.ID), uint64(i.ChannelID), sanitizeName(name))
+	char, err := collection.Claim(ctx, b.Store, uint64(i.Member.User.ID), uint64(i.ChannelID), collection.SanitizeName(name))
 	if err != nil {
 		logger.Debug("failed to claim", "error", err)
 		switch {
@@ -83,8 +82,4 @@ func (b *Bot) claim(ctx context.Context, w corde.ResponseWriter, i *corde.Intera
 	rarity := collection.RarityFromFavorites(char.Favorites)
 
 	w.Respond(claimEmbed(char, rarity.String()))
-}
-
-func sanitizeName(name string) string {
-	return strings.Join(strings.Fields(name), " ")
 }

@@ -24,7 +24,7 @@ func (p *Pg) IsGuildIndexed(ctx context.Context, guildID uint64) (collection.Gui
 		return collection.GuildIndexStatus{}, err
 	}
 	return collection.GuildIndexStatus{
-		Status:    convertIndexingStatus(row.Status),
+		Status:    collection.ConvertIndexingStatus(string(row.Status)),
 		UpdatedAt: row.UpdatedAt.Time,
 	}, nil
 }
@@ -58,15 +58,4 @@ func (p *Pg) DeleteGuildMembersNotIn(ctx context.Context, guildID uint64, member
 		GuildID: guildID,
 		Column2: ids,
 	})
-}
-
-func convertIndexingStatus(s guildstore.IndexingStatus) collection.IndexingStatus {
-	switch s {
-	case guildstore.IndexingStatusCompleted:
-		return collection.IndexingCompleted
-	case guildstore.IndexingStatusInProgress:
-		return collection.IndexingInProgress
-	default:
-		return collection.IndexingPending
-	}
 }

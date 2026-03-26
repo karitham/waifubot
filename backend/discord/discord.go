@@ -38,13 +38,6 @@ var (
 		},
 		[]string{"command"},
 	)
-	errorCounter = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "waifubot_error_total",
-			Help: "Total number of errors",
-		},
-		[]string{"command", "error_type"},
-	)
 )
 
 // TrackingService is the interface for the anilist service.
@@ -90,7 +83,7 @@ type Bot struct {
 
 // New runs the bot.
 func New(b *Bot) *corde.Mux {
-	prometheus.MustRegister(commandCounter, commandDuration, errorCounter)
+	prometheus.MustRegister(commandCounter, commandDuration)
 
 	// Wire up guild transaction factory
 	b.guildTxFn = func(ctx context.Context) (guild.TxQuerier, error) {

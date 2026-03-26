@@ -24,7 +24,6 @@ type MockStore struct {
 	GetCollectionFunc        func(ctx context.Context, userID collection.UserID) ([]collection.OwnedCharacter, error)
 	GetCollectionIDsFunc     func(ctx context.Context, userID collection.UserID) ([]int64, error)
 	GetOwnedCharacterFunc    func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error)
-	CharacterOwnedByUserFunc func(ctx context.Context, userID collection.UserID, charID int64) (bool, error)
 	AddToCollectionFunc      func(ctx context.Context, userID collection.UserID, char collection.Character, source string, acquiredAt time.Time) error
 	RemoveFromCollectionFunc func(ctx context.Context, userID collection.UserID, charID int64) error
 	GiveCharacterFunc        func(ctx context.Context, from, to collection.UserID, charID int64) (collection.OwnedCharacter, error)
@@ -45,6 +44,8 @@ type MockStore struct {
 	SearchCharactersFunc           func(ctx context.Context, userID uint64, term string) ([]catalog.Character, error)
 	SearchGlobalCharactersFunc     func(ctx context.Context, term string) ([]catalog.Character, error)
 	GetCharacterHoldersInGuildFunc func(ctx context.Context, guildID uint64, charID int64) ([]uint64, error)
+	GetStaleCharactersFunc         func(ctx context.Context, cursorUpdatedAt time.Time, cursorID int64, limit int) ([]catalog.Character, error)
+	UpdateCharacterSyncFunc        func(ctx context.Context, char catalog.Character) (catalog.Character, error)
 
 	WithTxFunc   func(ctx context.Context) (collection.Store, error)
 	CommitFunc   func(ctx context.Context) error
@@ -150,13 +151,6 @@ func (m *MockStore) GetOwnedCharacter(ctx context.Context, userID collection.Use
 		return m.GetOwnedCharacterFunc(ctx, userID, charID)
 	}
 	return collection.OwnedCharacter{}, nil
-}
-
-func (m *MockStore) CharacterOwnedByUser(ctx context.Context, userID collection.UserID, charID int64) (bool, error) {
-	if m.CharacterOwnedByUserFunc != nil {
-		return m.CharacterOwnedByUserFunc(ctx, userID, charID)
-	}
-	return false, nil
 }
 
 func (m *MockStore) AddToCollection(ctx context.Context, userID collection.UserID, char collection.Character, source string, acquiredAt time.Time) error {
@@ -276,6 +270,20 @@ func (m *MockStore) GetCharacterHoldersInGuild(ctx context.Context, guildID uint
 		return m.GetCharacterHoldersInGuildFunc(ctx, guildID, charID)
 	}
 	return nil, nil
+}
+
+func (m *MockStore) GetStaleCharacters(ctx context.Context, cursorUpdatedAt time.Time, cursorID int64, limit int) ([]catalog.Character, error) {
+	if m.GetStaleCharactersFunc != nil {
+		return m.GetStaleCharactersFunc(ctx, cursorUpdatedAt, cursorID, limit)
+	}
+	return nil, nil
+}
+
+func (m *MockStore) UpdateCharacterSync(ctx context.Context, char catalog.Character) (catalog.Character, error) {
+	if m.UpdateCharacterSyncFunc != nil {
+		return m.UpdateCharacterSyncFunc(ctx, char)
+	}
+	return char, nil
 }
 
 func (m *MockStore) WithTx(ctx context.Context) (collection.Store, error) {

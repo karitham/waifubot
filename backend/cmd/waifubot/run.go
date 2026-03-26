@@ -25,6 +25,7 @@ import (
 	"github.com/karitham/waifubot/storage/commandpg"
 	"github.com/karitham/waifubot/storage/dropstore"
 	"github.com/karitham/waifubot/storage/interactionstore"
+	"github.com/karitham/waifubot/sync"
 	"github.com/karitham/waifubot/wishlist"
 )
 
@@ -63,6 +64,12 @@ var RunCommand = &cli.Command{
 			Usage:   "Skip database migrations on startup",
 			EnvVars: []string{"SKIP_MIGRATE"},
 		},
+		&cli.BoolFlag{
+			Name:    "sync",
+			Usage:   "Enable background character sync worker",
+			EnvVars: []string{"SYNC"},
+			Value:   true,
+		},
 		logLevelFlag,
 		apiFlag,
 	},
@@ -90,14 +97,17 @@ var RunCommand = &cli.Command{
 		dropStore := dropstore.NewPostgresStore(store.DropStore())
 		collStore := newCollectionStore(store)
 		wishStore := wishlist.New(store.WishlistStore())
+		catalogStore := newCatalogStore(store)
+
+		anilistClient := anilist.New(anilist.MaxChar(c.Int64(anilistMaxCharsFlag.Name)))
 
 		slog.Info("Starting WaifuBot", "port", c.String("port"), "app_id", c.String("app-id"), "api_enabled", c.Bool(apiFlag.Name))
 		mux := discord.New(&discord.Bot{
 			Store:             collStore,
-			Catalog:           newCatalogStore(store),
+			Catalog:           catalogStore,
 			CommandStore:      commandpg.New(store.CommandStore()),
 			WishlistStore:     wishStore,
-			AnimeService:      anilist.New(anilist.MaxChar(c.Int64(anilistMaxCharsFlag.Name))),
+			AnimeService:      anilistClient,
 			DropStore:         dropStore,
 			InterStore:        interStore,
 			GuildIndexer:      guild.NewIndexer(collStore, guild.NewDiscordFetcher(c.String(botTokenFlag.Name))),
@@ -112,10 +122,16 @@ var RunCommand = &cli.Command{
 			SeriesRollCost:    int32(c.Int(seriesRollCostFlag.Name)),
 		})
 
-		port, err := strconv.Atoi(c.String("port"))
-		if err != nil {
-			return fmt.Errorf("invalid port number: %w", err)
+		// Start background sync worker if enabled
+		if c.Bool("sync") {
+			go func() {
+				slog.Info("character sync worker started")
+				sync.NewService(catalogStore, anilistClient).Run(ctx)
+				slog.Info("character sync worker stopped")
+			}()
 		}
+
+		port := c.Int("port")
 
 		r := chi.NewRouter()
 		r.Use(middleware.Timeout(5 * time.Second))

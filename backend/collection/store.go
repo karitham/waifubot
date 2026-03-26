@@ -73,7 +73,6 @@ type CollectionRepository interface {
 	GetCollection(ctx context.Context, userID UserID) ([]OwnedCharacter, error)
 	GetCollectionIDs(ctx context.Context, userID UserID) ([]int64, error)
 	GetOwnedCharacter(ctx context.Context, userID UserID, charID int64) (OwnedCharacter, error)
-	CharacterOwnedByUser(ctx context.Context, userID UserID, charID int64) (bool, error)
 	AddToCollection(ctx context.Context, userID UserID, char Character, source string, acquiredAt time.Time) error
 	RemoveFromCollection(ctx context.Context, userID UserID, charID int64) error
 	GiveCharacter(ctx context.Context, from, to UserID, charID int64) (OwnedCharacter, error)
@@ -95,6 +94,18 @@ type GuildQuerier interface {
 	CompleteIndexingJob(ctx context.Context, guildID uint64) error
 	UpsertGuildMembers(ctx context.Context, guildID uint64, memberIDs []uint64, indexedAt time.Time) error
 	DeleteGuildMembersNotIn(ctx context.Context, guildID uint64, memberIDs []uint64) error
+}
+
+// ConvertIndexingStatus maps a database indexing-status string to the domain type.
+func ConvertIndexingStatus(s string) IndexingStatus {
+	switch s {
+	case "completed":
+		return IndexingCompleted
+	case "in_progress":
+		return IndexingInProgress
+	default:
+		return IndexingPending
+	}
 }
 
 // Store is the transactional composition of all repositories.

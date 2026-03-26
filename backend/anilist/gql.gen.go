@@ -31,6 +31,14 @@ type __characterInput struct {
 // GetName returns __characterInput.Name, and is useful for accessing the field via an interface.
 func (v *__characterInput) GetName() string { return v.Name }
 
+// __charactersByIdsInput is used internally by genqlient
+type __charactersByIdsInput struct {
+	Ids []int64 `json:"ids"`
+}
+
+// GetIds returns __charactersByIdsInput.Ids, and is useful for accessing the field via an interface.
+func (v *__charactersByIdsInput) GetIds() []int64 { return v.Ids }
+
 // __charactersRandomInput is used internally by genqlient
 type __charactersRandomInput struct {
 	PageNumber int64   `json:"pageNumber"`
@@ -163,6 +171,124 @@ type characterResponse struct {
 
 // GetPage returns characterResponse.Page, and is useful for accessing the field via an interface.
 func (v *characterResponse) GetPage() characterPage { return v.Page }
+
+// charactersByIdsPage includes the requested fields of the GraphQL type Page.
+// The GraphQL type's documentation follows.
+//
+// Page of data
+type charactersByIdsPage struct {
+	Characters []charactersByIdsPageCharactersCharacter `json:"characters"`
+}
+
+// GetCharacters returns charactersByIdsPage.Characters, and is useful for accessing the field via an interface.
+func (v *charactersByIdsPage) GetCharacters() []charactersByIdsPageCharactersCharacter {
+	return v.Characters
+}
+
+// charactersByIdsPageCharactersCharacter includes the requested fields of the GraphQL type Character.
+// The GraphQL type's documentation follows.
+//
+// A character that features in an anime or manga
+type charactersByIdsPageCharactersCharacter struct {
+	// The id of the character
+	Id int64 `json:"id"`
+	// The names of the character
+	Name charactersByIdsPageCharactersCharacterName `json:"name"`
+	// Character images
+	Image charactersByIdsPageCharactersCharacterImage `json:"image"`
+	// The amount of user's who have favourited the character
+	Favourites int64 `json:"favourites"`
+	// Media that includes the character
+	Media charactersByIdsPageCharactersCharacterMediaMediaConnection `json:"media"`
+}
+
+// GetId returns charactersByIdsPageCharactersCharacter.Id, and is useful for accessing the field via an interface.
+func (v *charactersByIdsPageCharactersCharacter) GetId() int64 { return v.Id }
+
+// GetName returns charactersByIdsPageCharactersCharacter.Name, and is useful for accessing the field via an interface.
+func (v *charactersByIdsPageCharactersCharacter) GetName() charactersByIdsPageCharactersCharacterName {
+	return v.Name
+}
+
+// GetImage returns charactersByIdsPageCharactersCharacter.Image, and is useful for accessing the field via an interface.
+func (v *charactersByIdsPageCharactersCharacter) GetImage() charactersByIdsPageCharactersCharacterImage {
+	return v.Image
+}
+
+// GetFavourites returns charactersByIdsPageCharactersCharacter.Favourites, and is useful for accessing the field via an interface.
+func (v *charactersByIdsPageCharactersCharacter) GetFavourites() int64 { return v.Favourites }
+
+// GetMedia returns charactersByIdsPageCharactersCharacter.Media, and is useful for accessing the field via an interface.
+func (v *charactersByIdsPageCharactersCharacter) GetMedia() charactersByIdsPageCharactersCharacterMediaMediaConnection {
+	return v.Media
+}
+
+// charactersByIdsPageCharactersCharacterImage includes the requested fields of the GraphQL type CharacterImage.
+type charactersByIdsPageCharactersCharacterImage struct {
+	// The character's image of media at its largest size
+	Large string `json:"large"`
+}
+
+// GetLarge returns charactersByIdsPageCharactersCharacterImage.Large, and is useful for accessing the field via an interface.
+func (v *charactersByIdsPageCharactersCharacterImage) GetLarge() string { return v.Large }
+
+// charactersByIdsPageCharactersCharacterMediaMediaConnection includes the requested fields of the GraphQL type MediaConnection.
+type charactersByIdsPageCharactersCharacterMediaMediaConnection struct {
+	Nodes []charactersByIdsPageCharactersCharacterMediaMediaConnectionNodesMedia `json:"nodes"`
+}
+
+// GetNodes returns charactersByIdsPageCharactersCharacterMediaMediaConnection.Nodes, and is useful for accessing the field via an interface.
+func (v *charactersByIdsPageCharactersCharacterMediaMediaConnection) GetNodes() []charactersByIdsPageCharactersCharacterMediaMediaConnectionNodesMedia {
+	return v.Nodes
+}
+
+// charactersByIdsPageCharactersCharacterMediaMediaConnectionNodesMedia includes the requested fields of the GraphQL type Media.
+// The GraphQL type's documentation follows.
+//
+// Anime or Manga
+type charactersByIdsPageCharactersCharacterMediaMediaConnectionNodesMedia struct {
+	// The official titles of the media in various languages
+	Title charactersByIdsPageCharactersCharacterMediaMediaConnectionNodesMediaTitle `json:"title"`
+}
+
+// GetTitle returns charactersByIdsPageCharactersCharacterMediaMediaConnectionNodesMedia.Title, and is useful for accessing the field via an interface.
+func (v *charactersByIdsPageCharactersCharacterMediaMediaConnectionNodesMedia) GetTitle() charactersByIdsPageCharactersCharacterMediaMediaConnectionNodesMediaTitle {
+	return v.Title
+}
+
+// charactersByIdsPageCharactersCharacterMediaMediaConnectionNodesMediaTitle includes the requested fields of the GraphQL type MediaTitle.
+// The GraphQL type's documentation follows.
+//
+// The official titles of the media in various languages
+type charactersByIdsPageCharactersCharacterMediaMediaConnectionNodesMediaTitle struct {
+	// The romanization of the native language title
+	Romaji string `json:"romaji"`
+}
+
+// GetRomaji returns charactersByIdsPageCharactersCharacterMediaMediaConnectionNodesMediaTitle.Romaji, and is useful for accessing the field via an interface.
+func (v *charactersByIdsPageCharactersCharacterMediaMediaConnectionNodesMediaTitle) GetRomaji() string {
+	return v.Romaji
+}
+
+// charactersByIdsPageCharactersCharacterName includes the requested fields of the GraphQL type CharacterName.
+// The GraphQL type's documentation follows.
+//
+// The names of the character
+type charactersByIdsPageCharactersCharacterName struct {
+	// The character's first and last name
+	Full string `json:"full"`
+}
+
+// GetFull returns charactersByIdsPageCharactersCharacterName.Full, and is useful for accessing the field via an interface.
+func (v *charactersByIdsPageCharactersCharacterName) GetFull() string { return v.Full }
+
+// charactersByIdsResponse is returned by charactersByIds on success.
+type charactersByIdsResponse struct {
+	Page charactersByIdsPage `json:"Page"`
+}
+
+// GetPage returns charactersByIdsResponse.Page, and is useful for accessing the field via an interface.
+func (v *charactersByIdsResponse) GetPage() charactersByIdsPage { return v.Page }
 
 // charactersRandomPage includes the requested fields of the GraphQL type Page.
 // The GraphQL type's documentation follows.
@@ -699,6 +825,56 @@ func character(
 	}
 
 	data_ = &characterResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
+// The query executed by charactersByIds.
+const charactersByIds_Operation = `
+query charactersByIds ($ids: [Int!]!) {
+	Page(page: 1, perPage: 50) {
+		characters(id_in: $ids) {
+			id
+			name {
+				full
+			}
+			image {
+				large
+			}
+			favourites
+			media(perPage: 1, sort: POPULARITY_DESC) {
+				nodes {
+					title {
+						romaji
+					}
+				}
+			}
+		}
+	}
+}
+`
+
+func charactersByIds(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	ids []int64,
+) (data_ *charactersByIdsResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "charactersByIds",
+		Query:  charactersByIds_Operation,
+		Variables: &__charactersByIdsInput{
+			Ids: ids,
+		},
+	}
+
+	data_ = &charactersByIdsResponse{}
 	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(

@@ -32,31 +32,6 @@ func (r RarityTier) String() string {
 	}
 }
 
-// Color returns the Discord embed color for this tier.
-func (r RarityTier) Color() uint32 {
-	var threshold int
-	switch r {
-	case RarityCommon:
-		threshold = 1
-	case RarityUncommon:
-		threshold = 100
-	case RarityRare:
-		threshold = 1000
-	case RarityLegendary:
-		threshold = 5000
-	default:
-		threshold = 1
-	}
-
-	hex := getRarityHex(threshold)
-	// Parse "#RRGGBB" to uint32 (stored as 0xRRGGBB)
-	parsed, err := strconv.ParseInt(hex[1:], 16, 32)
-	if err != nil {
-		return 0x99AAB5 // fallback to gray
-	}
-	return uint32(parsed)
-}
-
 // RarityFromFavorites classifies a favorites count into a tier.
 func RarityFromFavorites(favorites int) RarityTier {
 	switch {
