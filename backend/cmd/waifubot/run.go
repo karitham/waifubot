@@ -46,6 +46,7 @@ var RunCommand = &cli.Command{
 		dbURLFlag,
 		rollCooldownFlag,
 		tokensNeededFlag,
+		seriesRollCostFlag,
 		&cli.Int64Flag{
 			Name:        "interaction-needed",
 			EnvVars:     []string{"INTERACTION_NEEDED"},
@@ -108,6 +109,7 @@ var RunCommand = &cli.Command{
 			RollCooldown:      c.Duration(rollCooldownFlag.Name),
 			InteractionNeeded: c.Int64("interaction-needed"),
 			TokensNeeded:      int32(c.Int(tokensNeededFlag.Name)),
+			SeriesRollCost:    int32(c.Int(seriesRollCostFlag.Name)),
 		})
 
 		port, err := strconv.Atoi(c.String("port"))

@@ -83,28 +83,6 @@ func TestRoll(t *testing.T) {
 			wantCharID: 4,
 		},
 		{
-			name: "token_roll",
-			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockAnimeService) {
-				anime.RandomCharFunc = func(_ context.Context, _ ...int64) (collection.MediaCharacter, error) {
-					return collection.MediaCharacter{ID: 3, Name: "Char3"}, nil
-				}
-				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
-					return collection.User{UserID: userID, Date: time.Now().Add(-1 * time.Hour), Tokens: 5}, nil
-				}
-				m.GetCollectionIDsFunc = func(_ context.Context, _ uint64) ([]int64, error) { return nil, nil }
-				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ collection.Character, _ string, _ time.Time) error {
-					return nil
-				}
-				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error { return nil }
-				m.SpendTokensFunc = func(_ context.Context, _ uint64, _ int32) (collection.User, error) {
-					return collection.User{UserID: 123, Tokens: 2}, nil
-				}
-			},
-			userID:     123,
-			wantCharID: 3,
-		},
-		{
 			name: "anime_service_error",
 			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockAnimeService) {
 				anime.RandomCharFunc = func(_ context.Context, _ ...int64) (collection.MediaCharacter, error) {

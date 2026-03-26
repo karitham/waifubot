@@ -198,6 +198,10 @@ func (s *CharacterType) Decode(d *jx.Decoder) error {
 		*s = CharacterTypeGIVE
 	case CharacterTypeOLD:
 		*s = CharacterTypeOLD
+	case CharacterTypeSERIESROLL:
+		*s = CharacterTypeSERIESROLL
+	case CharacterTypeTRADE:
+		*s = CharacterTypeTRADE
 	default:
 		*s = CharacterType(v)
 	}

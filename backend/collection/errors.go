@@ -10,3 +10,9 @@ var ErrInvalidAmount = errors.New("amount must be positive")
 
 // ErrSameUserTransfer is returned when transferring to yourself.
 var ErrSameUserTransfer = errors.New("cannot transfer to yourself")
+
+// ErrNoUnownedCharacters is returned when the user already owns all characters from the media.
+var ErrNoUnownedCharacters = errors.New("no unowned characters remaining in this series")
+
+// ErrMediaNotFound is returned when the media has no characters.
+var ErrMediaNotFound = errors.New("no characters found for this series")

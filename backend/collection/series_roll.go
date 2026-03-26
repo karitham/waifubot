@@ -3,21 +3,21 @@ package collection
 import (
 	"context"
 	"errors"
-	"fmt"
+	"math/rand"
 	"time"
 )
 
-// ErrRollCooldown is returned when a user is on roll cooldown.
-type ErrRollCooldown struct {
-	Until time.Time
-}
-
-func (e ErrRollCooldown) Error() string {
-	return fmt.Sprintf("You can roll again in %s.", time.Until(e.Until).Round(time.Second))
-}
-
-// Roll executes the roll logic for a user.
-func Roll(ctx context.Context, store Store, animeService AnimeService, config Config, userID UserID) (MediaCharacter, error) {
+// SeriesRoll executes a series-specific roll for a user.
+// It charges config.SeriesRollCost tokens, picks a random character from the
+// given media (excluding owned), and adds it to the collection.
+func SeriesRoll(
+	ctx context.Context,
+	store Store,
+	animeService AnimeService,
+	config Config,
+	userID UserID,
+	mediaID int64,
+) (MediaCharacter, error) {
 	tx, err := store.WithTx(ctx)
 	if err != nil {
 		return MediaCharacter{}, err
@@ -44,24 +44,44 @@ func Roll(ctx context.Context, store Store, animeService AnimeService, config Co
 		}
 	}
 
-	now := time.Now()
-	canRollFree := now.After(user.Date.Add(config.RollCooldown))
+	if user.Tokens < config.SeriesRollCost {
+		return MediaCharacter{}, ErrInsufficientTokens
+	}
 
-	if !canRollFree {
-		return MediaCharacter{}, ErrRollCooldown{
-			Until: user.Date.Add(config.RollCooldown),
+	ownedIDs, err := tx.GetCollectionIDs(ctx, userID)
+	if err != nil {
+		return MediaCharacter{}, err
+	}
+
+	allChars, err := animeService.GetMediaCharacters(ctx, mediaID)
+	if err != nil {
+		return MediaCharacter{}, err
+	}
+
+	if len(allChars) == 0 {
+		return MediaCharacter{}, ErrMediaNotFound
+	}
+
+	// Filter out owned characters
+	owned := make(map[int64]bool, len(ownedIDs))
+	for _, id := range ownedIDs {
+		owned[id] = true
+	}
+
+	var unowned []MediaCharacter
+	for _, c := range allChars {
+		if !owned[c.ID] {
+			unowned = append(unowned, c)
 		}
 	}
 
-	charsIDs, err := tx.GetCollectionIDs(ctx, userID)
-	if err != nil {
-		return MediaCharacter{}, err
+	if len(unowned) == 0 {
+		return MediaCharacter{}, ErrNoUnownedCharacters
 	}
 
-	char, err := animeService.RandomChar(ctx, charsIDs...)
-	if err != nil {
-		return MediaCharacter{}, err
-	}
+	char := unowned[rand.Intn(len(unowned))]
+
+	now := time.Now()
 
 	err = tx.UpsertCharacter(ctx, Character{
 		ID:        char.ID,
@@ -78,15 +98,14 @@ func Roll(ctx context.Context, store Store, animeService AnimeService, config Co
 		Name:       char.Name,
 		Image:      char.ImageURL,
 		MediaTitle: char.MediaTitle,
-	}, "ROLL", now)
+	}, "SERIES_ROLL", now)
 	if err != nil {
 		return MediaCharacter{}, err
 	}
 
 	_ = tx.RemoveFromWishlist(ctx, userID, char.ID)
 
-	err = tx.UpdateLastRoll(ctx, userID, now)
-
+	_, err = tx.SpendTokens(ctx, userID, config.SeriesRollCost)
 	if err != nil {
 		return MediaCharacter{}, err
 	}

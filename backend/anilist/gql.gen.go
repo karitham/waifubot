@@ -352,6 +352,8 @@ type getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeC
 	Name getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacterName `json:"name"`
 	// Character images
 	Image getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacterImage `json:"image"`
+	// The amount of user's who have favourited the character
+	Favourites int64 `json:"favourites"`
 }
 
 // GetId returns getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacter.Id, and is useful for accessing the field via an interface.
@@ -367,6 +369,11 @@ func (v *getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeN
 // GetImage returns getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacter.Image, and is useful for accessing the field via an interface.
 func (v *getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacter) GetImage() getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacterImage {
 	return v.Image
+}
+
+// GetFavourites returns getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacter.Favourites, and is useful for accessing the field via an interface.
+func (v *getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacter) GetFavourites() int64 {
+	return v.Favourites
 }
 
 // getMediaCharactersMediaCharactersCharacterConnectionEdgesCharacterEdgeNodeCharacterImage includes the requested fields of the GraphQL type CharacterImage.
@@ -775,6 +782,7 @@ query getMediaCharacters ($mediaId: Int!, $page: Int) {
 					image {
 						large
 					}
+					favourites
 				}
 			}
 			pageInfo {

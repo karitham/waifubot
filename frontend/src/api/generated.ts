@@ -90,6 +90,9 @@ export function findUser({ anilist, discord }: {
     } | {
         status: 400;
         data: Error;
+    } | {
+        status: 404;
+        data: Error;
     }>(`/user/find${QS.query(QS.explode({
         anilist,
         discord
@@ -127,6 +130,9 @@ export function findUserV1({ anilist, discord }: {
     } | {
         status: 400;
         data: Error;
+    } | {
+        status: 404;
+        data: Error;
     }>(`/api/v1/user/find${QS.query(QS.explode({
         anilist,
         discord
@@ -141,6 +147,12 @@ export function getWishlist(userId: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: WishlistResponse;
+    } | {
+        status: 400;
+        data: Error;
+    } | {
+        status: 404;
+        data: Error;
     }>(`/api/v1/wishlist/${encodeURIComponent(userId)}`, {
         ...opts
     }));
@@ -149,6 +161,8 @@ export enum Type {
     Roll = "ROLL",
     Claim = "CLAIM",
     Give = "GIVE",
-    Old = "OLD"
+    Old = "OLD",
+    SeriesRoll = "SERIES_ROLL",
+    Trade = "TRADE"
 }
 

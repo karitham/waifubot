@@ -7,11 +7,12 @@ import (
 )
 
 type MockAnimeService struct {
-	RandomCharFunc func(ctx context.Context, notIn ...int64) (collection.MediaCharacter, error)
-	AnimeFunc      func(ctx context.Context, name string) ([]collection.Media, error)
-	MangaFunc      func(ctx context.Context, name string) ([]collection.Media, error)
-	UserFunc       func(ctx context.Context, name string) ([]collection.TrackerUser, error)
-	CharacterFunc  func(ctx context.Context, name string) ([]collection.MediaCharacter, error)
+	RandomCharFunc         func(ctx context.Context, notIn ...int64) (collection.MediaCharacter, error)
+	GetMediaCharactersFunc func(ctx context.Context, mediaId int64) ([]collection.MediaCharacter, error)
+	AnimeFunc              func(ctx context.Context, name string) ([]collection.Media, error)
+	MangaFunc              func(ctx context.Context, name string) ([]collection.Media, error)
+	UserFunc               func(ctx context.Context, name string) ([]collection.TrackerUser, error)
+	CharacterFunc          func(ctx context.Context, name string) ([]collection.MediaCharacter, error)
 }
 
 func (m *MockAnimeService) RandomChar(ctx context.Context, notIn ...int64) (collection.MediaCharacter, error) {
@@ -19,6 +20,13 @@ func (m *MockAnimeService) RandomChar(ctx context.Context, notIn ...int64) (coll
 		return m.RandomCharFunc(ctx, notIn...)
 	}
 	return collection.MediaCharacter{}, nil
+}
+
+func (m *MockAnimeService) GetMediaCharacters(ctx context.Context, mediaId int64) ([]collection.MediaCharacter, error) {
+	if m.GetMediaCharactersFunc != nil {
+		return m.GetMediaCharactersFunc(ctx, mediaId)
+	}
+	return nil, nil
 }
 
 func (m *MockAnimeService) Anime(ctx context.Context, name string) ([]collection.Media, error) {

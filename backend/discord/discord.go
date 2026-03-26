@@ -85,6 +85,7 @@ type Bot struct {
 	RollCooldown      time.Duration
 	InteractionNeeded int64
 	TokensNeeded      int32
+	SeriesRollCost    int32
 }
 
 // New runs the bot.

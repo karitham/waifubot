@@ -9,6 +9,7 @@ import (
 // AnimeService defines the interface for anime operations.
 type AnimeService interface {
 	RandomChar(ctx context.Context, notIn ...int64) (MediaCharacter, error)
+	GetMediaCharacters(ctx context.Context, mediaId int64) ([]MediaCharacter, error)
 	Anime(ctx context.Context, name string) ([]Media, error)
 	Manga(ctx context.Context, name string) ([]Media, error)
 	User(ctx context.Context, name string) ([]TrackerUser, error)
@@ -17,8 +18,9 @@ type AnimeService interface {
 
 // Config holds configuration values.
 type Config struct {
-	RollCooldown time.Duration
-	TokensNeeded int32
+	RollCooldown   time.Duration
+	TokensNeeded   int32
+	SeriesRollCost int32
 }
 
 // MediaCharacter represents a character from the anime service.

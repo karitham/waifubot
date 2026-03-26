@@ -42,6 +42,10 @@ func (s CharacterType) Validate() error {
 		return nil
 	case "OLD":
 		return nil
+	case "SERIES_ROLL":
+		return nil
+	case "TRADE":
+		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}

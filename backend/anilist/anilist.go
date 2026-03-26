@@ -18,6 +18,22 @@ import (
 	"github.com/karitham/waifubot/discord"
 )
 
+// getTitle returns the best title to display, preferring romaji over english.
+func getTitle(title getMediaCharactersMediaTitle) string {
+	if title.GetRomaji() != "" {
+		return title.GetRomaji()
+	}
+	return title.GetEnglish()
+}
+
+// getSearchTitle returns the best title to display for search results, preferring romaji over english.
+func getSearchTitle(title searchMediaPageMediaTitle) string {
+	if title.GetRomaji() != "" {
+		return title.GetRomaji()
+	}
+	return title.GetEnglish()
+}
+
 // github.com/Khan/genqlient
 //go:generate genqlient genqlient.yaml
 
@@ -248,7 +264,7 @@ func (a *Anilist) SearchMedia(ctx context.Context, search string) ([]collection.
 		media[i] = collection.Media{
 			ID:            m.Id,
 			CoverImageURL: m.CoverImage.Large,
-			Title:         m.Title.Romaji,
+			Title:         getSearchTitle(m.Title),
 			Type:          string(m.Type),
 		}
 	}
@@ -267,11 +283,23 @@ func (a *Anilist) GetMediaCharacters(ctx context.Context, mediaId int64) ([]coll
 			return nil, err
 		}
 
+		if resp.Media.Id == 0 {
+			return nil, fmt.Errorf("media not found: %d", mediaId)
+		}
+
+		// Get media title from first page
+		var mediaTitle string
+		if page == 1 {
+			mediaTitle = getTitle(resp.Media.Title)
+		}
+
 		for _, edge := range resp.Media.Characters.Edges {
 			allCharacters = append(allCharacters, collection.MediaCharacter{
-				ID:       edge.Node.Id,
-				Name:     edge.Node.Name.Full,
-				ImageURL: edge.Node.Image.Large,
+				ID:         edge.Node.Id,
+				Name:       edge.Node.Name.Full,
+				ImageURL:   edge.Node.Image.Large,
+				Favorites:  int(edge.Node.Favourites),
+				MediaTitle: strings.Join(strings.Fields(mediaTitle), " "),
 			})
 		}
 

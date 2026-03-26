@@ -336,6 +336,8 @@ components:
             - CLAIM
             - GIVE
             - OLD
+            - SERIES_ROLL
+            - TRADE
           description: Character source type
           example: "ROLL"
         id:

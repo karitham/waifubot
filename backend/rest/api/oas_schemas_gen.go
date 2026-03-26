@@ -77,10 +77,12 @@ func (s *Character) SetID(val int64) {
 type CharacterType string
 
 const (
-	CharacterTypeROLL  CharacterType = "ROLL"
-	CharacterTypeCLAIM CharacterType = "CLAIM"
-	CharacterTypeGIVE  CharacterType = "GIVE"
-	CharacterTypeOLD   CharacterType = "OLD"
+	CharacterTypeROLL       CharacterType = "ROLL"
+	CharacterTypeCLAIM      CharacterType = "CLAIM"
+	CharacterTypeGIVE       CharacterType = "GIVE"
+	CharacterTypeOLD        CharacterType = "OLD"
+	CharacterTypeSERIESROLL CharacterType = "SERIES_ROLL"
+	CharacterTypeTRADE      CharacterType = "TRADE"
 )
 
 // AllValues returns all CharacterType values.
@@ -90,6 +92,8 @@ func (CharacterType) AllValues() []CharacterType {
 		CharacterTypeCLAIM,
 		CharacterTypeGIVE,
 		CharacterTypeOLD,
+		CharacterTypeSERIESROLL,
+		CharacterTypeTRADE,
 	}
 }
 
@@ -103,6 +107,10 @@ func (s CharacterType) MarshalText() ([]byte, error) {
 	case CharacterTypeGIVE:
 		return []byte(s), nil
 	case CharacterTypeOLD:
+		return []byte(s), nil
+	case CharacterTypeSERIESROLL:
+		return []byte(s), nil
+	case CharacterTypeTRADE:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -123,6 +131,12 @@ func (s *CharacterType) UnmarshalText(data []byte) error {
 		return nil
 	case CharacterTypeOLD:
 		*s = CharacterTypeOLD
+		return nil
+	case CharacterTypeSERIESROLL:
+		*s = CharacterTypeSERIESROLL
+		return nil
+	case CharacterTypeTRADE:
+		*s = CharacterTypeTRADE
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)

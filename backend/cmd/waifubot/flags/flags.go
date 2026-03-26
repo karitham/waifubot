@@ -61,6 +61,13 @@ var (
 		Value:   3,
 	}
 
+	// SeriesRollCostFlag is the token cost for a series roll
+	SeriesRollCostFlag = &cli.IntFlag{
+		Name:    "series-roll-cost",
+		EnvVars: []string{"SERIES_ROLL_COST"},
+		Value:   20,
+	}
+
 	// AnilistMaxCharsFlag is the maximum characters for Anilist queries
 	AnilistMaxCharsFlag = &cli.Int64Flag{
 		Name:  "anilist-max-chars",

@@ -43,7 +43,7 @@ func (b *Bot) roll(ctx context.Context, w corde.ResponseWriter, i *corde.Interac
 		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"}).
 		Thumbnail(corde.Image{URL: char.ImageURL}).
 		Descriptionf(
-			"You got %s (%s)\n⭐ Rarity: %s | ❤️ %d favorites%s\n\nID: %d",
+			"You got %s (%s)\n⭐ Rarity: %s | ❤️ %d favorites%s\n\n🎲 Standard Roll\nID: %d",
 			char.Name,
 			char.MediaTitle,
 			char.Rarity(),

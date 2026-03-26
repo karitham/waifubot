@@ -1,4 +1,4 @@
-import { Show } from "solid-js";
+import { Match, Show, Switch } from "solid-js";
 import type { Character } from "../../api/generated";
 import { formatDate, mapCharType } from "../../utils";
 
@@ -43,7 +43,20 @@ export default (props: { char: Character; class?: string }) => {
 			</Show>
 			<Show when={props.char.type}>
 				<p class={`m-0 ${iconStyle}`}>
-					<span class="i-ph-tag" />
+					<Switch fallback={<span class="i-ph-tag" />}>
+						<Match when={props.char.type === "SERIES_ROLL"}>
+							<span class="i-ph-target" />
+						</Match>
+						<Match when={props.char.type === "GIVE"}>
+							<span class="i-ph-gift" />
+						</Match>
+						<Match when={props.char.type === "TRADE"}>
+							<span class="i-ph-arrows-left-right" />
+						</Match>
+						<Match when={props.char.type === "CLAIM"}>
+							<span class="i-ph-hand-heart" />
+						</Match>
+					</Switch>
 					{charType()}
 				</p>
 			</Show>

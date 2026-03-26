@@ -3,7 +3,9 @@ package discord
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/Karitham/corde"
 
@@ -20,6 +22,14 @@ func (b *Bot) token(m *corde.Mux) {
 			interact(b.InterStore, onInteraction[corde.SlashCommandInteractionData](b)),
 		))
 		m.Autocomplete("id", trace(b.userCollectionAutocomplete))
+	})
+	m.Route("roll", func(m *corde.Mux) {
+		m.SlashCommand("", wrap(
+			b.tokenRoll,
+			trace[corde.SlashCommandInteractionData],
+			interact(b.InterStore, onInteraction[corde.SlashCommandInteractionData](b)),
+		))
+		m.Autocomplete("series", trace(b.seriesAutocomplete))
 	})
 }
 
@@ -99,4 +109,79 @@ func (b *Bot) tokenSell(ctx context.Context, w corde.ResponseWriter, i *corde.In
 		return
 	}
 	w.Respond(corde.NewResp().Contentf("Sold %s for 1 token", char.Name))
+}
+
+func (b *Bot) seriesAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
+	search, err := i.Data.Options.String("series")
+	if err != nil {
+		w.Autocomplete(corde.NewResp())
+		return
+	}
+
+	media, err := b.AnimeService.SearchMedia(ctx, search)
+	if err != nil {
+		slog.Error("Error searching media", "error", err, "term", search)
+		w.Autocomplete(corde.NewResp())
+		return
+	}
+
+	resp := corde.NewResp()
+	for _, m := range media {
+		resp.Choice(fmt.Sprintf("%s (%s)", m.Title, strings.ToTitle(strings.ToLower(m.Type))), m.ID)
+	}
+
+	w.Autocomplete(resp)
+}
+
+func (b *Bot) tokenRoll(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
+	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
+
+	mediaID, err := i.Data.Options.Int64("series")
+	if err != nil {
+		logger.Debug("series roll command: no series selected")
+		w.Respond(rspErr("select a series to roll from"))
+		return
+	}
+
+	config := collection.Config{
+		RollCooldown:   b.RollCooldown,
+		TokensNeeded:   b.TokensNeeded,
+		SeriesRollCost: b.SeriesRollCost,
+	}
+
+	char, err := collection.SeriesRoll(ctx, b.Store, b.AnimeService, config, uint64(i.Member.User.ID), mediaID)
+	if err != nil {
+		if errors.Is(err, collection.ErrInsufficientTokens) {
+			w.Respond(rspErr(fmt.Sprintf("You need %d tokens to roll for a series", b.SeriesRollCost)))
+			return
+		}
+		if errors.Is(err, collection.ErrNoUnownedCharacters) {
+			w.Respond(rspErr("You already own all characters from this series"))
+			return
+		}
+		if errors.Is(err, collection.ErrMediaNotFound) {
+			w.Respond(rspErr("No characters found for this series"))
+			return
+		}
+		logger.Error("error performing series roll", "error", err, "media_id", mediaID)
+		w.Respond(rspErr("An error occurred, please try again later"))
+		return
+	}
+
+	w.Respond(corde.NewEmbed().
+		Title(char.Name).
+		URL(char.URL).
+		Color(collection.GradientColor(char.Favorites)).
+		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"}).
+		Thumbnail(corde.Image{URL: char.ImageURL}).
+		Descriptionf(
+			"You got %s (%s)\n⭐ Rarity: %s | ❤️ %d favorites\n\n🎯 Series Roll | Cost: %d tokens\nID: %d",
+			char.Name,
+			char.MediaTitle,
+			char.Rarity(),
+			char.Favorites,
+			config.SeriesRollCost,
+			char.ID,
+		),
+	)
 }

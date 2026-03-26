@@ -31,6 +31,12 @@ var commandDefinitions = []CommandDef{
 					{Name: "id", Description: "ID of the character to sell", Type: OptionInt, Required: true, Autocomplete: true},
 				},
 			},
+			{
+				Name: "roll", Description: "Roll for a character from a specific series", Type: OptionSubcommand,
+				Options: []OptionDef{
+					{Name: "series", Description: "ID of the anime or manga series", Type: OptionInt, Required: true, Autocomplete: true},
+				},
+			},
 		},
 	},
 	{Name: "roll", Description: "Roll for a random character"},
