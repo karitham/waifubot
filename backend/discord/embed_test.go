@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -58,7 +59,7 @@ func TestRollEmbed(t *testing.T) {
 			assert.Contains(t, embed.Description, tt.char.MediaTitle)
 			assert.Contains(t, embed.Description, tt.rarity)
 			assert.Contains(t, embed.Description, "Standard Roll")
-			assert.Contains(t, embed.Description, tt.char.URL)
+			assert.Contains(t, embed.Description, strconv.FormatInt(tt.char.ID, 10))
 			assert.NotEmpty(t, embed.Footer.Text)
 			assert.Equal(t, AnilistIconURL, embed.Footer.IconURL)
 		})

@@ -12,13 +12,13 @@ import (
 
 func rollEmbed(char collection.MediaCharacter, usersWanting string) corde.Embed {
 	return newCharEmbed(char, fmt.Sprintf(
-		"You got %s (%s)\n⭐ Rarity: %s | ❤️ %d favorites%s\n\n🎲 Standard Roll\nID: %s",
+		"You got %s (%s)\n⭐ Rarity: %s | ❤️ %d favorites%s\n\n🎲 Standard Roll\nID: %d",
 		char.Name,
 		char.MediaTitle,
 		char.Rarity(),
 		char.Favorites,
 		usersWanting,
-		char.URL,
+		char.ID,
 	))
 }
 
