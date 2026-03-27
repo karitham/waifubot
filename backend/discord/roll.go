@@ -36,20 +36,5 @@ func (b *Bot) roll(ctx context.Context, w corde.ResponseWriter, i *corde.Interac
 		logger.Error("error getting users wanting character", "error", err)
 	}
 
-	w.Respond(corde.NewEmbed().
-		Title(char.Name).
-		URL(char.URL).
-		Color(collection.GradientColor(char.Favorites)).
-		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"}).
-		Thumbnail(corde.Image{URL: char.ImageURL}).
-		Descriptionf(
-			"You got %s (%s)\n⭐ Rarity: %s | ❤️ %d favorites%s\n\n🎲 Standard Roll\nID: %d",
-			char.Name,
-			char.MediaTitle,
-			char.Rarity(),
-			char.Favorites,
-			formatUsersWantingCharacter(wantingUsers, uint64(i.Member.User.ID)),
-			char.ID,
-		),
-	)
+	w.Respond(rollEmbed(char, formatUsersWantingCharacter(wantingUsers, uint64(i.Member.User.ID))))
 }

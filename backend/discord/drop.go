@@ -3,7 +3,6 @@ package discord
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -37,9 +36,14 @@ func (b *Bot) drop(ctx context.Context, channelID corde.Snowflake) {
 
 	logger.Debug("dropped character", "character_id", char.ID, "character_name", char.Name)
 
-	msg, cleanup := DropEmbed(ctx, char)
-	defer cleanup()
-	_, err = b.mux.CreateMessage(channelID, msg)
+	img, err := httpImageFetcher{doer: http.DefaultClient}.Fetch(ctx, char.ImageURL)
+	if err != nil {
+		logger.Error("failed to fetch image for drop embed", "error", err)
+		return
+	}
+	defer img.Close()
+
+	_, err = b.mux.CreateMessage(channelID, dropMessage(char, img))
 	if err != nil {
 		logger.Error("failed to create drop message", "error", err, "character_id", char.ID, "character_name", char.Name)
 		return
@@ -78,63 +82,9 @@ func (b *Bot) claim(ctx context.Context, w corde.ResponseWriter, i *corde.Intera
 
 	rarity := collection.RarityFromFavorites(char.Favorites)
 
-	w.Respond(corde.NewEmbed().
-		Title(char.Name).
-		URL(fmt.Sprintf("https://anilist.co/character/%d", char.ID)).
-		Color(collection.GradientColor(char.Favorites)).
-		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"}).
-		Thumbnail(corde.Image{URL: char.Image}).
-		Descriptionf(
-			"You got %s (%s)\n⭐ Rarity: %s | ❤️ %d favorites\nID: %d",
-			char.Name,
-			char.MediaTitle,
-			rarity.String(),
-			char.Favorites,
-			char.ID,
-		),
-	)
+	w.Respond(claimEmbed(char, rarity.String()))
 }
 
 func sanitizeName(name string) string {
 	return strings.Join(strings.Fields(name), " ")
-}
-
-func DropEmbed(ctx context.Context, char collection.MediaCharacter) (corde.Message, func()) {
-	logger := slog.With("character_id", char.ID, "character_name", char.Name, "image_url", char.ImageURL)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, char.ImageURL, nil)
-	if err != nil {
-		logger.Error("failed to create image request for drop embed", "error", err)
-		return corde.Message{}, func() {}
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		logger.Error("failed to fetch image for drop embed", "error", err)
-		return corde.Message{}, func() {}
-	}
-
-	parts := strings.Fields(char.Name)
-	initials := strings.Builder{}
-	for i, part := range parts {
-		if i != 0 {
-			initials.WriteRune('.')
-		}
-		initials.WriteRune([]rune(part)[0])
-	}
-
-	return corde.Message{
-			Embeds: []corde.Embed{{
-				Title:       "Character Drop!",
-				Description: "A character has appeared! Use `/claim <name>` to add them to your collection.\n\n**Hint:** " + initials.String() + "\n\n⭐ Rarity: " + char.Rarity().String(),
-				Image:       corde.Image{URL: "attachment://image.png"},
-				Color:       collection.GradientColor(char.Favorites),
-			}},
-			Attachments: []corde.Attachment{{
-				Filename: "image.png",
-				Body:     resp.Body,
-			}},
-		}, func() {
-			_ = resp.Body.Close()
-		}
 }

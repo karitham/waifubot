@@ -168,20 +168,5 @@ func (b *Bot) tokenRoll(ctx context.Context, w corde.ResponseWriter, i *corde.In
 		return
 	}
 
-	w.Respond(corde.NewEmbed().
-		Title(char.Name).
-		URL(char.URL).
-		Color(collection.GradientColor(char.Favorites)).
-		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"}).
-		Thumbnail(corde.Image{URL: char.ImageURL}).
-		Descriptionf(
-			"You got %s (%s)\n⭐ Rarity: %s | ❤️ %d favorites\n\n🎯 Series Roll | Cost: %d tokens\nID: %d",
-			char.Name,
-			char.MediaTitle,
-			char.Rarity(),
-			char.Favorites,
-			config.SeriesRollCost,
-			char.ID,
-		),
-	)
+	w.Respond(seriesRollEmbed(char, config.SeriesRollCost))
 }
