@@ -43,7 +43,7 @@ func (b *Bot) giveCommand(ctx context.Context, w corde.ResponseWriter, i *corde.
 			return
 		}
 		logger.Error("error performing give", "error", err, "to_user_id", uint64(user.ID), "character_id", charID)
-		w.Respond(newErrf("Error: %s", err.Error()))
+		w.Respond(Privf("Failed to give character"))
 		return
 	}
 

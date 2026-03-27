@@ -44,7 +44,7 @@ func (b *Bot) holdersCommand(ctx context.Context, w corde.ResponseWriter, i *cor
 
 	charName, holderIDs, err := guild.CharacterHolders(ctx, b.GuildOps, b.Catalog, uint64(i.GuildID), int64(charID))
 	if err != nil {
-		w.Respond(newErrf("Error: %s", err.Error()))
+		w.Respond(Privf("Failed to check holders"))
 		return
 	}
 

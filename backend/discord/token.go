@@ -108,7 +108,7 @@ func (b *Bot) tokenSell(ctx context.Context, w corde.ResponseWriter, i *corde.In
 		w.Respond(rspErr("Failed to sell character"))
 		return
 	}
-	w.Respond(corde.NewResp().Contentf("Sold %s for 1 token", char.Name))
+	w.Respond(Privf("Sold %s for 1 token", char.Name))
 }
 
 func (b *Bot) seriesAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
