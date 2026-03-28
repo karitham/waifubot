@@ -1,12 +1,12 @@
 { lib, buildGo126Module }:
 let
-  version = "1.3.0";
+  version = "1.4.0";
 in
 buildGo126Module {
   pname = "waifubot";
   inherit version;
   src = ../backend;
-  vendorHash = "sha256-92MmcwzRNkHIippmwGU76FXds6+NW6fG9x1W+ky7qqA=";
+  vendorHash = "sha256-eb2TKQNByelLQOQwsZE/I1qrG3UgCgsvqB6sNFgzYNE=";
   ldflags = [
     "-s"
     "-w"
