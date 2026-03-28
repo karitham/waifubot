@@ -7,10 +7,11 @@ import (
 )
 
 type Character struct {
-	ID    int64  `json:"id"`
-	Name  string `json:"name"`
-	Image string `json:"image"`
-	Date  string `json:"date"`
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	Image     string `json:"image"`
+	Date      string `json:"date"`
+	Favorites int    `json:"favorites"`
 }
 
 type UserCharacterSet struct {

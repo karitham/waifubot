@@ -1,18 +1,19 @@
 import type { Setter } from "solid-js";
-import type { Character, Profile } from "../api/generated";
+import type { Character, UserProfile } from "../api/generated";
+import type { CompareUser } from "../hooks/usePageFilters";
 import CharGrid from "../components/character/CharGrid";
 import FilterBar from "../components/filters/FilterBar";
 import type { Option } from "../components/filters/FilterMedia";
 import { selectOptions, sortOptions } from "../hooks/usePageFilters";
 
-type SortFn = { label: string; value: (a: Character, b: Character) => number };
+type SortFn = { id: string; label: string; value: (a: Character, b: Character) => number };
 type SelectOption = { value: number; label: string };
 
 interface CollectionBodyProps {
 	characters: Character[] | undefined;
 	mediaCharacters: Character[] | undefined;
-	compareUsers: Profile[] | undefined;
-	users: Profile[];
+	compareUsers: CompareUser[] | undefined;
+	mainUser: UserProfile;
 	charSearch: string;
 	showCount: SelectOption;
 	charSort: SortFn;
@@ -24,6 +25,8 @@ interface CollectionBodyProps {
 	onCompareAdd: (input: string) => Promise<void>;
 	onCompareRemove: (id: string) => void;
 	compareIds: string[];
+	sortAscending: boolean;
+	onToggleSortDirection: () => void;
 }
 
 export default (props: CollectionBodyProps) => (
@@ -48,10 +51,12 @@ export default (props: CollectionBodyProps) => (
 					value: props.media,
 				}}
 				compareFilter={{
-					selectedUsers: props.compareUsers || [],
+					selectedUsers: (props.compareUsers || []).map((cu) => cu.profile),
 					onAdd: props.onCompareAdd,
 					onRemove: props.onCompareRemove,
 				}}
+				sortAscending={props.sortAscending}
+				onToggleSortDirection={props.onToggleSortDirection}
 			/>
 		</div>
 
@@ -62,8 +67,9 @@ export default (props: CollectionBodyProps) => (
 				characters={props.characters || []}
 				mediaCharacters={props.mediaCharacters}
 				compareUsers={props.compareUsers || []}
-				users={props.users}
+				mainUser={props.mainUser}
 				charSort={props.charSort.value}
+				sortAscending={props.sortAscending}
 			/>
 		</div>
 	</div>

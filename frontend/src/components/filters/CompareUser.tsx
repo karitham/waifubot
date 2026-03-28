@@ -1,11 +1,11 @@
 import { Search } from "@kobalte/core/search";
-import { createSignal, Show } from "solid-js";
-import type { Profile } from "../../api/generated";
+import { createSignal, Show, type JSX } from "solid-js";
+import type { UserProfile } from "../../api/generated";
 import AvatarStack from "../ui/AvatarStack";
 import DropdownSearch, { type Option } from "../ui/DropdownSearch";
 
 export type CompareUserProps = {
-	selectedUsers: Profile[];
+	selectedUsers: UserProfile[];
 	onAdd: (input: string) => void;
 	onRemove: (id: string) => void;
 };

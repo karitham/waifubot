@@ -1,22 +1,21 @@
-import { getUserV1 } from "../api/generated";
-import type { Profile } from "../api/generated";
+import { getProfileV1, getCollectionV1 } from "../api/generated";
+import type { UserProfile, Character } from "../api/generated";
 import UserCollectionPage from "../components/UserCollectionPage";
 
-const fetchCharacters = async (id: string): Promise<Profile> => {
-	const result = await getUserV1(id);
-	return result;
+const fetchProfile = async (id: string): Promise<UserProfile> => {
+	return getProfileV1(id);
+};
+
+const fetchCharacters = async (id: string): Promise<Character[]> => {
+	const result = await getCollectionV1(id);
+	return result.characters || [];
 };
 
 export default () => {
-	const fetchList = async (id: string) => {
-		const profile = await fetchCharacters(id);
-		return profile.waifus || [];
-	};
-
 	return (
 		<UserCollectionPage
-			fetchUser={(id) => getUserV1(id)}
-			fetchCharacters={fetchList}
+			fetchUser={(id) => fetchProfile(id)}
+			fetchCharacters={fetchCharacters}
 			title="Collection"
 			allowEmpty={true}
 			navbarLink={(id) => ({

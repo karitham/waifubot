@@ -9,9 +9,10 @@ import (
 )
 
 type Character struct {
-	ID    int64
-	Name  string
-	Image string
+	ID        int64
+	Name      string
+	Image     string
+	Favorites int32
 }
 
 type CharacterWishlist struct {

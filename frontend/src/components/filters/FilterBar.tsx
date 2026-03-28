@@ -5,6 +5,7 @@ import CharFilter, { type CharacterFilterProps } from "./Filter";
 import FilterMedia, { type FilterMediaProps } from "./FilterMedia";
 import Pagination, { type PaginationProps } from "./Paginate";
 import CharSort, { type CharSortProps } from "./Sort";
+import SortDirectionToggle from "./SortDirectionToggle";
 
 export type FilterBarProps = {
 	pagination: PaginationProps;
@@ -12,6 +13,8 @@ export type FilterBarProps = {
 	compareFilter: CompareUserProps;
 	charFilter: CharacterFilterProps;
 	charSort: CharSortProps<Character>;
+	sortAscending: boolean;
+	onToggleSortDirection: () => void;
 };
 
 const FilterSection = ({ label, children }) => (
@@ -30,7 +33,13 @@ export default function (props: FilterBarProps) {
 				</FilterSection>
 				<div class="w-full md:w-96 flex flex-row gap-4">
 					<FilterSection label="Sort">
-						<CharSort {...props.charSort} />
+						<div class="flex flex-row gap-2 items-center">
+							<CharSort {...props.charSort} />
+							<SortDirectionToggle
+								ascending={props.sortAscending}
+								onToggle={props.onToggleSortDirection}
+							/>
+						</div>
 					</FilterSection>
 					<FilterSection label="Show">
 						<Pagination {...props.pagination} />

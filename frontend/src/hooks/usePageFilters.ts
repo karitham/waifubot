@@ -1,7 +1,7 @@
 import { useSearchParams } from "@solidjs/router";
 import { createEffect, createResource, createSignal } from "solid-js";
-import type { Character, Profile } from "../api/generated";
-import { getUserV1, findUserV1 } from "../api/generated";
+import type { Character, UserProfile, CollectionResponse } from "../api/generated";
+import { getProfileV1, getCollectionV1, findUserV1 } from "../api/generated";
 import type { Option } from "../components/filters/FilterMedia";
 import { getUserID } from "./useUserSearch";
 import { useDebounce } from "./useDebounce";
@@ -32,13 +32,27 @@ export const sortOptions = [
 		label: "ID",
 		value: (a: Character, b: Character) => Number(a.id) - Number(b.id),
 	},
+	{
+		id: "favorites",
+		label: "Favorites",
+		value: (a: Character, b: Character) => (b.favorites ?? 0) - (a.favorites ?? 0),
+	},
 ];
 
-const fetchCompareUser = async (input?: string) => {
+export type CompareUser = {
+	profile: UserProfile;
+	characters: CollectionResponse;
+};
+
+const fetchCompareUser = async (input?: string): Promise<CompareUser | undefined> => {
 	if (!input) return undefined;
 	const userId = await getUserID(input);
 	if (!userId) return undefined;
-	return getUserV1(userId);
+	const [profile, collection] = await Promise.all([
+		getProfileV1(userId),
+		getCollectionV1(userId),
+	]);
+	return { profile, characters: collection };
 };
 
 const parseCompareIds = (param: string | undefined): string[] => {
@@ -65,6 +79,7 @@ export function usePageFilters(userId?: string) {
 		parseCompareIds(sp.compare),
 	);
 	const [charSort, setCharSort] = createSignal(sortOptions[0]);
+	const [charSortAsc, setCharSortAsc] = createSignal(true);
 	const [charSearch, setCharSearch] = useDebounce("", 250);
 	const [media, setMedia] = createSignal<Option>(
 		sp.media_id && {
@@ -74,7 +89,7 @@ export function usePageFilters(userId?: string) {
 	);
 
 	const [compareUsersResource] = createResource(compareIds, async (ids) => {
-		const users: Profile[] = [];
+		const users: CompareUser[] = [];
 		for (const id of ids) {
 			const user = await fetchCompareUser(id);
 			if (user) users.push(user);
@@ -94,10 +109,10 @@ export function usePageFilters(userId?: string) {
 		const fetchedUser = await fetchCompareUser(input);
 		if (
 			fetchedUser &&
-			fetchedUser.id !== userId &&
-			!compareIds().includes(fetchedUser.id)
+			fetchedUser.profile.id !== userId &&
+			!compareIds().includes(fetchedUser.profile.id)
 		) {
-			setCompareIds([...compareIds(), fetchedUser.id]);
+			setCompareIds([...compareIds(), fetchedUser.profile.id]);
 		}
 	};
 
@@ -112,6 +127,8 @@ export function usePageFilters(userId?: string) {
 		setCompareIds,
 		charSort,
 		setCharSort,
+		charSortAsc,
+		setCharSortAsc,
 		charSearch,
 		setCharSearch,
 		compareUsersResource,

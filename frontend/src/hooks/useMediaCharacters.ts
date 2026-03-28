@@ -22,6 +22,7 @@ const fetchCharacters = async (
 			image: c.image.large,
 			date: new Date().toISOString(),
 			type: Type.Roll,
+			favorites: c.favourites ?? 0,
 		}),
 	);
 };

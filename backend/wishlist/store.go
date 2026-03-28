@@ -42,10 +42,11 @@ func (s *store) GetUserCharacterWishlist(ctx context.Context, userID uint64) ([]
 	characters := make([]Character, len(rows))
 	for i, row := range rows {
 		characters[i] = Character{
-			ID:    row.ID,
-			Name:  row.Name,
-			Image: row.Image,
-			Date:  row.Date.Time.Format(time.RFC3339),
+			ID:        row.ID,
+			Name:      row.Name,
+			Image:     row.Image,
+			Date:      row.Date.Time.Format(time.RFC3339),
+			Favorites: int(row.Favorites),
 		}
 	}
 

@@ -21,6 +21,7 @@ type CharacterNode = {
 	image: {
 		large: string;
 	};
+	favourites?: number;
 };
 
 export async function getMediaCharacters(mediaId: string) {
@@ -35,6 +36,7 @@ export async function getMediaCharacters(mediaId: string) {
           image {
             large
           }
+          favourites
         }
         pageInfo {
           hasNextPage

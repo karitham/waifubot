@@ -14,15 +14,17 @@ const oazapfts = Oazapfts.runtime(defaults);
 export const servers = {};
 export type Character = {
     /** Date the character was added */
-    date: string;
+    date?: string | null;
     /** Character name */
     name: string;
     /** Character image URL */
     image: string;
     /** Character source type */
-    "type": Type;
+    "type"?: Type | null;
     /** Character ID */
     id: number;
+    /** Number of favorites on the character */
+    favorites: number;
 };
 export type Profile = {
     /** User ID */
@@ -53,6 +55,28 @@ export type Error = {
 export type UserIdResponse = {
     /** User ID */
     id: string;
+};
+export type UserProfile = {
+    /** User ID */
+    id: string;
+    /** User's personal quote */
+    quote?: string;
+    /** User's token balance */
+    tokens: number;
+    /** Anilist user URL */
+    anilist_url?: string;
+    /** Discord username */
+    discord_username: string;
+    /** Discord avatar URL */
+    discord_avatar?: string;
+    /** User's favorite character (may be null if no favorite set) */
+    favorite?: Character;
+};
+export type CollectionResponse = {
+    /** List of characters in user's collection */
+    characters: Character[];
+    /** Total number of characters in collection */
+    total: number;
 };
 export type WishlistResponse = {
     /** List of characters in wishlist */
@@ -137,6 +161,40 @@ export function findUserV1({ anilist, discord }: {
         anilist,
         discord
     }))}`, {
+        ...opts
+    }));
+}
+/**
+ * Get user profile
+ */
+export function getProfileV1(userId: string, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: UserProfile;
+    } | {
+        status: 400;
+        data: Error;
+    } | {
+        status: 404;
+        data: Error;
+    }>(`/api/v1/profile/${encodeURIComponent(userId)}`, {
+        ...opts
+    }));
+}
+/**
+ * Get user collection
+ */
+export function getCollectionV1(userId: string, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: CollectionResponse;
+    } | {
+        status: 400;
+        data: Error;
+    } | {
+        status: 404;
+        data: Error;
+    }>(`/api/v1/collection/${encodeURIComponent(userId)}`, {
         ...opts
     }));
 }

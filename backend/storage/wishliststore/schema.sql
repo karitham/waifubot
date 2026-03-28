@@ -1,7 +1,8 @@
 CREATE TABLE public.characters (
   id BIGINT CONSTRAINT characters_new_id_not_null NOT NULL,
   name CHARACTER VARYING(128) CONSTRAINT characters_new_name_not_null NOT NULL,
-  image CHARACTER VARYING(256) CONSTRAINT characters_new_image_not_null NOT NULL
+  image CHARACTER VARYING(256) CONSTRAINT characters_new_image_not_null NOT NULL,
+  favorites INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE public.character_wishlist (

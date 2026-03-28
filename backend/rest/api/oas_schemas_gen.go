@@ -12,19 +12,21 @@ import (
 // Ref: #/components/schemas/Character
 type Character struct {
 	// Date the character was added.
-	Date time.Time `json:"date"`
+	Date OptNilDateTime `json:"date"`
 	// Character name.
 	Name string `json:"name"`
 	// Character image URL.
 	Image string `json:"image"`
 	// Character source type.
-	Type CharacterType `json:"type"`
+	Type OptNilCharacterType `json:"type"`
 	// Character ID.
 	ID int64 `json:"id"`
+	// Number of favorites on the character.
+	Favorites int `json:"favorites"`
 }
 
 // GetDate returns the value of Date.
-func (s *Character) GetDate() time.Time {
+func (s *Character) GetDate() OptNilDateTime {
 	return s.Date
 }
 
@@ -39,7 +41,7 @@ func (s *Character) GetImage() string {
 }
 
 // GetType returns the value of Type.
-func (s *Character) GetType() CharacterType {
+func (s *Character) GetType() OptNilCharacterType {
 	return s.Type
 }
 
@@ -48,8 +50,13 @@ func (s *Character) GetID() int64 {
 	return s.ID
 }
 
+// GetFavorites returns the value of Favorites.
+func (s *Character) GetFavorites() int {
+	return s.Favorites
+}
+
 // SetDate sets the value of Date.
-func (s *Character) SetDate(val time.Time) {
+func (s *Character) SetDate(val OptNilDateTime) {
 	s.Date = val
 }
 
@@ -64,13 +71,18 @@ func (s *Character) SetImage(val string) {
 }
 
 // SetType sets the value of Type.
-func (s *Character) SetType(val CharacterType) {
+func (s *Character) SetType(val OptNilCharacterType) {
 	s.Type = val
 }
 
 // SetID sets the value of ID.
 func (s *Character) SetID(val int64) {
 	s.ID = val
+}
+
+// SetFavorites sets the value of Favorites.
+func (s *Character) SetFavorites(val int) {
+	s.Favorites = val
 }
 
 // Character source type.
@@ -143,6 +155,37 @@ func (s *CharacterType) UnmarshalText(data []byte) error {
 	}
 }
 
+// User's character collection response.
+// Ref: #/components/schemas/CollectionResponse
+type CollectionResponse struct {
+	// List of characters in user's collection.
+	Characters []Character `json:"characters"`
+	// Total number of characters in collection.
+	Total int `json:"total"`
+}
+
+// GetCharacters returns the value of Characters.
+func (s *CollectionResponse) GetCharacters() []Character {
+	return s.Characters
+}
+
+// GetTotal returns the value of Total.
+func (s *CollectionResponse) GetTotal() int {
+	return s.Total
+}
+
+// SetCharacters sets the value of Characters.
+func (s *CollectionResponse) SetCharacters(val []Character) {
+	s.Characters = val
+}
+
+// SetTotal sets the value of Total.
+func (s *CollectionResponse) SetTotal(val int) {
+	s.Total = val
+}
+
+func (*CollectionResponse) getCollectionV1Res() {}
+
 // Standard error response.
 // Ref: #/components/schemas/Error
 type Error struct {
@@ -199,6 +242,22 @@ func (*FindUserV1BadRequest) findUserV1Res() {}
 type FindUserV1NotFound Error
 
 func (*FindUserV1NotFound) findUserV1Res() {}
+
+type GetCollectionV1BadRequest Error
+
+func (*GetCollectionV1BadRequest) getCollectionV1Res() {}
+
+type GetCollectionV1NotFound Error
+
+func (*GetCollectionV1NotFound) getCollectionV1Res() {}
+
+type GetProfileV1BadRequest Error
+
+func (*GetProfileV1BadRequest) getProfileV1Res() {}
+
+type GetProfileV1NotFound Error
+
+func (*GetProfileV1NotFound) getProfileV1Res() {}
 
 type GetUserBadRequest Error
 
@@ -264,6 +323,132 @@ func (o OptCharacter) Get() (v Character, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptCharacter) Or(d Character) Character {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptNilCharacterType returns new OptNilCharacterType with value set to v.
+func NewOptNilCharacterType(v CharacterType) OptNilCharacterType {
+	return OptNilCharacterType{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilCharacterType is optional nullable CharacterType.
+type OptNilCharacterType struct {
+	Value CharacterType
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilCharacterType was set.
+func (o OptNilCharacterType) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilCharacterType) Reset() {
+	var v CharacterType
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilCharacterType) SetTo(v CharacterType) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilCharacterType) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilCharacterType) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v CharacterType
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilCharacterType) Get() (v CharacterType, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilCharacterType) Or(d CharacterType) CharacterType {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptNilDateTime returns new OptNilDateTime with value set to v.
+func NewOptNilDateTime(v time.Time) OptNilDateTime {
+	return OptNilDateTime{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilDateTime is optional nullable time.Time.
+type OptNilDateTime struct {
+	Value time.Time
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilDateTime was set.
+func (o OptNilDateTime) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilDateTime) Reset() {
+	var v time.Time
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilDateTime) SetTo(v time.Time) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilDateTime) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilDateTime) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v time.Time
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilDateTime) Get() (v time.Time, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilDateTime) Or(d time.Time) time.Time {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -439,6 +624,97 @@ func (s *UserIdResponse) SetID(val string) {
 
 func (*UserIdResponse) findUserRes()   {}
 func (*UserIdResponse) findUserV1Res() {}
+
+// User profile with favorite character.
+// Ref: #/components/schemas/UserProfile
+type UserProfile struct {
+	// User ID.
+	ID string `json:"id"`
+	// User's personal quote.
+	Quote OptString `json:"quote"`
+	// User's token balance.
+	Tokens int32 `json:"tokens"`
+	// Anilist user URL.
+	AnilistURL OptString `json:"anilist_url"`
+	// Discord username.
+	DiscordUsername string `json:"discord_username"`
+	// Discord avatar URL.
+	DiscordAvatar OptString `json:"discord_avatar"`
+	// User's favorite character (may be null if no favorite set).
+	Favorite OptCharacter `json:"favorite"`
+}
+
+// GetID returns the value of ID.
+func (s *UserProfile) GetID() string {
+	return s.ID
+}
+
+// GetQuote returns the value of Quote.
+func (s *UserProfile) GetQuote() OptString {
+	return s.Quote
+}
+
+// GetTokens returns the value of Tokens.
+func (s *UserProfile) GetTokens() int32 {
+	return s.Tokens
+}
+
+// GetAnilistURL returns the value of AnilistURL.
+func (s *UserProfile) GetAnilistURL() OptString {
+	return s.AnilistURL
+}
+
+// GetDiscordUsername returns the value of DiscordUsername.
+func (s *UserProfile) GetDiscordUsername() string {
+	return s.DiscordUsername
+}
+
+// GetDiscordAvatar returns the value of DiscordAvatar.
+func (s *UserProfile) GetDiscordAvatar() OptString {
+	return s.DiscordAvatar
+}
+
+// GetFavorite returns the value of Favorite.
+func (s *UserProfile) GetFavorite() OptCharacter {
+	return s.Favorite
+}
+
+// SetID sets the value of ID.
+func (s *UserProfile) SetID(val string) {
+	s.ID = val
+}
+
+// SetQuote sets the value of Quote.
+func (s *UserProfile) SetQuote(val OptString) {
+	s.Quote = val
+}
+
+// SetTokens sets the value of Tokens.
+func (s *UserProfile) SetTokens(val int32) {
+	s.Tokens = val
+}
+
+// SetAnilistURL sets the value of AnilistURL.
+func (s *UserProfile) SetAnilistURL(val OptString) {
+	s.AnilistURL = val
+}
+
+// SetDiscordUsername sets the value of DiscordUsername.
+func (s *UserProfile) SetDiscordUsername(val string) {
+	s.DiscordUsername = val
+}
+
+// SetDiscordAvatar sets the value of DiscordAvatar.
+func (s *UserProfile) SetDiscordAvatar(val OptString) {
+	s.DiscordAvatar = val
+}
+
+// SetFavorite sets the value of Favorite.
+func (s *UserProfile) SetFavorite(val OptCharacter) {
+	s.Favorite = val
+}
+
+func (*UserProfile) getProfileV1Res() {}
 
 // User's wishlist response.
 // Ref: #/components/schemas/WishlistResponse

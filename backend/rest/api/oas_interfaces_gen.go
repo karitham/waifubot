@@ -9,6 +9,14 @@ type FindUserV1Res interface {
 	findUserV1Res()
 }
 
+type GetCollectionV1Res interface {
+	getCollectionV1Res()
+}
+
+type GetProfileV1Res interface {
+	getProfileV1Res()
+}
+
 type GetUserRes interface {
 	getUserRes()
 }

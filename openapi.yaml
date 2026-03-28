@@ -59,6 +59,7 @@ paths:
 
   /api/v1/user/{userID}:
     get:
+      deprecated: true
       summary: Get user profile (v1)
       description: Retrieve a user's complete profile including user info, collection, and favorite character
       operationId: getUserV1
@@ -80,6 +81,7 @@ paths:
 
   /api/v1/user/find:
     get:
+      deprecated: true
       summary: Find user by Anilist or Discord (v1)
       description: Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
       operationId: findUserV1
@@ -97,6 +99,48 @@ paths:
                 $ref: "#/components/schemas/UserIdResponse"
         400:
           $ref: "#/components/responses/missingQueryParam"
+        404:
+          $ref: "#/components/responses/userNotFound"
+
+  /api/v1/profile/{userID}:
+    get:
+      summary: Get user profile
+      description: Retrieve a user's profile information and favorite character
+      operationId: getProfileV1
+      tags:
+        - user
+      parameters:
+        - $ref: "#/components/parameters/userID"
+      responses:
+        200:
+          description: User profile successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        400:
+          $ref: "#/components/responses/invalidID"
+        404:
+          $ref: "#/components/responses/userNotFound"
+
+  /api/v1/collection/{userID}:
+    get:
+      summary: Get user collection
+      description: Retrieve a user's character collection
+      operationId: getCollectionV1
+      tags:
+        - user
+      parameters:
+        - $ref: "#/components/parameters/userID"
+      responses:
+        200:
+          description: Collection successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectionResponse"
+        400:
+          $ref: "#/components/responses/invalidID"
         404:
           $ref: "#/components/responses/userNotFound"
 
@@ -172,17 +216,20 @@ components:
           image: "https://example.com/rem.jpg"
           type: "anime"
           id: 42
+          favorites: 1500
         waifus:
           - date: "2024-01-15T10:30:00Z"
             name: "Rem"
             image: "https://example.com/rem.jpg"
             type: "anime"
             id: 42
+            favorites: 1500
           - date: "2024-01-20T14:45:00Z"
             name: "Nezuko"
             image: "https://example.com/nezuko.jpg"
             type: "anime"
             id: 55
+            favorites: 800
     wishlistSuccess:
       summary: Example wishlist response
       value:
@@ -192,11 +239,13 @@ components:
             image: "https://example.com/rem.jpg"
             type: "anime"
             id: 42
+            favorites: 1500
           - date: "2024-01-20T14:45:00Z"
             name: "Nezuko"
             image: "https://example.com/nezuko.jpg"
             type: "anime"
             id: 55
+            favorites: 800
         total: 2
 
   responses:
@@ -310,15 +359,15 @@ components:
       type: object
       description: Character information
       required:
-        - date
         - name
         - image
-        - type
         - id
+        - favorites
       properties:
         date:
           type: string
           format: date-time
+          nullable: true
           description: Date the character was added
           example: "2024-01-15T10:30:00Z"
         name:
@@ -331,6 +380,7 @@ components:
           example: "https://example.com/rem.jpg"
         type:
           type: string
+          nullable: true
           enum:
             - ROLL
             - CLAIM
@@ -345,6 +395,10 @@ components:
           format: int64
           description: Character ID
           example: 42
+        favorites:
+          type: integer
+          description: Number of favorites on the character
+          example: 1500
 
     WishlistResponse:
       type: object
@@ -363,6 +417,62 @@ components:
           type: integer
           description: Total number of characters in wishlist
           example: 2
+
+    UserProfile:
+      type: object
+      description: User profile with favorite character
+      required:
+        - id
+        - discord_username
+        - tokens
+      properties:
+        id:
+          type: string
+          description: User ID
+          example: "1234567890"
+        quote:
+          type: string
+          description: User's personal quote
+          example: "Dreams are free, but hard work is expensive."
+        tokens:
+          type: integer
+          format: int32
+          description: User's token balance
+          example: 100
+        anilist_url:
+          type: string
+          description: Anilist user URL
+          example: "https://anilist.co/user/animefan"
+        discord_username:
+          type: string
+          description: Discord username
+          example: "waifu_lover"
+        discord_avatar:
+          type: string
+          description: Discord avatar URL
+          example: "https://cdn.discordapp.com/avatars/1234567890/abc123.png"
+        favorite:
+          $ref: "#/components/schemas/Character"
+          nullable: true
+          description: User's favorite character (may be null if no favorite set)
+
+    CollectionResponse:
+      type: object
+      description: User's character collection response
+      required:
+        - characters
+        - total
+      properties:
+        characters:
+          type: array
+          description: List of characters in user's collection
+          minItems: 0
+          items:
+            $ref: "#/components/schemas/Character"
+        total:
+          type: integer
+          description: Total number of characters in collection
+          example: 42
 
     UserIdResponse:
       type: object

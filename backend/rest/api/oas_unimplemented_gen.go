@@ -28,8 +28,28 @@ func (UnimplementedHandler) FindUser(ctx context.Context, params FindUserParams)
 //
 // Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
 //
+// Deprecated: schema marks this operation as deprecated.
+//
 // GET /api/v1/user/find
 func (UnimplementedHandler) FindUserV1(ctx context.Context, params FindUserV1Params) (r FindUserV1Res, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetCollectionV1 implements getCollectionV1 operation.
+//
+// Retrieve a user's character collection.
+//
+// GET /api/v1/collection/{userID}
+func (UnimplementedHandler) GetCollectionV1(ctx context.Context, params GetCollectionV1Params) (r GetCollectionV1Res, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetProfileV1 implements getProfileV1 operation.
+//
+// Retrieve a user's profile information and favorite character.
+//
+// GET /api/v1/profile/{userID}
+func (UnimplementedHandler) GetProfileV1(ctx context.Context, params GetProfileV1Params) (r GetProfileV1Res, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -47,6 +67,8 @@ func (UnimplementedHandler) GetUser(ctx context.Context, params GetUserParams) (
 // GetUserV1 implements getUserV1 operation.
 //
 // Retrieve a user's complete profile including user info, collection, and favorite character.
+//
+// Deprecated: schema marks this operation as deprecated.
 //
 // GET /api/v1/user/{userID}
 func (UnimplementedHandler) GetUserV1(ctx context.Context, params GetUserV1Params) (r GetUserV1Res, _ error) {

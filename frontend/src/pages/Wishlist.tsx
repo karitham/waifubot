@@ -1,4 +1,4 @@
-import { getWishlist as getWishlistAPI, getUserV1 } from "../api/generated";
+import { getWishlist as getWishlistAPI, getProfileV1 } from "../api/generated";
 import type { WishlistResponse } from "../api/generated";
 import UserCollectionPage from "../components/UserCollectionPage";
 
@@ -15,7 +15,7 @@ export default () => {
 
 	return (
 		<UserCollectionPage
-			fetchUser={(id) => getUserV1(id)}
+			fetchUser={(id) => getProfileV1(id)}
 			fetchCharacters={fetchList}
 			title="Wishlist"
 			allowEmpty={false}

@@ -73,6 +73,68 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					break
 				}
 				switch elem[0] {
+				case 'c': // Prefix: "collection/"
+
+					if l := len("collection/"); len(elem) >= l && elem[0:l] == "collection/" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					// Param: "userID"
+					// Leaf parameter, slashes are prohibited
+					idx := strings.IndexByte(elem, '/')
+					if idx >= 0 {
+						break
+					}
+					args[0] = elem
+					elem = ""
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch r.Method {
+						case "GET":
+							s.handleGetCollectionV1Request([1]string{
+								args[0],
+							}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, "GET")
+						}
+
+						return
+					}
+
+				case 'p': // Prefix: "profile/"
+
+					if l := len("profile/"); len(elem) >= l && elem[0:l] == "profile/" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					// Param: "userID"
+					// Leaf parameter, slashes are prohibited
+					idx := strings.IndexByte(elem, '/')
+					if idx >= 0 {
+						break
+					}
+					args[0] = elem
+					elem = ""
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch r.Method {
+						case "GET":
+							s.handleGetProfileV1Request([1]string{
+								args[0],
+							}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, "GET")
+						}
+
+						return
+					}
+
 				case 'u': // Prefix: "user/"
 
 					if l := len("user/"); len(elem) >= l && elem[0:l] == "user/" {
@@ -332,6 +394,74 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 					break
 				}
 				switch elem[0] {
+				case 'c': // Prefix: "collection/"
+
+					if l := len("collection/"); len(elem) >= l && elem[0:l] == "collection/" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					// Param: "userID"
+					// Leaf parameter, slashes are prohibited
+					idx := strings.IndexByte(elem, '/')
+					if idx >= 0 {
+						break
+					}
+					args[0] = elem
+					elem = ""
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch method {
+						case "GET":
+							r.name = GetCollectionV1Operation
+							r.summary = "Get user collection"
+							r.operationID = "getCollectionV1"
+							r.operationGroup = ""
+							r.pathPattern = "/api/v1/collection/{userID}"
+							r.args = args
+							r.count = 1
+							return r, true
+						default:
+							return
+						}
+					}
+
+				case 'p': // Prefix: "profile/"
+
+					if l := len("profile/"); len(elem) >= l && elem[0:l] == "profile/" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					// Param: "userID"
+					// Leaf parameter, slashes are prohibited
+					idx := strings.IndexByte(elem, '/')
+					if idx >= 0 {
+						break
+					}
+					args[0] = elem
+					elem = ""
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch method {
+						case "GET":
+							r.name = GetProfileV1Operation
+							r.summary = "Get user profile"
+							r.operationID = "getProfileV1"
+							r.operationGroup = ""
+							r.pathPattern = "/api/v1/profile/{userID}"
+							r.args = args
+							r.count = 1
+							return r, true
+						default:
+							return
+						}
+					}
+
 				case 'u': // Prefix: "user/"
 
 					if l := len("user/"); len(elem) >= l && elem[0:l] == "user/" {

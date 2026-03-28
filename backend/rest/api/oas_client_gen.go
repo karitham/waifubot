@@ -39,8 +39,22 @@ type Invoker interface {
 	//
 	// Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
 	//
+	// Deprecated: schema marks this operation as deprecated.
+	//
 	// GET /api/v1/user/find
 	FindUserV1(ctx context.Context, params FindUserV1Params) (FindUserV1Res, error)
+	// GetCollectionV1 invokes getCollectionV1 operation.
+	//
+	// Retrieve a user's character collection.
+	//
+	// GET /api/v1/collection/{userID}
+	GetCollectionV1(ctx context.Context, params GetCollectionV1Params) (GetCollectionV1Res, error)
+	// GetProfileV1 invokes getProfileV1 operation.
+	//
+	// Retrieve a user's profile information and favorite character.
+	//
+	// GET /api/v1/profile/{userID}
+	GetProfileV1(ctx context.Context, params GetProfileV1Params) (GetProfileV1Res, error)
 	// GetUser invokes getUser operation.
 	//
 	// Retrieve a user's complete profile including user info, collection, and favorite character.
@@ -52,6 +66,8 @@ type Invoker interface {
 	// GetUserV1 invokes getUserV1 operation.
 	//
 	// Retrieve a user's complete profile including user info, collection, and favorite character.
+	//
+	// Deprecated: schema marks this operation as deprecated.
 	//
 	// GET /api/v1/user/{userID}
 	GetUserV1(ctx context.Context, params GetUserV1Params) (GetUserV1Res, error)
@@ -223,6 +239,8 @@ func (c *Client) sendFindUser(ctx context.Context, params FindUserParams) (res F
 //
 // Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
 //
+// Deprecated: schema marks this operation as deprecated.
+//
 // GET /api/v1/user/find
 func (c *Client) FindUserV1(ctx context.Context, params FindUserV1Params) (FindUserV1Res, error) {
 	res, err := c.sendFindUserV1(ctx, params)
@@ -330,6 +348,188 @@ func (c *Client) sendFindUserV1(ctx context.Context, params FindUserV1Params) (r
 	return result, nil
 }
 
+// GetCollectionV1 invokes getCollectionV1 operation.
+//
+// Retrieve a user's character collection.
+//
+// GET /api/v1/collection/{userID}
+func (c *Client) GetCollectionV1(ctx context.Context, params GetCollectionV1Params) (GetCollectionV1Res, error) {
+	res, err := c.sendGetCollectionV1(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendGetCollectionV1(ctx context.Context, params GetCollectionV1Params) (res GetCollectionV1Res, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("getCollectionV1"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/api/v1/collection/{userID}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, GetCollectionV1Operation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [2]string
+	pathParts[0] = "/api/v1/collection/"
+	{
+		// Encode "userID" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "userID",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.StringToString(params.UserID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	defer resp.Body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeGetCollectionV1Response(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// GetProfileV1 invokes getProfileV1 operation.
+//
+// Retrieve a user's profile information and favorite character.
+//
+// GET /api/v1/profile/{userID}
+func (c *Client) GetProfileV1(ctx context.Context, params GetProfileV1Params) (GetProfileV1Res, error) {
+	res, err := c.sendGetProfileV1(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendGetProfileV1(ctx context.Context, params GetProfileV1Params) (res GetProfileV1Res, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("getProfileV1"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/api/v1/profile/{userID}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, GetProfileV1Operation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [2]string
+	pathParts[0] = "/api/v1/profile/"
+	{
+		// Encode "userID" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "userID",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.StringToString(params.UserID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	defer resp.Body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeGetProfileV1Response(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
 // GetUser invokes getUser operation.
 //
 // Retrieve a user's complete profile including user info, collection, and favorite character.
@@ -426,6 +626,8 @@ func (c *Client) sendGetUser(ctx context.Context, params GetUserParams) (res Get
 // GetUserV1 invokes getUserV1 operation.
 //
 // Retrieve a user's complete profile including user info, collection, and favorite character.
+//
+// Deprecated: schema marks this operation as deprecated.
 //
 // GET /api/v1/user/{userID}
 func (c *Client) GetUserV1(ctx context.Context, params GetUserV1Params) (GetUserV1Res, error) {

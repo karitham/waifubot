@@ -62,19 +62,22 @@ export default (props: {
 	);
 
 	return (
-		<Show when={props.favorite && props.favorite.name !== ""}>
-			<div class="flex flex-col gap-8 p-4">
-				<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-					{Username}
-					<Show when={props.actionLink}>
-						<a
-							href={props.actionLink?.href}
-							class="px-4 py-2 bg-mauve text-base rounded-lg hover:bg-pink transition-colors"
-						>
-							{props.actionLink?.label}
-						</a>
-					</Show>
-				</div>
+		<div class="flex flex-col gap-8 p-4">
+			{/* Always show user info header */}
+			<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+				{Username}
+				<Show when={props.actionLink}>
+					<a
+						href={props.actionLink?.href}
+						class="px-4 py-2 bg-mauve text-base rounded-lg hover:bg-pink transition-colors"
+					>
+						{props.actionLink?.label}
+					</a>
+				</Show>
+			</div>
+
+			{/* Conditional: Favorite character section */}
+			<Show when={props.favorite && props.favorite.name !== ""}>
 				<div class="bg-surface p-4 rounded-lg">
 					<h3 class="text-lg font-semibold mb-4 text-mauve">
 						Favorite Character
@@ -88,22 +91,23 @@ export default (props: {
 						<CharacterDetails char={props.favorite} />
 					</div>
 				</div>
+			</Show>
 
-				<Show when={props.about && props.about !== ""}>
-					<div>
-						<div
-							id="about"
-							class="hyphens-auto overflow-hidden text-sm m-0 md:break-words break-all text-text font-sans [&_p]:m-0 [&_a]:text-blue-400 [&_a:hover]:text-blue-500"
-							innerHTML={marked.parse(
-								props.about?.replaceAll("\n", "\n\n") ?? "",
-								{
-									async: false,
-								},
-							)}
-						/>
-					</div>
-				</Show>
-			</div>
-		</Show>
+			{/* Conditional: Quote/about section */}
+			<Show when={props.about && props.about !== ""}>
+				<div>
+					<div
+						id="about"
+						class="hyphens-auto overflow-hidden text-sm m-0 md:break-words break-all text-text font-sans [&_p]:m-0 [&_a]:text-blue-400 [&_a:hover]:text-blue-500"
+						innerHTML={marked.parse(
+							props.about?.replaceAll("\n", "\n\n") ?? "",
+							{
+								async: false,
+							},
+						)}
+					/>
+				</div>
+			</Show>
+		</div>
 	);
 };

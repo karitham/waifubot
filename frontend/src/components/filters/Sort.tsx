@@ -15,16 +15,7 @@ export type CharSortProps<T> = {
 
 export default function <T>(props: CharSortProps<T>) {
 	const handleChange = (value: SortFn<T> | null) => {
-		if (!value) {
-			props.onChange((prev: SortFn<T>) => {
-				return {
-					id: prev.id,
-					label: prev.label,
-					value: (a: T, b: T) => prev.value(b, a),
-				};
-			});
-			return;
-		}
+		if (!value) return;
 		props.onChange(value);
 	};
 
@@ -35,7 +26,6 @@ export default function <T>(props: CharSortProps<T>) {
 			onChange={handleChange}
 			optionValue="id"
 			optionTextValue="label"
-			allowDuplicateSelectionEvents={true}
 			placeholder="Sort by..."
 		/>
 	);

@@ -110,6 +110,7 @@ SELECT
   c.id,
   c.name,
   c.image,
+  c.favorites,
   cw.created_at AS date
 FROM
   character_wishlist cw
@@ -121,10 +122,11 @@ ORDER BY
 `
 
 type GetUserCharacterWishlistRow struct {
-	ID    int64
-	Name  string
-	Image string
-	Date  pgtype.Timestamp
+	ID        int64
+	Name      string
+	Image     string
+	Favorites int32
+	Date      pgtype.Timestamp
 }
 
 func (q *Queries) GetUserCharacterWishlist(ctx context.Context, userID uint64) ([]GetUserCharacterWishlistRow, error) {
@@ -140,6 +142,7 @@ func (q *Queries) GetUserCharacterWishlist(ctx context.Context, userID uint64) (
 			&i.ID,
 			&i.Name,
 			&i.Image,
+			&i.Favorites,
 			&i.Date,
 		); err != nil {
 			return nil, err

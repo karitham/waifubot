@@ -1,6 +1,7 @@
 import { useSearchParams } from "@solidjs/router";
 import { Show } from "solid-js";
-import type { Character, Profile } from "../api/generated";
+import type { Character, UserProfile } from "../api/generated";
+import type { CompareUser } from "../hooks/usePageFilters";
 import CollectionBody from "../components/CollectionBody";
 import CollectionNav from "../components/CollectionNav";
 import PageLayout from "../components/layout/Layout";
@@ -10,7 +11,7 @@ import { usePageFilters } from "../hooks/usePageFilters";
 import { getSearchParams } from "../utils";
 
 interface CollectionPageProps {
-	user: Profile | undefined;
+	user: UserProfile | undefined;
 	characters: Character[] | undefined;
 	allowEmpty: boolean;
 	profileTitle: string;
@@ -31,6 +32,8 @@ export default (props: CollectionPageProps) => {
 		compareIds,
 		charSort,
 		setCharSort,
+		charSortAsc,
+		setCharSortAsc,
 		charSearch,
 		setCharSearch,
 		compareUsersResource,
@@ -78,9 +81,7 @@ export default (props: CollectionPageProps) => {
 						characters={props.characters}
 						mediaCharacters={mediaCharacters()}
 						compareUsers={compareUsersResource()}
-						users={[props.user, ...(compareUsersResource() || [])].filter(
-							Boolean,
-						)}
+						mainUser={props.user}
 						charSearch={charSearch()}
 						showCount={showCount()}
 						charSort={charSort()}
@@ -95,6 +96,8 @@ export default (props: CollectionPageProps) => {
 						onCompareAdd={onCompareAdd}
 						onCompareRemove={onCompareRemove}
 						compareIds={compareIds()}
+						sortAscending={charSortAsc()}
+						onToggleSortDirection={() => setCharSortAsc((prev) => !prev)}
 					/>
 				}
 			/>

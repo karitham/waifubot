@@ -17,6 +17,7 @@ SELECT
   c.id,
   c.name,
   c.image,
+  c.favorites,
   cw.created_at AS date
 FROM
   character_wishlist cw

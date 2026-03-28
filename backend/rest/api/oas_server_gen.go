@@ -20,8 +20,22 @@ type Handler interface {
 	//
 	// Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
 	//
+	// Deprecated: schema marks this operation as deprecated.
+	//
 	// GET /api/v1/user/find
 	FindUserV1(ctx context.Context, params FindUserV1Params) (FindUserV1Res, error)
+	// GetCollectionV1 implements getCollectionV1 operation.
+	//
+	// Retrieve a user's character collection.
+	//
+	// GET /api/v1/collection/{userID}
+	GetCollectionV1(ctx context.Context, params GetCollectionV1Params) (GetCollectionV1Res, error)
+	// GetProfileV1 implements getProfileV1 operation.
+	//
+	// Retrieve a user's profile information and favorite character.
+	//
+	// GET /api/v1/profile/{userID}
+	GetProfileV1(ctx context.Context, params GetProfileV1Params) (GetProfileV1Res, error)
 	// GetUser implements getUser operation.
 	//
 	// Retrieve a user's complete profile including user info, collection, and favorite character.
@@ -33,6 +47,8 @@ type Handler interface {
 	// GetUserV1 implements getUserV1 operation.
 	//
 	// Retrieve a user's complete profile including user info, collection, and favorite character.
+	//
+	// Deprecated: schema marks this operation as deprecated.
 	//
 	// GET /api/v1/user/{userID}
 	GetUserV1(ctx context.Context, params GetUserV1Params) (GetUserV1Res, error)

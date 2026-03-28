@@ -1,10 +1,10 @@
 import { useParams } from "@solidjs/router";
 import { createResource } from "solid-js";
-import type { Character, Profile } from "../api/generated";
+import type { Character, UserProfile } from "../api/generated";
 import CollectionPage from "./CollectionPage";
 
 interface UserCollectionPageProps {
-	fetchUser: (id: string) => Promise<Profile>;
+	fetchUser: (id: string) => Promise<UserProfile>;
 	fetchCharacters: (id: string) => Promise<Character[]>;
 	title: string;
 	allowEmpty: boolean;
