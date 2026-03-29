@@ -211,7 +211,7 @@ func TestBuildDropMessage(t *testing.T) {
 			embed := msg.Embeds[0]
 
 			assert.Equal(t, tt.wantTitle, embed.Title)
-			assert.Equal(t, tt.char.URL, embed.URL)
+			assert.Empty(t, embed.URL)
 			assert.Equal(t, collection.GradientColor(tt.char.Favorites), embed.Color)
 			assert.Contains(t, embed.Description, "A character has appeared!")
 			assert.Contains(t, embed.Description, "/claim")

@@ -55,7 +55,6 @@ func dropMessage(char collection.MediaCharacter, image io.Reader) corde.Message 
 				initials.String(),
 				char.Rarity(),
 			),
-			URL:    char.URL,
 			Footer: corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"},
 			Color:  collection.GradientColor(char.Favorites),
 		}},
