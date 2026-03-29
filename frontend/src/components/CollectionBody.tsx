@@ -1,13 +1,16 @@
 import type { Setter } from "solid-js";
 import type { Character, UserProfile } from "../api/generated";
-import type { CompareUser } from "../hooks/usePageFilters";
 import CharGrid from "../components/character/CharGrid";
 import FilterBar from "../components/filters/FilterBar";
 import type { Option } from "../components/filters/FilterMedia";
-import { selectOptions, sortOptions } from "../hooks/usePageFilters";
+import type { CompareUser } from "../hooks/usePageFilters";
+import { sortOptions } from "../hooks/usePageFilters";
 
-type SortFn = { id: string; label: string; value: (a: Character, b: Character) => number };
-type SelectOption = { value: number; label: string };
+type SortFn = {
+	id: string;
+	label: string;
+	value: (a: Character, b: Character) => number;
+};
 
 interface CollectionBodyProps {
 	characters: Character[] | undefined;
@@ -15,11 +18,9 @@ interface CollectionBodyProps {
 	compareUsers: CompareUser[] | undefined;
 	mainUser: UserProfile;
 	charSearch: string;
-	showCount: SelectOption;
 	charSort: SortFn;
 	onCharSearchChange: (value: string) => void;
 	onCharSortChange: Setter<SortFn>;
-	onShowCountChange: (value: SelectOption) => void;
 	onMediaChange: (media: Option | null) => void;
 	media: Option | null;
 	onCompareAdd: (input: string) => Promise<void>;
@@ -41,11 +42,6 @@ export default (props: CollectionBodyProps) => (
 					options: sortOptions,
 					value: props.charSort,
 				}}
-				pagination={{
-					options: selectOptions,
-					value: props.showCount,
-					onChange: props.onShowCountChange,
-				}}
 				mediaFilter={{
 					onChange: props.onMediaChange,
 					value: props.media,
@@ -60,10 +56,9 @@ export default (props: CollectionBodyProps) => (
 			/>
 		</div>
 
-		<div class="content-width pt-0 p-8">
+		<div class="content-width w-full pt-0 p-8">
 			<CharGrid
 				charSearch={props.charSearch}
-				showCount={props.showCount.value}
 				characters={props.characters || []}
 				mediaCharacters={props.mediaCharacters}
 				compareUsers={props.compareUsers || []}

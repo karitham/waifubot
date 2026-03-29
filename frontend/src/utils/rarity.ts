@@ -59,7 +59,11 @@ export function getRarityHex(favorites: number): string {
 	let t = (logVal - logLower) / (logUpper - logLower);
 	t = Math.max(0, Math.min(1, t));
 
-	const interpolated = rgbLerp(thresholdColors[i].color, thresholdColors[i + 1].color, t);
+	const interpolated = rgbLerp(
+		thresholdColors[i].color,
+		thresholdColors[i + 1].color,
+		t,
+	);
 	return rgbToHex(interpolated);
 }
 

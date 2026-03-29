@@ -14,12 +14,16 @@ export type SelectFieldProps<T extends Record<string, unknown>> = {
 	allowDuplicateSelectionEvents?: boolean;
 };
 
-const defaultItemComponent = <T extends Record<string, unknown>>(props: any): JSX.Element => (
+const defaultItemComponent = <T extends Record<string, unknown>>(
+	props: any,
+): JSX.Element => (
 	<Select.Item
 		item={props.item}
 		class="p-4 w-full text-text cursor-pointer hover:bg-surfaceC transition-colors focus:outline-none focus:ring-2 focus:ring-mauve focus:ring-opacity-100"
 	>
-		<Select.ItemLabel>{props.item.rawValue[props.optionTextValue] as string}</Select.ItemLabel>
+		<Select.ItemLabel>
+			{props.item.rawValue[props.optionTextValue] as string}
+		</Select.ItemLabel>
 	</Select.Item>
 );
 

@@ -67,10 +67,7 @@ export default (props: CompareUserProps) => {
 	const avatarWidth = () => 24 + (props.selectedUsers.length - 1) * 16;
 
 	const customControl = (controlProps: { children: JSX.Element }) => (
-		<Search.Control
-			aria-label="Users"
-			class="search-control relative"
-		>
+		<Search.Control aria-label="Users" class="search-control relative">
 			<div class="relative w-full">
 				{controlProps.children}
 				<div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-end pointer-events-none">

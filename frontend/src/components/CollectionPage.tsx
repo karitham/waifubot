@@ -1,7 +1,6 @@
 import { useSearchParams } from "@solidjs/router";
 import { Show } from "solid-js";
 import type { Character, UserProfile } from "../api/generated";
-import type { CompareUser } from "../hooks/usePageFilters";
 import CollectionBody from "../components/CollectionBody";
 import CollectionNav from "../components/CollectionNav";
 import PageLayout from "../components/layout/Layout";
@@ -27,8 +26,6 @@ export default (props: CollectionPageProps) => {
 	const searchParams = () => getSearchParams(sp);
 
 	const {
-		showCount,
-		setShowCount,
 		compareIds,
 		charSort,
 		setCharSort,
@@ -83,11 +80,9 @@ export default (props: CollectionPageProps) => {
 						compareUsers={compareUsersResource()}
 						mainUser={props.user}
 						charSearch={charSearch()}
-						showCount={showCount()}
 						charSort={charSort()}
 						onCharSearchChange={setCharSearch}
 						onCharSortChange={setCharSort}
-						onShowCountChange={setShowCount}
 						onMediaChange={(m) => {
 							setMedia(m);
 							if (!m) setMediaCharacters(null);

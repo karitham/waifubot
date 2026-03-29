@@ -14,7 +14,9 @@ export default (props: {
 		<article
 			class="bg-surfaceA rounded-lg relative flex h-44 w-full overflow-clip hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer"
 			classList={{ "opacity-60": props.missing }}
-			style={{ "border-left": `4px solid ${getRarityHex(props.char.favorites)}` }}
+			style={{
+				"border-left": `4px solid ${getRarityHex(props.char.favorites)}`,
+			}}
 			aria-label={`${props.char.name} character card${
 				props.missing ? " (missing from collection)" : ""
 			}`}

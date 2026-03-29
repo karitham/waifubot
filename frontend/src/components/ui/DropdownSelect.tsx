@@ -16,10 +16,7 @@ type DropdownSelectProps<T extends SelectOption> = {
 const defaultItemComponent = <T extends SelectOption>(props: {
 	item: T;
 }): JSX.Element => (
-	<Select.Item
-		item={props.item as any}
-		class="select-item focus:ring-0"
-	>
+	<Select.Item item={props.item as any} class="select-item focus:ring-0">
 		<Select.ItemLabel>{props.item.label}</Select.ItemLabel>
 	</Select.Item>
 );

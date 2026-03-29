@@ -1,17 +1,14 @@
 import { useSearchParams } from "@solidjs/router";
 import { createEffect, createResource, createSignal } from "solid-js";
-import type { Character, UserProfile, CollectionResponse } from "../api/generated";
-import { getProfileV1, getCollectionV1, findUserV1 } from "../api/generated";
+import type {
+	Character,
+	CollectionResponse,
+	UserProfile,
+} from "../api/generated";
+import { findUserV1, getCollectionV1, getProfileV1 } from "../api/generated";
 import type { Option } from "../components/filters/FilterMedia";
-import { getUserID } from "./useUserSearch";
 import { useDebounce } from "./useDebounce";
-
-export const selectOptions = [
-	{ value: 100, label: "100" },
-	{ value: 200, label: "200" },
-	{ value: 500, label: "500" },
-	{ value: -1, label: "All" },
-];
+import { getUserID } from "./useUserSearch";
 
 export const sortOptions = [
 	{
@@ -35,7 +32,8 @@ export const sortOptions = [
 	{
 		id: "favorites",
 		label: "Favorites",
-		value: (a: Character, b: Character) => (b.favorites ?? 0) - (a.favorites ?? 0),
+		value: (a: Character, b: Character) =>
+			(b.favorites ?? 0) - (a.favorites ?? 0),
 	},
 ];
 
@@ -44,7 +42,9 @@ export type CompareUser = {
 	characters: CollectionResponse;
 };
 
-const fetchCompareUser = async (input?: string): Promise<CompareUser | undefined> => {
+const fetchCompareUser = async (
+	input?: string,
+): Promise<CompareUser | undefined> => {
 	if (!input) return undefined;
 	const userId = await getUserID(input);
 	if (!userId) return undefined;
@@ -74,7 +74,6 @@ export function usePageFilters(userId?: string) {
 		compare: string;
 	}>();
 
-	const [showCount, setShowCount] = createSignal(selectOptions[1]);
 	const [compareIds, setCompareIds] = createSignal<string[]>(
 		parseCompareIds(sp.compare),
 	);
@@ -121,8 +120,6 @@ export function usePageFilters(userId?: string) {
 	};
 
 	return {
-		showCount,
-		setShowCount,
 		compareIds,
 		setCompareIds,
 		charSort,

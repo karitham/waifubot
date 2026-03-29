@@ -3,12 +3,10 @@ import FilterLabel from "../ui/FilterLabel";
 import CompareUser, { type CompareUserProps } from "./CompareUser";
 import CharFilter, { type CharacterFilterProps } from "./Filter";
 import FilterMedia, { type FilterMediaProps } from "./FilterMedia";
-import Pagination, { type PaginationProps } from "./Paginate";
 import CharSort, { type CharSortProps } from "./Sort";
 import SortDirectionToggle from "./SortDirectionToggle";
 
 export type FilterBarProps = {
-	pagination: PaginationProps;
 	mediaFilter: FilterMediaProps;
 	compareFilter: CompareUserProps;
 	charFilter: CharacterFilterProps;
@@ -40,9 +38,6 @@ export default function (props: FilterBarProps) {
 								onToggle={props.onToggleSortDirection}
 							/>
 						</div>
-					</FilterSection>
-					<FilterSection label="Show">
-						<Pagination {...props.pagination} />
 					</FilterSection>
 				</div>
 			</div>
