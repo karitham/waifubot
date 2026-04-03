@@ -5,36 +5,43 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strings"
 
 	"github.com/Karitham/corde"
 
+	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 )
 
-func (b *Bot) token(m *corde.Mux) {
-	m.SlashCommand("balance", trace(b.tokenBalance))
-	m.SlashCommand("give", wrap(b.tokenGive, trace[corde.SlashCommandInteractionData]))
+// TokenHandler handles the /token command and its subcommands.
+type TokenHandler struct {
+	store        collection.Store
+	animeService TrackingService
+	config       collection.Config
+}
+
+// Register wires the token sub-routes on the mux.
+func (h *TokenHandler) Register(m *corde.Mux) {
+	m.SlashCommand("balance", trace(wrapCtx(h.Balance)))
+	m.SlashCommand("give", wrap(wrapCtx(h.Give), trace[corde.SlashCommandInteractionData]))
 	m.Route("sell", func(m *corde.Mux) {
 		m.SlashCommand("", wrap(
-			b.tokenSell,
+			wrapCtx(h.Sell),
 			trace[corde.SlashCommandInteractionData],
-			interact(b.InterStore, onInteraction[corde.SlashCommandInteractionData](b)),
 		))
-		m.Autocomplete("id", trace(b.userCollectionAutocomplete))
+		m.Autocomplete("id", h.userCollectionAutocomplete)
 	})
 	m.Route("roll", func(m *corde.Mux) {
 		m.SlashCommand("", wrap(
-			b.tokenRoll,
+			wrapCtx(h.Roll),
 			trace[corde.SlashCommandInteractionData],
-			interact(b.InterStore, onInteraction[corde.SlashCommandInteractionData](b)),
 		))
-		m.Autocomplete("series", trace(b.seriesAutocomplete))
+		m.Autocomplete("series", h.SeriesAutocomplete)
 	})
 }
 
-func (b *Bot) tokenBalance(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	user, err := b.Store.GetUser(ctx, uint64(i.Member.User.ID))
+// Balance shows the user's token balance.
+func (h *TokenHandler) Balance(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	user, err := h.store.GetUser(ctx, cmd.UserID())
 	if err != nil {
 		w.Respond(rspErr("Failed to get your balance"))
 		return
@@ -42,24 +49,41 @@ func (b *Bot) tokenBalance(ctx context.Context, w corde.ResponseWriter, i *corde
 	w.Respond(corde.NewResp().Contentf("You have %d tokens", user.Tokens).Ephemeral())
 }
 
-func (b *Bot) tokenGive(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
+// tokenGiveOptions holds the parsed options for the token give command.
+type tokenGiveOptions struct {
+	recipientID uint64
+	recipient   corde.User
+	amount      int32
+}
 
-	recipient, errUser := i.Data.OptionsUser("user")
-	if errUser != nil {
+func parseTokenGiveOptions(cmd CommandContext) (tokenGiveOptions, error) {
+	user, err := cmd.OptUser("user")
+	if err != nil {
+		return tokenGiveOptions{}, fmt.Errorf("select a user to give tokens to: %w", err)
+	}
+	amount, err := cmd.OptInt("amount")
+	if err != nil {
+		return tokenGiveOptions{}, fmt.Errorf("specify a valid amount of tokens: %w", err)
+	}
+	return tokenGiveOptions{
+		recipientID: uint64(user.ID),
+		recipient:   user,
+		amount:      int32(amount),
+	}, nil
+}
+
+// Give transfers tokens to another user.
+func (h *TokenHandler) Give(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
+
+	opts, err := parseTokenGiveOptions(cmd)
+	if err != nil {
 		logger.Debug("give command: no user selected")
-		w.Respond(rspErr("select a user to give tokens to"))
+		w.Respond(rspErr(err.Error()))
 		return
 	}
 
-	amount, errAmount := i.Data.Options.Int("amount")
-	if errAmount != nil {
-		logger.Debug("give command: invalid amount")
-		w.Respond(rspErr("specify a valid amount of tokens"))
-		return
-	}
-
-	err := collection.TransferTokens(ctx, b.Store, uint64(i.Member.User.ID), uint64(recipient.ID), int32(amount))
+	err = collection.TransferTokens(ctx, h.store, cmd.UserID(), opts.recipientID, opts.amount)
 	if err != nil {
 		if errors.Is(err, collection.ErrInsufficientTokens) {
 			w.Respond(rspErr("You don't have enough tokens"))
@@ -74,85 +98,82 @@ func (b *Bot) tokenGive(ctx context.Context, w corde.ResponseWriter, i *corde.In
 			return
 		}
 
-		logger.Error("error performing token transfer", "error", err, "recipient_id", uint64(recipient.ID), "amount", amount)
+		logger.Error("error performing token transfer", "error", err, "recipient_id", opts.recipientID, "amount", opts.amount)
 		w.Respond(rspErr("Failed to transfer tokens"))
 		return
 	}
 
-	w.Respond(corde.NewResp().Contentf("Gave %d tokens to %s", amount, recipient.Username))
+	w.Respond(corde.NewResp().Contentf("Gave %d tokens to %s", opts.amount, opts.recipient.Username))
 }
 
-func (b *Bot) tokenSell(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
+// tokenSellOptions holds the parsed options for the token sell command.
+type tokenSellOptions struct {
+	charID int
+}
 
-	charID, errChar := i.Data.Options.Int("id")
-	if errChar != nil {
-		logger.Debug("sell command: no character selected")
-		w.Respond(rspErr("select a character to sell"))
-		return
+func parseTokenSellOptions(cmd CommandContext) (tokenSellOptions, error) {
+	charID, err := cmd.OptInt("id")
+	if err != nil {
+		return tokenSellOptions{}, fmt.Errorf("select a character to sell: %w", err)
 	}
-
 	if charID == 0 {
-		logger.Debug("sell command: invalid character ID")
-		w.Respond(rspErr("invalid character ID"))
+		return tokenSellOptions{}, fmt.Errorf("invalid character ID")
+	}
+	return tokenSellOptions{charID: charID}, nil
+}
+
+// Sell sells a character for tokens.
+func (h *TokenHandler) Sell(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
+
+	opts, err := parseTokenSellOptions(cmd)
+	if err != nil {
+		logger.Debug("sell command: no character selected")
+		w.Respond(rspErr(err.Error()))
 		return
 	}
 
-	char, err := collection.Exchange(ctx, b.Store, uint64(i.Member.User.ID), int64(charID))
+	char, err := collection.Exchange(ctx, h.store, cmd.UserID(), int64(opts.charID))
 	if err != nil {
 		if errors.Is(err, collection.ErrUserDoesNotOwnCharacter) {
 			w.Respond(rspErr("You don't own that character"))
 			return
 		}
-		logger.Error("error performing exchange", "error", err, "character_id", charID)
+		logger.Error("error performing exchange", "error", err, "character_id", opts.charID)
 		w.Respond(rspErr("Failed to sell character"))
 		return
 	}
 	w.Respond(Privf("Sold %s for 1 token", char.Name))
 }
 
-func (b *Bot) seriesAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
-	search, err := i.Data.Options.String("series")
-	if err != nil {
-		w.Autocomplete(corde.NewResp())
-		return
-	}
-
-	media, err := b.AnimeService.SearchMedia(ctx, search)
-	if err != nil {
-		slog.Error("Error searching media", "error", err, "term", search)
-		w.Autocomplete(corde.NewResp())
-		return
-	}
-
-	resp := corde.NewResp()
-	for _, m := range media {
-		resp.Choice(fmt.Sprintf("%s (%s)", m.Title, strings.ToTitle(strings.ToLower(m.Type))), m.ID)
-	}
-
-	w.Autocomplete(resp)
+// tokenRollOptions holds the parsed options for the token roll command.
+type tokenRollOptions struct {
+	mediaID int64
 }
 
-func (b *Bot) tokenRoll(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
+func parseTokenRollOptions(cmd CommandContext) (tokenRollOptions, error) {
+	mediaID, err := cmd.OptInt64("series")
+	if err != nil {
+		return tokenRollOptions{}, fmt.Errorf("select a series to roll from: %w", err)
+	}
+	return tokenRollOptions{mediaID: mediaID}, nil
+}
 
-	mediaID, err := i.Data.Options.Int64("series")
+// Roll performs a series roll using tokens.
+func (h *TokenHandler) Roll(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
+
+	opts, err := parseTokenRollOptions(cmd)
 	if err != nil {
 		logger.Debug("series roll command: no series selected")
-		w.Respond(rspErr("select a series to roll from"))
+		w.Respond(rspErr(err.Error()))
 		return
 	}
 
-	config := collection.Config{
-		RollCooldown:   b.RollCooldown,
-		TokensNeeded:   b.TokensNeeded,
-		SeriesRollCost: b.SeriesRollCost,
-	}
-
-	char, err := collection.SeriesRoll(ctx, b.Store, b.AnimeService, config, uint64(i.Member.User.ID), mediaID)
+	char, err := collection.SeriesRoll(ctx, h.store, h.animeService, h.config, cmd.UserID(), opts.mediaID)
 	if err != nil {
 		if errors.Is(err, collection.ErrInsufficientTokens) {
-			w.Respond(rspErr(fmt.Sprintf("You need %d tokens to roll for a series", b.SeriesRollCost)))
+			w.Respond(rspErr(fmt.Sprintf("You need %d tokens to roll for a series", h.config.SeriesRollCost)))
 			return
 		}
 		if errors.Is(err, collection.ErrNoUnownedCharacters) {
@@ -163,10 +184,22 @@ func (b *Bot) tokenRoll(ctx context.Context, w corde.ResponseWriter, i *corde.In
 			w.Respond(rspErr("No characters found for this series"))
 			return
 		}
-		logger.Error("error performing series roll", "error", err, "media_id", mediaID)
+		logger.Error("error performing series roll", "error", err, "media_id", opts.mediaID)
 		w.Respond(rspErr("An error occurred, please try again later"))
 		return
 	}
 
-	w.Respond(seriesRollEmbed(char, config.SeriesRollCost))
+	w.Respond(seriesRollEmbed(char, h.config.SeriesRollCost))
+}
+
+// SeriesAutocomplete provides media suggestions for the token roll command.
+func (h *TokenHandler) SeriesAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
+	autocomplete(ctx, w, i, "series", h.animeService.SearchMedia, formatMediaChoice)
+}
+
+// userCollectionAutocomplete provides character suggestions for the token sell command.
+func (h *TokenHandler) userCollectionAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
+	autocomplete(ctx, w, i, "id", func(ctx context.Context, input string) ([]catalog.Character, error) {
+		return h.store.SearchCharacters(ctx, uint64(i.Member.User.ID), input)
+	}, formatCharacterChoice)
 }

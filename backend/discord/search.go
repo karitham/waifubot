@@ -8,23 +8,36 @@ import (
 	"github.com/Karitham/corde"
 
 	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/guild"
+	"github.com/karitham/waifubot/storage/interactionstore"
 )
 
-func (b *Bot) search(m *corde.Mux) {
-	t := trace[corde.SlashCommandInteractionData]
-	i := interact(b.InterStore, onInteraction[corde.SlashCommandInteractionData](b))
-	idx := indexMiddleware[corde.SlashCommandInteractionData](b)
-
-	m.SlashCommand("char", wrap(b.SearchChar, t, i, idx))
-	m.SlashCommand("user", wrap(b.SearchUser, t, i, idx))
-	m.SlashCommand("manga", wrap(b.SearchManga, t, i, idx))
-	m.SlashCommand("anime", wrap(b.SearchAnime, t, i, idx))
+// SearchHandler handles the /search command and its subcommands.
+type SearchHandler struct {
+	animeService  TrackingService
+	interStore    interactionstore.Store
+	onInteraction func(context.Context, int64, *corde.Interaction[corde.SlashCommandInteractionData])
+	guildIndexer  *guild.Indexer
+	guildTxFn     func(context.Context) (guild.TxQuerier, error)
 }
 
-func (b *Bot) SearchAnime(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	search, _ := i.Data.Options.String("name")
+// Register wires the search sub-routes on the mux.
+func (h *SearchHandler) Register(m *corde.Mux) {
+	t := trace[corde.SlashCommandInteractionData]
+	i := interact(h.interStore, h.onInteraction)
+	idx := indexMiddleware[corde.SlashCommandInteractionData](h.guildIndexer, h.guildTxFn)
 
-	media, err := b.AnimeService.Anime(ctx, search)
+	m.SlashCommand("char", wrap(wrapCtx(h.SearchChar), t, i, idx))
+	m.SlashCommand("user", wrap(wrapCtx(h.SearchUser), t, i, idx))
+	m.SlashCommand("manga", wrap(wrapCtx(h.SearchManga), t, i, idx))
+	m.SlashCommand("anime", wrap(wrapCtx(h.SearchAnime), t, i, idx))
+}
+
+// SearchAnime searches for anime by name.
+func (h *SearchHandler) SearchAnime(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	search, _ := cmd.OptString("name")
+
+	media, err := h.animeService.Anime(ctx, search)
 	if err != nil {
 		slog.ErrorContext(ctx, "error with anime service", "error", err)
 		w.Respond(rspErr("Error searching for this anime, either it doesn't exist or something went wrong"))
@@ -39,10 +52,11 @@ func (b *Bot) SearchAnime(ctx context.Context, w corde.ResponseWriter, i *corde.
 	w.Respond(mediaEmbed(media[0]))
 }
 
-func (b *Bot) SearchManga(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	search, _ := i.Data.Options.String("name")
+// SearchManga searches for manga by name.
+func (h *SearchHandler) SearchManga(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	search, _ := cmd.OptString("name")
 
-	media, err := b.AnimeService.Manga(ctx, search)
+	media, err := h.animeService.Manga(ctx, search)
 	if err != nil {
 		slog.ErrorContext(ctx, "error with anime service", "error", err)
 		w.Respond(rspErr("Error searching for this manga, either it doesn't exist or something went wrong"))
@@ -57,10 +71,11 @@ func (b *Bot) SearchManga(ctx context.Context, w corde.ResponseWriter, i *corde.
 	w.Respond(mediaEmbed(media[0]))
 }
 
-func (b *Bot) SearchUser(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	search, _ := i.Data.Options.String("name")
+// SearchUser searches for an AniList user by name.
+func (h *SearchHandler) SearchUser(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	search, _ := cmd.OptString("name")
 
-	users, err := b.AnimeService.User(ctx, search)
+	users, err := h.animeService.User(ctx, search)
 	if err != nil {
 		slog.ErrorContext(ctx, "error with user service", "error", err)
 		w.Respond(rspErr("Error searching for this user, either it doesn't exist or something went wrong"))
@@ -75,10 +90,11 @@ func (b *Bot) SearchUser(ctx context.Context, w corde.ResponseWriter, i *corde.I
 	w.Respond(userEmbed(users[0]))
 }
 
-func (b *Bot) SearchChar(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	search, _ := i.Data.Options.String("name")
+// SearchChar searches for a character by name.
+func (h *SearchHandler) SearchChar(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	search, _ := cmd.OptString("name")
 
-	characters, err := b.AnimeService.Character(ctx, search)
+	characters, err := h.animeService.Character(ctx, search)
 	if err != nil {
 		slog.ErrorContext(ctx, "error with char service", "error", err)
 		w.Respond(rspErr("Error searching for this character, either it doesn't exist or something went wrong"))

@@ -9,10 +9,10 @@ import (
 	"github.com/Karitham/corde"
 )
 
-func (b *Bot) MigrateCommands(ctx context.Context) error {
+func (r *Router) MigrateCommands(ctx context.Context) error {
 	hash := Hash(commandDefinitions)
 
-	stored, err := b.CommandStore.GetCommandHash(ctx)
+	stored, err := r.CommandStore.GetCommandHash(ctx)
 	if err != nil {
 		return fmt.Errorf("get command hash: %w", err)
 	}
@@ -25,21 +25,21 @@ func (b *Bot) MigrateCommands(ctx context.Context) error {
 	slog.Info("command hash changed, migrating", "old", stored, "new", hash)
 
 	var opts []func(*corde.CommandsOpt)
-	if b.GuildID != nil {
-		opts = append(opts, corde.GuildOpt(*b.GuildID))
+	if r.GuildID != nil {
+		opts = append(opts, corde.GuildOpt(*r.GuildID))
 	}
 
-	tmpMux := corde.NewMux(b.PublicKey, b.AppID, b.BotToken)
+	tmpMux := corde.NewMux(r.PublicKey, r.AppID, r.BotToken)
 	if err := tmpMux.BulkRegisterCommand(ToCorde(commandDefinitions), opts...); err != nil {
 		return fmt.Errorf("register commands: %w", err)
 	}
 
 	if stored == "" {
-		if err := b.CommandStore.SetCommandHash(ctx, hash); err != nil {
+		if err := r.CommandStore.SetCommandHash(ctx, hash); err != nil {
 			return fmt.Errorf("set command hash: %w", err)
 		}
 	} else {
-		if err := b.CommandStore.UpdateCommandHash(ctx, hash); err != nil {
+		if err := r.CommandStore.UpdateCommandHash(ctx, hash); err != nil {
 			return fmt.Errorf("update command hash: %w", err)
 		}
 	}
@@ -48,8 +48,8 @@ func (b *Bot) MigrateCommands(ctx context.Context) error {
 	return nil
 }
 
-func (b *Bot) MustMigrateCommands() {
-	if err := b.MigrateCommands(context.Background()); err != nil {
+func (r *Router) MustMigrateCommands() {
+	if err := r.MigrateCommands(context.Background()); err != nil {
 		slog.Error("command migration failed", "error", err)
 		os.Exit(1)
 	}

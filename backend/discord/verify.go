@@ -2,61 +2,69 @@ package discord
 
 import (
 	"context"
-	"fmt"
-	"log/slog"
-	"strconv"
 
 	"github.com/Karitham/corde"
+
+	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/guild"
 )
 
-func (b *Bot) verify(m *corde.Mux) {
-	m.SlashCommand("", wrap(
-		b.verifyCommand,
-		trace[corde.SlashCommandInteractionData],
-		indexMiddleware[corde.SlashCommandInteractionData](b),
-		interact(b.InterStore, onInteraction[corde.SlashCommandInteractionData](b)),
-	))
-	m.Autocomplete("id", b.verifyAutocomplete)
+// VerifyHandler handles the /verify command and its autocomplete.
+type VerifyHandler struct {
+	store        collection.Store
+	guildIndexer *guild.Indexer
+	guildTxFn    func(context.Context) (guild.TxQuerier, error)
 }
 
-func (b *Bot) verifyCommand(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	user := i.Member.User
-	if len(i.Data.Resolved.Members) > 0 {
-		user = i.Data.Resolved.Users.First()
-	}
-	charID, _ := i.Data.Options.Int64("id")
+// verifyOptions holds the parsed options for the verify command.
+type verifyOptions struct {
+	targetUserID   uint64
+	targetUsername string
+	charID         int64
+}
 
-	has, char, err := collectionCheckOwnership(ctx, b.Store, uint64(user.ID), charID)
+func parseVerifyOptions(cmd CommandContext) verifyOptions {
+	opts := verifyOptions{
+		targetUserID:   cmd.UserID(),
+		targetUsername: cmd.Username(),
+	}
+	if user, ok := cmd.FirstResolvedUser(); ok {
+		opts.targetUserID = uint64(user.ID)
+		opts.targetUsername = user.Username
+	}
+	opts.charID, _ = cmd.OptInt64("id")
+	return opts
+}
+
+// Register wires the verify sub-routes on the mux.
+func (h *VerifyHandler) Register(m *corde.Mux) {
+	m.SlashCommand("", wrap(
+		wrapCtx(h.Verify),
+		trace[corde.SlashCommandInteractionData],
+		indexMiddleware[corde.SlashCommandInteractionData](h.guildIndexer, h.guildTxFn),
+	))
+	m.Autocomplete("id", h.Autocomplete)
+}
+
+// Verify checks if a user owns a character.
+func (h *VerifyHandler) Verify(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	opts := parseVerifyOptions(cmd)
+
+	has, char, err := collectionCheckOwnership(ctx, h.store, opts.targetUserID, opts.charID)
 	if err != nil {
 		w.Respond(newErrf("Error checking ownership: %s", err.Error()))
 		return
 	}
 
 	if has {
-		w.Respond(newErrf("%s has %s in their collection", user.Username, char.Name))
+		w.Respond(newErrf("%s has %s in their collection", opts.targetUsername, char.Name))
 		return
 	}
 
-	w.Respond(newErrf("%s doesn't have this character", user.Username))
+	w.Respond(newErrf("%s doesn't have this character", opts.targetUsername))
 }
 
-func (b *Bot) verifyAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
-	id, err := i.Data.Options.String("id")
-	if err != nil {
-		i, _ := i.Data.Options.Int("id")
-		id = strconv.Itoa(i)
-	}
-
-	chars, err := b.Store.SearchGlobalCharacters(ctx, id)
-	if err != nil {
-		slog.Error("Error searching global characters", "error", err)
-		return
-	}
-
-	resp := corde.NewResp()
-	for _, c := range chars {
-		resp.Choice(fmt.Sprintf("%s (%d)", c.Name, c.ID), c.ID)
-	}
-
-	w.Autocomplete(resp)
+// Autocomplete provides character suggestions for the verify command.
+func (h *VerifyHandler) Autocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
+	autocomplete(ctx, w, i, "id", h.store.SearchGlobalCharacters, formatCharacterChoice)
 }

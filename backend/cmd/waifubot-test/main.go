@@ -223,7 +223,7 @@ func runTestHarness(c *cli.Context) error {
 	)
 
 	// Create bot with fake AnimeService
-	mux := discord.New(&discord.Bot{
+	router := discord.New(&discord.Router{
 		Store:             collStore,
 		Catalog:           newCatalogStore(store),
 		CommandStore:      commandpg.New(store.CommandStore()),
@@ -241,6 +241,7 @@ func runTestHarness(c *cli.Context) error {
 		InteractionNeeded: c.Int64("interaction-needed"),
 		TokensNeeded:      int32(c.Int(flags.TokensNeededFlag.Name)),
 	})
+	mux := router.Register()
 
 	// Create HTTP server
 	portNum, err := strconv.Atoi(c.String(portFlag.Name))

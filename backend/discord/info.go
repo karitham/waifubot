@@ -10,7 +10,11 @@ import (
 	"github.com/Karitham/corde"
 )
 
-func (b *Bot) info(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
+// InfoHandler handles the /info command.
+type InfoHandler struct{}
+
+// Info returns bot runtime information.
+func (h *InfoHandler) Info(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
 	infob := strings.Builder{}
 	infob.WriteString("Version: ")
 	infob.WriteString(runtime.Version())

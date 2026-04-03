@@ -5,38 +5,60 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/Karitham/corde"
 
+	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 )
 
-func (b *Bot) profile(m *corde.Mux) {
-	m.SlashCommand("view", trace(b.profileView))
+// ProfileHandler handles the /profile command and its subcommands.
+type ProfileHandler struct {
+	store collection.Store
+}
+
+// Register wires the profile sub-routes on the mux.
+func (h *ProfileHandler) Register(m *corde.Mux) {
+	m.SlashCommand("view", trace(wrapCtx(h.View)))
 	m.Route("edit", func(m *corde.Mux) {
-		m.SlashCommand("quote", trace(b.profileEditQuote))
+		m.SlashCommand("quote", trace(wrapCtx(h.EditQuote)))
 		m.Route("favorite", func(m *corde.Mux) {
-			m.SlashCommand("", trace(b.profileEditFavorite))
-			m.Autocomplete("id", trace(b.userCollectionAutocomplete))
+			m.SlashCommand("", trace(wrapCtx(h.EditFavorite)))
+			m.Autocomplete("id", h.Autocomplete)
 		})
-		m.SlashCommand("anilist", trace(b.profileEditAnilistURL))
+		m.SlashCommand("anilist", trace(wrapCtx(h.EditAnilistURL)))
 	})
 }
 
-func (b *Bot) profileView(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
+// profileViewOptions holds the parsed options for the profile view command.
+type profileViewOptions struct {
+	targetUserID   uint64
+	targetUsername string
+}
 
-	user := i.Member.User
-	if len(i.Data.Resolved.Users) > 0 {
-		user = i.Data.Resolved.Users.First()
+func parseProfileViewOptions(cmd CommandContext) profileViewOptions {
+	opts := profileViewOptions{
+		targetUserID:   cmd.UserID(),
+		targetUsername: cmd.Username(),
 	}
+	if user, ok := cmd.FirstResolvedUser(); ok {
+		opts.targetUserID = uint64(user.ID)
+		opts.targetUsername = user.Username
+	}
+	return opts
+}
 
-	data, err := collection.UserProfile(ctx, b.Store, uint64(user.ID))
+// View displays a user's profile.
+func (h *ProfileHandler) View(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
+
+	opts := parseProfileViewOptions(cmd)
+
+	data, err := collection.UserProfile(ctx, h.store, opts.targetUserID)
 	if err != nil {
-		logger.Error("error getting profile", "error", err, "target_user_id", uint64(user.ID))
+		logger.Error("error getting profile", "error", err, "target_user_id", opts.targetUserID)
 		w.Respond(corde.NewResp().Content("An error occurred dialing the database, please try again later").Ephemeral())
 		return
 	}
@@ -47,20 +69,20 @@ func (b *Bot) profileView(ctx context.Context, w corde.ResponseWriter, i *corde.
 	}
 
 	resp := corde.NewEmbed().
-		Title(user.Username).
-		URL(fmt.Sprintf("https://waifugui.karitham.dev/#/list/%s", user.ID.String())).
+		Title(opts.targetUsername).
+		URL(fmt.Sprintf("https://waifugui.karitham.dev/#/list/%d", opts.targetUserID)).
 		Descriptionf(
 			"%s\n%s last rolled %s ago and has %d tokens.\nThey have %d characters.\nFavorite: %s\n%s",
 			data.Quote,
-			user.Username,
+			opts.targetUsername,
 			time.Since(data.Date.UTC()).Truncate(time.Second),
 			data.Tokens,
 			data.CharacterCount,
 			data.Favorite.Name,
 			anilistURLDesc,
 		).
-		Field("Collection", fmt.Sprintf("[View Collection](https://waifugui.karitham.dev/#/list/%s)", user.ID.String())).
-		Field("Wishlist", fmt.Sprintf("[View Wishlist](https://waifugui.karitham.dev/#/wishlist/%s)", user.ID.String()))
+		Field("Collection", fmt.Sprintf("[View Collection](https://waifugui.karitham.dev/#/list/%d)", opts.targetUserID)).
+		Field("Wishlist", fmt.Sprintf("[View Wishlist](https://waifugui.karitham.dev/#/wishlist/%d)", opts.targetUserID))
 	if data.Favorite.Image != "" {
 		resp.Thumbnail(corde.Image{URL: data.Favorite.Image})
 	}
@@ -68,11 +90,12 @@ func (b *Bot) profileView(ctx context.Context, w corde.ResponseWriter, i *corde.
 	w.Respond(resp)
 }
 
-func (b *Bot) profileEditFavorite(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
+// EditFavorite sets the user's favorite character.
+func (h *ProfileHandler) EditFavorite(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
 
-	optID, _ := i.Data.Options.Int64("id")
-	if err := b.Store.UpdateFavorite(ctx, uint64(i.Member.User.ID), optID); err != nil {
+	optID, _ := cmd.OptInt64("id")
+	if err := h.store.UpdateFavorite(ctx, cmd.UserID(), optID); err != nil {
 		logger.Error("error setting favorite character", "error", err, "character_id", optID)
 		w.Respond(corde.NewResp().Content("An error occurred setting this character").Ephemeral())
 		return
@@ -81,29 +104,25 @@ func (b *Bot) profileEditFavorite(ctx context.Context, w corde.ResponseWriter, i
 	w.Respond(corde.NewResp().Contentf("Favorite character set as char id %d", optID).Ephemeral())
 }
 
-func (b *Bot) userCollectionAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
-	id, err := i.Data.Options.String("id")
-	if err != nil {
-		i, _ := i.Data.Options.Int("id")
-		id = strconv.Itoa(i)
-	}
-
-	chars, err := b.Store.SearchCharacters(ctx, uint64(i.Member.User.ID), id)
-	if err != nil {
-		slog.Error("Error getting user's characters", "error", err, "user", i.Member.User.ID)
+// EditQuote sets the user's profile quote.
+func (h *ProfileHandler) EditQuote(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	quote, _ := cmd.OptString("value")
+	if len(quote) > 1024 {
+		w.Respond(corde.NewResp().Content("quote is too long").Ephemeral())
 		return
 	}
 
-	resp := corde.NewResp()
-	for _, c := range chars {
-		resp.Choice(fmt.Sprintf("%s (%d)", c.Name, c.ID), c.ID)
+	if err := h.store.UpdateQuote(ctx, cmd.UserID(), quote); err != nil {
+		w.Respond(corde.NewResp().Content(err.Error()).Ephemeral())
+		return
 	}
 
-	w.Autocomplete(resp)
+	w.Respond(corde.NewResp().Content("Quote set").Ephemeral())
 }
 
-func (b *Bot) profileEditAnilistURL(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	anilistURL, _ := i.Data.Options.String("url")
+// EditAnilistURL sets the user's Anilist profile URL.
+func (h *ProfileHandler) EditAnilistURL(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	anilistURL, _ := cmd.OptString("url")
 	parsedURL, err := url.Parse(anilistURL)
 	if err != nil {
 		w.Respond(corde.NewResp().Content("invalid URL").Ephemeral())
@@ -120,7 +139,7 @@ func (b *Bot) profileEditAnilistURL(ctx context.Context, w corde.ResponseWriter,
 		return
 	}
 
-	if err := b.Store.UpdateAnilistURL(ctx, uint64(i.Member.User.ID), anilistURL); err != nil {
+	if err := h.store.UpdateAnilistURL(ctx, cmd.UserID(), anilistURL); err != nil {
 		w.Respond(corde.NewResp().Content(err.Error()).Ephemeral())
 		return
 	}
@@ -128,17 +147,9 @@ func (b *Bot) profileEditAnilistURL(ctx context.Context, w corde.ResponseWriter,
 	w.Respond(corde.NewResp().Contentf("Anilist URL set as %s", anilistURL).Ephemeral())
 }
 
-func (b *Bot) profileEditQuote(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	quote, _ := i.Data.Options.String("value")
-	if len(quote) > 1024 {
-		w.Respond(corde.NewResp().Content("quote is too long").Ephemeral())
-		return
-	}
-
-	if err := b.Store.UpdateQuote(ctx, uint64(i.Member.User.ID), quote); err != nil {
-		w.Respond(corde.NewResp().Content(err.Error()).Ephemeral())
-		return
-	}
-
-	w.Respond(corde.NewResp().Content("Quote set").Ephemeral())
+// Autocomplete provides character suggestions for the profile edit favorite command.
+func (h *ProfileHandler) Autocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
+	autocomplete(ctx, w, i, "id", func(ctx context.Context, input string) ([]catalog.Character, error) {
+		return h.store.SearchCharacters(ctx, uint64(i.Member.User.ID), input)
+	}, formatCharacterChoice)
 }

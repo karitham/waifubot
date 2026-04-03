@@ -8,6 +8,9 @@ import (
 
 	"github.com/Karitham/corde"
 
+	"github.com/karitham/waifubot/catalog"
+	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/wishlist"
 )
 
@@ -45,39 +48,69 @@ func truncateString(s string, maxLen int) string {
 	return s[:maxLen-3] + "..."
 }
 
-func (b *Bot) wishlist(m *corde.Mux) {
+// formatUser formats a user ID as a Discord mention
+func formatUser(userID uint64) string {
+	return fmt.Sprintf("<@%d>", userID)
+}
+
+// WishlistHandler handles the /wishlist command and its subcommands.
+type WishlistHandler struct {
+	wishlist     wishlist.Store
+	store        collection.Store
+	animeService TrackingService
+	catalog      catalog.Store
+	guildIndexer *guild.Indexer
+	guildTxFn    func(context.Context) (guild.TxQuerier, error)
+}
+
+// Register wires the wishlist sub-routes on the mux.
+func (h *WishlistHandler) Register(m *corde.Mux) {
 	m.Route("character", func(m *corde.Mux) {
 		m.Route("add", func(m *corde.Mux) {
-			m.SlashCommand("", trace(b.wishlistCharacterAdd))
-			m.Autocomplete("character", trace(b.characterAutocomplete))
+			m.SlashCommand("", trace(wrapCtx(h.CharacterAdd)))
+			m.Autocomplete("character", h.CharacterAutocomplete)
 		})
 		m.Route("remove", func(m *corde.Mux) {
-			m.SlashCommand("", trace(b.wishlistCharacterRemove))
-			m.Autocomplete("character", trace(b.wishlistAutocomplete))
+			m.SlashCommand("", trace(wrapCtx(h.CharacterRemove)))
+			m.Autocomplete("character", h.WishlistAutocomplete)
 		})
-		m.SlashCommand("list", trace(b.wishlistCharacterList))
-		m.SlashCommand("remove-all", trace(b.wishlistCharacterRemoveAll))
+		m.SlashCommand("list", trace(wrapCtx(h.CharacterList)))
+		m.SlashCommand("remove-all", trace(wrapCtx(h.CharacterRemoveAll)))
 	})
 	m.Route("media", func(m *corde.Mux) {
 		m.Route("add", func(m *corde.Mux) {
-			m.SlashCommand("", trace(b.wishlistMediaAdd))
-			m.Autocomplete("media", trace(b.mediaAutocomplete))
+			m.SlashCommand("", trace(wrapCtx(h.MediaAdd)))
+			m.Autocomplete("media", h.MediaAutocomplete)
 		})
 	})
-	m.SlashCommand("holders", wrap(b.wishlistHolders, indexMiddleware[corde.SlashCommandInteractionData](b), trace[corde.SlashCommandInteractionData]))
-	m.SlashCommand("wanted", wrap(b.wishlistWanted, indexMiddleware[corde.SlashCommandInteractionData](b), trace[corde.SlashCommandInteractionData]))
-	m.SlashCommand("compare", trace(b.wishlistCompare))
+	m.SlashCommand("holders", wrap(wrapCtx(h.Holders), indexMiddleware[corde.SlashCommandInteractionData](h.guildIndexer, h.guildTxFn), trace[corde.SlashCommandInteractionData]))
+	m.SlashCommand("wanted", wrap(wrapCtx(h.Wanted), indexMiddleware[corde.SlashCommandInteractionData](h.guildIndexer, h.guildTxFn), trace[corde.SlashCommandInteractionData]))
+	m.SlashCommand("compare", trace(wrapCtx(h.Compare)))
 }
 
-func (b *Bot) wishlistCharacterAdd(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
+// wishlistCharacterOptions holds the parsed options for wishlist character add/remove commands.
+type wishlistCharacterOptions struct {
+	charID int64
+}
 
-	charID, _ := i.Data.Options.Int64("character")
+func parseWishlistCharacterOptions(cmd CommandContext) (wishlistCharacterOptions, error) {
+	charID, _ := cmd.OptInt64("character")
+	return wishlistCharacterOptions{charID: charID}, nil
+}
+
+// CharacterAdd adds a character to the user's wishlist.
+func (h *WishlistHandler) CharacterAdd(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
+
+	opts, err := parseWishlistCharacterOptions(cmd)
+	if err != nil {
+		opts.charID, _ = cmd.OptInt64("character")
+	}
 
 	// Check if user already owns this character
-	has, char, err := collectionCheckOwnership(ctx, b.Store, uint64(i.Member.User.ID), charID)
+	has, char, err := collectionCheckOwnership(ctx, h.store, cmd.UserID(), opts.charID)
 	if err != nil {
-		logger.Error("error checking ownership", "error", err, "character_id", charID)
+		logger.Error("error checking ownership", "error", err, "character_id", opts.charID)
 		w.Respond(rspErr("Unable to verify character ownership. Please try again."))
 		return
 	}
@@ -86,9 +119,9 @@ func (b *Bot) wishlistCharacterAdd(ctx context.Context, w corde.ResponseWriter, 
 		return
 	}
 
-	err = b.WishlistStore.AddCharactersToWishlist(ctx, uint64(i.Member.User.ID), []int64{charID})
+	err = h.wishlist.AddCharactersToWishlist(ctx, cmd.UserID(), []int64{opts.charID})
 	if err != nil {
-		logger.Error("error adding character to wishlist", "error", err, "character_id", charID)
+		logger.Error("error adding character to wishlist", "error", err, "character_id", opts.charID)
 		w.Respond(rspErr("Unable to add character to wishlist. Please try again."))
 		return
 	}
@@ -96,25 +129,30 @@ func (b *Bot) wishlistCharacterAdd(ctx context.Context, w corde.ResponseWriter, 
 	w.Respond(corde.NewResp().Contentf("Added %s to your wishlist.", formatCharacter(char.Name, char.ID)).Ephemeral())
 }
 
-func (b *Bot) wishlistCharacterRemove(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
+// CharacterRemove removes a character from the user's wishlist.
+func (h *WishlistHandler) CharacterRemove(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
 
-	charID, _ := i.Data.Options.Int64("character")
-
-	err := b.WishlistStore.RemoveCharactersFromWishlist(ctx, uint64(i.Member.User.ID), []int64{charID})
+	opts, err := parseWishlistCharacterOptions(cmd)
 	if err != nil {
-		logger.Error("error removing character from wishlist", "error", err, "character_id", charID)
+		opts.charID, _ = cmd.OptInt64("character")
+	}
+
+	err = h.wishlist.RemoveCharactersFromWishlist(ctx, cmd.UserID(), []int64{opts.charID})
+	if err != nil {
+		logger.Error("error removing character from wishlist", "error", err, "character_id", opts.charID)
 		w.Respond(rspErr("Unable to remove character from wishlist. Please try again."))
 		return
 	}
 
-	w.Respond(corde.NewResp().Contentf("Removed character %d from your wishlist.", charID).Ephemeral())
+	w.Respond(corde.NewResp().Contentf("Removed character %d from your wishlist.", opts.charID).Ephemeral())
 }
 
-func (b *Bot) wishlistCharacterList(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
+// CharacterList displays the user's wishlist characters.
+func (h *WishlistHandler) CharacterList(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
 
-	chars, err := b.WishlistStore.GetUserCharacterWishlist(ctx, uint64(i.Member.User.ID))
+	chars, err := h.wishlist.GetUserCharacterWishlist(ctx, cmd.UserID())
 	if err != nil {
 		logger.Error("error getting user wishlist", "error", err)
 		w.Respond(rspErr("Unable to retrieve your wishlist. Please try again."))
@@ -127,8 +165,8 @@ func (b *Bot) wishlistCharacterList(ctx context.Context, w corde.ResponseWriter,
 	}
 
 	embed := corde.NewEmbed().
-		Titlef("%s's Wishlist", i.Member.User.Username).
-		Thumbnail(corde.Image{URL: i.Member.User.AvatarPNG()})
+		Titlef("%s's Wishlist", cmd.Username()).
+		Thumbnail(corde.Image{URL: cmd.AvatarPNG()})
 
 	charList := buildCharacterList(chars, 50)
 	embed.Description(truncateString(charList, 4096))
@@ -136,10 +174,11 @@ func (b *Bot) wishlistCharacterList(ctx context.Context, w corde.ResponseWriter,
 	w.Respond(corde.NewResp().Embeds(embed).Ephemeral())
 }
 
-func (b *Bot) wishlistCharacterRemoveAll(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
+// CharacterRemoveAll clears the user's wishlist.
+func (h *WishlistHandler) CharacterRemoveAll(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
 
-	err := b.WishlistStore.RemoveAllFromWishlist(ctx, uint64(i.Member.User.ID))
+	err := h.wishlist.RemoveAllFromWishlist(ctx, cmd.UserID())
 	if err != nil {
 		logger.Error("error removing all from wishlist", "error", err)
 		w.Respond(rspErr("Unable to clear your wishlist. Please try again."))
@@ -149,15 +188,45 @@ func (b *Bot) wishlistCharacterRemoveAll(ctx context.Context, w corde.ResponseWr
 	w.Respond(corde.NewResp().Content("Cleared your wishlist.").Ephemeral())
 }
 
-// formatUser formats a user ID as a Discord mention
-func formatUser(userID uint64) string {
-	return fmt.Sprintf("<@%d>", userID)
+// wishlistMediaOptions holds the parsed options for wishlist media add command.
+type wishlistMediaOptions struct {
+	mediaID int64
 }
 
-func (b *Bot) wishlistHolders(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
+func parseWishlistMediaOptions(cmd CommandContext) (wishlistMediaOptions, error) {
+	mediaID, _ := cmd.OptInt64("media")
+	return wishlistMediaOptions{mediaID: mediaID}, nil
+}
 
-	wl, err := b.WishlistStore.GetUserCharacterWishlist(ctx, uint64(i.Member.User.ID))
+// MediaAdd adds all characters from a media to the user's wishlist.
+func (h *WishlistHandler) MediaAdd(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
+
+	opts, err := parseWishlistMediaOptions(cmd)
+	if err != nil {
+		opts.mediaID, _ = cmd.OptInt64("media")
+	}
+
+	count, err := wishlist.AddMediaToWishlist(ctx, h.wishlist, h.animeService, h.store, cmd.UserID(), opts.mediaID)
+	if err != nil {
+		logger.Error("error adding media to wishlist", "error", err, "media_id", opts.mediaID)
+		w.Respond(rspErr("Unable to add characters from this media to your wishlist. Please try again."))
+		return
+	}
+
+	if count == 0 {
+		w.Respond(rspErr("No characters found for this media, or you already own all of them."))
+		return
+	}
+
+	w.Respond(corde.NewResp().Contentf("Added %d characters from this media to your wishlist.", count).Ephemeral())
+}
+
+// Holders shows which guild members have characters from the user's wishlist.
+func (h *WishlistHandler) Holders(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
+
+	wl, err := h.wishlist.GetUserCharacterWishlist(ctx, cmd.UserID())
 	if err != nil {
 		logger.Error("error getting user wishlist", "error", err)
 		w.Respond(rspErr("Unable to retrieve your wishlist. Please try again."))
@@ -174,7 +243,7 @@ func (b *Bot) wishlistHolders(ctx context.Context, w corde.ResponseWriter, i *co
 		characterIDs[j] = c.ID
 	}
 
-	holders, err := b.WishlistStore.GetWishlistHolders(ctx, characterIDs, uint64(i.Member.User.ID), uint64(i.GuildID))
+	holders, err := h.wishlist.GetWishlistHolders(ctx, characterIDs, cmd.UserID(), cmd.GuildID())
 	if err != nil {
 		logger.Error("error getting wishlist holders", "error", err)
 		w.Respond(rspErr("Unable to retrieve wishlist holders. Please try again."))
@@ -204,10 +273,11 @@ func (b *Bot) wishlistHolders(ctx context.Context, w corde.ResponseWriter, i *co
 	w.Respond(corde.NewResp().Embeds(embed).Ephemeral())
 }
 
-func (b *Bot) wishlistWanted(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
+// Wanted shows which guild members want characters from the user's collection.
+func (h *WishlistHandler) Wanted(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
 
-	wanted, err := b.WishlistStore.GetWantedCharacters(ctx, uint64(i.Member.User.ID), uint64(i.GuildID))
+	wanted, err := h.wishlist.GetWantedCharacters(ctx, cmd.UserID(), cmd.GuildID())
 	if err != nil {
 		logger.Error("error getting wanted characters", "error", err)
 		w.Respond(rspErr("Unable to retrieve wanted characters. Please try again."))
@@ -234,25 +304,41 @@ func (b *Bot) wishlistWanted(ctx context.Context, w corde.ResponseWriter, i *cor
 	w.Respond(corde.NewResp().Embeds(embed).Ephemeral())
 }
 
-func (b *Bot) wishlistCompare(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
+// wishlistCompareOptions holds the parsed options for the wishlist compare command.
+type wishlistCompareOptions struct {
+	targetUserID   uint64
+	targetUsername string
+}
 
-	if len(i.Data.Resolved.Users) == 0 {
-		w.Respond(rspErr("You must specify a user to compare with."))
+func parseWishlistCompareOptions(cmd CommandContext) (wishlistCompareOptions, error) {
+	if user, ok := cmd.FirstResolvedUser(); ok {
+		return wishlistCompareOptions{
+			targetUserID:   uint64(user.ID),
+			targetUsername: user.Username,
+		}, nil
+	}
+	return wishlistCompareOptions{}, fmt.Errorf("you must specify a user to compare with")
+}
+
+// Compare compares wishlists with another user.
+func (h *WishlistHandler) Compare(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
+
+	opts, err := parseWishlistCompareOptions(cmd)
+	if err != nil {
+		w.Respond(rspErr(err.Error()))
 		return
 	}
 
-	user := i.Data.Resolved.Users.First()
-
-	comparison, err := b.WishlistStore.CompareWithUser(ctx, uint64(i.Member.User.ID), uint64(user.ID))
+	comparison, err := h.wishlist.CompareWithUser(ctx, cmd.UserID(), opts.targetUserID)
 	if err != nil {
-		logger.Error("error comparing wishlists", "error", err, "other_user_id", uint64(user.ID))
+		logger.Error("error comparing wishlists", "error", err, "other_user_id", opts.targetUserID)
 		w.Respond(rspErr("Unable to compare wishlists. Please try again."))
 		return
 	}
 
 	embed := corde.NewEmbed().
-		Titlef("Wishlist Comparison with %s", user.Username)
+		Titlef("Wishlist Comparison with %s", opts.targetUsername)
 
 	if len(comparison.UserHasCharacters) > 0 {
 		hasList := buildCharacterList(comparison.UserHasCharacters, len(comparison.UserHasCharacters))
@@ -275,28 +361,13 @@ func (b *Bot) wishlistCompare(ctx context.Context, w corde.ResponseWriter, i *co
 	w.Respond(corde.NewResp().Embeds(embed).Ephemeral())
 }
 
-func (b *Bot) characterAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
-	id, err := i.Data.Options.String("character")
-	if err != nil {
-		i, _ := i.Data.Options.Int("character")
-		id = fmt.Sprintf("%d", i)
-	}
-
-	chars, err := b.Catalog.SearchGlobalCharacters(ctx, id)
-	if err != nil {
-		slog.Error("Error searching global characters", "error", err, "term", id)
-		return
-	}
-
-	resp := corde.NewResp()
-	for _, c := range chars {
-		resp.Choice(formatCharacter(c.Name, c.ID), c.ID)
-	}
-
-	w.Autocomplete(resp)
+// CharacterAutocomplete provides character suggestions for the wishlist character add command.
+func (h *WishlistHandler) CharacterAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
+	autocomplete(ctx, w, i, "character", h.catalog.SearchGlobalCharacters, formatCharacterChoice)
 }
 
-func (b *Bot) wishlistAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
+// WishlistAutocomplete provides character suggestions from the user's wishlist.
+func (h *WishlistHandler) WishlistAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
 	input, err := i.Data.Options.String("character")
 	if err != nil {
 		if intVal, intErr := i.Data.Options.Int("character"); intErr == nil {
@@ -306,7 +377,7 @@ func (b *Bot) wishlistAutocomplete(ctx context.Context, w corde.ResponseWriter, 
 		}
 	}
 
-	chars, err := b.WishlistStore.GetUserCharacterWishlist(ctx, uint64(i.Member.User.ID))
+	chars, err := h.wishlist.GetUserCharacterWishlist(ctx, uint64(i.Member.User.ID))
 	if err != nil {
 		slog.Error("Error getting user's wishlist", "error", err, "user", uint64(i.Member.User.ID))
 		return
@@ -323,44 +394,7 @@ func (b *Bot) wishlistAutocomplete(ctx context.Context, w corde.ResponseWriter, 
 	w.Autocomplete(resp)
 }
 
-func (b *Bot) mediaAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
-	search, err := i.Data.Options.String("media")
-	if err != nil {
-		w.Autocomplete(corde.NewResp())
-		return
-	}
-
-	media, err := b.AnimeService.SearchMedia(ctx, search)
-	if err != nil {
-		slog.Error("Error searching media", "error", err, "term", search)
-		w.Autocomplete(corde.NewResp())
-		return
-	}
-
-	resp := corde.NewResp()
-	for _, m := range media {
-		resp.Choice(fmt.Sprintf("%s (%s)", m.Title, strings.ToTitle(strings.ToLower(m.Type))), m.ID)
-	}
-
-	w.Autocomplete(resp)
-}
-
-func (b *Bot) wishlistMediaAdd(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	logger := slog.With("user_id", uint64(i.Member.User.ID), "guild_id", uint64(i.GuildID))
-
-	mediaID, _ := i.Data.Options.Int64("media")
-
-	count, err := wishlist.AddMediaToWishlist(ctx, b.WishlistStore, b.AnimeService, b.Store, uint64(i.Member.User.ID), mediaID)
-	if err != nil {
-		logger.Error("error adding media to wishlist", "error", err, "media_id", mediaID)
-		w.Respond(rspErr("Unable to add characters from this media to your wishlist. Please try again."))
-		return
-	}
-
-	if count == 0 {
-		w.Respond(rspErr("No characters found for this media, or you already own all of them."))
-		return
-	}
-
-	w.Respond(corde.NewResp().Contentf("Added %d characters from this media to your wishlist.", count).Ephemeral())
+// MediaAutocomplete provides media suggestions for the wishlist media add command.
+func (h *WishlistHandler) MediaAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
+	autocomplete(ctx, w, i, "media", h.animeService.SearchMedia, formatMediaChoice)
 }

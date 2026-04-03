@@ -102,7 +102,7 @@ var RunCommand = &cli.Command{
 		anilistClient := anilist.New(anilist.MaxChar(c.Int64(anilistMaxCharsFlag.Name)))
 
 		slog.Info("Starting WaifuBot", "port", c.String("port"), "app_id", c.String("app-id"), "api_enabled", c.Bool(apiFlag.Name))
-		mux := discord.New(&discord.Bot{
+		router := discord.New(&discord.Router{
 			Store:             collStore,
 			Catalog:           catalogStore,
 			CommandStore:      commandpg.New(store.CommandStore()),
@@ -121,6 +121,7 @@ var RunCommand = &cli.Command{
 			TokensNeeded:      int32(c.Int(tokensNeededFlag.Name)),
 			SeriesRollCost:    int32(c.Int(seriesRollCostFlag.Name)),
 		})
+		mux := router.Register()
 
 		// Start background sync worker if enabled
 		if c.Bool("sync") {
