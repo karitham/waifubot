@@ -13,6 +13,7 @@ type MockAnimeService struct {
 	MangaFunc              func(ctx context.Context, name string) ([]collection.Media, error)
 	UserFunc               func(ctx context.Context, name string) ([]collection.TrackerUser, error)
 	CharacterFunc          func(ctx context.Context, name string) ([]collection.MediaCharacter, error)
+	SearchMediaFunc        func(ctx context.Context, search string) ([]collection.Media, error)
 }
 
 func (m *MockAnimeService) RandomChar(ctx context.Context, notIn ...int64) (collection.MediaCharacter, error) {
@@ -53,6 +54,13 @@ func (m *MockAnimeService) User(ctx context.Context, name string) ([]collection.
 func (m *MockAnimeService) Character(ctx context.Context, name string) ([]collection.MediaCharacter, error) {
 	if m.CharacterFunc != nil {
 		return m.CharacterFunc(ctx, name)
+	}
+	return nil, nil
+}
+
+func (m *MockAnimeService) SearchMedia(ctx context.Context, search string) ([]collection.Media, error) {
+	if m.SearchMediaFunc != nil {
+		return m.SearchMediaFunc(ctx, search)
 	}
 	return nil, nil
 }
