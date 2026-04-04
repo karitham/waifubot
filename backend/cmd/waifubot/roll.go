@@ -20,13 +20,11 @@ var RollCommand = &cli.Command{
 		userFlag,
 		dbURLFlag,
 		rollCooldownFlag,
-		tokensNeededFlag,
 	},
 	Action: func(c *cli.Context) error {
 		userIDStr := c.String(userFlag.Name)
 		dbURL := c.String(dbURLFlag.Name)
 		rollCooldown := c.Duration(rollCooldownFlag.Name)
-		tokensNeeded := c.Int(tokensNeededFlag.Name)
 
 		ctx := c.Context
 		store, err := storage.NewStore(ctx, dbURL)
@@ -41,7 +39,6 @@ var RollCommand = &cli.Command{
 
 		config := collection.Config{
 			RollCooldown: rollCooldown,
-			TokensNeeded: int32(tokensNeeded),
 		}
 		animeService := anilist.New(anilist.MaxChar(30_000))
 		char, err := collection.Roll(ctx, newCollectionStore(store), animeService, config, userID)

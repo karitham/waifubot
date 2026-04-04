@@ -46,7 +46,6 @@ var RunCommand = &cli.Command{
 		},
 		dbURLFlag,
 		rollCooldownFlag,
-		tokensNeededFlag,
 		seriesRollCostFlag,
 		&cli.Int64Flag{
 			Name:        "interaction-needed",
@@ -118,7 +117,6 @@ var RunCommand = &cli.Command{
 			PublicKey:         c.String("public-key"),
 			RollCooldown:      c.Duration(rollCooldownFlag.Name),
 			InteractionNeeded: c.Int64("interaction-needed"),
-			TokensNeeded:      int32(c.Int(tokensNeededFlag.Name)),
 			SeriesRollCost:    int32(c.Int(seriesRollCostFlag.Name)),
 		})
 		mux := router.Register()

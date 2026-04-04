@@ -17,7 +17,6 @@ import (
 
 var tokenConfig = collection.Config{
 	RollCooldown:   time.Hour,
-	TokensNeeded:   10,
 	SeriesRollCost: 5,
 }
 

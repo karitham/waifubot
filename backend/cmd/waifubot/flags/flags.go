@@ -54,13 +54,6 @@ var (
 		Value:   time.Hour * 2,
 	}
 
-	// TokensNeededFlag is the tokens needed for a wish flag
-	TokensNeededFlag = &cli.IntFlag{
-		Name:    "tokens-needed",
-		EnvVars: []string{"TOKENS_NEEDED"},
-		Value:   3,
-	}
-
 	// SeriesRollCostFlag is the token cost for a series roll
 	SeriesRollCostFlag = &cli.IntFlag{
 		Name:    "series-roll-cost",

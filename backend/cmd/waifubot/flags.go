@@ -13,7 +13,6 @@ var (
 	charIDFlag          = flags.CharIDFlag
 	botTokenFlag        = flags.BotTokenFlag
 	rollCooldownFlag    = flags.RollCooldownFlag
-	tokensNeededFlag    = flags.TokensNeededFlag
 	seriesRollCostFlag  = flags.SeriesRollCostFlag
 	anilistMaxCharsFlag = flags.AnilistMaxCharsFlag
 	nameFlag            = flags.NameFlag

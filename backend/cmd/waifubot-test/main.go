@@ -91,7 +91,6 @@ func main() {
 						Required: true,
 					},
 					flags.RollCooldownFlag,
-					flags.TokensNeededFlag,
 					&cli.Int64Flag{
 						Name:        "interaction-needed",
 						EnvVars:     []string{"INTERACTION_NEEDED"},
@@ -239,7 +238,6 @@ func runTestHarness(c *cli.Context) error {
 		PublicKey:         publicKey,
 		RollCooldown:      c.Duration(flags.RollCooldownFlag.Name),
 		InteractionNeeded: c.Int64("interaction-needed"),
-		TokensNeeded:      int32(c.Int(flags.TokensNeededFlag.Name)),
 	})
 	mux := router.Register()
 

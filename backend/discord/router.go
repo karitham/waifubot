@@ -77,7 +77,6 @@ type Router struct {
 	PublicKey         string
 	RollCooldown      time.Duration
 	InteractionNeeded int64
-	TokensNeeded      int32
 	SeriesRollCost    int32
 }
 
@@ -124,12 +123,12 @@ func (r *Router) Register() *corde.Mux {
 		store:        r.Store,
 		animeService: r.AnimeService,
 		wishlist:     r.WishlistStore,
-		config:       collection.Config{RollCooldown: r.RollCooldown, TokensNeeded: r.TokensNeeded},
+		config:       collection.Config{RollCooldown: r.RollCooldown},
 	}
 	tokenHandler := &TokenHandler{
 		store:        r.Store,
 		animeService: r.AnimeService,
-		config:       collection.Config{RollCooldown: r.RollCooldown, TokensNeeded: r.TokensNeeded, SeriesRollCost: r.SeriesRollCost},
+		config:       collection.Config{RollCooldown: r.RollCooldown, SeriesRollCost: r.SeriesRollCost},
 	}
 	wishlistHandler := &WishlistHandler{
 		wishlist:     r.WishlistStore,

@@ -15,7 +15,7 @@ import (
 )
 
 func TestRoll(t *testing.T) {
-	config := collection.Config{RollCooldown: time.Hour, TokensNeeded: 10}
+	config := collection.Config{RollCooldown: time.Hour}
 
 	tests := []struct {
 		name       string

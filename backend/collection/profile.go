@@ -19,7 +19,6 @@ type AnimeService interface {
 // Config holds configuration values.
 type Config struct {
 	RollCooldown   time.Duration
-	TokensNeeded   int32
 	SeriesRollCost int32
 }
 
