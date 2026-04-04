@@ -16,6 +16,7 @@ import (
 type TokenHandler struct {
 	store        collection.Store
 	animeService TrackingService
+	rollService  *collection.RollService
 	config       collection.Config
 }
 
@@ -170,7 +171,7 @@ func (h *TokenHandler) Roll(ctx context.Context, w corde.ResponseWriter, cmd Com
 		return
 	}
 
-	char, err := collection.SeriesRoll(ctx, h.store, h.animeService, h.config, cmd.UserID(), opts.mediaID)
+	char, err := h.rollService.SeriesRoll(ctx, cmd.UserID(), opts.mediaID, h.config.SeriesRollCost)
 	if err != nil {
 		if errors.Is(err, collection.ErrInsufficientTokens) {
 			w.Respond(rspErr(fmt.Sprintf("You need %d tokens to roll for a series", h.config.SeriesRollCost)))

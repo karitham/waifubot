@@ -3,57 +3,37 @@ package collection
 import (
 	"context"
 	"errors"
-	"math/rand"
+	"math/rand/v2"
 	"time"
 )
 
-// SeriesRoll executes a series-specific roll for a user.
-// It charges config.SeriesRollCost tokens, picks a random character from the
-// given media (excluding owned), and adds it to the collection.
-func SeriesRoll(
-	ctx context.Context,
-	store Store,
-	animeService AnimeService,
-	config Config,
-	userID UserID,
-	mediaID int64,
-) (MediaCharacter, error) {
-	tx, err := store.WithTx(ctx)
+// SeriesRoll executes a paid, series-specific roll for a user, deducting tokens.
+func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID int64, seriesRollCost int32) (MediaCharacter, error) {
+	// --- GATHER ---
+	user, err := s.store.GetUser(ctx, userID)
 	if err != nil {
-		return MediaCharacter{}, err
-	}
-	committed := false
-	defer func() {
-		if !committed {
-			_ = tx.Rollback(ctx)
+		if !errors.Is(err, ErrNotFound) {
+			return MediaCharacter{}, err
 		}
-	}()
-
-	user, err := tx.GetUser(ctx, userID)
-	if err != nil {
-		if errors.Is(err, ErrNotFound) {
-			if err = tx.CreateUser(ctx, userID); err != nil {
-				return MediaCharacter{}, err
-			}
-			user, err = tx.GetUser(ctx, userID)
-			if err != nil {
-				return MediaCharacter{}, err
-			}
-		} else {
+		if err := s.store.CreateUser(ctx, userID); err != nil {
+			return MediaCharacter{}, err
+		}
+		user, err = s.store.GetUser(ctx, userID)
+		if err != nil {
 			return MediaCharacter{}, err
 		}
 	}
 
-	if user.Tokens < config.SeriesRollCost {
+	if user.Tokens < seriesRollCost {
 		return MediaCharacter{}, ErrInsufficientTokens
 	}
 
-	ownedIDs, err := tx.GetCollectionIDs(ctx, userID)
+	ownedIDs, err := s.store.GetCollectionIDs(ctx, userID)
 	if err != nil {
 		return MediaCharacter{}, err
 	}
 
-	allChars, err := animeService.GetMediaCharacters(ctx, mediaID)
+	allChars, err := s.anime.GetMediaCharacters(ctx, mediaID)
 	if err != nil {
 		return MediaCharacter{}, err
 	}
@@ -62,15 +42,15 @@ func SeriesRoll(
 		return MediaCharacter{}, ErrMediaNotFound
 	}
 
-	// Filter out owned characters
-	owned := make(map[int64]bool, len(ownedIDs))
+	// --- PROCESS ---
+	owned := make(map[int64]struct{}, len(ownedIDs))
 	for _, id := range ownedIDs {
-		owned[id] = true
+		owned[id] = struct{}{}
 	}
 
 	var unowned []MediaCharacter
 	for _, c := range allChars {
-		if !owned[c.ID] {
+		if _, ok := owned[c.ID]; !ok {
 			unowned = append(unowned, c)
 		}
 	}
@@ -79,38 +59,49 @@ func SeriesRoll(
 		return MediaCharacter{}, ErrNoUnownedCharacters
 	}
 
-	char := unowned[rand.Intn(len(unowned))]
+	char := unowned[rand.IntN(len(unowned))]
 
-	now := time.Now()
-
-	err = tx.UpsertCharacter(ctx, Character{
+	if err := s.store.UpsertCharacter(ctx, Character{
 		ID:        char.ID,
 		Name:      char.Name,
 		Image:     char.ImageURL,
 		Favorites: char.Favorites,
+	}); err != nil {
+		return MediaCharacter{}, err
+	}
+
+	// --- COMMIT ---
+	now := time.Now()
+	err = withTx(ctx, s.store, func(tx Store) error {
+		// Re-fetch user and re-check tokens to prevent double-spend
+		user, err := tx.GetUser(ctx, userID)
+		if err != nil {
+			return err
+		}
+		if user.Tokens < seriesRollCost {
+			return ErrInsufficientTokens
+		}
+
+		if err := tx.AddToCollection(ctx, userID, Character{
+			ID:         char.ID,
+			Name:       char.Name,
+			Image:      char.ImageURL,
+			MediaTitle: char.MediaTitle,
+		}, "SERIES_ROLL", now); err != nil {
+			return err
+		}
+
+		if err := tx.RemoveFromWishlist(ctx, userID, char.ID); err != nil {
+			return err
+		}
+
+		if _, err := tx.SpendTokens(ctx, userID, seriesRollCost); err != nil {
+			return err
+		}
+		return nil
 	})
 	if err != nil {
 		return MediaCharacter{}, err
 	}
-
-	err = tx.AddToCollection(ctx, userID, Character{
-		ID:         char.ID,
-		Name:       char.Name,
-		Image:      char.ImageURL,
-		MediaTitle: char.MediaTitle,
-	}, "SERIES_ROLL", now)
-	if err != nil {
-		return MediaCharacter{}, err
-	}
-
-	_ = tx.RemoveFromWishlist(ctx, userID, char.ID)
-
-	_, err = tx.SpendTokens(ctx, userID, config.SeriesRollCost)
-	if err != nil {
-		return MediaCharacter{}, err
-	}
-
-	err = tx.Commit(ctx)
-	committed = err == nil
-	return char, err
+	return char, nil
 }

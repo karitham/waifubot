@@ -22,6 +22,11 @@ type Config struct {
 	SeriesRollCost int32
 }
 
+// RollConfig holds configuration for roll operations.
+type RollConfig struct {
+	RollCooldown time.Duration
+}
+
 // MediaCharacter represents a character from the anime service.
 type MediaCharacter struct {
 	ID          int64

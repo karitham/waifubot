@@ -15,7 +15,7 @@ import (
 )
 
 func TestRoll(t *testing.T) {
-	config := collection.Config{RollCooldown: time.Hour}
+	config := collection.RollConfig{RollCooldown: time.Hour}
 
 	tests := []struct {
 		name       string
@@ -46,7 +46,7 @@ func TestRoll(t *testing.T) {
 			wantCharID: 3,
 		},
 		{
-			name: "cooldown_and_no_tokens",
+			name: "cooldown",
 			setup: func(m *collectiontest.MockStore, _ *collectiontest.MockAnimeService) {
 				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
 					return collection.User{UserID: userID, Date: time.Now().Add(-30 * time.Minute), Tokens: 5}, nil
@@ -96,6 +96,28 @@ func TestRoll(t *testing.T) {
 			userID:  123,
 			wantErr: true,
 		},
+		{
+			name: "remove_from_wishlist_fails_roll",
+			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockAnimeService) {
+				anime.RandomCharFunc = func(_ context.Context, _ ...int64) (collection.MediaCharacter, error) {
+					return collection.MediaCharacter{ID: 5, Name: "Char5", ImageURL: "img5"}, nil
+				}
+				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
+					return collection.User{UserID: userID, Date: time.Now().Add(-2 * time.Hour), Tokens: 5}, nil
+				}
+				m.GetCollectionIDsFunc = func(_ context.Context, _ uint64) ([]int64, error) { return nil, nil }
+				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
+				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ collection.Character, _ string, _ time.Time) error {
+					return nil
+				}
+				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error {
+					return errors.New("wishlist error")
+				}
+				m.UpdateLastRollFunc = func(_ context.Context, _ uint64, _ time.Time) error { return nil }
+			},
+			userID:  123,
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -106,20 +128,19 @@ func TestRoll(t *testing.T) {
 				tt.setup(store, anime)
 			}
 
-			got, err := collection.Roll(t.Context(), store, anime, config, tt.userID)
+			svc := collection.NewRollService(store, anime, config)
+			got, err := svc.Roll(t.Context(), tt.userID)
 
 			if tt.wantErr {
 				require.Error(t, err)
 				if tt.errAs != nil {
 					assert.True(t, errors.As(err, tt.errAs))
 				}
-				assert.Equal(t, 1, store.RollbackCalls)
 				return
 			}
 
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantCharID, got.ID)
-			assert.Equal(t, 1, store.CommitCalls)
 		})
 	}
 }

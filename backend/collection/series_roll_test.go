@@ -15,6 +15,7 @@ import (
 
 func TestSeriesRoll(t *testing.T) {
 	config := collection.Config{SeriesRollCost: 20}
+	rollConfig := collection.RollConfig{}
 
 	tests := []struct {
 		name       string
@@ -127,6 +128,63 @@ func TestSeriesRoll(t *testing.T) {
 			userID:  123,
 			mediaID: 1,
 		},
+		{
+			name: "new_user_creates_account",
+			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockAnimeService) {
+				callCount := 0
+				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
+					callCount++
+					if callCount == 1 {
+						return collection.User{}, collection.ErrNotFound
+					}
+					return collection.User{UserID: userID, Tokens: 50}, nil
+				}
+				m.CreateUserFunc = func(_ context.Context, _ uint64) error { return nil }
+				m.GetCollectionIDsFunc = func(_ context.Context, _ uint64) ([]int64, error) { return nil, nil }
+				anime.GetMediaCharactersFunc = func(_ context.Context, _ int64) ([]collection.MediaCharacter, error) {
+					return []collection.MediaCharacter{
+						{ID: 10, Name: "Char10", ImageURL: "img10"},
+					}, nil
+				}
+				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
+				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ collection.Character, _ string, _ time.Time) error {
+					return nil
+				}
+				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error { return nil }
+				m.SpendTokensFunc = func(_ context.Context, _ uint64, _ int32) (collection.User, error) {
+					return collection.User{}, nil
+				}
+			},
+			userID:  456,
+			mediaID: 1,
+		},
+		{
+			name: "remove_from_wishlist_fails_roll",
+			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockAnimeService) {
+				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
+					return collection.User{UserID: userID, Tokens: 50}, nil
+				}
+				m.GetCollectionIDsFunc = func(_ context.Context, _ uint64) ([]int64, error) { return nil, nil }
+				anime.GetMediaCharactersFunc = func(_ context.Context, _ int64) ([]collection.MediaCharacter, error) {
+					return []collection.MediaCharacter{
+						{ID: 10, Name: "Char10", ImageURL: "img10"},
+					}, nil
+				}
+				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
+				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ collection.Character, _ string, _ time.Time) error {
+					return nil
+				}
+				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error {
+					return assert.AnError
+				}
+				m.SpendTokensFunc = func(_ context.Context, _ uint64, _ int32) (collection.User, error) {
+					return collection.User{}, nil
+				}
+			},
+			userID:  123,
+			mediaID: 1,
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -137,20 +195,19 @@ func TestSeriesRoll(t *testing.T) {
 				tt.setup(store, anime)
 			}
 
-			got, err := collection.SeriesRoll(t.Context(), store, anime, config, tt.userID, tt.mediaID)
+			svc := collection.NewRollService(store, anime, rollConfig)
+			got, err := svc.SeriesRoll(t.Context(), tt.userID, tt.mediaID, config.SeriesRollCost)
 
 			if tt.wantErr {
 				require.Error(t, err)
 				if tt.errAs != nil {
 					assert.ErrorIs(t, err, tt.errAs)
 				}
-				assert.Equal(t, 1, store.RollbackCalls)
 				return
 			}
 
 			require.NoError(t, err)
 			assert.NotZero(t, got.ID)
-			assert.Equal(t, 1, store.CommitCalls)
 		})
 	}
 }

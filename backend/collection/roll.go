@@ -16,82 +16,109 @@ func (e ErrRollCooldown) Error() string {
 	return fmt.Sprintf("You can roll again in %s.", time.Until(e.Until).Round(time.Second))
 }
 
-// Roll executes the roll logic for a user.
-func Roll(ctx context.Context, store Store, animeService AnimeService, config Config, userID UserID) (MediaCharacter, error) {
+// withTx runs fn inside a transaction, committing on success or rolling back on failure.
+func withTx(ctx context.Context, store Store, fn func(tx Store) error) error {
 	tx, err := store.WithTx(ctx)
 	if err != nil {
-		return MediaCharacter{}, err
+		return err
 	}
-	committed := false
-	defer func() {
-		if !committed {
-			_ = tx.Rollback(ctx)
-		}
-	}()
+	if err := fn(tx); err != nil {
+		_ = tx.Rollback(ctx)
+		return err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		_ = tx.Rollback(ctx)
+		return err
+	}
+	return nil
+}
 
-	user, err := tx.GetUser(ctx, userID)
+// RollService orchestrates roll operations.
+type RollService struct {
+	store  Store
+	anime  AnimeService
+	config RollConfig
+}
+
+func NewRollService(store Store, anime AnimeService, config RollConfig) *RollService {
+	return &RollService{store: store, anime: anime, config: config}
+}
+
+// Roll executes the free roll for a user, enforcing the cooldown constraint.
+func (s *RollService) Roll(ctx context.Context, userID UserID) (MediaCharacter, error) {
+	// --- GATHER ---
+	user, err := s.store.GetUser(ctx, userID)
 	if err != nil {
-		if errors.Is(err, ErrNotFound) {
-			if err = tx.CreateUser(ctx, userID); err != nil {
-				return MediaCharacter{}, err
-			}
-			user, err = tx.GetUser(ctx, userID)
-			if err != nil {
-				return MediaCharacter{}, err
-			}
-		} else {
+		if !errors.Is(err, ErrNotFound) {
 			return MediaCharacter{}, err
 		}
-	}
-
-	now := time.Now()
-	canRollFree := now.After(user.Date.Add(config.RollCooldown))
-
-	if !canRollFree {
-		return MediaCharacter{}, ErrRollCooldown{
-			Until: user.Date.Add(config.RollCooldown),
+		// User is new — skip cooldown check
+	} else {
+		now := time.Now()
+		cooldownUntil := user.Date.Add(s.config.RollCooldown)
+		if now.Before(cooldownUntil) {
+			return MediaCharacter{}, ErrRollCooldown{Until: cooldownUntil}
 		}
 	}
 
-	charsIDs, err := tx.GetCollectionIDs(ctx, userID)
+	ownedIDs, err := s.store.GetCollectionIDs(ctx, userID)
 	if err != nil {
 		return MediaCharacter{}, err
 	}
 
-	char, err := animeService.RandomChar(ctx, charsIDs...)
+	// --- PROCESS ---
+	char, err := s.anime.RandomChar(ctx, ownedIDs...)
 	if err != nil {
 		return MediaCharacter{}, err
 	}
 
-	err = tx.UpsertCharacter(ctx, Character{
-		ID:        char.ID,
-		Name:      char.Name,
-		Image:     char.ImageURL,
-		Favorites: char.Favorites,
+	// --- COMMIT ---
+	now := time.Now()
+	err = withTx(ctx, s.store, func(tx Store) error {
+		user, err := tx.GetUser(ctx, userID)
+		if err != nil {
+			if errors.Is(err, ErrNotFound) {
+				if err = tx.CreateUser(ctx, userID); err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+		} else {
+			// Re-check cooldown inside the transaction — a concurrent request
+			// may have already updated last_roll since our earlier check.
+			cooldownUntil := user.Date.Add(s.config.RollCooldown)
+			if now.Before(cooldownUntil) {
+				return ErrRollCooldown{Until: cooldownUntil}
+			}
+		}
+
+		if err := tx.UpsertCharacter(ctx, Character{
+			ID:        char.ID,
+			Name:      char.Name,
+			Image:     char.ImageURL,
+			Favorites: char.Favorites,
+		}); err != nil {
+			return err
+		}
+
+		if err := tx.AddToCollection(ctx, userID, Character{
+			ID:         char.ID,
+			Name:       char.Name,
+			Image:      char.ImageURL,
+			MediaTitle: char.MediaTitle,
+		}, "ROLL", now); err != nil {
+			return err
+		}
+
+		if err := tx.RemoveFromWishlist(ctx, userID, char.ID); err != nil {
+			return err
+		}
+
+		return tx.UpdateLastRoll(ctx, userID, now)
 	})
 	if err != nil {
 		return MediaCharacter{}, err
 	}
-
-	err = tx.AddToCollection(ctx, userID, Character{
-		ID:         char.ID,
-		Name:       char.Name,
-		Image:      char.ImageURL,
-		MediaTitle: char.MediaTitle,
-	}, "ROLL", now)
-	if err != nil {
-		return MediaCharacter{}, err
-	}
-
-	_ = tx.RemoveFromWishlist(ctx, userID, char.ID)
-
-	err = tx.UpdateLastRoll(ctx, userID, now)
-
-	if err != nil {
-		return MediaCharacter{}, err
-	}
-
-	err = tx.Commit(ctx)
-	committed = err == nil
-	return char, err
+	return char, nil
 }

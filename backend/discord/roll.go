@@ -13,17 +13,15 @@ import (
 
 // RollHandler handles the /roll command.
 type RollHandler struct {
-	store        collection.Store
-	animeService TrackingService
-	wishlist     wishlist.Store
-	config       collection.Config
+	rollService *collection.RollService
+	wishlist    wishlist.Store
 }
 
 // Roll performs a character roll.
 func (h *RollHandler) Roll(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
 	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
 
-	char, err := collection.Roll(ctx, h.store, h.animeService, h.config, cmd.UserID())
+	char, err := h.rollService.Roll(ctx, cmd.UserID())
 
 	var cd collection.ErrRollCooldown
 	switch {

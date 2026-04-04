@@ -50,7 +50,7 @@ func TestTokenHandler_Balance(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
 			cmd := &MockCommandContext{UserIDVal: 1}
-			h := &TokenHandler{store: tt.store, config: tokenConfig}
+			h := &TokenHandler{store: tt.store}
 
 			h.Balance(t.Context(), w, cmd)
 
@@ -156,7 +156,7 @@ func TestTokenHandler_Give(t *testing.T) {
 					return collection.User{}, tt.transferErr
 				}
 			}
-			h := &TokenHandler{store: store, config: tokenConfig}
+			h := &TokenHandler{store: store}
 
 			h.Give(t.Context(), w, tt.cmd)
 
@@ -237,7 +237,7 @@ func TestTokenHandler_Sell(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
-			h := &TokenHandler{store: tt.store, config: tokenConfig}
+			h := &TokenHandler{store: tt.store}
 
 			h.Sell(t.Context(), w, tt.cmd)
 
@@ -381,7 +381,7 @@ func TestTokenHandler_Roll(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
-			h := &TokenHandler{store: tt.store, animeService: tt.animeService, config: tokenConfig}
+			h := &TokenHandler{store: tt.store, animeService: tt.animeService, rollService: collection.NewRollService(tt.store, tt.animeService, collection.RollConfig{RollCooldown: tokenConfig.RollCooldown}), config: tokenConfig}
 
 			h.Roll(t.Context(), w, tt.cmd)
 
@@ -449,7 +449,7 @@ func TestTokenHandler_SeriesAutocomplete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
-			h := &TokenHandler{animeService: tt.animeService, config: tokenConfig}
+			h := &TokenHandler{animeService: tt.animeService}
 
 			h.SeriesAutocomplete(t.Context(), w, tt.interaction)
 
@@ -503,7 +503,7 @@ func TestTokenHandler_UserCollectionAutocomplete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
-			h := &TokenHandler{store: tt.store, config: tokenConfig}
+			h := &TokenHandler{store: tt.store}
 
 			h.userCollectionAutocomplete(t.Context(), w, tt.interaction)
 
