@@ -1,4 +1,5 @@
 import { Search } from "@kobalte/core/search";
+import type { Component } from "solid-js";
 import { createResource, createSignal, Show } from "solid-js";
 import DropdownSearch from "../ui/DropdownSearch";
 import type { Option } from "../ui/DropdownSearch";
@@ -9,11 +10,11 @@ export type { Option };
 
 export type FilterMediaProps = {
 	onChange: (media: Option | null) => void;
-	value?: Option;
-	defaultValue?: Option;
+	value?: Option | null;
+	defaultValue?: Option | null;
 };
 
-const Icon = (props: { filled: boolean }) => (
+const Icon: Component<{ filled?: boolean }> = (props) => (
 	<span
 		class="i-ph-television text-lg"
 		classList={{
@@ -84,7 +85,7 @@ export default (props: FilterMediaProps) => {
 			itemComponent={renderItem}
 			icon={Icon}
 			onIconClick={() => {
-				props.onChange(undefined);
+				props.onChange(null);
 			}}
 		/>
 	);

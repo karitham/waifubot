@@ -12,8 +12,8 @@ export type Option = {
 
 type DropdownSearchProps<T extends Option> = {
 	options: T[];
-	value?: T;
-	defaultValue?: T;
+	value?: T | null;
+	defaultValue?: T | null;
 	onChange: (option: T | null) => void;
 	onInputChange?: (value: string) => void;
 	placeholder?: string;
@@ -58,14 +58,14 @@ export default function <T extends Option>(props: DropdownSearchProps<T>) {
 	return (
 		<Search
 			options={props.options}
-			defaultValue={props.defaultValue}
+			defaultValue={props.defaultValue ?? undefined}
 			onChange={props.onChange}
 			debounceOptionsMillisecond={props.debounceOptionsMillisecond || 250}
 			onInputChange={(value) => {
 				setSearchValue(value);
 				props.onInputChange?.(value);
 			}}
-			value={props.value}
+			value={props.value ?? undefined}
 			sameWidth={true}
 			optionLabel="label"
 			optionValue="value"

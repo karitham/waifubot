@@ -1,4 +1,4 @@
-import { Match, Show, Switch } from "solid-js";
+import { Match, Show, Switch, createMemo } from "solid-js";
 import type { Character } from "../../api/generated";
 import { formatDate, mapCharType } from "../../utils";
 import { formatFavorites } from "../../utils/rarity";
@@ -7,6 +7,7 @@ const iconStyle = "inline-flex gap-2 items-center";
 
 export default (props: { char: Character; class?: string }) => {
 	const charType = () => mapCharType(props.char.type || "");
+	const charDate = createMemo(() => props.char.date ?? "");
 
 	return (
 		<div
@@ -39,7 +40,7 @@ export default (props: { char: Character; class?: string }) => {
 			<Show when={props.char.date}>
 				<p class={`m-0 ${iconStyle}`}>
 					<span class="i-ph-calendar" />
-					{formatDate(props.char.date)}
+					{formatDate(charDate())}
 				</p>
 			</Show>
 			<Show when={props.char.type}>

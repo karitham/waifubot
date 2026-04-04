@@ -11,11 +11,6 @@ export function combineFilters<T>(
 	return (item: T) => filters.every((filterFn) => filterFn(item));
 }
 
-export const excludeCharacters =
-	(characters: Character[]) =>
-	(char: Character): boolean =>
-		!characters || characters.some((c) => c.id === char.id);
-
 export const filterBySearchTerm = (searchTerm: string) => (a: Character) =>
 	searchTerm.length < 2 ||
 	a.id.toString().includes(searchTerm) ||

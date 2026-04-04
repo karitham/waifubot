@@ -80,11 +80,13 @@ export function usePageFilters(userId?: string) {
 	const [charSort, setCharSort] = createSignal(sortOptions[0]);
 	const [charSortAsc, setCharSortAsc] = createSignal(true);
 	const [charSearch, setCharSearch] = useDebounce("", 250);
-	const [media, setMedia] = createSignal<Option>(
-		sp.media_id && {
-			label: sp.media_label,
-			value: sp.media_id,
-		},
+	const [media, setMedia] = createSignal<Option | null>(
+		sp.media_id && sp.media_label
+			? {
+					label: sp.media_label,
+					value: sp.media_id,
+				}
+			: null,
 	);
 
 	const [compareUsersResource] = createResource(compareIds, async (ids) => {

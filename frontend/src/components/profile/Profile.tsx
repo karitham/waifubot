@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { marked } from "marked";
 import { Show } from "solid-js";
 import type { Character } from "../../api/generated";
@@ -77,20 +78,28 @@ export default (props: {
 			</div>
 
 			{/* Conditional: Favorite character section */}
-			<Show when={props.favorite && props.favorite.name !== ""}>
-				<div class="bg-surface p-4 rounded-lg">
-					<h3 class="text-lg font-semibold mb-4 text-mauve">
-						Favorite Character
-					</h3>
-					<div class="flex gap-6 items-start">
-						<img
-							src={props.favorite?.image}
-							class="w-40 md:w-40 h-auto object-cover rounded-3xl"
-							alt={props.favorite?.name}
-						/>
-						<CharacterDetails char={props.favorite} />
+			<Show
+				when={
+					props.favorite && props.favorite.name !== ""
+						? props.favorite
+						: undefined
+				}
+			>
+				{(fav) => (
+					<div class="bg-surface p-4 rounded-lg">
+						<h3 class="text-lg font-semibold mb-4 text-mauve">
+							Favorite Character
+						</h3>
+						<div class="flex gap-6 items-start">
+							<img
+								src={fav().image}
+								class="w-40 md:w-40 h-auto object-cover rounded-3xl"
+								alt={fav().name}
+							/>
+							<CharacterDetails char={fav()} />
+						</div>
 					</div>
-				</div>
+				)}
 			</Show>
 
 			{/* Conditional: Quote/about section */}
@@ -99,11 +108,13 @@ export default (props: {
 					<div
 						id="about"
 						class="hyphens-auto overflow-hidden text-sm m-0 md:break-words break-all text-text font-sans [&_p]:m-0 [&_a]:text-blue-400 [&_a:hover]:text-blue-500"
-						innerHTML={marked.parse(
-							props.about?.replaceAll("\n", "\n\n") ?? "",
-							{
-								async: false,
-							},
+						innerHTML={DOMPurify.sanitize(
+							marked.parse(
+								props.about?.replaceAll("\n", "\n\n") ?? "",
+								{
+									async: false,
+								},
+							) as string,
 						)}
 					/>
 				</div>

@@ -73,10 +73,14 @@ export default (props: CompareUserProps) => {
 				<div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-end pointer-events-none">
 					<AvatarStack
 						avatars={[
-							...props.selectedUsers.map((u) => u.discord_avatar),
+							...props.selectedUsers.map((u) => u.discord_avatar).filter(
+								(a): a is string => a !== undefined,
+							),
 						].reverse()}
 						names={[
-							...props.selectedUsers.map((u) => u.discord_username || u.id),
+							...props.selectedUsers.map(
+								(u) => u.discord_username || u.id,
+							),
 						].reverse()}
 						small
 					/>

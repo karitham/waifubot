@@ -9,6 +9,7 @@
 		"allowSyntheticDefaultImports": true,
 		"esModuleInterop": true,
 		"lib": ["ES2021", "DOM", "DOM.Iterable"],
-		"skipLibCheck": true
+		"skipLibCheck": true,
+		"strict": true
 	}
 }

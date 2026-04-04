@@ -45,7 +45,7 @@ export default (props: {
 			<Show when={props.ownersAvatars && props.ownersAvatars.length > 0}>
 				<div class="absolute bottom-2 right-2">
 					<AvatarStack
-						avatars={props.ownersAvatars}
+						avatars={props.ownersAvatars || []}
 						names={props.ownersNames}
 					/>
 				</div>

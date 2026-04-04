@@ -1,3 +1,4 @@
+import type { JSX } from "solid-js";
 import type { Character } from "../../api/generated";
 import FilterLabel from "../ui/FilterLabel";
 import CompareUser, { type CompareUserProps } from "./CompareUser";
@@ -15,7 +16,7 @@ export type FilterBarProps = {
 	onToggleSortDirection: () => void;
 };
 
-const FilterSection = ({ label, children }) => (
+const FilterSection = ({ label, children }: { label: string; children: JSX.Element }) => (
 	<div class="flex flex-col gap-0.5 flex-1">
 		<FilterLabel>{label}</FilterLabel>
 		{children}

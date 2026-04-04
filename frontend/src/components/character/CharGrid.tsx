@@ -2,12 +2,7 @@ import { createWindowVirtualizer } from "@tanstack/solid-virtual";
 import { createMemo, createSignal, onCleanup, onMount, Show } from "solid-js";
 import type { Character, UserProfile } from "../../api/generated";
 import type { CompareUser } from "../../hooks/usePageFilters";
-import {
-	type CharOwned,
-	combineFilters,
-	excludeCharacters,
-	filterBySearchTerm,
-} from "../../utils/filterUtils";
+import { type CharOwned, combineFilters, filterBySearchTerm } from "../../utils/filterUtils";
 import EmptyState from "../ui/EmptyState";
 import CharCard from "./Card";
 
@@ -84,7 +79,7 @@ export default (props: {
 		combineFilters([
 			filterBySearchTerm(props.charSearch),
 			...(props.mediaCharacters && props.mediaCharacters.length > 0
-				? [excludeCharacters(props.mediaCharacters)]
+				? [(char: Character) => props.mediaCharacters!.some((c) => c.id === char.id)]
 				: []),
 		]),
 	);
@@ -209,9 +204,10 @@ export default (props: {
 					const ownersAvatars =
 						char.owners
 							?.map((id) => findUser(id)?.discord_avatar)
-							.filter(Boolean) || [];
+							.filter((a): a is string => a !== undefined) || [];
 					const ownersNames =
-						char.owners?.map((id) => findUser(id)?.discord_username || id) ||
+						char.owners?.map((id) => findUser(id)?.discord_username || id)
+							.filter((name): name is string => name !== undefined) ||
 						[];
 
 					const colWidth = columnWidth();
