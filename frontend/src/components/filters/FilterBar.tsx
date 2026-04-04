@@ -16,7 +16,13 @@ export type FilterBarProps = {
 	onToggleSortDirection: () => void;
 };
 
-const FilterSection = ({ label, children }: { label: string; children: JSX.Element }) => (
+const FilterSection = ({
+	label,
+	children,
+}: {
+	label: string;
+	children: JSX.Element;
+}) => (
 	<div class="flex flex-col gap-0.5 flex-1">
 		<FilterLabel>{label}</FilterLabel>
 		{children}

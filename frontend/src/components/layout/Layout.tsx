@@ -10,7 +10,7 @@ interface PageLayoutProps {
  * Layout for pages with profile at top, navbar below, and body as main content.
  */
 const PageLayout: Component<PageLayoutProps> = (props) => (
-	<main class="bg-base min-h-screen flex flex-col text-text main-content">
+	<main class="bg-base min-h-screen flex flex-col text-text">
 		<div class="w-full bg-crust">
 			<div class="p-8 content-width">{props.profile}</div>
 			{props.navbar}

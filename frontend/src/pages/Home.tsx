@@ -25,11 +25,17 @@ export default () => {
 
 	return (
 		<main class="bg-base h-screen w-screen font-sans selection:bg-overlayC">
-			<div class="flex flex-col gap-12 pt-32 items-center justify-center text-text main-content">
+			<div class="flex flex-col gap-12 pt-32 items-center justify-center text-text">
 				<div class="text-center">
-					<img src={Icon} alt="icon" class="w-24 h-24 mx-auto mb-6" />
-					<h1 class="text-3xl font-bold text-mauve mb-2">Waifu Bot</h1>
-					<p class="text-subtextA text-center max-w-sm font-light">
+					<img
+						src={Icon}
+						alt="icon"
+						class="w-24 h-24 mx-auto mb-6 outline-1 outline-text/10"
+					/>
+					<h1 class="text-3xl font-bold text-mauve mb-2 text-balance">
+						Waifu Bot
+					</h1>
+					<p class="text-subtextA text-center max-w-sm font-light text-pretty">
 						Discover anime character collections from Discord users
 					</p>
 				</div>
@@ -45,7 +51,7 @@ export default () => {
 								placeholder="karitham"
 							/>
 							<Button
-								class="rounded-lg font-sans border-none hover:cursor-pointer bg-mauve hover:bg-pink text-base transition-colors px-6 py-3 focus:outline-none focus:ring-2 focus:ring-mauve"
+								class="rounded-lg font-sans border-none hover:cursor-pointer bg-mauve hover:bg-pink text-base transition-colors active:scale-96 transition-transform px-6 py-3 focus:outline-none focus:ring-2 focus:ring-mauve"
 								onClick={() => searchUser(value())}
 								type="button"
 							>
@@ -64,21 +70,21 @@ export default () => {
 				<div class="flex gap-6 text-sm text-subtextA">
 					<a
 						href="https://discord.com/oauth2/authorize?scope=bot&client_id=712332547694264341&permissions=92224"
-						class="hover:text-mauve transition-colors"
+						class="hover:text-mauve transition-colors active:scale-96 transition-transform"
 						{...linkProps}
 					>
 						Discord
 					</a>
 					<a
 						href="https://github.com/karitham/waifubot"
-						class="hover:text-mauve transition-colors"
+						class="hover:text-mauve transition-colors active:scale-96 transition-transform"
 						{...linkProps}
 					>
 						GitHub
 					</a>
 					<a
 						href="https://waifuapi.karitham.dev"
-						class="hover:text-mauve transition-colors"
+						class="hover:text-mauve transition-colors active:scale-96 transition-transform"
 						{...linkProps}
 					>
 						API

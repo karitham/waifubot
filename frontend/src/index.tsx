@@ -16,8 +16,10 @@ const Page404 = lazy(() => import("./404"));
 const ErrorFallback = (props: { error: any }) => (
 	<div class="bg-base min-h-screen flex items-center justify-center text-text p-8">
 		<div class="text-center">
-			<h1 class="text-2xl font-bold text-red mb-4">Something went wrong</h1>
-			<p class="text-sm text-subtextA">{String(props.error)}</p>
+			<h1 class="text-2xl font-bold text-red mb-4 text-balance">
+				Something went wrong
+			</h1>
+			<p class="text-sm text-subtextA text-pretty">{String(props.error)}</p>
 		</div>
 	</div>
 );

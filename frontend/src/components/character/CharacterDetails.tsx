@@ -27,7 +27,7 @@ export default (props: { char: Character; class?: string }) => {
 			</a>
 			<button
 				type="button"
-				class="text-subtextA items-center m-0 p-0 bg-transparent text-sm hover:bg-transparent border-none inline-flex gap-2 hover:text-mauve transition-colors cursor-pointer active:scale-95"
+				class="text-subtextA m-0 p-0 bg-transparent text-sm hover:bg-transparent border-none cursor-pointer hover:text-mauve transition-colors active:scale-96 transition-transform inline-flex gap-2 items-center"
 				onClick={(e) => {
 					e.stopPropagation();
 					navigator.clipboard.writeText(props.char.id.toString());
@@ -62,7 +62,7 @@ export default (props: { char: Character; class?: string }) => {
 					{charType()}
 				</p>
 			</Show>
-			<p class={`m-0 ${iconStyle}`}>
+			<p class={`m-0 ${iconStyle} tabular-nums`}>
 				<span class="i-ph-heart" />
 				{formatFavorites(props.char.favorites)}
 			</p>

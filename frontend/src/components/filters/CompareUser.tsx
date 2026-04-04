@@ -1,5 +1,5 @@
 import { Search } from "@kobalte/core/search";
-import { createSignal, Show, type JSX } from "solid-js";
+import { createSignal, type JSX } from "solid-js";
 import type { UserProfile } from "../../api/generated";
 import AvatarStack from "../ui/AvatarStack";
 import DropdownSearch, { type Option } from "../ui/DropdownSearch";
@@ -21,20 +21,26 @@ const renderItem = (itemProps: any) => {
 		>
 			<div class="flex flex-row items-center gap-4">
 				{itemProps.item.rawValue.image ? (
-					<Show
-						when={!hovered()}
-						fallback={
-							<div class="h-12 w-12 flex items-center justify-center bg-surfaceB rounded-full">
-								<span class="i-ph-x text-lg" />
-							</div>
-						}
-					>
+					<div class="relative h-12 w-12">
 						<img
 							alt={itemProps.item.rawValue.label}
 							src={itemProps.item.rawValue.image}
-							class="h-12 w-12 object-cover rounded-full border-2 border-maroon"
+							class="h-12 w-12 object-cover rounded-full border-2 border-maroon absolute inset-0 transition-opacity duration-200"
+							classList={{
+								"opacity-100": !hovered(),
+								"opacity-0": hovered(),
+							}}
 						/>
-					</Show>
+						<div
+							class="h-12 w-12 flex items-center justify-center bg-surfaceB rounded-full absolute inset-0 transition-opacity duration-200"
+							classList={{
+								"opacity-100": hovered(),
+								"opacity-0": !hovered(),
+							}}
+						>
+							<span class="i-ph-x text-lg" />
+						</div>
+					</div>
 				) : (
 					<div class="h-12 w-12 flex items-center justify-center bg-surfaceB rounded-full">
 						<span class="i-ph-plus text-lg" />
@@ -73,14 +79,12 @@ export default (props: CompareUserProps) => {
 				<div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-end pointer-events-none">
 					<AvatarStack
 						avatars={[
-							...props.selectedUsers.map((u) => u.discord_avatar).filter(
-								(a): a is string => a !== undefined,
-							),
+							...props.selectedUsers
+								.map((u) => u.discord_avatar)
+								.filter((a): a is string => a !== undefined),
 						].reverse()}
 						names={[
-							...props.selectedUsers.map(
-								(u) => u.discord_username || u.id,
-							),
+							...props.selectedUsers.map((u) => u.discord_username || u.id),
 						].reverse()}
 						small
 					/>

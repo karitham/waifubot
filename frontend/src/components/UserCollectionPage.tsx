@@ -25,7 +25,9 @@ export default (props: UserCollectionPageProps) => {
 			characters={characters() || undefined}
 			allowEmpty={props.allowEmpty}
 			profileTitle={props.title}
-			navbarLink={params.id ? props.navbarLink(params.id) : { href: "/", text: "" }}
+			navbarLink={
+				params.id ? props.navbarLink(params.id) : { href: "/", text: "" }
+			}
 		/>
 	);
 };

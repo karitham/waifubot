@@ -37,7 +37,7 @@ export default (props: {
 					<img
 						src={props.discordAvatar}
 						alt="Discord Avatar"
-						class="w-16 h-16 rounded-full"
+						class="w-16 h-16 rounded-full outline-1 outline-text/10"
 					/>
 				</Show>
 				<div class="flex flex-col">
@@ -52,7 +52,7 @@ export default (props: {
 							<img
 								src="https://anilist.co/img/icons/favicon-32x32.png"
 								alt="AniList"
-								class="w-4 h-4"
+								class="w-4 h-4 outline-1 outline-text/10"
 							/>
 							Profile on AniList
 						</a>
@@ -70,7 +70,7 @@ export default (props: {
 				<Show when={props.actionLink}>
 					<a
 						href={props.actionLink?.href}
-						class="px-4 py-2 bg-mauve text-base rounded-lg hover:bg-pink transition-colors"
+						class="px-6 py-3 bg-mauve text-base rounded-lg hover:bg-pink transition-colors active:scale-96 transition-transform min-h-10"
 					>
 						{props.actionLink?.label}
 					</a>
@@ -93,7 +93,7 @@ export default (props: {
 						<div class="flex gap-6 items-start">
 							<img
 								src={fav().image}
-								class="w-40 md:w-40 h-auto object-cover rounded-3xl"
+								class="w-40 md:w-40 h-auto object-cover rounded-3xl outline-1 outline-text/10"
 								alt={fav().name}
 							/>
 							<CharacterDetails char={fav()} />
@@ -109,12 +109,9 @@ export default (props: {
 						id="about"
 						class="hyphens-auto overflow-hidden text-sm m-0 md:break-words break-all text-text font-sans [&_p]:m-0 [&_a]:text-blue-400 [&_a:hover]:text-blue-500"
 						innerHTML={DOMPurify.sanitize(
-							marked.parse(
-								props.about?.replaceAll("\n", "\n\n") ?? "",
-								{
-									async: false,
-								},
-							) as string,
+							marked.parse(props.about?.replaceAll("\n", "\n\n") ?? "", {
+								async: false,
+							}) as string,
 						)}
 					/>
 				</div>

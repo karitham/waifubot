@@ -3,7 +3,7 @@ import { combineFilters, filterBySearchTerm } from "./filterUtils";
 
 describe("filterBySearchTerm", () => {
 	const makeChar = (id: number, name: string) =>
-		({ id, name } as import("../api/generated").Character);
+		({ id, name }) as import("../api/generated").Character;
 
 	it("returns true for all when search term is empty", () => {
 		const filter = filterBySearchTerm("");

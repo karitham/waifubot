@@ -12,7 +12,7 @@ export default (props: {
 }) => {
 	return (
 		<article
-			class="bg-surfaceA rounded-lg relative flex h-44 w-full overflow-clip hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer"
+			class="bg-surfaceA rounded-lg relative flex h-44 w-full overflow-clip hover:shadow-lg transition-shadow transition-transform duration-200 hover:scale-[1.02] active:scale-96 cursor-pointer"
 			classList={{ "opacity-60": props.missing }}
 			style={{
 				"border-left": `4px solid ${getRarityHex(props.char.favorites)}`,
@@ -36,7 +36,7 @@ export default (props: {
 		>
 			<img
 				src={props.char.image}
-				class="object-cover w-32"
+				class="object-cover w-32 outline-1 outline-text/10"
 				width={128}
 				height={176}
 				loading="lazy"

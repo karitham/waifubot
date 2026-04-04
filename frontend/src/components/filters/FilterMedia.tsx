@@ -30,7 +30,7 @@ const renderItem = (props: any) => (
 				<img
 					alt={props.item.rawValue.label}
 					src={props.item.rawValue.image}
-					class="h-12 w-12 object-cover"
+					class="h-12 w-12 object-cover outline-1 outline-text/10"
 				/>
 			</Show>
 			<Search.ItemLabel>{props.item.rawValue.label}</Search.ItemLabel>

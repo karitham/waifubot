@@ -15,13 +15,13 @@ export default (props: CollectionNavProps) => {
 		<div class="p-4 flex justify-center gap-8">
 			<a
 				href="/"
-				class="text-mauve hover:text-pink transition-colors px-4 py-2 rounded-md hover:bg-surfaceA/50"
+				class="text-mauve hover:text-pink transition-colors active:scale-96 transition-transform px-4 py-2 rounded-md hover:bg-surfaceA/50"
 			>
 				Back to Home
 			</a>
 			<a
 				href={href()}
-				class="text-mauve hover:text-pink transition-colors px-4 py-2 rounded-md hover:bg-surfaceA/50"
+				class="text-mauve hover:text-pink transition-colors active:scale-96 transition-transform px-4 py-2 rounded-md hover:bg-surfaceA/50"
 			>
 				{props.navbarLink.text}
 			</a>
