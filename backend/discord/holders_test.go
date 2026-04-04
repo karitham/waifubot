@@ -19,7 +19,7 @@ func TestHoldersHandler_Holders(t *testing.T) {
 		name           string
 		cmd            CommandContext
 		guildOps       *mockGuildQuerier
-		catalog        *mockCatalogStore
+		catalog        *cordetest.MockCatalogStore
 		wantContent    string
 		wantNotContent string
 	}{
@@ -43,7 +43,7 @@ func TestHoldersHandler_Holders(t *testing.T) {
 					return collection.GuildIndexStatus{Status: collection.IndexingCompleted}, nil
 				},
 			},
-			catalog: &mockCatalogStore{
+			catalog: &cordetest.MockCatalogStore{
 				GetCharacterByIDFunc: func(ctx context.Context, charID int64) (catalog.Character, error) {
 					return catalog.Character{ID: 42, Name: "Sakura"}, nil
 				},
@@ -64,7 +64,7 @@ func TestHoldersHandler_Holders(t *testing.T) {
 					return collection.GuildIndexStatus{Status: collection.IndexingCompleted}, nil
 				},
 			},
-			catalog: &mockCatalogStore{
+			catalog: &cordetest.MockCatalogStore{
 				GetCharacterByIDFunc: func(ctx context.Context, charID int64) (catalog.Character, error) {
 					return catalog.Character{ID: 42, Name: "Sakura"}, nil
 				},
@@ -101,8 +101,7 @@ func TestHoldersHandler_Holders(t *testing.T) {
 
 			assert.True(t, w.RespondCalled)
 			if tt.wantContent != "" {
-				data := w.LastRespond.InteractionRespData()
-				assert.Contains(t, data.Content, tt.wantContent)
+				w.AssertContains(t, tt.wantContent)
 			}
 			if tt.wantNotContent != "" {
 				data := w.LastRespond.InteractionRespData()
@@ -150,7 +149,7 @@ func TestHoldersHandler_Autocomplete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var searchCalled bool
-			mockStore := &mockCatalogStore{
+			mockStore := &cordetest.MockCatalogStore{
 				SearchGlobalCharactersFunc: func(ctx context.Context, term string) ([]catalog.Character, error) {
 					searchCalled = true
 					return tt.searchResult, tt.searchErr
@@ -193,43 +192,4 @@ func (m *mockGuildQuerier) UpsertGuildMembers(ctx context.Context, guildID uint6
 }
 func (m *mockGuildQuerier) DeleteGuildMembersNotIn(ctx context.Context, guildID uint64, memberIDs []uint64) error {
 	return nil
-}
-
-// mockCatalogStore implements catalog.Store for testing.
-type mockCatalogStore struct {
-	UpsertCharacterFunc            func(ctx context.Context, char catalog.Character) error
-	GetCharacterByIDFunc           func(ctx context.Context, charID int64) (catalog.Character, error)
-	SearchCharactersFunc           func(ctx context.Context, userID uint64, term string) ([]catalog.Character, error)
-	SearchGlobalCharactersFunc     func(ctx context.Context, term string) ([]catalog.Character, error)
-	GetCharacterHoldersInGuildFunc func(ctx context.Context, guildID uint64, charID int64) ([]uint64, error)
-	GetStaleCharactersFunc         func(ctx context.Context, cursorUpdatedAt time.Time, cursorID int64, limit int) ([]catalog.Character, error)
-	UpdateCharacterSyncFunc        func(ctx context.Context, char catalog.Character) (catalog.Character, error)
-}
-
-func (m *mockCatalogStore) UpsertCharacter(ctx context.Context, char catalog.Character) error {
-	return m.UpsertCharacterFunc(ctx, char)
-}
-
-func (m *mockCatalogStore) GetCharacterByID(ctx context.Context, charID int64) (catalog.Character, error) {
-	return m.GetCharacterByIDFunc(ctx, charID)
-}
-
-func (m *mockCatalogStore) SearchCharacters(ctx context.Context, userID uint64, term string) ([]catalog.Character, error) {
-	return m.SearchCharactersFunc(ctx, userID, term)
-}
-
-func (m *mockCatalogStore) SearchGlobalCharacters(ctx context.Context, term string) ([]catalog.Character, error) {
-	return m.SearchGlobalCharactersFunc(ctx, term)
-}
-
-func (m *mockCatalogStore) GetCharacterHoldersInGuild(ctx context.Context, guildID uint64, charID int64) ([]uint64, error) {
-	return m.GetCharacterHoldersInGuildFunc(ctx, guildID, charID)
-}
-
-func (m *mockCatalogStore) GetStaleCharacters(ctx context.Context, cursorUpdatedAt time.Time, cursorID int64, limit int) ([]catalog.Character, error) {
-	return m.GetStaleCharactersFunc(ctx, cursorUpdatedAt, cursorID, limit)
-}
-
-func (m *mockCatalogStore) UpdateCharacterSync(ctx context.Context, char catalog.Character) (catalog.Character, error) {
-	return m.UpdateCharacterSyncFunc(ctx, char)
 }

@@ -1,6 +1,12 @@
 package cordetest
 
-import "github.com/Karitham/corde"
+import (
+	"strings"
+	"testing"
+
+	"github.com/Karitham/corde"
+	"github.com/stretchr/testify/assert"
+)
 
 // MockResponseWriter implements corde.ResponseWriter for testing.
 // It records all calls and stores the last response for assertions.
@@ -69,3 +75,27 @@ func (m *MockResponseWriter) Responded() bool {
 }
 
 var _ corde.ResponseWriter = (*MockResponseWriter)(nil)
+
+// AssertContains checks if the response contains the expected string.
+// Checks Content first, then embed Title, Description, and Fields.
+func (m *MockResponseWriter) AssertContains(t *testing.T, want string) bool {
+	t.Helper()
+	data := m.LastRespond.InteractionRespData()
+	if data == nil {
+		return assert.Fail(t, "no response data")
+	}
+	if data.Content != "" {
+		return assert.Contains(t, data.Content, want)
+	}
+	for _, e := range data.Embeds {
+		if strings.Contains(e.Title, want) || strings.Contains(e.Description, want) {
+			return true
+		}
+		for _, f := range e.Fields {
+			if strings.Contains(f.Name, want) || strings.Contains(f.Value, want) {
+				return true
+			}
+		}
+	}
+	return assert.Fail(t, "response does not contain", want)
+}

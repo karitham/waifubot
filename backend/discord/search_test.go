@@ -71,8 +71,7 @@ func TestSearchHandler_SearchAnime(t *testing.T) {
 
 			assert.True(t, w.RespondCalled)
 			if tt.wantContent != "" {
-				data := w.LastRespond.InteractionRespData()
-				assert.Contains(t, data.Content, tt.wantContent)
+				w.AssertContains(t, tt.wantContent)
 			}
 			if tt.wantTitle != "" {
 				data := w.LastRespond.InteractionRespData()
@@ -144,8 +143,7 @@ func TestSearchHandler_SearchManga(t *testing.T) {
 
 			assert.True(t, w.RespondCalled)
 			if tt.wantContent != "" {
-				data := w.LastRespond.InteractionRespData()
-				assert.Contains(t, data.Content, tt.wantContent)
+				w.AssertContains(t, tt.wantContent)
 			}
 			if tt.wantTitle != "" {
 				data := w.LastRespond.InteractionRespData()
@@ -217,8 +215,7 @@ func TestSearchHandler_SearchUser(t *testing.T) {
 
 			assert.True(t, w.RespondCalled)
 			if tt.wantContent != "" {
-				data := w.LastRespond.InteractionRespData()
-				assert.Contains(t, data.Content, tt.wantContent)
+				w.AssertContains(t, tt.wantContent)
 			}
 			if tt.wantTitle != "" {
 				data := w.LastRespond.InteractionRespData()
@@ -290,8 +287,7 @@ func TestSearchHandler_SearchChar(t *testing.T) {
 
 			assert.True(t, w.RespondCalled)
 			if tt.wantContent != "" {
-				data := w.LastRespond.InteractionRespData()
-				assert.Contains(t, data.Content, tt.wantContent)
+				w.AssertContains(t, tt.wantContent)
 			}
 			if tt.wantTitle != "" {
 				data := w.LastRespond.InteractionRespData()

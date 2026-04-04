@@ -11,75 +11,15 @@ import (
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/collection/collectiontest"
 	"github.com/karitham/waifubot/discord/cordetest"
-	"github.com/karitham/waifubot/wishlist"
+	"github.com/karitham/waifubot/wishlist/wishlisttest"
 )
-
-type mockWishlistStore struct {
-	AddCharactersToWishlistFunc      func(ctx context.Context, userID uint64, characterIDs []int64) error
-	RemoveCharactersFromWishlistFunc func(ctx context.Context, userID uint64, characterIDs []int64) error
-	RemoveAllFromWishlistFunc        func(ctx context.Context, userID uint64) error
-	GetUserCharacterWishlistFunc     func(ctx context.Context, userID uint64) ([]wishlist.Character, error)
-	GetWishlistHoldersFunc           func(ctx context.Context, characterIDs []int64, userID, guildID uint64) ([]wishlist.UserCharacterSet, error)
-	GetWantedCharactersFunc          func(ctx context.Context, userID, guildID uint64) ([]wishlist.UserCharacterSet, error)
-	CompareWithUserFunc              func(ctx context.Context, userID1, userID2 uint64) (wishlist.WishlistComparison, error)
-	GetUsersWantingCharacterFunc     func(ctx context.Context, charID int64, guildID, excludeUserID uint64) ([]uint64, error)
-}
-
-func (m *mockWishlistStore) AddCharactersToWishlist(ctx context.Context, userID uint64, characterIDs []int64) error {
-	if m.AddCharactersToWishlistFunc != nil {
-		return m.AddCharactersToWishlistFunc(ctx, userID, characterIDs)
-	}
-	return nil
-}
-func (m *mockWishlistStore) RemoveCharactersFromWishlist(ctx context.Context, userID uint64, characterIDs []int64) error {
-	if m.RemoveCharactersFromWishlistFunc != nil {
-		return m.RemoveCharactersFromWishlistFunc(ctx, userID, characterIDs)
-	}
-	return nil
-}
-func (m *mockWishlistStore) RemoveAllFromWishlist(ctx context.Context, userID uint64) error {
-	if m.RemoveAllFromWishlistFunc != nil {
-		return m.RemoveAllFromWishlistFunc(ctx, userID)
-	}
-	return nil
-}
-func (m *mockWishlistStore) GetUserCharacterWishlist(ctx context.Context, userID uint64) ([]wishlist.Character, error) {
-	if m.GetUserCharacterWishlistFunc != nil {
-		return m.GetUserCharacterWishlistFunc(ctx, userID)
-	}
-	return nil, nil
-}
-func (m *mockWishlistStore) GetWishlistHolders(ctx context.Context, characterIDs []int64, userID, guildID uint64) ([]wishlist.UserCharacterSet, error) {
-	if m.GetWishlistHoldersFunc != nil {
-		return m.GetWishlistHoldersFunc(ctx, characterIDs, userID, guildID)
-	}
-	return nil, nil
-}
-func (m *mockWishlistStore) GetWantedCharacters(ctx context.Context, userID, guildID uint64) ([]wishlist.UserCharacterSet, error) {
-	if m.GetWantedCharactersFunc != nil {
-		return m.GetWantedCharactersFunc(ctx, userID, guildID)
-	}
-	return nil, nil
-}
-func (m *mockWishlistStore) CompareWithUser(ctx context.Context, userID1, userID2 uint64) (wishlist.WishlistComparison, error) {
-	if m.CompareWithUserFunc != nil {
-		return m.CompareWithUserFunc(ctx, userID1, userID2)
-	}
-	return wishlist.WishlistComparison{}, nil
-}
-func (m *mockWishlistStore) GetUsersWantingCharacter(ctx context.Context, charID int64, guildID, excludeUserID uint64) ([]uint64, error) {
-	if m.GetUsersWantingCharacterFunc != nil {
-		return m.GetUsersWantingCharacterFunc(ctx, charID, guildID, excludeUserID)
-	}
-	return nil, nil
-}
 
 func TestRollHandler_Roll(t *testing.T) {
 	tests := []struct {
 		name           string
 		store          *collectiontest.MockStore
 		animeService   *collectiontest.MockAnimeService
-		wishlist       *mockWishlistStore
+		wishlist       *wishlisttest.MockStore
 		cmd            CommandContext
 		config         collection.Config
 		wantContent    string
@@ -98,7 +38,7 @@ func TestRollHandler_Roll(t *testing.T) {
 				},
 			},
 			animeService: &collectiontest.MockAnimeService{},
-			wishlist:     &mockWishlistStore{},
+			wishlist:     &wishlisttest.MockStore{},
 			cmd: &MockCommandContext{
 				UserIDVal:  1,
 				GuildIDVal: 2,
@@ -115,7 +55,7 @@ func TestRollHandler_Roll(t *testing.T) {
 				},
 			},
 			animeService: &collectiontest.MockAnimeService{},
-			wishlist:     &mockWishlistStore{},
+			wishlist:     &wishlisttest.MockStore{},
 			cmd: &MockCommandContext{
 				UserIDVal:  1,
 				GuildIDVal: 2,
@@ -152,7 +92,7 @@ func TestRollHandler_Roll(t *testing.T) {
 					}, nil
 				},
 			},
-			wishlist: &mockWishlistStore{
+			wishlist: &wishlisttest.MockStore{
 				GetUsersWantingCharacterFunc: func(ctx context.Context, charID int64, guildID, excludeUserID uint64) ([]uint64, error) {
 					return nil, nil
 				},
@@ -193,7 +133,7 @@ func TestRollHandler_Roll(t *testing.T) {
 					}, nil
 				},
 			},
-			wishlist: &mockWishlistStore{
+			wishlist: &wishlisttest.MockStore{
 				GetUsersWantingCharacterFunc: func(ctx context.Context, charID int64, guildID, excludeUserID uint64) ([]uint64, error) {
 					return []uint64{10, 20, 30}, nil
 				},
@@ -223,8 +163,7 @@ func TestRollHandler_Roll(t *testing.T) {
 
 			assert.Equal(t, tt.wantResponded, w.RespondCalled)
 			if tt.wantContent != "" {
-				data := w.LastRespond.InteractionRespData()
-				assert.Contains(t, data.Content, tt.wantContent)
+				w.AssertContains(t, tt.wantContent)
 			}
 			if tt.wantEmbedTitle != "" {
 				data := w.LastRespond.InteractionRespData()

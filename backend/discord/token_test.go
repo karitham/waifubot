@@ -56,8 +56,7 @@ func TestTokenHandler_Balance(t *testing.T) {
 			h.Balance(t.Context(), w, cmd)
 
 			assert.True(t, w.RespondCalled)
-			data := w.LastRespond.InteractionRespData()
-			assert.Contains(t, data.Content, tt.wantContent)
+			w.AssertContains(t, tt.wantContent)
 		})
 	}
 }
@@ -163,8 +162,7 @@ func TestTokenHandler_Give(t *testing.T) {
 			h.Give(t.Context(), w, tt.cmd)
 
 			assert.True(t, w.RespondCalled)
-			data := w.LastRespond.InteractionRespData()
-			assert.Contains(t, data.Content, tt.wantContent)
+			w.AssertContains(t, tt.wantContent)
 		})
 	}
 }
@@ -245,8 +243,7 @@ func TestTokenHandler_Sell(t *testing.T) {
 			h.Sell(t.Context(), w, tt.cmd)
 
 			assert.True(t, w.RespondCalled)
-			data := w.LastRespond.InteractionRespData()
-			assert.Contains(t, data.Content, tt.wantContent)
+			w.AssertContains(t, tt.wantContent)
 		})
 	}
 }
@@ -394,8 +391,7 @@ func TestTokenHandler_Roll(t *testing.T) {
 				data := w.LastRespond.InteractionRespData()
 				assert.Len(t, data.Embeds, 1)
 			} else if tt.wantContent != "" {
-				data := w.LastRespond.InteractionRespData()
-				assert.Contains(t, data.Content, tt.wantContent)
+				w.AssertContains(t, tt.wantContent)
 			}
 		})
 	}

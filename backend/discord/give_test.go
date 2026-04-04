@@ -115,8 +115,7 @@ func TestGiveHandler_Give(t *testing.T) {
 			h.Give(t.Context(), w, tt.cmd)
 
 			assert.True(t, w.RespondCalled)
-			data := w.LastRespond.InteractionRespData()
-			assert.Contains(t, data.Content, tt.wantContent)
+			w.AssertContains(t, tt.wantContent)
 		})
 	}
 }
@@ -149,8 +148,7 @@ func TestGiveHandler_Give_RecipientUsername(t *testing.T) {
 	h.Give(t.Context(), w, cmd)
 
 	assert.True(t, w.RespondCalled)
-	data := w.LastRespond.InteractionRespData()
-	assert.Contains(t, data.Content, "recipient")
+	w.AssertContains(t, "recipient")
 }
 
 func TestGiveHandler_Autocomplete(t *testing.T) {

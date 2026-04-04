@@ -3,9 +3,7 @@ package discord
 import (
 	"context"
 	"errors"
-	"strings"
 	"testing"
-	"time"
 
 	"github.com/Karitham/corde"
 	"github.com/stretchr/testify/assert"
@@ -15,103 +13,15 @@ import (
 	"github.com/karitham/waifubot/collection/collectiontest"
 	"github.com/karitham/waifubot/discord/cordetest"
 	"github.com/karitham/waifubot/wishlist"
+	"github.com/karitham/waifubot/wishlist/wishlisttest"
 )
-
-// mockCatalogStoreWishlist implements catalog.Store for wishlist tests.
-type mockCatalogStoreWishlist struct {
-	UpsertCharacterFunc            func(ctx context.Context, char catalog.Character) error
-	GetCharacterByIDFunc           func(ctx context.Context, charID int64) (catalog.Character, error)
-	SearchCharactersFunc           func(ctx context.Context, userID uint64, term string) ([]catalog.Character, error)
-	SearchGlobalCharactersFunc     func(ctx context.Context, term string) ([]catalog.Character, error)
-	GetCharacterHoldersInGuildFunc func(ctx context.Context, guildID uint64, charID int64) ([]uint64, error)
-	GetStaleCharactersFunc         func(ctx context.Context, cursorUpdatedAt time.Time, cursorID int64, limit int) ([]catalog.Character, error)
-	UpdateCharacterSyncFunc        func(ctx context.Context, char catalog.Character) (catalog.Character, error)
-}
-
-func (m *mockCatalogStoreWishlist) UpsertCharacter(ctx context.Context, char catalog.Character) error {
-	if m.UpsertCharacterFunc != nil {
-		return m.UpsertCharacterFunc(ctx, char)
-	}
-	return nil
-}
-
-func (m *mockCatalogStoreWishlist) GetCharacterByID(ctx context.Context, charID int64) (catalog.Character, error) {
-	if m.GetCharacterByIDFunc != nil {
-		return m.GetCharacterByIDFunc(ctx, charID)
-	}
-	return catalog.Character{}, nil
-}
-
-func (m *mockCatalogStoreWishlist) SearchCharacters(ctx context.Context, userID uint64, term string) ([]catalog.Character, error) {
-	if m.SearchCharactersFunc != nil {
-		return m.SearchCharactersFunc(ctx, userID, term)
-	}
-	return nil, nil
-}
-
-func (m *mockCatalogStoreWishlist) SearchGlobalCharacters(ctx context.Context, term string) ([]catalog.Character, error) {
-	if m.SearchGlobalCharactersFunc != nil {
-		return m.SearchGlobalCharactersFunc(ctx, term)
-	}
-	return nil, nil
-}
-
-func (m *mockCatalogStoreWishlist) GetCharacterHoldersInGuild(ctx context.Context, guildID uint64, charID int64) ([]uint64, error) {
-	if m.GetCharacterHoldersInGuildFunc != nil {
-		return m.GetCharacterHoldersInGuildFunc(ctx, guildID, charID)
-	}
-	return nil, nil
-}
-
-func (m *mockCatalogStoreWishlist) GetStaleCharacters(ctx context.Context, cursorUpdatedAt time.Time, cursorID int64, limit int) ([]catalog.Character, error) {
-	if m.GetStaleCharactersFunc != nil {
-		return m.GetStaleCharactersFunc(ctx, cursorUpdatedAt, cursorID, limit)
-	}
-	return nil, nil
-}
-
-func (m *mockCatalogStoreWishlist) UpdateCharacterSync(ctx context.Context, char catalog.Character) (catalog.Character, error) {
-	if m.UpdateCharacterSyncFunc != nil {
-		return m.UpdateCharacterSyncFunc(ctx, char)
-	}
-	return char, nil
-}
-
-var _ catalog.Store = (*mockCatalogStoreWishlist)(nil)
-
-func assertResponseContent(t *testing.T, w *cordetest.MockResponseWriter, want string) {
-	t.Helper()
-	data := w.LastRespond.InteractionRespData()
-	if data.Content != "" {
-		assert.Contains(t, data.Content, want)
-		return
-	}
-	for _, e := range data.Embeds {
-		if e.Title != "" {
-			if strings.Contains(e.Title, want) {
-				return
-			}
-		}
-		if e.Description != "" {
-			if strings.Contains(e.Description, want) {
-				return
-			}
-		}
-		for _, f := range e.Fields {
-			if strings.Contains(f.Name, want) || strings.Contains(f.Value, want) {
-				return
-			}
-		}
-	}
-	assert.Fail(t, "expected response to contain", want)
-}
 
 func TestWishlistHandler_CharacterAdd(t *testing.T) {
 	tests := []struct {
 		name        string
 		cmd         CommandContext
 		collStore   *collectiontest.MockStore
-		wlStore     *mockWishlistStore
+		wlStore     *wishlisttest.MockStore
 		wantContent string
 	}{
 		{
@@ -127,7 +37,7 @@ func TestWishlistHandler_CharacterAdd(t *testing.T) {
 					return collection.OwnedCharacter{}, collection.ErrNotFound
 				},
 			},
-			wlStore:     &mockWishlistStore{},
+			wlStore:     &wishlisttest.MockStore{},
 			wantContent: "Added  (0) to your wishlist.",
 		},
 		{
@@ -173,7 +83,7 @@ func TestWishlistHandler_CharacterAdd(t *testing.T) {
 					return collection.OwnedCharacter{}, collection.ErrNotFound
 				},
 			},
-			wlStore: &mockWishlistStore{
+			wlStore: &wishlisttest.MockStore{
 				AddCharactersToWishlistFunc: func(ctx context.Context, userID uint64, characterIDs []int64) error {
 					return errors.New("db error")
 				},
@@ -188,7 +98,7 @@ func TestWishlistHandler_CharacterAdd(t *testing.T) {
 			h := &WishlistHandler{
 				wishlist: tt.wlStore,
 				store:    tt.collStore,
-				catalog:  &mockCatalogStoreWishlist{},
+				catalog:  &cordetest.MockCatalogStore{},
 			}
 
 			h.CharacterAdd(t.Context(), w, tt.cmd)
@@ -206,7 +116,7 @@ func TestWishlistHandler_CharacterRemove(t *testing.T) {
 	tests := []struct {
 		name        string
 		cmd         CommandContext
-		wlStore     *mockWishlistStore
+		wlStore     *wishlisttest.MockStore
 		wantContent string
 	}{
 		{
@@ -217,7 +127,7 @@ func TestWishlistHandler_CharacterRemove(t *testing.T) {
 				GuildIDVal:   1,
 				OptInt64Vals: map[string]int64{"character": 42},
 			},
-			wlStore:     &mockWishlistStore{},
+			wlStore:     &wishlisttest.MockStore{},
 			wantContent: "Removed character 42 from your wishlist.",
 		},
 		{
@@ -228,7 +138,7 @@ func TestWishlistHandler_CharacterRemove(t *testing.T) {
 				GuildIDVal:   1,
 				OptInt64Vals: map[string]int64{"character": 42},
 			},
-			wlStore: &mockWishlistStore{
+			wlStore: &wishlisttest.MockStore{
 				RemoveCharactersFromWishlistFunc: func(ctx context.Context, userID uint64, characterIDs []int64) error {
 					return errors.New("db error")
 				},
@@ -260,7 +170,7 @@ func TestWishlistHandler_CharacterList(t *testing.T) {
 	tests := []struct {
 		name        string
 		cmd         CommandContext
-		wlStore     *mockWishlistStore
+		wlStore     *wishlisttest.MockStore
 		wantContent string
 	}{
 		{
@@ -270,7 +180,7 @@ func TestWishlistHandler_CharacterList(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &mockWishlistStore{
+			wlStore: &wishlisttest.MockStore{
 				GetUserCharacterWishlistFunc: func(ctx context.Context, userID uint64) ([]wishlist.Character, error) {
 					return []wishlist.Character{
 						{ID: 1, Name: "Sakura"},
@@ -287,7 +197,7 @@ func TestWishlistHandler_CharacterList(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &mockWishlistStore{
+			wlStore: &wishlisttest.MockStore{
 				GetUserCharacterWishlistFunc: func(ctx context.Context, userID uint64) ([]wishlist.Character, error) {
 					return []wishlist.Character{}, nil
 				},
@@ -301,7 +211,7 @@ func TestWishlistHandler_CharacterList(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &mockWishlistStore{
+			wlStore: &wishlisttest.MockStore{
 				GetUserCharacterWishlistFunc: func(ctx context.Context, userID uint64) ([]wishlist.Character, error) {
 					return nil, errors.New("db error")
 				},
@@ -322,7 +232,7 @@ func TestWishlistHandler_CharacterList(t *testing.T) {
 
 			assert.True(t, w.RespondCalled)
 			if tt.wantContent != "" {
-				assertResponseContent(t, w, tt.wantContent)
+				w.AssertContains(t, tt.wantContent)
 			}
 		})
 	}
@@ -332,7 +242,7 @@ func TestWishlistHandler_CharacterRemoveAll(t *testing.T) {
 	tests := []struct {
 		name        string
 		cmd         CommandContext
-		wlStore     *mockWishlistStore
+		wlStore     *wishlisttest.MockStore
 		wantContent string
 	}{
 		{
@@ -342,7 +252,7 @@ func TestWishlistHandler_CharacterRemoveAll(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore:     &mockWishlistStore{},
+			wlStore:     &wishlisttest.MockStore{},
 			wantContent: "Cleared your wishlist.",
 		},
 		{
@@ -352,7 +262,7 @@ func TestWishlistHandler_CharacterRemoveAll(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &mockWishlistStore{
+			wlStore: &wishlisttest.MockStore{
 				RemoveAllFromWishlistFunc: func(ctx context.Context, userID uint64) error {
 					return errors.New("db error")
 				},
@@ -384,7 +294,7 @@ func TestWishlistHandler_MediaAdd(t *testing.T) {
 	tests := []struct {
 		name         string
 		cmd          CommandContext
-		wlStore      *mockWishlistStore
+		wlStore      *wishlisttest.MockStore
 		animeService *collectiontest.MockAnimeService
 		collStore    *collectiontest.MockStore
 		wantContent  string
@@ -410,7 +320,7 @@ func TestWishlistHandler_MediaAdd(t *testing.T) {
 					}, nil
 				},
 			},
-			wlStore:     &mockWishlistStore{},
+			wlStore:     &wishlisttest.MockStore{},
 			wantContent: "Added 2 characters from this media to your wishlist.",
 		},
 		{
@@ -431,7 +341,7 @@ func TestWishlistHandler_MediaAdd(t *testing.T) {
 					return nil, nil
 				},
 			},
-			wlStore:     &mockWishlistStore{},
+			wlStore:     &wishlisttest.MockStore{},
 			wantContent: "No characters found for this media",
 		},
 	}
@@ -449,7 +359,7 @@ func TestWishlistHandler_MediaAdd(t *testing.T) {
 
 			assert.True(t, w.RespondCalled)
 			if tt.wantContent != "" {
-				assertResponseContent(t, w, tt.wantContent)
+				w.AssertContains(t, tt.wantContent)
 			}
 		})
 	}
@@ -459,7 +369,7 @@ func TestWishlistHandler_Holders(t *testing.T) {
 	tests := []struct {
 		name        string
 		cmd         CommandContext
-		wlStore     *mockWishlistStore
+		wlStore     *wishlisttest.MockStore
 		wantContent string
 	}{
 		{
@@ -469,7 +379,7 @@ func TestWishlistHandler_Holders(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &mockWishlistStore{
+			wlStore: &wishlisttest.MockStore{
 				GetUserCharacterWishlistFunc: func(ctx context.Context, userID uint64) ([]wishlist.Character, error) {
 					return []wishlist.Character{{ID: 1, Name: "Sakura"}}, nil
 				},
@@ -488,7 +398,7 @@ func TestWishlistHandler_Holders(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &mockWishlistStore{
+			wlStore: &wishlisttest.MockStore{
 				GetUserCharacterWishlistFunc: func(ctx context.Context, userID uint64) ([]wishlist.Character, error) {
 					return []wishlist.Character{}, nil
 				},
@@ -502,7 +412,7 @@ func TestWishlistHandler_Holders(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &mockWishlistStore{
+			wlStore: &wishlisttest.MockStore{
 				GetUserCharacterWishlistFunc: func(ctx context.Context, userID uint64) ([]wishlist.Character, error) {
 					return []wishlist.Character{{ID: 1, Name: "Sakura"}}, nil
 				},
@@ -519,7 +429,7 @@ func TestWishlistHandler_Holders(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &mockWishlistStore{
+			wlStore: &wishlisttest.MockStore{
 				GetUserCharacterWishlistFunc: func(ctx context.Context, userID uint64) ([]wishlist.Character, error) {
 					return nil, errors.New("db error")
 				},
@@ -540,7 +450,7 @@ func TestWishlistHandler_Holders(t *testing.T) {
 
 			assert.True(t, w.RespondCalled)
 			if tt.wantContent != "" {
-				assertResponseContent(t, w, tt.wantContent)
+				w.AssertContains(t, tt.wantContent)
 			}
 		})
 	}
@@ -550,7 +460,7 @@ func TestWishlistHandler_Wanted(t *testing.T) {
 	tests := []struct {
 		name        string
 		cmd         CommandContext
-		wlStore     *mockWishlistStore
+		wlStore     *wishlisttest.MockStore
 		wantContent string
 	}{
 		{
@@ -560,7 +470,7 @@ func TestWishlistHandler_Wanted(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &mockWishlistStore{
+			wlStore: &wishlisttest.MockStore{
 				GetWantedCharactersFunc: func(ctx context.Context, userID, guildID uint64) ([]wishlist.UserCharacterSet, error) {
 					return []wishlist.UserCharacterSet{
 						{UserID: 100, Characters: []wishlist.Character{{ID: 1, Name: "Sakura"}}},
@@ -576,7 +486,7 @@ func TestWishlistHandler_Wanted(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &mockWishlistStore{
+			wlStore: &wishlisttest.MockStore{
 				GetWantedCharactersFunc: func(ctx context.Context, userID, guildID uint64) ([]wishlist.UserCharacterSet, error) {
 					return []wishlist.UserCharacterSet{}, nil
 				},
@@ -590,7 +500,7 @@ func TestWishlistHandler_Wanted(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &mockWishlistStore{
+			wlStore: &wishlisttest.MockStore{
 				GetWantedCharactersFunc: func(ctx context.Context, userID, guildID uint64) ([]wishlist.UserCharacterSet, error) {
 					return nil, errors.New("db error")
 				},
@@ -611,7 +521,7 @@ func TestWishlistHandler_Wanted(t *testing.T) {
 
 			assert.True(t, w.RespondCalled)
 			if tt.wantContent != "" {
-				assertResponseContent(t, w, tt.wantContent)
+				w.AssertContains(t, tt.wantContent)
 			}
 		})
 	}
@@ -621,7 +531,7 @@ func TestWishlistHandler_Compare(t *testing.T) {
 	tests := []struct {
 		name        string
 		cmd         CommandContext
-		wlStore     *mockWishlistStore
+		wlStore     *wishlisttest.MockStore
 		wantContent string
 	}{
 		{
@@ -636,7 +546,7 @@ func TestWishlistHandler_Compare(t *testing.T) {
 				},
 				HasResolvedUser: true,
 			},
-			wlStore: &mockWishlistStore{
+			wlStore: &wishlisttest.MockStore{
 				CompareWithUserFunc: func(ctx context.Context, userID1, userID2 uint64) (wishlist.WishlistComparison, error) {
 					return wishlist.WishlistComparison{
 						UserHasCharacters: []wishlist.Character{{ID: 1, Name: "Sakura"}},
@@ -652,7 +562,7 @@ func TestWishlistHandler_Compare(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore:     &mockWishlistStore{},
+			wlStore:     &wishlisttest.MockStore{},
 			wantContent: "you must specify a user to compare with",
 		},
 		{
@@ -667,7 +577,7 @@ func TestWishlistHandler_Compare(t *testing.T) {
 				},
 				HasResolvedUser: true,
 			},
-			wlStore: &mockWishlistStore{
+			wlStore: &wishlisttest.MockStore{
 				CompareWithUserFunc: func(ctx context.Context, userID1, userID2 uint64) (wishlist.WishlistComparison, error) {
 					return wishlist.WishlistComparison{}, errors.New("db error")
 				},
@@ -688,7 +598,7 @@ func TestWishlistHandler_Compare(t *testing.T) {
 
 			assert.True(t, w.RespondCalled)
 			if tt.wantContent != "" {
-				assertResponseContent(t, w, tt.wantContent)
+				w.AssertContains(t, tt.wantContent)
 			}
 		})
 	}
@@ -732,7 +642,7 @@ func TestWishlistHandler_CharacterAutocomplete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var searchCalled bool
-			mockCatalog := &mockCatalogStoreWishlist{
+			mockCatalog := &cordetest.MockCatalogStore{
 				SearchGlobalCharactersFunc: func(ctx context.Context, term string) ([]catalog.Character, error) {
 					searchCalled = true
 					return tt.searchResult, tt.searchErr
@@ -864,7 +774,7 @@ func TestWishlistHandler_WishlistAutocomplete(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			wlStore := &mockWishlistStore{
+			wlStore := &wishlisttest.MockStore{
 				GetUserCharacterWishlistFunc: func(ctx context.Context, userID uint64) ([]wishlist.Character, error) {
 					return tt.wishlistChars, tt.wishlistErr
 				},

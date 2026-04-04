@@ -137,8 +137,7 @@ func TestClaimHandler_Claim(t *testing.T) {
 
 			assert.Equal(t, tt.wantRespondCalled, w.RespondCalled)
 			if tt.wantContent != "" {
-				data := w.LastRespond.InteractionRespData()
-				assert.Contains(t, data.Content, tt.wantContent)
+				w.AssertContains(t, tt.wantContent)
 			}
 			if tt.wantEmbedTitle != "" {
 				data := w.LastRespond.InteractionRespData()

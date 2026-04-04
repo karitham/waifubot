@@ -98,8 +98,7 @@ func TestProfileHandler_View(t *testing.T) {
 
 			assert.True(t, w.RespondCalled)
 			if tt.wantContent != "" {
-				data := w.LastRespond.InteractionRespData()
-				assert.Contains(t, data.Content, tt.wantContent)
+				w.AssertContains(t, tt.wantContent)
 			}
 			if tt.wantTitle != "" {
 				data := w.LastRespond.InteractionRespData()
@@ -156,8 +155,7 @@ func TestProfileHandler_EditFavorite(t *testing.T) {
 			h.EditFavorite(t.Context(), w, tt.cmd)
 
 			assert.True(t, w.RespondCalled)
-			data := w.LastRespond.InteractionRespData()
-			assert.Contains(t, data.Content, tt.wantContent)
+			w.AssertContains(t, tt.wantContent)
 		})
 	}
 }
@@ -217,8 +215,7 @@ func TestProfileHandler_EditQuote(t *testing.T) {
 			h.EditQuote(t.Context(), w, tt.cmd)
 
 			assert.True(t, w.RespondCalled)
-			data := w.LastRespond.InteractionRespData()
-			assert.Contains(t, data.Content, tt.wantContent)
+			w.AssertContains(t, tt.wantContent)
 		})
 	}
 }
@@ -288,8 +285,7 @@ func TestProfileHandler_EditAnilistURL(t *testing.T) {
 			h.EditAnilistURL(t.Context(), w, tt.cmd)
 
 			assert.True(t, w.RespondCalled)
-			data := w.LastRespond.InteractionRespData()
-			assert.Contains(t, data.Content, tt.wantContent)
+			w.AssertContains(t, tt.wantContent)
 		})
 	}
 }
