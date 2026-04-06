@@ -21,6 +21,7 @@ type DropdownSearchProps<T extends Option> = {
 	debounceOptionsMillisecond?: number;
 	triggerMode?: "focus" | "input";
 	customControl?: Component<{ children: JSX.Element }>;
+	customPortalContent?: () => JSX.Element;
 	class?: string;
 	icon?: Component;
 	onIconClick?: () => void;
@@ -87,11 +88,13 @@ export default function <T extends Option>(props: DropdownSearchProps<T>) {
 					</Search.Icon>
 				)}
 			</ControlComponent>
-			<Search.Portal>
-				<Search.Content>
-					<Search.Listbox class="search-listbox" />
-				</Search.Content>
-			</Search.Portal>
+		<Search.Portal>
+			<Search.Content>
+				{props.customPortalContent
+					? props.customPortalContent()
+					: <Search.Listbox class="search-listbox" />}
+			</Search.Content>
+		</Search.Portal>
 		</Search>
 	);
 }

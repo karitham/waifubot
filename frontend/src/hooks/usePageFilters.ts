@@ -78,7 +78,7 @@ export function usePageFilters(userId?: string) {
 		parseCompareIds(sp.compare),
 	);
 	const [charSort, setCharSort] = createSignal(sortOptions[0]);
-	const [charSortAsc, setCharSortAsc] = createSignal(true);
+	const [charSortAsc, setCharSortAsc] = createSignal(1);
 	const [charSearch, setCharSearch] = useDebounce("", 250);
 	const [media, setMedia] = createSignal<Option | null>(
 		sp.media_id && sp.media_label
@@ -89,14 +89,18 @@ export function usePageFilters(userId?: string) {
 			: null,
 	);
 
-	const [compareUsersResource] = createResource(compareIds, async (ids) => {
-		const users: CompareUser[] = [];
-		for (const id of ids) {
-			const user = await fetchCompareUser(id);
-			if (user) users.push(user);
-		}
-		return users;
-	});
+	// Use compareIds signal as resource source
+	const [compareUsersResource] = createResource(
+		() => compareIds(),
+		async (ids: string[]) => {
+			const users: CompareUser[] = [];
+			for (const id of ids) {
+				const user = await fetchCompareUser(id);
+				if (user) users.push(user);
+			}
+			return users;
+		},
+	);
 
 	createEffect(() => {
 		setSp({

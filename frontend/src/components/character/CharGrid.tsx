@@ -1,6 +1,7 @@
 import { createWindowVirtualizer } from "@tanstack/solid-virtual";
 import { createMemo, createSignal, onCleanup, onMount, Show } from "solid-js";
 import type { Character, UserProfile } from "../../api/generated";
+import { useCollectionFilters } from "../../context/CollectionFiltersContext";
 import type { CompareUser } from "../../hooks/usePageFilters";
 import {
 	type CharOwned,
@@ -16,15 +17,14 @@ const MIN_CARD_WIDTH = 320; // w-80 = 20rem = 320px
 const OVERSCAN = 5; // rows of overscan above/below viewport
 
 export default (props: {
-	charSort: (a: Character, b: Character) => number;
-	charSearch: string;
 	characters: Character[];
 	mediaCharacters: Character[] | undefined;
-	compareUsers: CompareUser[];
 	mainUser: UserProfile;
-	sortAscending: boolean;
 }) => {
-	const compareUsers = () => props.compareUsers || [];
+	const { charSearch, charSort, charSortAsc, compareUsers } =
+		useCollectionFilters();
+
+	const compareUsersList = () => compareUsers() || [];
 	const mainUserId = () => props.mainUser?.id;
 
 	// Build a list of all users with their characters for ownership tracking
@@ -43,7 +43,7 @@ export default (props: {
 			discord_username: props.mainUser?.discord_username || "",
 		});
 		// Compare users
-		for (const cu of compareUsers()) {
+		for (const cu of compareUsersList()) {
 			result.push({
 				id: cu.profile.id,
 				characters: cu.characters.characters,
@@ -81,7 +81,7 @@ export default (props: {
 
 	const filters = createMemo(() =>
 		combineFilters([
-			filterBySearchTerm(props.charSearch),
+			filterBySearchTerm(charSearch()),
 			...(props.mediaCharacters && props.mediaCharacters.length > 0
 				? [
 						(char: Character) =>
@@ -118,8 +118,8 @@ export default (props: {
 					return bOwnedByMain - aOwnedByMain;
 				}
 
-				const result = props.charSort(a, b);
-				return props.sortAscending ? result : -result;
+				const result = charSort().value(a, b);
+				return result * charSortAsc();
 			},
 		);
 	});

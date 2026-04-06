@@ -16,5 +16,3 @@ export const filterBySearchTerm = (searchTerm: string) => (a: Character) =>
 	a.id.toString().includes(searchTerm) ||
 	(searchTerm.length >= 2 &&
 		a.name.toLowerCase().includes(searchTerm.toLowerCase()));
-
-

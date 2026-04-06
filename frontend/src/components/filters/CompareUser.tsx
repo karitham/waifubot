@@ -1,14 +1,9 @@
 import { Search } from "@kobalte/core/search";
-import { createSignal, type JSX } from "solid-js";
+import { createMemo, createEffect, createSignal } from "solid-js";
 import type { UserProfile } from "../../api/generated";
+import { useCollectionFilters } from "../../context/CollectionFiltersContext";
 import AvatarStack from "../ui/AvatarStack";
 import DropdownSearch, { type Option } from "../ui/DropdownSearch";
-
-export type CompareUserProps = {
-	selectedUsers: UserProfile[];
-	onAdd: (input: string) => void;
-	onRemove: (id: string) => void;
-};
 
 const renderItem = (itemProps: any) => {
 	const [hovered, setHovered] = createSignal(false);
@@ -52,39 +47,86 @@ const renderItem = (itemProps: any) => {
 	);
 };
 
-export default (props: CompareUserProps) => {
+const renderSelectedUser = (user: UserProfile, onRemove: (id: string) => void) => {
+	const [hovered, setHovered] = createSignal(false);
+
+	const handleClick = () => {
+		onRemove(user.id);
+	};
+
+	return (
+		<button
+			type="button"
+			class="flex flex-row items-center gap-4 p-2 rounded cursor-pointer w-full text-left search-item"
+			style={{ "background-color": hovered() ? "var(--surfaceA)" : "transparent" }}
+			onMouseEnter={() => setHovered(true)}
+			onMouseLeave={() => setHovered(false)}
+			onClick={handleClick}
+		>
+			{user.discord_avatar ? (
+				<div class="relative h-12 w-12 shrink-0">
+					<img
+						alt={user.discord_username || user.id}
+						src={user.discord_avatar}
+						class="h-12 w-12 object-cover rounded-full border-2 border-maroon absolute inset-0 transition-opacity duration-200"
+						classList={{
+							"opacity-100": !hovered(),
+							"opacity-0": hovered(),
+						}}
+					/>
+					<div
+						class="h-12 w-12 flex items-center justify-center bg-surfaceB rounded-full absolute inset-0 transition-opacity duration-200"
+						classList={{
+							"opacity-100": hovered(),
+							"opacity-0": !hovered(),
+						}}
+					>
+						<span class="i-ph-x text-lg" />
+					</div>
+				</div>
+			) : (
+				<div class="h-12 w-12 flex items-center justify-center bg-surfaceB rounded-full shrink-0">
+					<span class="i-ph-x text-lg" />
+				</div>
+			)}
+			<span>{user.discord_username || user.id}</span>
+		</button>
+	);
+};
+
+export default () => {
+	const filters = useCollectionFilters();
+
+	const selectedUsers = (): UserProfile[] => {
+		return (filters.compareUsers() ?? []).map((cu) => cu.profile);
+	};
+
 	const [getSearchValue, setSearchValue] = createSignal("");
 
 	const options = (): Option[] => {
-		const selectedOptions = props.selectedUsers.map((u) => ({
-			value: u.id,
-			label: u.discord_username || u.id,
-			image: u.discord_avatar,
-		}));
-		if (getSearchValue()) {
-			return [
-				{ value: "add", label: "Compare with this user", image: "" },
-				...selectedOptions,
-			];
+		if (!getSearchValue()) {
+			return selectedUsers().map((u) => ({
+				value: u.id,
+				label: u.discord_username || u.id,
+				image: u.discord_avatar,
+			}));
 		}
-		return selectedOptions;
+		return [{ value: "add", label: "Compare with this user", image: "" }];
 	};
 
-	const avatarWidth = () => 24 + (props.selectedUsers.length - 1) * 16;
-
-	const customControl = (controlProps: { children: JSX.Element }) => (
+	const customControl = (controlProps: { children: any }) => (
 		<Search.Control aria-label="Users" class="search-control relative">
 			<div class="relative w-full">
 				{controlProps.children}
 				<div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-end pointer-events-none">
 					<AvatarStack
 						avatars={[
-							...props.selectedUsers
+							...selectedUsers()
 								.map((u) => u.discord_avatar)
 								.filter((a): a is string => a !== undefined),
 						].reverse()}
 						names={[
-							...props.selectedUsers.map((u) => u.discord_username || u.id),
+							...selectedUsers().map((u) => u.discord_username || u.id),
 						].reverse()}
 						small
 					/>
@@ -93,15 +135,37 @@ export default (props: CompareUserProps) => {
 		</Search.Control>
 	);
 
+	const customPortalContent = () => {
+		const searchValue = getSearchValue();
+		const users = selectedUsers();
+		const userCount = users.length;
+
+		if (!searchValue && userCount > 0) {
+			return (
+				<div class="p-0 m-0 overflow-clip list-none w-full border-none rounded-md flex flex-col bg-surfaceB shadow text-sm">
+					<div class="p-2">
+						<div class="text-xs text-text/60 px-2 py-1 uppercase tracking-wide font-medium">
+							Selected users
+						</div>
+						<div class="flex flex-col gap-1">
+							{users.map((user) => renderSelectedUser(user, filters.onCompareRemove))}
+						</div>
+					</div>
+				</div>
+			);
+		}
+		return <Search.Listbox class="search-listbox" />;
+	};
+
 	return (
 		<DropdownSearch
 			options={options()}
 			onChange={(option) => {
 				if (option?.value === "add") {
-					props.onAdd(getSearchValue());
+					filters.onCompareAdd(getSearchValue());
 					setSearchValue("");
 				} else if (option) {
-					props.onRemove(String(option.value));
+					filters.onCompareRemove(String(option.value));
 				}
 			}}
 			onInputChange={setSearchValue}
@@ -109,6 +173,7 @@ export default (props: CompareUserProps) => {
 			triggerMode="focus"
 			itemComponent={renderItem}
 			customControl={customControl}
+			customPortalContent={customPortalContent}
 		/>
 	);
 };

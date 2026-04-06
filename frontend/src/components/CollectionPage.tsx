@@ -5,6 +5,7 @@ import CollectionBody from "../components/CollectionBody";
 import CollectionNav from "../components/CollectionNav";
 import PageLayout from "../components/layout/Layout";
 import ProfileBar from "../components/profile/Profile";
+import { CollectionFiltersProvider } from "../context/CollectionFiltersContext";
 import { useMediaCharacters } from "../hooks/useMediaCharacters";
 import { usePageFilters } from "../hooks/usePageFilters";
 import { getSearchParams } from "../utils";
@@ -41,6 +42,8 @@ export default (props: CollectionPageProps) => {
 		onCompareAdd,
 		onCompareRemove,
 	} = usePageFilters(user()?.id);
+
+	const compareUsers = createMemo(() => compareUsersResource());
 
 	const [mediaCharacters, { mutate: setMediaCharacters }] =
 		useMediaCharacters(media);
@@ -80,26 +83,29 @@ export default (props: CollectionPageProps) => {
 						/>
 					}
 					body={
-						<CollectionBody
-							characters={props.characters}
-							mediaCharacters={mediaCharacters()}
-							compareUsers={compareUsersResource()}
-							mainUser={u()}
-							charSearch={charSearch()}
-							charSort={charSort()}
-							onCharSearchChange={setCharSearch}
-							onCharSortChange={setCharSort}
-							onMediaChange={(m) => {
+						<CollectionFiltersProvider
+							charSearch={charSearch}
+							setCharSearch={setCharSearch}
+							charSort={charSort}
+							setCharSort={setCharSort}
+							charSortAsc={charSortAsc}
+							setCharSortAsc={setCharSortAsc}
+							compareUsers={compareUsers}
+							compareIds={compareIds}
+							media={media}
+							setMedia={(m) => {
 								setMedia(m);
 								if (!m) setMediaCharacters(undefined);
 							}}
-							media={media()}
 							onCompareAdd={onCompareAdd}
 							onCompareRemove={onCompareRemove}
-							compareIds={compareIds()}
-							sortAscending={charSortAsc()}
-							onToggleSortDirection={() => setCharSortAsc((prev) => !prev)}
-						/>
+						>
+							<CollectionBody
+								characters={props.characters}
+								mediaCharacters={mediaCharacters()}
+								mainUser={u()}
+							/>
+						</CollectionFiltersProvider>
 					}
 				/>
 			)}
