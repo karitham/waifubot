@@ -1,4 +1,4 @@
-import type { Character, Profile } from "../api/generated";
+import type { Character } from "../api/generated";
 
 export type CharOwned = Character & {
 	owners?: string[];
@@ -17,27 +17,4 @@ export const filterBySearchTerm = (searchTerm: string) => (a: Character) =>
 	(searchTerm.length >= 2 &&
 		a.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
-export const enrichCharacterWithOwners = (
-	char: Character,
-	mainUserId: string,
-	compareUsers: Profile[],
-	users: Profile[],
-): CharOwned => {
-	const owners: string[] = [];
-	if (
-		users
-			.find((u) => u.id === mainUserId)
-			?.waifus?.some((c) => c.id === char.id)
-	) {
-		owners.push(mainUserId);
-	}
-	compareUsers.forEach((user) => {
-		if (user.waifus?.some((c) => c.id === char.id)) {
-			owners.push(user.id);
-		}
-	});
-	return {
-		...char,
-		owners: owners.length > 0 ? owners : undefined,
-	};
-};
+

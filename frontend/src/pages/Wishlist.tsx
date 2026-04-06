@@ -1,5 +1,4 @@
 import { getWishlist as getWishlistAPI, getProfileV1 } from "../api/generated";
-import type { WishlistResponse } from "../api/generated";
 import UserCollectionPage from "../components/UserCollectionPage";
 
 const fetchWishlist = async (id: string) => {
@@ -8,15 +7,10 @@ const fetchWishlist = async (id: string) => {
 };
 
 export default () => {
-	const fetchList = async (id: string) => {
-		const wishlist = await fetchWishlist(id);
-		return wishlist;
-	};
-
 	return (
 		<UserCollectionPage
 			fetchUser={(id) => getProfileV1(id)}
-			fetchCharacters={fetchList}
+			fetchCharacters={fetchWishlist}
 			title="Wishlist"
 			allowEmpty={false}
 			navbarLink={(id) => ({
