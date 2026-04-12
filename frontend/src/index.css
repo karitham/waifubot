@@ -1,13 +1,175 @@
+/**
+ * Typography System
+ * =================
+ * Font families:
+ *   - display: Fredoka (400, 500, 600, 700) — headings, hero text, playful accents
+ *   - sans:    Inter (variable)             — body text, UI copy
+ *   - mono:    JetBrains Mono (variable)   — code, technical labels
+ *
+ * Type scale (CSS custom properties):
+ *   --text-display : clamp(2.5rem, 5vw, 4rem)  — hero / page titles
+ *   --text-h1      : clamp(2rem,   4vw, 3rem)   — section headings
+ *   --text-h2      : clamp(1.5rem, 3vw, 2rem)   — subsection headings
+ *   --text-h3      : clamp(1.25rem,2vw, 1.5rem) — card / component titles
+ *   --text-body    : 1rem                        (16px minimum)
+ *   --text-sm      : 0.875rem                    (14px)
+ *
+ * Line heights:
+ *   - Headings: 1.1–1.2  (tight, punchy)
+ *   - Body:      1.5–1.6  (comfortable reading)
+ *
+ * Usage:
+ *   <h1 class="font-display text-[--text-h1] leading-[1.1]">Title</h1>
+ *   <p  class="font-sans  text-[--text-body] leading-[1.6]">Body copy</p>
+ *
+ * Font weights available:
+ *   300 light | 400 regular | 500 medium | 600 semibold | 700 bold
+ */
+
+/**
+ * Spacing Scale System
+ * ====================
+ * Use these semantic tokens for consistent visual rhythm.
+ * NOT all sections should use the same padding - match spacing to content hierarchy.
+ *
+ * Token Mapping:
+ *   --space-xs   (8px)   - Related elements within a component (gap between label and input)
+ *   --space-sm   (16px)  - Tight component spacing (inner padding for compact sections)
+ *   --space-md   (24px)  - Standard component separation
+ *   --space-lg   (32px)  - Major component separation
+ *   --space-xl   (48px)  - Section separation
+ *   --space-2xl  (64px)  - Major section separation
+ *   --space-3xl  (96px)  - Page-level breathing room (hero sections, intro areas)
+ *
+ * When to Use Which:
+ *   - FilterBar area: tighter spacing (sm-md) - it's a utility section
+ *   - Main content area: standard spacing (md-lg) - where users focus
+ *   - Hero/intro sections: generous spacing (xl-3xl) - first impressions matter
+ *   - Cards: keep h-44, use gap-4 to gap-6 for card grids
+ *
+ * Rhythm Principle:
+ *   Sections with high interaction density (filters) should be tighter.
+ *   Sections with content to absorb (hero, main grid) should have more breathing room.
+ */
+
+:root {
+	--text-display: clamp(2.5rem, 5vw, 4rem);
+	--text-h1:      clamp(2rem,   4vw, 3rem);
+	--text-h2:      clamp(1.5rem, 3vw, 2rem);
+	--text-h3:      clamp(1.25rem, 2vw, 1.5rem);
+	--text-body:    1rem;
+	--text-sm:      0.875rem;
+
+	--space-xs:  0.5rem;
+	--space-sm:  1rem;
+	--space-md:  1.5rem;
+	--space-lg:  2rem;
+	--space-xl:  3rem;
+	--space-2xl: 4rem;
+	--space-3xl: 6rem;
+}
+
 body {
 	margin: 0;
 	padding: 0;
 	font-family: "Inter", sans-serif;
+	font-size: var(--text-body);
+	line-height: 1.6;
 	background: #1e1e2e;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 }
 
+h1, h2, h3, h4, h5, h6 {
+	font-family: "Fredoka", sans-serif;
+	line-height: 1.15;
+	font-weight: 600;
+}
+
+/*
+ * Fluid container max-width
+ * Uses clamp() to scale between 320px (mobile) and 1536px (desktop)
+ * 90vw ensures horizontal padding on smaller screens
+ */
 .content-width {
-	max-width: 1536px;
+	max-width: clamp(320px, 90vw, 1536px);
+	width: 100%;
 	margin: 0 auto;
+	padding-left: var(--space-md);
+	padding-right: var(--space-md);
+}
+
+@media (min-width: 640px) {
+	.content-width {
+		padding-left: var(--space-sm);
+		padding-right: var(--space-sm);
+	}
+}
+
+/**
+ * Animation System
+ * ================
+ * Custom keyframe animations for the homepage redesign.
+ * All animations respect prefers-reduced-motion.
+ */
+
+/* Float animation for background orbs */
+@keyframes float-slow {
+	0%, 100% {
+		transform: translateY(0) translateX(0);
+	}
+	50% {
+		transform: translateY(-20px) translateX(10px);
+	}
+}
+
+/* Subtle pulse for glow effects */
+@keyframes pulse-subtle {
+	0%, 100% {
+		opacity: 0.6;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.8;
+		transform: scale(1.05);
+	}
+}
+
+/* Entrance animation for staggered reveals */
+@keyframes fade-in-up {
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* Custom ease-out-quart timing function */
+@keyframes ease-out-quart {
+	animation-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Animation utilities */
+.animate-float-slow {
+	animation: float-slow 8s ease-in-out infinite;
+}
+
+.animate-pulse-subtle {
+	animation: pulse-subtle 4s ease-in-out infinite;
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+	.animate-float-slow,
+	.animate-pulse-subtle {
+		animation: none;
+	}
+	
+	* {
+		transition-duration: 0.01ms !important;
+		animation-duration: 0.01ms !important;
+	}
 }

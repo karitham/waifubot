@@ -57,8 +57,7 @@ const renderSelectedUser = (user: UserProfile, onRemove: (id: string) => void) =
 	return (
 		<button
 			type="button"
-			class="flex flex-row items-center gap-4 p-2 rounded cursor-pointer w-full text-left search-item"
-			style={{ "background-color": hovered() ? "var(--surfaceA)" : "transparent" }}
+			class="flex flex-row items-center gap-4 p-2 rounded cursor-pointer w-full text-left search-item bg-transparent hover:bg-surfaceA/50 transition-colors duration-200"
 			onMouseEnter={() => setHovered(true)}
 			onMouseLeave={() => setHovered(false)}
 			onClick={handleClick}
@@ -142,7 +141,7 @@ export default () => {
 
 		if (!searchValue && userCount > 0) {
 			return (
-				<div class="p-0 m-0 overflow-clip list-none w-full border-none rounded-md flex flex-col bg-surfaceB shadow text-sm">
+				<div class="p-0 m-0 overflow-clip list-none w-full border-none rounded-xl flex flex-col bg-surfaceB shadow-xl text-sm">
 					<div class="p-2">
 						<div class="text-xs text-text/60 px-2 py-1 uppercase tracking-wide font-medium">
 							Selected users

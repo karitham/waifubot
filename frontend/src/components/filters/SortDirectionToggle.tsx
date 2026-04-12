@@ -7,22 +7,22 @@ export default function (props: SortDirectionToggleProps) {
 	return (
 		<button
 			type="button"
-			class="flex justify-center items-center text-text rounded-md font-sans border-none hover:cursor-pointer bg-surfaceA p-4 h-14 w-14 hover:bg-surfaceB transition-colors active:scale-96 transition-transform outline-none focus:ring-2 focus:ring-mauve focus:ring-opacity-100 shrink-0 relative"
+			class="flex justify-center items-center rounded-md font-sans border-none hover:cursor-pointer bg-surfaceA hover:bg-surfaceB transition-all duration-200 outline-none focus:ring-2 focus:ring-mauve focus:ring-opacity-100 w-10 h-10 shrink-0 active:scale-95"
 			onClick={props.onToggle}
 			title={props.direction > 0 ? "Ascending" : "Descending"}
 		>
 			<span
-				class="i-ph-arrow-up absolute transition-opacity duration-200"
+				class="i-ph-arrow-up text-base transition-all duration-200"
 				classList={{
-					"opacity-100 scale-100": props.direction > 0,
-					"opacity-0 scale-75": props.direction <= 0,
+					"opacity-100 scale-100 text-mauve": props.direction > 0,
+					"opacity-40 scale-90 text-subtextB": props.direction <= 0,
 				}}
 			/>
 			<span
-				class="i-ph-arrow-down absolute transition-opacity duration-200"
+				class="i-ph-arrow-down text-base transition-all duration-200 absolute"
 				classList={{
-					"opacity-100 scale-100": props.direction <= 0,
-					"opacity-0 scale-75": props.direction > 0,
+					"opacity-100 scale-100 text-mauve": props.direction <= 0,
+					"opacity-40 scale-90 text-subtextB": props.direction > 0,
 				}}
 			/>
 		</button>

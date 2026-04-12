@@ -9,13 +9,24 @@ interface CollectionBodyProps {
 	mainUser: UserProfile;
 }
 
+/**
+ * Collection body with semantic spacing rhythm:
+ * - FilterBar area: tighter spacing (compact utility section)
+ * - Grid area: standard spacing (main content focus)
+ */
 export default (props: CollectionBodyProps) => (
-	<div class="flex flex-col gap-8 bg-base w-full">
-		<div class="p-8 pb-0 rounded-lg flex flex-col gap-4 w-full content-width">
+	<div class="flex flex-col bg-base w-full"
+		style={{
+			"--space-md": "1.5rem",
+			"--space-2xl": "4rem",
+		}}>
+		{/* FilterBar: tighter spacing - utility section with dense controls */}
+		<div class="content-width pt-[--space-md] pb-[--space-lg]">
 			<FilterBar sortOptions={sortOptions} />
 		</div>
 
-		<div class="content-width w-full pt-0 p-8">
+		{/* Grid: generous spacing - main content area with breathing room */}
+		<div class="content-width pb-[--space-2xl]">
 			<CharGrid
 				characters={props.characters || []}
 				mediaCharacters={props.mediaCharacters}

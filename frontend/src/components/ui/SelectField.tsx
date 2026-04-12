@@ -19,7 +19,7 @@ const defaultItemComponent = <T extends Record<string, unknown>>(
 ): JSX.Element => (
 	<Select.Item
 		item={props.item}
-		class="p-4 w-full text-text cursor-pointer hover:bg-surfaceC transition-colors focus:outline-none focus:ring-2 focus:ring-mauve focus:ring-opacity-100"
+		class="select-item"
 	>
 		<Select.ItemLabel>
 			{props.item.rawValue[props.optionTextValue] as string}
@@ -66,10 +66,12 @@ export default function <T extends Record<string, unknown>>(
 						return selected[props.optionTextValue] as string;
 					}}
 				</Select.Value>
-				<Select.Icon />
+				<Select.Icon class="text-subtextB">
+				<span class="i-ph-caret-down text-sm" />
+			</Select.Icon>
 			</Select.Trigger>
 			<Select.Portal>
-				<Select.Content>
+				<Select.Content class="focus:outline-none">
 					<Select.Listbox class="select-listbox" />
 				</Select.Content>
 			</Select.Portal>

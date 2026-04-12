@@ -17,6 +17,7 @@ export default defineConfig({
 					fonts: {
 						sans: ["Inter", "sans-serif"],
 						mono: ["JetBrains Mono", "monospace"],
+						display: ["Fredoka", "sans-serif"],
 					},
 				}),
 				presetIcons({
@@ -57,22 +58,48 @@ export default defineConfig({
 				},
 			},
 			shortcuts: {
+				/* Spacing tokens - semantic aliases for consistent rhythm */
+				"space-xs":  "p-[--space-xs]",  /* 8px - tight inner spacing */
+				"space-sm":  "p-[--space-sm]",  /* 16px - compact sections */
+				"space-md":  "p-[--space-md]",  /* 24px - standard spacing */
+				"space-lg":  "p-[--space-lg]",  /* 32px - major separation */
+				"space-xl":  "p-[--space-xl]",  /* 48px - section gaps */
+				"space-2xl": "p-[--space-2xl]", /* 64px - major sections */
+				"space-3xl": "p-[--space-3xl]", /* 96px - page breathing room */
+
+				/* X/Y axis variants */
+				"space-y-xs":  "py-[--space-xs]",
+				"space-y-sm":  "py-[--space-sm]",
+				"space-y-md":  "py-[--space-md]",
+				"space-y-lg":  "py-[--space-lg]",
+				"space-y-xl":  "py-[--space-xl]",
+				"space-y-2xl": "py-[--space-2xl]",
+				"space-y-3xl": "py-[--space-3xl]",
+
+				"space-x-xs":  "px-[--space-xs]",
+				"space-x-sm":  "px-[--space-sm]",
+				"space-x-md":  "px-[--space-md]",
+				"space-x-lg":  "px-[--space-lg]",
+				"space-x-xl":  "px-[--space-xl]",
+
 				"input-base":
-					"w-full p-4 rounded-md bg-surfaceA hover:bg-surfaceB placeholder:font-sans border-none hover:cursor-text placeholder:text-overlayC text-text overflow-clip transition-colors focus:outline-none focus:ring-2 focus:ring-mauve focus:ring-opacity-100",
+					"w-full p-4 rounded-md bg-surfaceA hover:bg-surfaceB placeholder:font-sans border-none hover:cursor-text placeholder:text-overlayC text-text overflow-clip transition-colors focus:outline-none",
 				"select-trigger":
-					"flex justify-between w-full text-text rounded-md font-sans border-none hover:cursor-pointer bg-surfaceA p-4 hover:bg-surfaceB transition-colors outline-none focus:ring-2 focus:ring-mauve focus:ring-opacity-100",
+					"flex justify-between w-full text-text rounded-md font-sans border-none hover:cursor-pointer bg-surfaceA p-4 hover:bg-surfaceB transition-colors outline-none",
 				"select-item":
 					"p-4 w-full text-text cursor-pointer hover:bg-surfaceC transition-colors focus:ring-0 focus:outline-none",
 				"select-listbox":
-					"p-0 m-0 overflow-clip hover:overflow-clip list-none flex w-full border-none rounded-md items-start flex-col bg-surfaceB shadow-xl text-sm",
+					"p-0 m-0 overflow-clip hover:overflow-clip list-none flex w-full border-none rounded-xl items-start flex-col bg-surfaceB shadow-xl text-sm",
 				"search-input":
 					"w-full text-sm p-4 placeholder:font-sans border-none hover:cursor-text placeholder:text-overlayC text-text bg-transparent",
-				"search-control":
-					"relative flex w-full flex-row rounded-md overflow-clip bg-surfaceA hover:bg-surfaceB transition-colors focus-within:outline-none focus-within:ring-2 focus-within:ring-mauve focus-within:ring-opacity-100",
-				"search-item":
-					"flex flex-row items-center justify-between px-4 py-2 gap-4 hover:bg-surfaceC cursor-pointer text-text w-full transition-colors focus:ring-0 focus:outline-none",
-				"search-listbox":
-					"p-0 m-0 overflow-clip hover:overflow-clip list-none flex w-full border-none rounded-md items-start flex-col bg-surfaceB shadow text-sm",
+			"search-control":
+				"relative flex w-full flex-row rounded-md overflow-clip bg-surfaceA hover:bg-surfaceB transition-colors duration-200 focus-within:outline-none focus-within:ring-2 focus-within:ring-mauve focus-within:ring-opacity-100",
+			"search-item":
+				"flex flex-row items-center justify-between px-4 py-2 gap-4 hover:bg-surfaceC cursor-pointer text-text w-full transition-colors duration-200 focus:ring-0 focus:outline-none data-[selected]:bg-mauve/20",
+			"search-listbox":
+				"p-0 m-0 overflow-clip hover:overflow-clip list-none flex w-full border-none rounded-xl items-start flex-col bg-surfaceB shadow-xl text-sm",
+			"search-content": "focus:outline-none",
+			"select-content": "focus:outline-none",
 				"search-icon":
 					"bg-surfaceA hover:bg-surfaceB border-none w-16 flex text-center items-center justify-center transition-colors",
 			},

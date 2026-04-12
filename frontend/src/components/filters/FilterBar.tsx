@@ -16,19 +16,6 @@ interface FilterBarProps {
 	}>;
 }
 
-const FilterSection = ({
-	label,
-	children,
-}: {
-	label: string;
-	children: JSX.Element;
-}) => (
-	<div class="flex flex-col gap-0.5 flex-1">
-		<FilterLabel>{label}</FilterLabel>
-		{children}
-	</div>
-);
-
 export default function (props: FilterBarProps) {
 	const filters = useCollectionFilters();
 
@@ -56,30 +43,43 @@ export default function (props: FilterBarProps) {
 	const toggleSortDirection = () => filters.setCharSortAsc((prev: number) => -prev);
 
 	return (
-		<div class="flex flex-col gap-4">
-			<div class="flex flex-row flex-wrap md:flex-nowrap gap-4 justify-between">
-				<FilterSection label="Search Characters">
+		<div class="flex flex-col gap-6 p-4 bg-surfaceA rounded-lg shadow-lg shadow-mauve/10 transition-shadow duration-300">
+			{/* Row 1: Search + Sort */}
+			<div class="flex flex-col md:flex-row gap-4 md:gap-6">
+				{/* Search Section */}
+				<div class="flex-1 min-w-0">
+					<FilterLabel>Search Characters</FilterLabel>
 					<CharFilter {...charFilter} />
-				</FilterSection>
-				<div class="w-full md:w-96 flex flex-row gap-4">
-					<FilterSection label="Sort">
-						<div class="flex flex-row gap-2 items-center">
+				</div>
+
+				{/* Sort Section */}
+				<div class="flex-shrink-0 w-full md:w-auto">
+					<FilterLabel>Sort</FilterLabel>
+					<div class="flex flex-row gap-2 items-center">
+						<div class="w-40 md:w-44">
 							<CharSort {...charSortProps} />
-							<SortDirectionToggle
-								direction={filters.charSortAsc()}
-								onToggle={toggleSortDirection}
-							/>
 						</div>
-					</FilterSection>
+						<SortDirectionToggle
+							direction={filters.charSortAsc()}
+							onToggle={toggleSortDirection}
+						/>
+					</div>
 				</div>
 			</div>
-			<div class="flex flex-col md:flex-row gap-4">
-				<FilterSection label="Compare Users">
+
+			{/* Divider */}
+			<div class="h-px bg-surfaceB" />
+
+			{/* Row 2: Compare + Media */}
+			<div class="flex flex-col md:flex-row gap-4 md:gap-6">
+				<div class="flex-1 min-w-0">
+					<FilterLabel>Compare Users</FilterLabel>
 					<CompareUser />
-				</FilterSection>
-				<FilterSection label="Filter Media">
+				</div>
+				<div class="flex-1 min-w-0">
+					<FilterLabel>Filter Media</FilterLabel>
 					<FilterMedia {...mediaFilter} />
-				</FilterSection>
+				</div>
 			</div>
 		</div>
 	);

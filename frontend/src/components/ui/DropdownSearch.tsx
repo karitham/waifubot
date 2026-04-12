@@ -89,7 +89,7 @@ export default function <T extends Option>(props: DropdownSearchProps<T>) {
 				)}
 			</ControlComponent>
 		<Search.Portal>
-			<Search.Content>
+			<Search.Content class="focus:outline-none">
 				{props.customPortalContent
 					? props.customPortalContent()
 					: <Search.Listbox class="search-listbox" />}

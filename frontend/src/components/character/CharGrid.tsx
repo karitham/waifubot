@@ -11,9 +11,9 @@ import {
 import EmptyState from "../ui/EmptyState";
 import CharCard from "./Card";
 
-const CARD_HEIGHT = 176; // h-44 = 11rem = 176px
+const CARD_HEIGHT = 192; // h-48 = 12rem = 192px
 const GAP = 24; // gap-6 = 1.5rem = 24px
-const MIN_CARD_WIDTH = 320; // w-80 = 20rem = 320px
+const MIN_CARD_WIDTH = 300; // w-75 = 18.75rem = 300px
 const OVERSCAN = 5; // rows of overscan above/below viewport
 
 export default (props: {
@@ -192,10 +192,6 @@ export default (props: {
 	});
 
 	return (
-		<Show
-			when={list().length > 0}
-			fallback={<EmptyState message="No characters to display :(" />}
-		>
 			<div
 				ref={containerRef}
 				id="list"
@@ -205,43 +201,51 @@ export default (props: {
 					height: `${virtualizer.getTotalSize()}px`,
 				}}
 			>
-				{virtualizer.getVirtualItems().map((virtualItem) => {
-					const char = list()[virtualItem.index];
+			<div
+				style={{
+					position: "relative",
+					width: `${containerWidth() > 0 ? containerWidth() : "100%"}`,
+					"min-width": "100%",
+				}}
+			>
+					{virtualizer.getVirtualItems().map((virtualItem) => {
+						const char = list()[virtualItem.index];
 
-					const ownersAvatars =
-						char.owners
-							?.map((id) => findUser(id)?.discord_avatar)
-							.filter((a): a is string => a !== undefined) || [];
-					const ownersNames =
-						char.owners
-							?.map((id) => findUser(id)?.discord_username || id)
-							.filter((name): name is string => name !== undefined) || [];
+						const ownersAvatars =
+							char.owners
+								?.map((id) => findUser(id)?.discord_avatar)
+								.filter((a): a is string => a !== undefined) || [];
+						const ownersNames =
+							char.owners
+								?.map((id) => findUser(id)?.discord_username || id)
+								.filter((name): name is string => name !== undefined) || [];
 
-					const colWidth = columnWidth();
-					const left = virtualItem.lane * (colWidth + GAP);
+						const colWidth = columnWidth();
+						const left = virtualItem.lane * (colWidth + GAP);
 
-					return (
-						<div
-							data-key={virtualItem.key}
-							style={{
-								position: "absolute",
-								top: 0,
-								left: `${left}px`,
-								width: `${colWidth}px`,
-								height: `${CARD_HEIGHT}px`,
-								transform: `translateY(${virtualItem.start - scrollMargin()}px)`,
-							}}
-						>
-							<CharCard
-								char={char}
-								ownersAvatars={ownersAvatars}
-								ownersNames={ownersNames}
-								missing={char.missing}
-							/>
-						</div>
-					);
-				})}
+						return (
+							<div
+								data-key={virtualItem.key}
+								style={{
+									position: "absolute",
+									top: 0,
+									left: `${left}px`,
+									width: `${colWidth}px`,
+									height: `${CARD_HEIGHT}px`,
+									transform: `translateY(${virtualItem.start - scrollMargin()}px)`,
+								}}
+							>
+								<CharCard
+									char={char}
+									ownersAvatars={ownersAvatars}
+									ownersNames={ownersNames}
+									missing={char.missing}
+								/>
+							</div>
+						);
+					})}
+				</div>
 			</div>
-		</Show>
-	);
-};
+		);
+	};
+
