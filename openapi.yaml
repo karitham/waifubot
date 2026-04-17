@@ -10,6 +10,8 @@ info:
 tags:
   - name: user
     description: User management and profile endpoints
+  - name: wishlist
+    description: Wishlist management endpoints
 
 paths:
   /user/{userID}:
@@ -165,7 +167,121 @@ paths:
         404:
           $ref: "#/components/responses/userNotFound"
 
+  /api/v1/profile:
+    put:
+      summary: Update authenticated user's profile
+      operationId: updateProfile
+      tags:
+        - user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdate"
+      responses:
+        200:
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        401:
+          $ref: "#/components/responses/unauthorized"
+
+  /api/v1/profile/favorite:
+    put:
+      summary: Set favorite character
+      operationId: updateFavorite
+      tags:
+        - user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FavoriteUpdate"
+      responses:
+        200:
+          description: Favorite updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        401:
+          $ref: "#/components/responses/unauthorized"
+
+  /api/v1/wishlist/characters:
+    post:
+      summary: Add characters to wishlist
+      operationId: addWishlistCharacters
+      tags:
+        - wishlist
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WishlistCharacterAdd"
+      responses:
+        200:
+          description: Characters added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishlistResponse"
+        401:
+          $ref: "#/components/responses/unauthorized"
+    delete:
+      summary: Remove characters from wishlist
+      operationId: removeWishlistCharacters
+      tags:
+        - wishlist
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WishlistCharacterRemove"
+      responses:
+        200:
+          description: Characters removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishlistResponse"
+        401:
+          $ref: "#/components/responses/unauthorized"
+
+  /api/v1/wishlist:
+    delete:
+      summary: Clear entire wishlist
+      operationId: clearWishlist
+      tags:
+        - wishlist
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Wishlist cleared
+        401:
+          $ref: "#/components/responses/unauthorized"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Session token obtained via /auth/login Discord OAuth2 flow
+
   parameters:
     userID:
       name: userID
@@ -308,6 +424,12 @@ components:
             message: "anilist or discord query param is required"
             error_code: "missing_query_param"
             status_code: 400
+    unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UnauthorizedError"
 
   schemas:
     Profile:
@@ -505,3 +627,70 @@ components:
           type: integer
           description: HTTP status code
           example: 404
+
+    ProfileUpdate:
+      type: object
+      properties:
+        quote:
+          type: string
+          maxLength: 1024
+          description: User's personal quote
+        anilist_url:
+          type: string
+          description: Anilist user URL
+      minProperties: 1
+
+    FavoriteUpdate:
+      type: object
+      required:
+        - character_id
+      properties:
+        character_id:
+          type: integer
+          format: int64
+          description: Character ID to set as favorite
+
+    WishlistCharacterAdd:
+      type: object
+      required:
+        - character_ids
+      properties:
+        character_ids:
+          type: array
+          items:
+            type: integer
+            format: int64
+          minItems: 1
+          maxItems: 100
+          description: Character IDs to add to wishlist
+
+    WishlistCharacterRemove:
+      type: object
+      required:
+        - character_ids
+      properties:
+        character_ids:
+          type: array
+          items:
+            type: integer
+            format: int64
+          minItems: 1
+          maxItems: 100
+          description: Character IDs to remove from wishlist
+
+    UnauthorizedError:
+      type: object
+      required:
+        - message
+        - error_code
+        - status_code
+      properties:
+        message:
+          type: string
+          example: "unauthorized"
+        error_code:
+          type: string
+          example: "unauthorized"
+        status_code:
+          type: integer
+          example: 401

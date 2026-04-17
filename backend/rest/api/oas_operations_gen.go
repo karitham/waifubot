@@ -6,11 +6,16 @@ package api
 type OperationName = string
 
 const (
-	FindUserOperation        OperationName = "FindUser"
-	FindUserV1Operation      OperationName = "FindUserV1"
-	GetCollectionV1Operation OperationName = "GetCollectionV1"
-	GetProfileV1Operation    OperationName = "GetProfileV1"
-	GetUserOperation         OperationName = "GetUser"
-	GetUserV1Operation       OperationName = "GetUserV1"
-	GetWishlistOperation     OperationName = "GetWishlist"
+	AddWishlistCharactersOperation    OperationName = "AddWishlistCharacters"
+	ClearWishlistOperation            OperationName = "ClearWishlist"
+	FindUserOperation                 OperationName = "FindUser"
+	FindUserV1Operation               OperationName = "FindUserV1"
+	GetCollectionV1Operation          OperationName = "GetCollectionV1"
+	GetProfileV1Operation             OperationName = "GetProfileV1"
+	GetUserOperation                  OperationName = "GetUser"
+	GetUserV1Operation                OperationName = "GetUserV1"
+	GetWishlistOperation              OperationName = "GetWishlist"
+	RemoveWishlistCharactersOperation OperationName = "RemoveWishlistCharacters"
+	UpdateFavoriteOperation           OperationName = "UpdateFavorite"
+	UpdateProfileOperation            OperationName = "UpdateProfile"
 )

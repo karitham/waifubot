@@ -16,6 +16,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/karitham/waifubot/anilist"
+	"github.com/karitham/waifubot/auth"
 	"github.com/karitham/waifubot/discord"
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/rest"
@@ -71,6 +72,23 @@ var RunCommand = &cli.Command{
 		},
 		logLevelFlag,
 		apiFlag,
+		&cli.StringFlag{
+			Name:    "oauth-client-secret",
+			EnvVars: []string{"OAUTH_CLIENT_SECRET"},
+			Usage:   "Discord OAuth2 client secret",
+		},
+		&cli.StringFlag{
+			Name:    "oauth-redirect-uri",
+			EnvVars: []string{"OAUTH_REDIRECT_URI"},
+			Usage:   "OAuth2 callback URL",
+			Value:   "http://localhost:8080/auth/callback",
+		},
+		&cli.StringFlag{
+			Name:    "frontend-url",
+			EnvVars: []string{"FRONTEND_URL"},
+			Usage:   "Frontend URL for OAuth callback redirect",
+			Value:   "http://localhost:3000",
+		},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
@@ -139,10 +157,10 @@ var RunCommand = &cli.Command{
 
 		r.Use(cors.Handler(cors.Options{
 			AllowedOrigins:   []string{"https://*", "http://*"},
-			AllowedMethods:   []string{"GET", "OPTIONS"},
-			AllowedHeaders:   []string{"Accept", "Content-Type", "If-None-Match"},
+			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "If-None-Match"},
 			MaxAge:           300,
-			AllowCredentials: true,
+			AllowCredentials: false,
 		}))
 
 		r.Handle("/metrics", promhttp.Handler())
@@ -167,8 +185,29 @@ var RunCommand = &cli.Command{
 				}
 			}()
 
+			// Session store and OAuth
+			sessionStore := auth.NewPgSessionStore(store.SessionStore())
+			oauthClient := auth.NewOAuthClient(auth.OAuthConfig{
+				ClientID:     c.String("app-id"),
+				ClientSecret: c.String("oauth-client-secret"),
+				RedirectURI:  c.String("oauth-redirect-uri"),
+			})
+
+			// Auth routes (chi, not ogen)
+			authHandler := auth.NewHandler(
+				sessionStore,
+				auth.NewUserStoreAdapter(collStore),
+				oauthClient,
+				c.String("frontend-url"),
+			)
+			r.Route("/auth", authHandler.Routes)
+
+			// Security handler for ogen
+			securityHandler := rest.NewSecurityHandler(sessionStore)
+
 			apiRouter, err := api.NewServer(
 				restServer,
+				securityHandler,
 				api.WithMeterProvider(telemetry.MeterProvider()),
 			)
 			if err != nil {

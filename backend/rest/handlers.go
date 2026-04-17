@@ -208,7 +208,6 @@ func (s *Server) FindUser(ctx context.Context, params api.FindUserParams) (api.F
 	}
 
 	resp, err := s.findUserByQuery(ctx, anilistVal, discordVal, anilistSet)
-
 	if err != nil {
 		if errors.Is(err, errUserNotFound) {
 			return &api.FindUserNotFound{
@@ -236,7 +235,6 @@ func (s *Server) FindUserV1(ctx context.Context, params api.FindUserV1Params) (a
 	}
 
 	resp, err := s.findUserByQuery(ctx, anilistVal, discordVal, anilistSet)
-
 	if err != nil {
 		if errors.Is(err, errUserNotFound) {
 			return &api.FindUserV1NotFound{
@@ -251,9 +249,7 @@ func (s *Server) FindUserV1(ctx context.Context, params api.FindUserV1Params) (a
 	return resp, nil
 }
 
-var (
-	errUserNotFound = errors.New("user not found")
-)
+var errUserNotFound = errors.New("user not found")
 
 func (s *Server) findUserByQuery(ctx context.Context, anilist, discord string, useAnilist bool) (*api.UserIdResponse, error) {
 	var user collection.User
@@ -355,4 +351,339 @@ func normalizeAnilistURL(input string) string {
 	}
 
 	return fmt.Sprintf("https://anilist.co/user/%s", input)
+}
+
+func (s *Server) UpdateProfile(ctx context.Context, req *api.ProfileUpdate) (api.UpdateProfileRes, error) {
+	userID := UserIDFromContext(ctx)
+	if userID == 0 {
+		return &api.UnauthorizedError{
+			Message:    "unauthorized",
+			ErrorCode:  "unauthorized",
+			StatusCode: 401,
+		}, nil
+	}
+
+	// Validation: at least one field must be provided
+	hasQuote := req.GetQuote().Set
+	hasAnilist := req.GetAnilistURL().Set
+	if !hasQuote && !hasAnilist {
+		return &api.Error{
+			Message:    "at least one field (quote or anilist_url) is required",
+			ErrorCode:  "invalid_request",
+			StatusCode: 400,
+		}, nil
+	}
+
+	// Validate anilist_url format if provided
+	if hasAnilist {
+		anilistURL := req.GetAnilistURL().Value
+		if anilistURL != "" && !strings.HasPrefix(anilistURL, "https://anilist.co/user/") {
+			return &api.Error{
+				Message:    "anilist_url must be a valid anilist.co user URL",
+				ErrorCode:  "invalid_anilist_url",
+				StatusCode: 400,
+			}, nil
+		}
+	}
+
+	// Gather: fetch current user data (needed for response)
+	u, err := s.db.GetUser(ctx, userID)
+	if err != nil {
+		return &api.Error{
+			Message:    "user not found",
+			ErrorCode:  "user_not_found",
+			StatusCode: 404,
+		}, nil
+	}
+
+	// Process: determine what updates to apply (pure function)
+	updates := computeProfileUpdates(u, req)
+
+	// Commit: apply updates
+	if err := s.applyProfileUpdates(ctx, userID, updates); err != nil {
+		return &api.Error{
+			Message:    "failed to update profile",
+			ErrorCode:  "internal_error",
+			StatusCode: 500,
+		}, nil
+	}
+
+	// Fetch updated profile for response
+	return s.getUserProfileResponse(ctx, userID)
+}
+
+// ProfileUpdates holds the computed changes to apply to a user profile.
+type ProfileUpdates struct {
+	Quote      string
+	AnilistURL string
+}
+
+// computeProfileUpdates is a pure function that determines what updates to apply.
+// It takes raw user data and the request, returns the updates to apply.
+func computeProfileUpdates(u collection.User, req *api.ProfileUpdate) ProfileUpdates {
+	var updates ProfileUpdates
+
+	quote := req.GetQuote()
+	if quote.Set {
+		updates.Quote = quote.Value
+	} else {
+		updates.Quote = u.Quote
+	}
+
+	anilistURL := req.GetAnilistURL()
+	if anilistURL.Set {
+		updates.AnilistURL = anilistURL.Value
+	} else {
+		updates.AnilistURL = u.AnilistURL
+	}
+
+	return updates
+}
+
+// applyProfileUpdates persists the computed profile updates to the database.
+func (s *Server) applyProfileUpdates(ctx context.Context, userID uint64, updates ProfileUpdates) error {
+	if updates.Quote != "" {
+		if err := s.db.UpdateQuote(ctx, userID, updates.Quote); err != nil {
+			return err
+		}
+	}
+
+	if updates.AnilistURL != "" {
+		if err := s.db.UpdateAnilistURL(ctx, userID, updates.AnilistURL); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Server) UpdateFavorite(ctx context.Context, req *api.FavoriteUpdate) (api.UpdateFavoriteRes, error) {
+	userID := UserIDFromContext(ctx)
+	if userID == 0 {
+		return &api.UnauthorizedError{
+			Message:    "unauthorized",
+			ErrorCode:  "unauthorized",
+			StatusCode: 401,
+		}, nil
+	}
+
+	charID := req.GetCharacterID()
+	if charID == 0 {
+		return &api.Error{
+			Message:    "character_id is required",
+			ErrorCode:  "invalid_request",
+			StatusCode: 400,
+		}, nil
+	}
+
+	if err := s.db.UpdateFavorite(ctx, userID, charID); err != nil {
+		return &api.Error{
+			Message:    "failed to update favorite",
+			ErrorCode:  "internal_error",
+			StatusCode: 500,
+		}, nil
+	}
+
+	return s.getUserProfileResponseForFavorite(ctx, userID)
+}
+
+func (s *Server) AddWishlistCharacters(ctx context.Context, req *api.WishlistCharacterAdd) (api.AddWishlistCharactersRes, error) {
+	userID := UserIDFromContext(ctx)
+	if userID == 0 {
+		return &api.UnauthorizedError{
+			Message:    "unauthorized",
+			ErrorCode:  "unauthorized",
+			StatusCode: 401,
+		}, nil
+	}
+
+	charIDs := req.GetCharacterIds()
+	if len(charIDs) == 0 {
+		return &api.Error{
+			Message:    "character_ids is required and must not be empty",
+			ErrorCode:  "invalid_request",
+			StatusCode: 400,
+		}, nil
+	}
+	if len(charIDs) > 100 {
+		return &api.Error{
+			Message:    "cannot add more than 100 characters at once",
+			ErrorCode:  "invalid_request",
+			StatusCode: 400,
+		}, nil
+	}
+
+	if err := s.wishlistStore.AddCharactersToWishlist(ctx, userID, charIDs); err != nil {
+		return &api.Error{
+			Message:    "failed to add characters to wishlist",
+			ErrorCode:  "internal_error",
+			StatusCode: 500,
+		}, nil
+	}
+
+	return s.getWishlistResponse(ctx, userID)
+}
+
+func (s *Server) RemoveWishlistCharacters(ctx context.Context, req *api.WishlistCharacterRemove) (api.RemoveWishlistCharactersRes, error) {
+	userID := UserIDFromContext(ctx)
+	if userID == 0 {
+		return &api.UnauthorizedError{
+			Message:    "unauthorized",
+			ErrorCode:  "unauthorized",
+			StatusCode: 401,
+		}, nil
+	}
+
+	charIDs := req.GetCharacterIds()
+	if len(charIDs) == 0 {
+		return &api.Error{
+			Message:    "character_ids is required and must not be empty",
+			ErrorCode:  "invalid_request",
+			StatusCode: 400,
+		}, nil
+	}
+
+	if err := s.wishlistStore.RemoveCharactersFromWishlist(ctx, userID, charIDs); err != nil {
+		return &api.Error{
+			Message:    "failed to remove characters from wishlist",
+			ErrorCode:  "internal_error",
+			StatusCode: 500,
+		}, nil
+	}
+
+	return s.getWishlistResponseForRemove(ctx, userID)
+}
+
+func (s *Server) ClearWishlist(ctx context.Context) (api.ClearWishlistRes, error) {
+	userID := UserIDFromContext(ctx)
+	if userID == 0 {
+		return &api.UnauthorizedError{
+			Message:    "unauthorized",
+			ErrorCode:  "unauthorized",
+			StatusCode: 401,
+		}, nil
+	}
+
+	if err := s.wishlistStore.RemoveAllFromWishlist(ctx, userID); err != nil {
+		return &api.Error{
+			Message:    "failed to clear wishlist",
+			ErrorCode:  "internal_error",
+			StatusCode: 500,
+		}, nil
+	}
+
+	return &api.ClearWishlistOK{}, nil
+}
+
+// ProfileData holds all user profile data needed for building API responses.
+type ProfileData struct {
+	User       collection.User
+	Collection []collection.OwnedCharacter
+	Wishlist   []wishlist.Character
+}
+
+// buildUserProfileData fetches all user profile data in a single call.
+// This is the common internal function that powers multiple response builders.
+func (s *Server) buildUserProfileData(ctx context.Context, userID uint64) (*ProfileData, error) {
+	u, err := s.db.GetUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	collection, err := s.db.GetCollection(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	wishlist, err := s.wishlistStore.GetUserCharacterWishlist(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ProfileData{
+		User:       u,
+		Collection: collection,
+		Wishlist:   wishlist,
+	}, nil
+}
+
+// getUserProfileResponse builds the response for updateProfile handler.
+func (s *Server) getUserProfileResponse(ctx context.Context, userID uint64) (api.UpdateProfileRes, error) {
+	data, err := s.buildUserProfileData(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return s.mapProfileResponse(data), nil
+}
+
+// getUserProfileResponseForFavorite builds the response for updateFavorite handler.
+func (s *Server) getUserProfileResponseForFavorite(ctx context.Context, userID uint64) (api.UpdateFavoriteRes, error) {
+	data, err := s.buildUserProfileData(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return s.mapProfileResponse(data), nil
+}
+
+// mapProfileResponse converts ProfileData into an API user profile response.
+func (s *Server) mapProfileResponse(data *ProfileData) *api.UserProfile {
+	waifus := make([]api.Character, 0, len(data.Collection))
+	var fav api.OptCharacter
+	for _, entry := range data.Collection {
+		c := mapCharacter(entry.ID, entry.Name, entry.Image, entry.Favorites, entry.Source, entry.Date)
+
+		if data.User.Favorite != 0 && entry.ID == data.User.Favorite {
+			fav = api.NewOptCharacter(c)
+		}
+
+		waifus = append(waifus, c)
+	}
+
+	return &api.UserProfile{
+		ID:              fmt.Sprintf("%d", data.User.UserID),
+		Quote:           api.NewOptString(data.User.Quote),
+		Tokens:          data.User.Tokens,
+		AnilistURL:      api.NewOptString(data.User.AnilistURL),
+		DiscordUsername: data.User.DiscordUsername,
+		DiscordAvatar:   api.NewOptString(discord.DiscordAvatarURL(data.User.UserID, data.User.DiscordAvatar)),
+		Favorite:        fav,
+	}
+}
+
+// getWishlistResponse builds the response for addWishlistCharacters handler.
+func (s *Server) getWishlistResponse(ctx context.Context, userID uint64) (api.AddWishlistCharactersRes, error) {
+	data, err := s.buildUserProfileData(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return s.mapWishlistResponse(data), nil
+}
+
+// getWishlistResponseForRemove builds the response for removeWishlistCharacters handler.
+func (s *Server) getWishlistResponseForRemove(ctx context.Context, userID uint64) (api.RemoveWishlistCharactersRes, error) {
+	data, err := s.buildUserProfileData(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return s.mapWishlistResponse(data), nil
+}
+
+// mapWishlistResponse converts ProfileData into an API wishlist response.
+func (s *Server) mapWishlistResponse(data *ProfileData) *api.WishlistResponse {
+	characters := make([]api.Character, len(data.Wishlist))
+	for i, c := range data.Wishlist {
+		t, _ := time.Parse(time.RFC3339, c.Date)
+		characters[i] = api.Character{
+			Date:      api.NewOptNilDateTime(t),
+			Name:      c.Name,
+			Image:     c.Image,
+			ID:        c.ID,
+			Favorites: c.Favorites,
+		}
+	}
+
+	return &api.WishlistResponse{
+		Characters: characters,
+		Total:      len(characters),
+	}
 }

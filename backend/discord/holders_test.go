@@ -181,15 +181,19 @@ type mockGuildQuerier struct {
 func (m *mockGuildQuerier) IsGuildIndexed(ctx context.Context, guildID uint64) (collection.GuildIndexStatus, error) {
 	return m.IsGuildIndexedFunc(ctx, guildID)
 }
+
 func (m *mockGuildQuerier) StartIndexingJob(ctx context.Context, guildID uint64) error {
 	return nil
 }
+
 func (m *mockGuildQuerier) CompleteIndexingJob(ctx context.Context, guildID uint64) error {
 	return nil
 }
+
 func (m *mockGuildQuerier) UpsertGuildMembers(ctx context.Context, guildID uint64, memberIDs []uint64, indexedAt time.Time) error {
 	return nil
 }
+
 func (m *mockGuildQuerier) DeleteGuildMembersNotIn(ctx context.Context, guildID uint64, memberIDs []uint64) error {
 	return nil
 }

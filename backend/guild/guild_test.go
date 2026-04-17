@@ -29,6 +29,7 @@ func (m *mockQuerier) Rollback(ctx context.Context) error                       
 func (m *mockQuerier) UpsertGuildMembers(ctx context.Context, guildID uint64, memberIDs []uint64, indexedAt time.Time) error {
 	return nil
 }
+
 func (m *mockQuerier) DeleteGuildMembersNotIn(ctx context.Context, guildID uint64, memberIDs []uint64) error {
 	return nil
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/karitham/waifubot/storage/dropstore"
 	"github.com/karitham/waifubot/storage/guildstore"
 	"github.com/karitham/waifubot/storage/interactionstore"
+	"github.com/karitham/waifubot/storage/sessionstore"
 	"github.com/karitham/waifubot/storage/userstore"
 	"github.com/karitham/waifubot/storage/wishliststore"
 )
@@ -33,6 +34,7 @@ type Store interface {
 	GuildStore() guildstore.Querier
 	WishlistStore() wishliststore.Querier
 	CommandStore() commandstore.Querier
+	SessionStore() sessionstore.Querier
 	Tx(ctx context.Context) (Store, error)
 	Commit(ctx context.Context) error
 	Rollback(ctx context.Context) error
@@ -46,6 +48,7 @@ type DBStore struct {
 	guildStore       *guildstore.Queries
 	wishlistStore    *wishliststore.Queries
 	commandStore     *commandstore.Queries
+	sessionStore     *sessionstore.Queries
 	db               TXer
 	tx               pgx.Tx
 }
@@ -77,6 +80,7 @@ func NewStore(ctx context.Context, url string) (*DBStore, error) {
 		guildStore:       guildstore.New(conn),
 		wishlistStore:    wishliststore.New(conn),
 		commandStore:     commandstore.New(conn),
+		sessionStore:     sessionstore.New(conn),
 		db:               conn,
 		interactionStore: interactionstore.New(conn),
 		dropStore:        dropstore.New(conn),
@@ -90,6 +94,7 @@ func (s *DBStore) withTx(tx pgx.Tx) *DBStore {
 		guildStore:       s.guildStore.WithTx(tx),
 		wishlistStore:    s.wishlistStore.WithTx(tx),
 		commandStore:     s.commandStore.WithTx(tx),
+		sessionStore:     s.sessionStore.WithTx(tx),
 		db:               tx,
 		interactionStore: s.interactionStore.WithTx(tx),
 		dropStore:        s.dropStore.WithTx(tx),
@@ -167,6 +172,10 @@ func (s *DBStore) DB() TXer {
 
 func (s *DBStore) CommandStore() commandstore.Querier {
 	return s.commandStore
+}
+
+func (s *DBStore) SessionStore() sessionstore.Querier {
+	return s.sessionStore
 }
 
 func (s *DBStore) Tx(ctx context.Context) (Store, error) {

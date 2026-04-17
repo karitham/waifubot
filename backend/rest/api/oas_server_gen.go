@@ -8,6 +8,18 @@ import (
 
 // Handler handles operations described by OpenAPI v3 specification.
 type Handler interface {
+	// AddWishlistCharacters implements addWishlistCharacters operation.
+	//
+	// Add characters to wishlist.
+	//
+	// POST /api/v1/wishlist/characters
+	AddWishlistCharacters(ctx context.Context, req *WishlistCharacterAdd) (AddWishlistCharactersRes, error)
+	// ClearWishlist implements clearWishlist operation.
+	//
+	// Clear entire wishlist.
+	//
+	// DELETE /api/v1/wishlist
+	ClearWishlist(ctx context.Context) (ClearWishlistRes, error)
 	// FindUser implements findUser operation.
 	//
 	// Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
@@ -58,23 +70,43 @@ type Handler interface {
 	//
 	// GET /api/v1/wishlist/{userID}
 	GetWishlist(ctx context.Context, params GetWishlistParams) (GetWishlistRes, error)
+	// RemoveWishlistCharacters implements removeWishlistCharacters operation.
+	//
+	// Remove characters from wishlist.
+	//
+	// DELETE /api/v1/wishlist/characters
+	RemoveWishlistCharacters(ctx context.Context, req *WishlistCharacterRemove) (RemoveWishlistCharactersRes, error)
+	// UpdateFavorite implements updateFavorite operation.
+	//
+	// Set favorite character.
+	//
+	// PUT /api/v1/profile/favorite
+	UpdateFavorite(ctx context.Context, req *FavoriteUpdate) (UpdateFavoriteRes, error)
+	// UpdateProfile implements updateProfile operation.
+	//
+	// Update authenticated user's profile.
+	//
+	// PUT /api/v1/profile
+	UpdateProfile(ctx context.Context, req *ProfileUpdate) (UpdateProfileRes, error)
 }
 
 // Server implements http server based on OpenAPI v3 specification and
 // calls Handler to handle requests.
 type Server struct {
-	h Handler
+	h   Handler
+	sec SecurityHandler
 	baseServer
 }
 
 // NewServer creates new Server.
-func NewServer(h Handler, opts ...ServerOption) (*Server, error) {
+func NewServer(h Handler, sec SecurityHandler, opts ...ServerOption) (*Server, error) {
 	s, err := newServerConfig(opts...).baseServer()
 	if err != nil {
 		return nil, err
 	}
 	return &Server{
 		h:          h,
+		sec:        sec,
 		baseServer: s,
 	}, nil
 }

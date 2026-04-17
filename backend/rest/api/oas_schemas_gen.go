@@ -8,6 +8,31 @@ import (
 	"github.com/go-faster/errors"
 )
 
+type BearerAuth struct {
+	Token string
+	Roles []string
+}
+
+// GetToken returns the value of Token.
+func (s *BearerAuth) GetToken() string {
+	return s.Token
+}
+
+// GetRoles returns the value of Roles.
+func (s *BearerAuth) GetRoles() []string {
+	return s.Roles
+}
+
+// SetToken sets the value of Token.
+func (s *BearerAuth) SetToken(val string) {
+	s.Token = val
+}
+
+// SetRoles sets the value of Roles.
+func (s *BearerAuth) SetRoles(val []string) {
+	s.Roles = val
+}
+
 // Character information.
 // Ref: #/components/schemas/Character
 type Character struct {
@@ -155,6 +180,11 @@ func (s *CharacterType) UnmarshalText(data []byte) error {
 	}
 }
 
+// ClearWishlistOK is response for ClearWishlist operation.
+type ClearWishlistOK struct{}
+
+func (*ClearWishlistOK) clearWishlistRes() {}
+
 // User's character collection response.
 // Ref: #/components/schemas/CollectionResponse
 type CollectionResponse struct {
@@ -225,6 +255,22 @@ func (s *Error) SetErrorCode(val string) {
 // SetStatusCode sets the value of StatusCode.
 func (s *Error) SetStatusCode(val int) {
 	s.StatusCode = val
+}
+
+// Ref: #/components/schemas/FavoriteUpdate
+type FavoriteUpdate struct {
+	// Character ID to set as favorite.
+	CharacterID int64 `json:"character_id"`
+}
+
+// GetCharacterID returns the value of CharacterID.
+func (s *FavoriteUpdate) GetCharacterID() int64 {
+	return s.CharacterID
+}
+
+// SetCharacterID sets the value of CharacterID.
+func (s *FavoriteUpdate) SetCharacterID(val int64) {
+	s.CharacterID = val
 }
 
 type FindUserBadRequest Error
@@ -605,6 +651,77 @@ func (s *Profile) SetWaifus(val []Character) {
 func (*Profile) getUserRes()   {}
 func (*Profile) getUserV1Res() {}
 
+// Ref: #/components/schemas/ProfileUpdate
+type ProfileUpdate struct {
+	// User's personal quote.
+	Quote OptString `json:"quote"`
+	// Anilist user URL.
+	AnilistURL OptString `json:"anilist_url"`
+}
+
+// GetQuote returns the value of Quote.
+func (s *ProfileUpdate) GetQuote() OptString {
+	return s.Quote
+}
+
+// GetAnilistURL returns the value of AnilistURL.
+func (s *ProfileUpdate) GetAnilistURL() OptString {
+	return s.AnilistURL
+}
+
+// SetQuote sets the value of Quote.
+func (s *ProfileUpdate) SetQuote(val OptString) {
+	s.Quote = val
+}
+
+// SetAnilistURL sets the value of AnilistURL.
+func (s *ProfileUpdate) SetAnilistURL(val OptString) {
+	s.AnilistURL = val
+}
+
+// Ref: #/components/schemas/UnauthorizedError
+type UnauthorizedError struct {
+	Message    string `json:"message"`
+	ErrorCode  string `json:"error_code"`
+	StatusCode int    `json:"status_code"`
+}
+
+// GetMessage returns the value of Message.
+func (s *UnauthorizedError) GetMessage() string {
+	return s.Message
+}
+
+// GetErrorCode returns the value of ErrorCode.
+func (s *UnauthorizedError) GetErrorCode() string {
+	return s.ErrorCode
+}
+
+// GetStatusCode returns the value of StatusCode.
+func (s *UnauthorizedError) GetStatusCode() int {
+	return s.StatusCode
+}
+
+// SetMessage sets the value of Message.
+func (s *UnauthorizedError) SetMessage(val string) {
+	s.Message = val
+}
+
+// SetErrorCode sets the value of ErrorCode.
+func (s *UnauthorizedError) SetErrorCode(val string) {
+	s.ErrorCode = val
+}
+
+// SetStatusCode sets the value of StatusCode.
+func (s *UnauthorizedError) SetStatusCode(val int) {
+	s.StatusCode = val
+}
+
+func (*UnauthorizedError) addWishlistCharactersRes()    {}
+func (*UnauthorizedError) clearWishlistRes()            {}
+func (*UnauthorizedError) removeWishlistCharactersRes() {}
+func (*UnauthorizedError) updateFavoriteRes()           {}
+func (*UnauthorizedError) updateProfileRes()            {}
+
 // Response containing only the user ID.
 // Ref: #/components/schemas/UserIdResponse
 type UserIdResponse struct {
@@ -714,7 +831,41 @@ func (s *UserProfile) SetFavorite(val OptCharacter) {
 	s.Favorite = val
 }
 
-func (*UserProfile) getProfileV1Res() {}
+func (*UserProfile) getProfileV1Res()   {}
+func (*UserProfile) updateFavoriteRes() {}
+func (*UserProfile) updateProfileRes()  {}
+
+// Ref: #/components/schemas/WishlistCharacterAdd
+type WishlistCharacterAdd struct {
+	// Character IDs to add to wishlist.
+	CharacterIds []int64 `json:"character_ids"`
+}
+
+// GetCharacterIds returns the value of CharacterIds.
+func (s *WishlistCharacterAdd) GetCharacterIds() []int64 {
+	return s.CharacterIds
+}
+
+// SetCharacterIds sets the value of CharacterIds.
+func (s *WishlistCharacterAdd) SetCharacterIds(val []int64) {
+	s.CharacterIds = val
+}
+
+// Ref: #/components/schemas/WishlistCharacterRemove
+type WishlistCharacterRemove struct {
+	// Character IDs to remove from wishlist.
+	CharacterIds []int64 `json:"character_ids"`
+}
+
+// GetCharacterIds returns the value of CharacterIds.
+func (s *WishlistCharacterRemove) GetCharacterIds() []int64 {
+	return s.CharacterIds
+}
+
+// SetCharacterIds sets the value of CharacterIds.
+func (s *WishlistCharacterRemove) SetCharacterIds(val []int64) {
+	s.CharacterIds = val
+}
 
 // User's wishlist response.
 // Ref: #/components/schemas/WishlistResponse
@@ -745,4 +896,6 @@ func (s *WishlistResponse) SetTotal(val int) {
 	s.Total = val
 }
 
-func (*WishlistResponse) getWishlistRes() {}
+func (*WishlistResponse) addWishlistCharactersRes()    {}
+func (*WishlistResponse) getWishlistRes()              {}
+func (*WishlistResponse) removeWishlistCharactersRes() {}

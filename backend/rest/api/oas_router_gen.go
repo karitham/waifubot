@@ -104,35 +104,82 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						return
 					}
 
-				case 'p': // Prefix: "profile/"
+				case 'p': // Prefix: "profile"
 
-					if l := len("profile/"); len(elem) >= l && elem[0:l] == "profile/" {
+					if l := len("profile"); len(elem) >= l && elem[0:l] == "profile" {
 						elem = elem[l:]
 					} else {
 						break
 					}
 
-					// Param: "userID"
-					// Leaf parameter, slashes are prohibited
-					idx := strings.IndexByte(elem, '/')
-					if idx >= 0 {
-						break
-					}
-					args[0] = elem
-					elem = ""
-
 					if len(elem) == 0 {
-						// Leaf node.
 						switch r.Method {
-						case "GET":
-							s.handleGetProfileV1Request([1]string{
-								args[0],
-							}, elemIsEscaped, w, r)
+						case "PUT":
+							s.handleUpdateProfileRequest([0]string{}, elemIsEscaped, w, r)
 						default:
-							s.notAllowed(w, r, "GET")
+							s.notAllowed(w, r, "PUT")
 						}
 
 						return
+					}
+					switch elem[0] {
+					case '/': // Prefix: "/"
+
+						if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							break
+						}
+						switch elem[0] {
+						case 'f': // Prefix: "favorite"
+							origElem := elem
+							if l := len("favorite"); len(elem) >= l && elem[0:l] == "favorite" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch r.Method {
+								case "PUT":
+									s.handleUpdateFavoriteRequest([0]string{}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, "PUT")
+								}
+
+								return
+							}
+
+							elem = origElem
+						}
+						// Param: "userID"
+						// Leaf parameter, slashes are prohibited
+						idx := strings.IndexByte(elem, '/')
+						if idx >= 0 {
+							break
+						}
+						args[0] = elem
+						elem = ""
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch r.Method {
+							case "GET":
+								s.handleGetProfileV1Request([1]string{
+									args[0],
+								}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, "GET")
+							}
+
+							return
+						}
+
 					}
 
 				case 'u': // Prefix: "user/"
@@ -192,35 +239,84 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						return
 					}
 
-				case 'w': // Prefix: "wishlist/"
+				case 'w': // Prefix: "wishlist"
 
-					if l := len("wishlist/"); len(elem) >= l && elem[0:l] == "wishlist/" {
+					if l := len("wishlist"); len(elem) >= l && elem[0:l] == "wishlist" {
 						elem = elem[l:]
 					} else {
 						break
 					}
 
-					// Param: "userID"
-					// Leaf parameter, slashes are prohibited
-					idx := strings.IndexByte(elem, '/')
-					if idx >= 0 {
-						break
-					}
-					args[0] = elem
-					elem = ""
-
 					if len(elem) == 0 {
-						// Leaf node.
 						switch r.Method {
-						case "GET":
-							s.handleGetWishlistRequest([1]string{
-								args[0],
-							}, elemIsEscaped, w, r)
+						case "DELETE":
+							s.handleClearWishlistRequest([0]string{}, elemIsEscaped, w, r)
 						default:
-							s.notAllowed(w, r, "GET")
+							s.notAllowed(w, r, "DELETE")
 						}
 
 						return
+					}
+					switch elem[0] {
+					case '/': // Prefix: "/"
+
+						if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							break
+						}
+						switch elem[0] {
+						case 'c': // Prefix: "characters"
+							origElem := elem
+							if l := len("characters"); len(elem) >= l && elem[0:l] == "characters" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch r.Method {
+								case "DELETE":
+									s.handleRemoveWishlistCharactersRequest([0]string{}, elemIsEscaped, w, r)
+								case "POST":
+									s.handleAddWishlistCharactersRequest([0]string{}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, "DELETE,POST")
+								}
+
+								return
+							}
+
+							elem = origElem
+						}
+						// Param: "userID"
+						// Leaf parameter, slashes are prohibited
+						idx := strings.IndexByte(elem, '/')
+						if idx >= 0 {
+							break
+						}
+						args[0] = elem
+						elem = ""
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch r.Method {
+							case "GET":
+								s.handleGetWishlistRequest([1]string{
+									args[0],
+								}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, "GET")
+							}
+
+							return
+						}
+
 					}
 
 				}
@@ -428,38 +524,95 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 						}
 					}
 
-				case 'p': // Prefix: "profile/"
+				case 'p': // Prefix: "profile"
 
-					if l := len("profile/"); len(elem) >= l && elem[0:l] == "profile/" {
+					if l := len("profile"); len(elem) >= l && elem[0:l] == "profile" {
 						elem = elem[l:]
 					} else {
 						break
 					}
 
-					// Param: "userID"
-					// Leaf parameter, slashes are prohibited
-					idx := strings.IndexByte(elem, '/')
-					if idx >= 0 {
-						break
-					}
-					args[0] = elem
-					elem = ""
-
 					if len(elem) == 0 {
-						// Leaf node.
 						switch method {
-						case "GET":
-							r.name = GetProfileV1Operation
-							r.summary = "Get user profile"
-							r.operationID = "getProfileV1"
+						case "PUT":
+							r.name = UpdateProfileOperation
+							r.summary = "Update authenticated user's profile"
+							r.operationID = "updateProfile"
 							r.operationGroup = ""
-							r.pathPattern = "/api/v1/profile/{userID}"
+							r.pathPattern = "/api/v1/profile"
 							r.args = args
-							r.count = 1
+							r.count = 0
 							return r, true
 						default:
 							return
 						}
+					}
+					switch elem[0] {
+					case '/': // Prefix: "/"
+
+						if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							break
+						}
+						switch elem[0] {
+						case 'f': // Prefix: "favorite"
+							origElem := elem
+							if l := len("favorite"); len(elem) >= l && elem[0:l] == "favorite" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch method {
+								case "PUT":
+									r.name = UpdateFavoriteOperation
+									r.summary = "Set favorite character"
+									r.operationID = "updateFavorite"
+									r.operationGroup = ""
+									r.pathPattern = "/api/v1/profile/favorite"
+									r.args = args
+									r.count = 0
+									return r, true
+								default:
+									return
+								}
+							}
+
+							elem = origElem
+						}
+						// Param: "userID"
+						// Leaf parameter, slashes are prohibited
+						idx := strings.IndexByte(elem, '/')
+						if idx >= 0 {
+							break
+						}
+						args[0] = elem
+						elem = ""
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch method {
+							case "GET":
+								r.name = GetProfileV1Operation
+								r.summary = "Get user profile"
+								r.operationID = "getProfileV1"
+								r.operationGroup = ""
+								r.pathPattern = "/api/v1/profile/{userID}"
+								r.args = args
+								r.count = 1
+								return r, true
+							default:
+								return
+							}
+						}
+
 					}
 
 				case 'u': // Prefix: "user/"
@@ -527,38 +680,104 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 						}
 					}
 
-				case 'w': // Prefix: "wishlist/"
+				case 'w': // Prefix: "wishlist"
 
-					if l := len("wishlist/"); len(elem) >= l && elem[0:l] == "wishlist/" {
+					if l := len("wishlist"); len(elem) >= l && elem[0:l] == "wishlist" {
 						elem = elem[l:]
 					} else {
 						break
 					}
 
-					// Param: "userID"
-					// Leaf parameter, slashes are prohibited
-					idx := strings.IndexByte(elem, '/')
-					if idx >= 0 {
-						break
-					}
-					args[0] = elem
-					elem = ""
-
 					if len(elem) == 0 {
-						// Leaf node.
 						switch method {
-						case "GET":
-							r.name = GetWishlistOperation
-							r.summary = "Get user wishlist"
-							r.operationID = "getWishlist"
+						case "DELETE":
+							r.name = ClearWishlistOperation
+							r.summary = "Clear entire wishlist"
+							r.operationID = "clearWishlist"
 							r.operationGroup = ""
-							r.pathPattern = "/api/v1/wishlist/{userID}"
+							r.pathPattern = "/api/v1/wishlist"
 							r.args = args
-							r.count = 1
+							r.count = 0
 							return r, true
 						default:
 							return
 						}
+					}
+					switch elem[0] {
+					case '/': // Prefix: "/"
+
+						if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							break
+						}
+						switch elem[0] {
+						case 'c': // Prefix: "characters"
+							origElem := elem
+							if l := len("characters"); len(elem) >= l && elem[0:l] == "characters" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch method {
+								case "DELETE":
+									r.name = RemoveWishlistCharactersOperation
+									r.summary = "Remove characters from wishlist"
+									r.operationID = "removeWishlistCharacters"
+									r.operationGroup = ""
+									r.pathPattern = "/api/v1/wishlist/characters"
+									r.args = args
+									r.count = 0
+									return r, true
+								case "POST":
+									r.name = AddWishlistCharactersOperation
+									r.summary = "Add characters to wishlist"
+									r.operationID = "addWishlistCharacters"
+									r.operationGroup = ""
+									r.pathPattern = "/api/v1/wishlist/characters"
+									r.args = args
+									r.count = 0
+									return r, true
+								default:
+									return
+								}
+							}
+
+							elem = origElem
+						}
+						// Param: "userID"
+						// Leaf parameter, slashes are prohibited
+						idx := strings.IndexByte(elem, '/')
+						if idx >= 0 {
+							break
+						}
+						args[0] = elem
+						elem = ""
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch method {
+							case "GET":
+								r.name = GetWishlistOperation
+								r.summary = "Get user wishlist"
+								r.operationID = "getWishlist"
+								r.operationGroup = ""
+								r.pathPattern = "/api/v1/wishlist/{userID}"
+								r.args = args
+								r.count = 1
+								return r, true
+							default:
+								return
+							}
+						}
+
 					}
 
 				}

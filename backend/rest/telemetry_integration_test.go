@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,6 +12,13 @@ import (
 	"github.com/karitham/waifubot/rest/api"
 )
 
+// stubSecurityHandler satisfies api.SecurityHandler for tests.
+type stubSecurityHandler struct{}
+
+func (stubSecurityHandler) HandleBearerAuth(ctx context.Context, _ api.OperationName, _ api.BearerAuth) (context.Context, error) {
+	return ctx, nil
+}
+
 func TestOgenTelemetryIntegration(t *testing.T) {
 	registry := prometheus.NewRegistry()
 
@@ -20,6 +28,7 @@ func TestOgenTelemetryIntegration(t *testing.T) {
 
 	srv, err := api.NewServer(
 		api.UnimplementedHandler{},
+		stubSecurityHandler{},
 		api.WithMeterProvider(telemetry.MeterProvider()),
 	)
 	require.NoError(t, err)

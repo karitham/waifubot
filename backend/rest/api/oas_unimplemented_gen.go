@@ -13,6 +13,24 @@ type UnimplementedHandler struct{}
 
 var _ Handler = UnimplementedHandler{}
 
+// AddWishlistCharacters implements addWishlistCharacters operation.
+//
+// Add characters to wishlist.
+//
+// POST /api/v1/wishlist/characters
+func (UnimplementedHandler) AddWishlistCharacters(ctx context.Context, req *WishlistCharacterAdd) (r AddWishlistCharactersRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ClearWishlist implements clearWishlist operation.
+//
+// Clear entire wishlist.
+//
+// DELETE /api/v1/wishlist
+func (UnimplementedHandler) ClearWishlist(ctx context.Context) (r ClearWishlistRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // FindUser implements findUser operation.
 //
 // Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
@@ -81,5 +99,32 @@ func (UnimplementedHandler) GetUserV1(ctx context.Context, params GetUserV1Param
 //
 // GET /api/v1/wishlist/{userID}
 func (UnimplementedHandler) GetWishlist(ctx context.Context, params GetWishlistParams) (r GetWishlistRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// RemoveWishlistCharacters implements removeWishlistCharacters operation.
+//
+// Remove characters from wishlist.
+//
+// DELETE /api/v1/wishlist/characters
+func (UnimplementedHandler) RemoveWishlistCharacters(ctx context.Context, req *WishlistCharacterRemove) (r RemoveWishlistCharactersRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateFavorite implements updateFavorite operation.
+//
+// Set favorite character.
+//
+// PUT /api/v1/profile/favorite
+func (UnimplementedHandler) UpdateFavorite(ctx context.Context, req *FavoriteUpdate) (r UpdateFavoriteRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateProfile implements updateProfile operation.
+//
+// Update authenticated user's profile.
+//
+// PUT /api/v1/profile
+func (UnimplementedHandler) UpdateProfile(ctx context.Context, req *ProfileUpdate) (r UpdateProfileRes, _ error) {
 	return r, ht.ErrNotImplemented
 }

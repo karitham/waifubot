@@ -28,11 +28,11 @@ func newSlashCommandCtx(i *corde.Interaction[corde.SlashCommandInteractionData])
 	return &slashCommandCtx{i: i}
 }
 
-func (c *slashCommandCtx) UserID() uint64                      { return uint64(c.i.Member.User.ID) }
-func (c *slashCommandCtx) Username() string                    { return c.i.Member.User.Username }
-func (c *slashCommandCtx) GuildID() uint64                     { return uint64(c.i.GuildID) }
-func (c *slashCommandCtx) ChannelID() uint64                   { return uint64(c.i.ChannelID) }
-func (c *slashCommandCtx) AvatarPNG() string                   { return c.i.Member.User.AvatarPNG() }
+func (c *slashCommandCtx) UserID() uint64    { return uint64(c.i.Member.User.ID) }
+func (c *slashCommandCtx) Username() string  { return c.i.Member.User.Username }
+func (c *slashCommandCtx) GuildID() uint64   { return uint64(c.i.GuildID) }
+func (c *slashCommandCtx) ChannelID() uint64 { return uint64(c.i.ChannelID) }
+func (c *slashCommandCtx) AvatarPNG() string { return c.i.Member.User.AvatarPNG() }
 func (c *slashCommandCtx) FirstResolvedUser() (corde.User, bool) {
 	if len(c.i.Data.Resolved.Users) == 0 {
 		return corde.User{}, false
@@ -69,15 +69,41 @@ type MockCommandContext struct {
 	ErrVal               error
 }
 
-func (m *MockCommandContext) UserID() uint64                            { return m.UserIDVal }
-func (m *MockCommandContext) Username() string                          { return m.UsernameVal }
-func (m *MockCommandContext) GuildID() uint64                           { return m.GuildIDVal }
-func (m *MockCommandContext) ChannelID() uint64                         { return m.ChannelIDVal }
-func (m *MockCommandContext) AvatarPNG() string                         { return m.AvatarPNGVal }
-func (m *MockCommandContext) FirstResolvedUser() (corde.User, bool)     { return m.FirstResolvedUserVal, m.HasResolvedUser }
-func (m *MockCommandContext) OptString(key string) (string, error)      { v, ok := m.OptStringVals[key]; if !ok { return "", m.ErrVal }; return v, nil }
-func (m *MockCommandContext) OptInt(key string) (int, error)            { v, ok := m.OptIntVals[key]; if !ok { return 0, m.ErrVal }; return v, nil }
-func (m *MockCommandContext) OptInt64(key string) (int64, error)        { v, ok := m.OptInt64Vals[key]; if !ok { return 0, m.ErrVal }; return v, nil }
-func (m *MockCommandContext) OptUser(key string) (corde.User, error)    { v, ok := m.OptUserVals[key]; if !ok { return corde.User{}, m.ErrVal }; return v, nil }
+func (m *MockCommandContext) UserID() uint64    { return m.UserIDVal }
+func (m *MockCommandContext) Username() string  { return m.UsernameVal }
+func (m *MockCommandContext) GuildID() uint64   { return m.GuildIDVal }
+func (m *MockCommandContext) ChannelID() uint64 { return m.ChannelIDVal }
+func (m *MockCommandContext) AvatarPNG() string { return m.AvatarPNGVal }
+func (m *MockCommandContext) FirstResolvedUser() (corde.User, bool) {
+	return m.FirstResolvedUserVal, m.HasResolvedUser
+}
+func (m *MockCommandContext) OptString(key string) (string, error) {
+	v, ok := m.OptStringVals[key]
+	if !ok {
+		return "", m.ErrVal
+	}
+	return v, nil
+}
+func (m *MockCommandContext) OptInt(key string) (int, error) {
+	v, ok := m.OptIntVals[key]
+	if !ok {
+		return 0, m.ErrVal
+	}
+	return v, nil
+}
+func (m *MockCommandContext) OptInt64(key string) (int64, error) {
+	v, ok := m.OptInt64Vals[key]
+	if !ok {
+		return 0, m.ErrVal
+	}
+	return v, nil
+}
+func (m *MockCommandContext) OptUser(key string) (corde.User, error) {
+	v, ok := m.OptUserVals[key]
+	if !ok {
+		return corde.User{}, m.ErrVal
+	}
+	return v, nil
+}
 
 var _ CommandContext = (*MockCommandContext)(nil)

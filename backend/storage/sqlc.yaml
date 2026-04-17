@@ -71,6 +71,16 @@ sql:
         emit_prepared_queries: true
         sql_package: pgx/v5
         sql_driver: github.com/jackc/pgx/v5
+  - queries: "./sessionstore/queries.sql"
+    schema: "./sessionstore/schema.sql"
+    engine: "postgresql"
+    gen:
+      go:
+        out: sessionstore
+        emit_interface: true
+        emit_prepared_queries: true
+        sql_package: pgx/v5
+        sql_driver: github.com/jackc/pgx/v5
 
 overrides:
   go:
@@ -97,3 +107,5 @@ overrides:
         go_type: uint64
       - column: character_wishlist.character_id
         go_type: int64
+      - column: sessions.user_id
+        go_type: uint64
