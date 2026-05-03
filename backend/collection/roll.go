@@ -98,16 +98,6 @@ func (s *RollService) Roll(ctx context.Context, userID UserID) (MediaCharacter, 
 			}
 		}
 
-		if err := tx.UpsertCharacter(ctx, Character{
-			ID:         char.ID,
-			Name:       char.Name,
-			Image:      char.ImageURL,
-			MediaTitle: char.MediaTitle,
-			Favorites:  char.Favorites,
-		}); err != nil {
-			return err
-		}
-
 		if err := tx.AddToCollection(ctx, userID, Character{
 			ID:         char.ID,
 			Name:       char.Name,

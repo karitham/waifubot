@@ -12,14 +12,10 @@ import (
 	"github.com/failsafe-go/failsafe-go/ratelimiter"
 	"github.com/failsafe-go/failsafe-go/retrypolicy"
 
+	"github.com/karitham/waifubot/anilist"
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 )
-
-// CharacterFetcher fetches character data from an external source.
-type CharacterFetcher interface {
-	CharactersByIDs(ctx context.Context, ids []int64) ([]collection.MediaCharacter, error)
-}
 
 // MaxIDProvider optionally provides the maximum character ID.
 // Implemented by *anilist.Anilist. When nil, the sync service uses a default bound.
@@ -30,16 +26,16 @@ type MaxIDProvider interface {
 // Service handles background synchronization of character data with AniList.
 type Service struct {
 	Store    catalog.Store
-	Anilist  CharacterFetcher
+	Anilist  anilist.CharacterFetcher
 	MaxID    MaxIDProvider // nil → use default bound
-	Executor failsafe.Executor[[]collection.MediaCharacter]
+	executor failsafe.Executor[[]collection.MediaCharacter]
 	maxID    atomic.Int64
 	rng      *rand.Rand
 }
 
 // NewService creates a sync Service with rate-limiting (5 req/min) and retry
 // policies (3 retries, exponential backoff) for AniList calls.
-func NewService(store catalog.Store, fetcher CharacterFetcher, maxIDProvider MaxIDProvider) *Service {
+func NewService(store catalog.Store, fetcher anilist.CharacterFetcher, maxIDProvider MaxIDProvider) *Service {
 	rl := ratelimiter.NewSmoothBuilder[[]collection.MediaCharacter](5, time.Minute).
 		WithMaxWaitTime(2 * time.Minute).
 		Build()
@@ -58,7 +54,7 @@ func NewService(store catalog.Store, fetcher CharacterFetcher, maxIDProvider Max
 		Store:    store,
 		Anilist:  fetcher,
 		MaxID:    maxIDProvider,
-		Executor: failsafe.With(rl, cb, rp),
+		executor: failsafe.With(rl, cb, rp),
 		maxID:    atomic.Int64{},
 		rng:      rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
@@ -84,9 +80,14 @@ func (s *Service) Sync(ctx context.Context) error {
 		limit = maxCharacterID
 	}
 
-	ids := make([]int64, batchSize)
-	for i := range ids {
-		ids[i] = s.rng.Int63n(limit) + 1
+	ids := make([]int64, 0, batchSize)
+	seen := make(map[int64]struct{}, batchSize)
+	for len(ids) < batchSize {
+		id := s.rng.Int63n(limit) + 1
+		if _, ok := seen[id]; !ok {
+			seen[id] = struct{}{}
+			ids = append(ids, id)
+		}
 	}
 
 	chars, err := s.fetchCharacters(ctx, ids)
@@ -141,17 +142,11 @@ func (s *Service) markMissingInactive(ctx context.Context, requested []int64, fo
 	return s.Store.MarkCharactersInactive(ctx, missing)
 }
 
-// Backfill is a convenience wrapper that calls Sync once.
-// Kept for backward compatibility with CLI.
-func (s *Service) Backfill(ctx context.Context) error {
-	return s.Sync(ctx)
-}
-
 // fetchCharacters fetches characters via the Executor (rate-limited + retry) when available,
 // falling back to a direct call when Executor is nil (e.g. in tests).
 func (s *Service) fetchCharacters(ctx context.Context, ids []int64) ([]collection.MediaCharacter, error) {
-	if s.Executor != nil {
-		return s.Executor.WithContext(ctx).Get(func() ([]collection.MediaCharacter, error) {
+	if s.executor != nil {
+		return s.executor.WithContext(ctx).Get(func() ([]collection.MediaCharacter, error) {
 			return s.Anilist.CharactersByIDs(ctx, ids)
 		})
 	}

@@ -35,7 +35,6 @@ func TestRoll(t *testing.T) {
 				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
 					return collection.User{UserID: userID, Date: time.Now().Add(-2 * time.Hour), Tokens: 5}, nil
 				}
-				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
 				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ collection.Character, _ string, _ time.Time) error {
 					return nil
 				}
@@ -66,7 +65,6 @@ func TestRoll(t *testing.T) {
 					return collection.User{}, collection.ErrNotFound
 				}
 				m.CreateUserFunc = func(_ context.Context, _ uint64) error { return nil }
-				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
 				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ collection.Character, _ string, _ time.Time) error {
 					return nil
 				}
@@ -99,7 +97,6 @@ func TestRoll(t *testing.T) {
 				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
 					return collection.User{UserID: userID, Date: time.Now().Add(-2 * time.Hour), Tokens: 5}, nil
 				}
-				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
 				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ collection.Character, _ string, _ time.Time) error {
 					return nil
 				}

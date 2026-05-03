@@ -37,7 +37,7 @@ full character set over time.`,
 		svc := sync.NewService(catalogStore, anilistClient, anilistClient)
 
 		slog.Info("starting character sync")
-		if err := svc.Backfill(ctx); err != nil {
+		if err := svc.Sync(ctx); err != nil {
 			return fmt.Errorf("sync failed: %w", err)
 		}
 		slog.Info("character sync complete")

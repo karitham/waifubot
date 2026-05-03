@@ -39,7 +39,13 @@ type Anilist struct {
 	c graphql.Client
 }
 
-// Check that anilist actually implements the interface
+// CharacterFetcher fetches character data from AniList by ID.
+type CharacterFetcher interface {
+	CharactersByIDs(ctx context.Context, ids []int64) ([]collection.MediaCharacter, error)
+}
+
+// Check that anilist actually implements the interfaces
+var _ CharacterFetcher = (*Anilist)(nil)
 var _ discord.TrackingService = (*Anilist)(nil)
 
 // New returns a new anilist client
