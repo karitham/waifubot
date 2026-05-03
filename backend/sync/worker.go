@@ -91,10 +91,21 @@ func (s *Service) buildDiscoveryPool(ctx context.Context) []int64 {
 	if tailStart < 1 {
 		tailStart = 1
 	}
-	for id := tailStart; id <= maxID; id++ {
-		activeIDs = append(activeIDs, id)
+
+	// Deduplicate: active IDs and discovery window may overlap.
+	seen := make(map[int64]struct{}, len(activeIDs)+discoveryWindow)
+	for _, id := range activeIDs {
+		seen[id] = struct{}{}
 	}
-	return activeIDs
+	for id := tailStart; id <= maxID; id++ {
+		seen[id] = struct{}{}
+	}
+
+	pool := make([]int64, 0, len(seen))
+	for id := range seen {
+		pool = append(pool, id)
+	}
+	return pool
 }
 
 // processBatch fetches a batch of IDs from AniList, upserts valid results,
@@ -162,12 +173,71 @@ func (s *Service) fetchCharacters(ctx context.Context, ids []int64) ([]collectio
 	return s.Anilist.CharactersByIDs(ctx, ids)
 }
 
+// nextBatch returns the next batch of IDs to process, rebuilding the pool
+// when exhausted. Returns nil when the context is cancelled.
+func (s *Service) nextBatch(ctx context.Context, provider *idprovider.Provider) []int64 {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
+
+		batch := provider.NextBatch()
+		if batch != nil {
+			return batch
+		}
+		// Pool exhausted — rebuild.
+		if s.MaxID != nil {
+			s.refreshMaxID(ctx)
+		}
+		if pool := s.buildDiscoveryPool(ctx); pool != nil {
+			provider.SetPool(pool)
+		} else {
+			provider.SetMaxID(s.maxID.Load())
+		}
+		batch = provider.NextBatch()
+		if batch != nil {
+			return batch
+		}
+		// Still nothing — wait for new characters or cancellation.
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(time.Minute):
+		}
+	}
+}
+
+// backoffSleep sleeps for d or returns false if ctx is cancelled.
+func backoffSleep(ctx context.Context, d time.Duration) bool {
+	select {
+	case <-ctx.Done():
+		return false
+	case <-time.After(d):
+		return true
+	}
+}
+
+// nextBackoff computes exponential backoff capped at 1 minute.
+func nextBackoff(current time.Duration) time.Duration {
+	if current == 0 {
+		return time.Second
+	}
+	current *= 2
+	if current > time.Minute {
+		current = time.Minute
+	}
+	return current
+}
+
 // Run starts the background sync loop. It uses the IDProvider to supply
 // batches of character IDs, refreshes the max ID bound when the pool is
 // exhausted, and processes each batch. The loop continues until the context
 // is cancelled.
 func (s *Service) Run(ctx context.Context) {
 	slog.Info("starting character sync worker")
+	defer slog.Info("character sync worker stopped")
 
 	if s.MaxID != nil {
 		s.refreshMaxID(ctx) // first refresh at startup
@@ -178,57 +248,22 @@ func (s *Service) Run(ctx context.Context) {
 		provider.SetPool(pool)
 	}
 
-	var backoff time.Duration
+	var bo time.Duration
 	for {
-		batch := provider.NextBatch()
+		batch := s.nextBatch(ctx, provider)
 		if batch == nil {
-			// Pool exhausted. Refresh maxID and rebuild.
-			if s.MaxID != nil {
-				s.refreshMaxID(ctx)
-			}
-			if pool := s.buildDiscoveryPool(ctx); pool != nil {
-				provider.SetPool(pool)
-			} else {
-				provider.SetMaxID(s.maxID.Load()) // fallback to full range
-			}
-			batch = provider.NextBatch()
-			if batch == nil {
-				select {
-				case <-ctx.Done():
-					slog.Info("character sync worker stopped")
-					return
-				case <-time.After(time.Minute):
-				}
-				continue
-			}
+			return
 		}
 
 		if err := s.processBatch(ctx, batch); err != nil {
 			slog.Error("sync failed", "error", err)
-			if backoff == 0 {
-				backoff = time.Second
-			} else {
-				backoff *= 2
-				if backoff > time.Minute {
-					backoff = time.Minute
-				}
-			}
-			select {
-			case <-ctx.Done():
-				slog.Info("character sync worker stopped")
+			bo = nextBackoff(bo)
+			if !backoffSleep(ctx, bo) {
 				return
-			case <-time.After(backoff):
 			}
 			continue
 		}
-		backoff = 0
-
-		select {
-		case <-ctx.Done():
-			slog.Info("character sync worker stopped")
-			return
-		default:
-		}
+		bo = 0
 	}
 }
 
