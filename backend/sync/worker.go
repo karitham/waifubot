@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 // CharacterFetcher fetches character data from an external source.
 type CharacterFetcher interface {
 	CharactersByIDs(ctx context.Context, ids []int64) ([]collection.MediaCharacter, error)
+	BackfillPage(ctx context.Context, page, perPage int) ([]collection.MediaCharacter, error)
 }
 
 // Service handles background synchronization of character data with AniList.
@@ -55,103 +57,120 @@ func (s *Service) fetchCharacters(ctx context.Context, ids []int64) ([]collectio
 	return s.Anilist.CharactersByIDs(ctx, ids)
 }
 
-// Run starts the background sync worker that continuously updates stale characters.
-// It fetches characters that need syncing, updates their favorites and media_title
-// from AniList, and applies rate limiting to respect API constraints.
-//
-// The worker runs indefinitely until the context is cancelled.
-// Rate limit: 5 requests per minute = 1 batch every 12 seconds.
-func (s *Service) Run(ctx context.Context) {
-	const batchSize = 20
-
-	slog.Info("starting favorites sync worker")
-
-	// Cursor for pagination: (updated_at, id)
-	// Initialize to epoch to fetch all characters
-	cursorUpdatedAt := time.Unix(0, 0)
-	var cursorID int64
-
-	var backoff time.Duration
-
-	for {
-		select {
-		case <-ctx.Done():
-			slog.Info("favorites sync worker stopped")
-			return
-		default:
-		}
-
-		// Fetch stale characters
-		characters, err := s.Store.GetStaleCharacters(ctx, cursorUpdatedAt, cursorID, batchSize)
-		if err != nil {
-			slog.Error("failed to get stale characters", "error", err)
-			if backoff == 0 {
-				backoff = time.Second
-			} else {
-				backoff *= 2
-				if backoff > time.Minute {
-					backoff = time.Minute
-				}
-			}
-			time.Sleep(backoff)
-			continue
-		}
-		backoff = 0
-
-		if len(characters) == 0 {
-			cursorUpdatedAt = time.Unix(0, 0)
-			cursorID = 0
-			time.Sleep(time.Minute)
-			continue
-		}
-
-		// Bulk fetch and update
-		cursorUpdatedAt, cursorID = s.ProcessBatch(ctx, characters)
+// fetchBackfillPage fetches a backfill page via the Executor (rate-limited + retry) when available,
+// falling back to a direct call when Executor is nil (e.g. in tests).
+func (s *Service) fetchBackfillPage(ctx context.Context, page, perPage int) ([]collection.MediaCharacter, error) {
+	if s.Executor != nil {
+		return s.Executor.WithContext(ctx).Get(func() ([]collection.MediaCharacter, error) {
+			return s.Anilist.BackfillPage(ctx, page, perPage)
+		})
 	}
+	return s.Anilist.BackfillPage(ctx, page, perPage)
 }
 
-// ProcessBatch handles fetching and updating a batch of characters.
-// The cursor always advances past the entire batch using the original pre-update
-// timestamps, so partial failures don't cause the worker to get stuck.
-func (s *Service) ProcessBatch(ctx context.Context, characters []catalog.Character) (time.Time, int64) {
-	ids := make([]int64, len(characters))
-	for i, char := range characters {
-		ids[i] = char.ID
+// Backfill paginates all characters from AniList sorted by favorites descending,
+// upserting each into the local catalog. It then runs a deletion sweep to detect
+// characters that were removed from AniList.
+//
+// Idempotent — safe to re-run. Rate-limited to 5 req/min.
+func (s *Service) Backfill(ctx context.Context, perPage int) error {
+	page := 1
+	for {
+		chars, err := s.fetchBackfillPage(ctx, page, perPage)
+		if err != nil {
+			return fmt.Errorf("failed to fetch page %d: %w", page, err)
+		}
+		if len(chars) == 0 {
+			break
+		}
+
+		for _, c := range chars {
+			if err := s.Store.UpsertCharacter(ctx, catalog.Character{
+				ID:         c.ID,
+				Name:       c.Name,
+				Image:      c.ImageURL,
+				MediaTitle: c.MediaTitle,
+				Favorites:  c.Favorites,
+			}); err != nil {
+				slog.Error("failed to upsert character", "character_id", c.ID, "error", err)
+			}
+		}
+
+		slog.Debug("backfill page complete", "page", page, "count", len(chars))
+
+		if len(chars) < perPage {
+			break
+		}
+		page++
 	}
 
-	freshChars, err := s.fetchCharacters(ctx, ids)
+	// Deletion sweep: detect characters in our DB that no longer exist on AniList
+	if err := s.deletionSweep(ctx); err != nil {
+		slog.Error("deletion sweep failed", "error", err)
+	}
+
+	slog.Info("backfill complete", "pages", page)
+	return nil
+}
+
+// deletionSweep fetches all active character IDs from the local catalog,
+// batch-fetches them from AniList, and marks any that no longer exist as inactive.
+func (s *Service) deletionSweep(ctx context.Context) error {
+	activeIDs, err := s.Store.GetActiveIDs(ctx)
 	if err != nil {
-		slog.Error("failed to bulk fetch characters", "error", err)
-		// Still advance cursor to avoid getting stuck on this batch
-		last := characters[len(characters)-1]
-		return last.UpdatedAt, last.ID
+		return fmt.Errorf("failed to get active IDs: %w", err)
 	}
 
-	freshMap := make(map[int64]collection.MediaCharacter, len(freshChars))
-	for _, fc := range freshChars {
-		freshMap[fc.ID] = fc
-	}
+	const batchSize = 50
+	for i := 0; i < len(activeIDs); i += batchSize {
+		end := i + batchSize
+		if end > len(activeIDs) {
+			end = len(activeIDs)
+		}
+		batch := activeIDs[i:end]
 
-	for _, char := range characters {
-		fresh, ok := freshMap[char.ID]
-		if !ok {
-			slog.Warn("character not found in anilist, skipping", "character_id", char.ID)
+		freshChars, err := s.fetchCharacters(ctx, batch)
+		if err != nil {
+			slog.Error("deletion sweep fetch failed", "batch_start", i, "error", err)
 			continue
 		}
 
-		_, err := s.Store.UpdateCharacterSync(ctx, catalog.Character{
-			ID:         fresh.ID,
-			Name:       fresh.Name,
-			Image:      fresh.ImageURL,
-			MediaTitle: fresh.MediaTitle,
-			Favorites:  fresh.Favorites,
-		})
-		if err != nil {
-			slog.Error("failed to update character", "character_id", char.ID, "error", err)
+		fetchedIDs := make(map[int64]struct{}, len(freshChars))
+		for _, fc := range freshChars {
+			fetchedIDs[fc.ID] = struct{}{}
+		}
+
+		for _, id := range batch {
+			if _, found := fetchedIDs[id]; !found {
+				if err := s.Store.MarkCharacterInactive(ctx, id); err != nil {
+					slog.Error("failed to mark character inactive", "character_id", id, "error", err)
+				} else {
+					slog.Debug("marked character inactive", "character_id", id)
+				}
+			}
 		}
 	}
 
-	// Always advance to last character in the batch using original pre-update values
-	last := characters[len(characters)-1]
-	return last.UpdatedAt, last.ID
+	return nil
+}
+
+// Run starts the background sync loop. It runs a full backfill + deletion sweep,
+// then sleeps before repeating. The loop continues until the context is cancelled.
+//
+// Rate limit: 5 req/min = approximately 1 page every 12 seconds.
+func (s *Service) Run(ctx context.Context) {
+	slog.Info("starting character sync worker")
+
+	for {
+		if err := s.Backfill(ctx, 50); err != nil {
+			slog.Error("backfill failed", "error", err)
+		}
+
+		select {
+		case <-ctx.Done():
+			slog.Info("character sync worker stopped")
+			return
+		case <-time.After(24 * time.Hour):
+		}
+	}
 }

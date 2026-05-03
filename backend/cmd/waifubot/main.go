@@ -50,6 +50,7 @@ func main() {
 			GiveCommand,
 			WishlistCommand,
 			UpdateCharacterCommand,
+			BackfillCommand,
 		},
 		DefaultCommand: "run",
 	}

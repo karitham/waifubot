@@ -115,6 +115,28 @@ query getMediaCharacters($mediaId: Int!, $page: Int) {
 	}
 }
 
+query charactersBackfill($page: Int!, $perPage: Int!) {
+	Page(page: $page, perPage: $perPage) {
+		characters(sort: FAVOURITES_DESC) {
+			id
+			name {
+				full
+			}
+			image {
+				large
+			}
+			favourites
+			media(perPage: 1, sort: POPULARITY_DESC) {
+				nodes {
+					title {
+						romaji
+					}
+				}
+			}
+		}
+	}
+}
+
 query charactersByIds($ids: [Int!]!) {
 	Page(page: 1, perPage: 50) {
 		characters(id_in: $ids) {
