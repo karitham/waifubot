@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"math/rand"
+	"sync/atomic"
 	"time"
 
 	"github.com/failsafe-go/failsafe-go"
@@ -19,17 +20,25 @@ type CharacterFetcher interface {
 	CharactersByIDs(ctx context.Context, ids []int64) ([]collection.MediaCharacter, error)
 }
 
+// MaxIDProvider optionally provides the maximum character ID.
+// Implemented by *anilist.Anilist. When nil, the sync service uses a default bound.
+type MaxIDProvider interface {
+	MaxCharacterID(ctx context.Context) (int64, error)
+}
+
 // Service handles background synchronization of character data with AniList.
 type Service struct {
 	Store    catalog.Store
 	Anilist  CharacterFetcher
+	MaxID    MaxIDProvider // nil → use default bound
 	Executor failsafe.Executor[[]collection.MediaCharacter]
+	maxID    atomic.Int64
 	rng      *rand.Rand
 }
 
 // NewService creates a sync Service with rate-limiting (5 req/min) and retry
 // policies (3 retries, exponential backoff) for AniList calls.
-func NewService(store catalog.Store, fetcher CharacterFetcher) *Service {
+func NewService(store catalog.Store, fetcher CharacterFetcher, maxIDProvider MaxIDProvider) *Service {
 	rl := ratelimiter.NewSmoothBuilder[[]collection.MediaCharacter](5, time.Minute).
 		WithMaxWaitTime(2 * time.Minute).
 		Build()
@@ -39,12 +48,16 @@ func NewService(store catalog.Store, fetcher CharacterFetcher) *Service {
 		WithJitter(500 * time.Millisecond).
 		Build()
 
-	return &Service{
+	s := &Service{
 		Store:    store,
 		Anilist:  fetcher,
+		MaxID:    maxIDProvider,
 		Executor: failsafe.With(rl, rp),
+		maxID:    atomic.Int64{},
 		rng:      rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
+	s.maxID.Store(maxCharacterID)
+	return s
 }
 
 // maxCharacterID is the upper bound for random character ID generation.
@@ -60,9 +73,14 @@ const batchSize = 50
 //
 // Rate-limited to 5 req/min by the Executor.
 func (s *Service) Sync(ctx context.Context) error {
+	limit := s.maxID.Load()
+	if limit <= 0 {
+		limit = maxCharacterID
+	}
+
 	ids := make([]int64, batchSize)
 	for i := range ids {
-		ids[i] = s.rng.Int63n(maxCharacterID) + 1
+		ids[i] = s.rng.Int63n(limit) + 1
 	}
 
 	chars, err := s.fetchCharacters(ctx, ids)
@@ -111,6 +129,11 @@ func (s *Service) fetchCharacters(ctx context.Context, ids []int64) ([]collectio
 func (s *Service) Run(ctx context.Context) {
 	slog.Info("starting character sync worker")
 
+	if s.MaxID != nil {
+		s.refreshMaxID(ctx)
+		go s.periodicRefreshLoop(ctx)
+	}
+
 	for {
 		if err := s.Sync(ctx); err != nil {
 			slog.Error("sync failed", "error", err)
@@ -121,6 +144,34 @@ func (s *Service) Run(ctx context.Context) {
 			slog.Info("character sync worker stopped")
 			return
 		default:
+		}
+	}
+}
+
+// refreshMaxID fetches the current max character ID from AniList and stores it.
+// On error, keeps the current bound and logs a warning.
+func (s *Service) refreshMaxID(ctx context.Context) {
+	v, err := s.MaxID.MaxCharacterID(ctx)
+	if err != nil {
+		slog.Warn("failed to fetch max character id, keeping current bound", "error", err)
+		return
+	}
+	if v > 0 {
+		s.maxID.Store(v)
+		slog.Debug("updated max character id", "new_max", v)
+	}
+}
+
+// periodicRefreshLoop refreshes the max character ID every 6 hours.
+func (s *Service) periodicRefreshLoop(ctx context.Context) {
+	ticker := time.NewTicker(6 * time.Hour)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.refreshMaxID(ctx)
 		}
 	}
 }

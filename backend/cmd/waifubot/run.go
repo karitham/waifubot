@@ -124,7 +124,7 @@ var RunCommand = &cli.Command{
 		if c.Bool("sync") {
 			go func() {
 				slog.Info("character sync worker started")
-				sync.NewService(catalogStore, anilistClient).Run(ctx)
+				sync.NewService(catalogStore, anilistClient, anilistClient).Run(ctx)
 				slog.Info("character sync worker stopped")
 			}()
 		}

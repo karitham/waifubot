@@ -92,6 +92,14 @@ query getMediaCharacters($mediaId: Int!, $page: Int) {
 	}
 }
 
+query maxCharacterID {
+	Page(page: 1, perPage: 1) {
+		characters(sort: ID_DESC) {
+			id
+		}
+	}
+}
+
 query charactersByIds($ids: [Int!]!) {
 	Page(page: 1, perPage: 50) {
 		characters(id_in: $ids) {

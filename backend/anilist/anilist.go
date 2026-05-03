@@ -157,6 +157,21 @@ func (a *Anilist) CharactersByIDs(ctx context.Context, ids []int64) ([]collectio
 	return result, nil
 }
 
+// MaxCharacterID returns the highest character ID on AniList.
+// Returns 0 if the response is empty (no characters exist).
+func (a *Anilist) MaxCharacterID(ctx context.Context) (int64, error) {
+	resp, err := maxCharacterID(ctx, a.c)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(resp.Page.Characters) == 0 {
+		return 0, nil
+	}
+
+	return resp.Page.Characters[0].Id, nil
+}
+
 // Manga returns a manga by title
 func (a *Anilist) Manga(ctx context.Context, title string) ([]collection.Media, error) {
 	return a.media(ctx, title, MediaTypeManga)

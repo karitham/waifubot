@@ -429,6 +429,39 @@ type getMediaCharactersResponse struct {
 // GetMedia returns getMediaCharactersResponse.Media, and is useful for accessing the field via an interface.
 func (v *getMediaCharactersResponse) GetMedia() getMediaCharactersMedia { return v.Media }
 
+// maxCharacterIDPage includes the requested fields of the GraphQL type Page.
+// The GraphQL type's documentation follows.
+//
+// Page of data
+type maxCharacterIDPage struct {
+	Characters []maxCharacterIDPageCharactersCharacter `json:"characters"`
+}
+
+// GetCharacters returns maxCharacterIDPage.Characters, and is useful for accessing the field via an interface.
+func (v *maxCharacterIDPage) GetCharacters() []maxCharacterIDPageCharactersCharacter {
+	return v.Characters
+}
+
+// maxCharacterIDPageCharactersCharacter includes the requested fields of the GraphQL type Character.
+// The GraphQL type's documentation follows.
+//
+// A character that features in an anime or manga
+type maxCharacterIDPageCharactersCharacter struct {
+	// The id of the character
+	Id int64 `json:"id"`
+}
+
+// GetId returns maxCharacterIDPageCharactersCharacter.Id, and is useful for accessing the field via an interface.
+func (v *maxCharacterIDPageCharactersCharacter) GetId() int64 { return v.Id }
+
+// maxCharacterIDResponse is returned by maxCharacterID on success.
+type maxCharacterIDResponse struct {
+	Page maxCharacterIDPage `json:"Page"`
+}
+
+// GetPage returns maxCharacterIDResponse.Page, and is useful for accessing the field via an interface.
+func (v *maxCharacterIDResponse) GetPage() maxCharacterIDPage { return v.Page }
+
 // mediaPage includes the requested fields of the GraphQL type Page.
 // The GraphQL type's documentation follows.
 //
@@ -797,6 +830,38 @@ func getMediaCharacters(
 	}
 
 	data_ = &getMediaCharactersResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
+// The query executed by maxCharacterID.
+const maxCharacterID_Operation = `
+query maxCharacterID {
+	Page(page: 1, perPage: 1) {
+		characters(sort: ID_DESC) {
+			id
+		}
+	}
+}
+`
+
+func maxCharacterID(
+	ctx_ context.Context,
+	client_ graphql.Client,
+) (data_ *maxCharacterIDResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "maxCharacterID",
+		Query:  maxCharacterID_Operation,
+	}
+
+	data_ = &maxCharacterIDResponse{}
 	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
