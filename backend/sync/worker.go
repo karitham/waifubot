@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"sync/atomic"
 	"time"
@@ -25,11 +26,11 @@ type MaxIDProvider interface {
 
 // Service handles background synchronization of character data with AniList.
 type Service struct {
-	Store    catalog.Store
-	Anilist  anilist.CharacterFetcher
-	MaxID    MaxIDProvider // nil → use default bound
-	executor failsafe.Executor[[]collection.MediaCharacter]
-	maxID    atomic.Int64
+	store         catalog.Store
+	anilist       anilist.CharacterFetcher
+	maxIDProvider MaxIDProvider // nil → use default bound
+	executor      failsafe.Executor[[]collection.MediaCharacter]
+	maxID         atomic.Int64
 }
 
 // NewService creates a sync Service with rate-limiting (5 req/min) and retry
@@ -50,11 +51,11 @@ func NewService(store catalog.Store, fetcher anilist.CharacterFetcher, maxIDProv
 		Build()
 
 	s := &Service{
-		Store:    store,
-		Anilist:  fetcher,
-		MaxID:    maxIDProvider,
-		executor: failsafe.With(rl, cb, rp),
-		maxID:    atomic.Int64{},
+		store:         store,
+		anilist:       fetcher,
+		maxIDProvider: maxIDProvider,
+		executor:      failsafe.With(rl, cb, rp),
+		maxID:         atomic.Int64{},
 	}
 	s.maxID.Store(1_000_000) // fallback bound, updated by refreshMaxID
 	return s
@@ -80,7 +81,7 @@ func (s *Service) Sync(ctx context.Context) error {
 // discovery window at the top of the range for catching new characters.
 // Returns nil on error — caller should fall back to the full range.
 func (s *Service) buildDiscoveryPool(ctx context.Context) []int64 {
-	activeIDs, err := s.Store.GetActiveIDs(ctx)
+	activeIDs, err := s.store.GetActiveIDs(ctx)
 	if err != nil {
 		slog.Warn("failed to get active IDs, falling back to full range", "error", err)
 		return nil
@@ -116,8 +117,9 @@ func (s *Service) processBatch(ctx context.Context, ids []int64) error {
 		return err
 	}
 
+	var upsertFails int
 	for _, c := range chars {
-		if err := s.Store.UpsertCharacter(ctx, catalog.Character{
+		if err := s.store.UpsertCharacter(ctx, catalog.Character{
 			ID:         c.ID,
 			Name:       c.Name,
 			Image:      c.ImageURL,
@@ -125,6 +127,7 @@ func (s *Service) processBatch(ctx context.Context, ids []int64) error {
 			Favorites:  c.Favorites,
 		}); err != nil {
 			slog.Error("failed to upsert character", "character_id", c.ID, "error", err)
+			upsertFails++
 		}
 	}
 
@@ -134,15 +137,19 @@ func (s *Service) processBatch(ctx context.Context, ids []int64) error {
 		}
 	}
 
+	if upsertFails == len(chars) && len(chars) > 0 {
+		return fmt.Errorf("all %d upserts failed in batch of %d", upsertFails, len(ids))
+	}
+
 	if len(chars) > 0 {
 		slog.Debug("sync batch complete", "requested", len(ids), "found", len(chars))
 	}
 	return nil
 }
 
-// markMissingInactive marks characters that were requested but not returned by
-// AniList as inactive. This detects deletions.
-func (s *Service) markMissingInactive(ctx context.Context, requested []int64, found []collection.MediaCharacter) error {
+// missingIDs returns IDs from requested that are not present in found.
+// Pure function: no I/O, no side effects.
+func missingIDs(requested []int64, found []collection.MediaCharacter) []int64 {
 	foundIDs := make(map[int64]struct{}, len(found))
 	for _, c := range found {
 		foundIDs[c.ID] = struct{}{}
@@ -154,12 +161,17 @@ func (s *Service) markMissingInactive(ctx context.Context, requested []int64, fo
 			missing = append(missing, id)
 		}
 	}
+	return missing
+}
 
+// markMissingInactive marks characters that were requested but not returned by
+// AniList as inactive. This detects deletions.
+func (s *Service) markMissingInactive(ctx context.Context, requested []int64, found []collection.MediaCharacter) error {
+	missing := missingIDs(requested, found)
 	if len(missing) == 0 {
 		return nil
 	}
-
-	return s.Store.MarkCharactersInactive(ctx, missing)
+	return s.store.MarkCharactersInactive(ctx, missing)
 }
 
 // fetchCharacters fetches characters via the Executor (rate-limited + retry) when available,
@@ -167,10 +179,10 @@ func (s *Service) markMissingInactive(ctx context.Context, requested []int64, fo
 func (s *Service) fetchCharacters(ctx context.Context, ids []int64) ([]collection.MediaCharacter, error) {
 	if s.executor != nil {
 		return s.executor.WithContext(ctx).Get(func() ([]collection.MediaCharacter, error) {
-			return s.Anilist.CharactersByIDs(ctx, ids)
+			return s.anilist.CharactersByIDs(ctx, ids)
 		})
 	}
-	return s.Anilist.CharactersByIDs(ctx, ids)
+	return s.anilist.CharactersByIDs(ctx, ids)
 }
 
 // nextBatch returns the next batch of IDs to process, rebuilding the pool
@@ -187,8 +199,7 @@ func (s *Service) nextBatch(ctx context.Context, provider *idprovider.Provider) 
 		if batch != nil {
 			return batch
 		}
-		// Pool exhausted — rebuild.
-		if s.MaxID != nil {
+		if s.maxIDProvider != nil {
 			s.refreshMaxID(ctx)
 		}
 		if pool := s.buildDiscoveryPool(ctx); pool != nil {
@@ -200,7 +211,6 @@ func (s *Service) nextBatch(ctx context.Context, provider *idprovider.Provider) 
 		if batch != nil {
 			return batch
 		}
-		// Still nothing — wait for new characters or cancellation.
 		select {
 		case <-ctx.Done():
 			return nil
@@ -239,7 +249,7 @@ func (s *Service) Run(ctx context.Context) {
 	slog.Info("starting character sync worker")
 	defer slog.Info("character sync worker stopped")
 
-	if s.MaxID != nil {
+	if s.maxIDProvider != nil {
 		s.refreshMaxID(ctx) // first refresh at startup
 	}
 
@@ -270,7 +280,7 @@ func (s *Service) Run(ctx context.Context) {
 // refreshMaxID fetches the current max character ID from AniList and stores it.
 // On error, keeps the current bound and logs a warning.
 func (s *Service) refreshMaxID(ctx context.Context) {
-	v, err := s.MaxID.MaxCharacterID(ctx)
+	v, err := s.maxIDProvider.MaxCharacterID(ctx)
 	if err != nil {
 		slog.Warn("failed to fetch max character id, keeping current bound", "error", err)
 		return

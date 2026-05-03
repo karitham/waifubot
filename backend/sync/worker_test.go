@@ -3,6 +3,7 @@ package sync
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -90,7 +91,7 @@ func TestSync(t *testing.T) {
 				},
 			}
 
-			svc := &Service{Store: store, Anilist: fetcher}
+			svc := &Service{store: store, anilist: fetcher}
 			svc.maxID.Store(100)
 			err := svc.Sync(t.Context())
 
@@ -107,81 +108,125 @@ func TestSync(t *testing.T) {
 }
 
 func TestBuildDiscoveryPool(t *testing.T) {
-	t.Run("deduplicates overlapping active IDs and discovery window", func(t *testing.T) {
-		store := &collectiontest.MockStore{
-			GetActiveIDsFunc: func(_ context.Context) ([]int64, error) {
-				return []int64{1, 50, 100, 150, 200}, nil
-			},
-		}
+	tests := []struct {
+		name      string
+		activeIDs []int64
+		maxID     int64
+		storeErr  error
+		wantNil   bool
+		wantIDs   []int64 // IDs that must be in the pool
+	}{
+		{
+			name:      "deduplicates overlapping active and discovery IDs",
+			activeIDs: []int64{1, 50, 100, 150, 200},
+			maxID:     200,
+			wantNil:   false,
+			wantIDs:   []int64{1, 50, 100, 150, 200},
+		},
+		{
+			name:     "returns nil on store error",
+			storeErr: errors.New("store error"),
+			maxID:    200,
+			wantNil:  true,
+		},
+	}
 
-		svc := &Service{Store: store}
-		svc.maxID.Store(200) // maxID < discoveryWindow ⇒ window covers [1, 200]
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := &collectiontest.MockStore{
+				GetActiveIDsFunc: func(_ context.Context) ([]int64, error) {
+					if tt.storeErr != nil {
+						return nil, tt.storeErr
+					}
+					return tt.activeIDs, nil
+				},
+			}
 
-		pool := svc.buildDiscoveryPool(t.Context())
-		require.NotNil(t, pool)
+			svc := &Service{store: store}
+			svc.maxID.Store(tt.maxID)
 
-		// No duplicates: pool length must equal number of unique IDs.
-		seen := make(map[int64]struct{}, len(pool))
-		for _, id := range pool {
-			seen[id] = struct{}{}
-		}
-		assert.Equal(t, len(pool), len(seen), "pool must not contain duplicate IDs")
+			pool := svc.buildDiscoveryPool(t.Context())
 
-		// All active IDs must be present in the pool.
-		for _, id := range []int64{1, 50, 100, 150, 200} {
-			_, ok := seen[id]
-			assert.True(t, ok, "active ID %d should be in pool", id)
-		}
-	})
+			if tt.wantNil {
+				assert.Nil(t, pool)
+				return
+			}
 
-	t.Run("returns nil on store error", func(t *testing.T) {
-		store := &collectiontest.MockStore{
-			GetActiveIDsFunc: func(_ context.Context) ([]int64, error) {
-				return nil, errors.New("store error")
-			},
-		}
+			require.NotNil(t, pool)
 
-		svc := &Service{Store: store}
-		svc.maxID.Store(200)
+			// No duplicates
+			seen := make(map[int64]struct{}, len(pool))
+			for _, id := range pool {
+				seen[id] = struct{}{}
+			}
+			assert.Equal(t, len(pool), len(seen), "pool must not contain duplicate IDs")
 
-		pool := svc.buildDiscoveryPool(t.Context())
-		assert.Nil(t, pool)
-	})
+			// All expected IDs present
+			for _, id := range tt.wantIDs {
+				assert.Contains(t, seen, id, "active ID %d should be in pool", id)
+			}
+
+			// All IDs are within [1, maxID]
+			for _, id := range pool {
+				assert.GreaterOrEqual(t, id, int64(1))
+				assert.LessOrEqual(t, id, tt.maxID)
+			}
+		})
+	}
 }
 
 func TestRun(t *testing.T) {
-	var upserted int
-
-	store := &collectiontest.MockStore{
-		GetActiveIDsFunc: func(_ context.Context) ([]int64, error) {
-			return []int64{1, 50, 100, 150, 200}, nil
-		},
-		UpsertCharacterFunc: func(_ context.Context, _ catalog.Character) error {
-			upserted++
-			return nil
-		},
-		MarkCharactersInactiveFunc: func(_ context.Context, _ []int64) error {
-			return nil
+	tests := []struct {
+		name      string
+		maxID     int64
+		activeIDs []int64
+		wantMin   int // minimum number of upserted characters
+	}{
+		{
+			name:      "processes batches until cancelled",
+			maxID:     200,
+			activeIDs: []int64{1, 50, 100, 150, 200},
+			wantMin:   1,
 		},
 	}
 
-	fetcher := &mockFetcher{
-		CharactersByIDsFunc: func(_ context.Context, ids []int64) ([]collection.MediaCharacter, error) {
-			chars := make([]collection.MediaCharacter, len(ids))
-			for i, id := range ids {
-				chars[i] = collection.MediaCharacter{ID: id, Name: "Char"}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var upserted atomic.Int64
+
+			store := &collectiontest.MockStore{
+				GetActiveIDsFunc: func(_ context.Context) ([]int64, error) {
+					return tt.activeIDs, nil
+				},
+				UpsertCharacterFunc: func(_ context.Context, _ catalog.Character) error {
+					upserted.Add(1)
+					return nil
+				},
+				MarkCharactersInactiveFunc: func(_ context.Context, _ []int64) error {
+					return nil
+				},
 			}
-			return chars, nil
-		},
+
+			fetcher := &mockFetcher{
+				CharactersByIDsFunc: func(_ context.Context, ids []int64) ([]collection.MediaCharacter, error) {
+					chars := make([]collection.MediaCharacter, len(ids))
+					for i, id := range ids {
+						chars[i] = collection.MediaCharacter{ID: id, Name: "Char"}
+					}
+					return chars, nil
+				},
+			}
+
+			svc := &Service{store: store, anilist: fetcher}
+			svc.maxID.Store(tt.maxID)
+
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			t.Cleanup(cancel)
+			time.AfterFunc(100*time.Millisecond, cancel)
+
+			svc.Run(ctx)
+
+			assert.GreaterOrEqual(t, int(upserted.Load()), tt.wantMin)
+		})
 	}
-
-	svc := &Service{Store: store, Anilist: fetcher}
-	svc.maxID.Store(200)
-
-	ctx, cancel := context.WithCancel(t.Context())
-	time.AfterFunc(100*time.Millisecond, cancel)
-
-	svc.Run(ctx)
-
-	assert.Greater(t, upserted, 0, "expected at least one upserted character")
 }
