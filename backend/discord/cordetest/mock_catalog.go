@@ -2,7 +2,6 @@ package cordetest
 
 import (
 	"context"
-	"time"
 
 	"github.com/karitham/waifubot/catalog"
 )
@@ -14,8 +13,6 @@ type MockCatalogStore struct {
 	SearchCharactersFunc           func(ctx context.Context, userID uint64, term string) ([]catalog.Character, error)
 	SearchGlobalCharactersFunc     func(ctx context.Context, term string) ([]catalog.Character, error)
 	GetCharacterHoldersInGuildFunc func(ctx context.Context, guildID uint64, charID int64) ([]uint64, error)
-	GetStaleCharactersFunc         func(ctx context.Context, cursorUpdatedAt time.Time, cursorID int64, limit int) ([]catalog.Character, error)
-	UpdateCharacterSyncFunc        func(ctx context.Context, char catalog.Character) (catalog.Character, error)
 	MarkCharacterInactiveFunc      func(ctx context.Context, charID int64) error
 	GetActiveIDsFunc               func(ctx context.Context) ([]int64, error)
 }
@@ -55,20 +52,6 @@ func (m *MockCatalogStore) GetCharacterHoldersInGuild(ctx context.Context, guild
 		return m.GetCharacterHoldersInGuildFunc(ctx, guildID, charID)
 	}
 	return nil, nil
-}
-
-func (m *MockCatalogStore) GetStaleCharacters(ctx context.Context, cursorUpdatedAt time.Time, cursorID int64, limit int) ([]catalog.Character, error) {
-	if m.GetStaleCharactersFunc != nil {
-		return m.GetStaleCharactersFunc(ctx, cursorUpdatedAt, cursorID, limit)
-	}
-	return nil, nil
-}
-
-func (m *MockCatalogStore) UpdateCharacterSync(ctx context.Context, char catalog.Character) (catalog.Character, error) {
-	if m.UpdateCharacterSyncFunc != nil {
-		return m.UpdateCharacterSyncFunc(ctx, char)
-	}
-	return catalog.Character{}, nil
 }
 
 func (m *MockCatalogStore) MarkCharacterInactive(ctx context.Context, charID int64) error {

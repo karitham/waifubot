@@ -166,57 +166,6 @@ func (q *Queries) GetByID(ctx context.Context, id int64) (GetByIDRow, error) {
 	return i, err
 }
 
-const getStaleCharacters = `-- name: GetStaleCharacters :many
-SELECT id, name, image, media_title, favorites, updated_at
-FROM characters
-WHERE (updated_at, id) > ($1, $2::bigint)
-  AND updated_at < NOW() - interval '24 hours'
-ORDER BY updated_at, id
-LIMIT $3
-`
-
-type GetStaleCharactersParams struct {
-	UpdatedAt pgtype.Timestamp
-	CursorID  int64
-	Lim       int32
-}
-
-type GetStaleCharactersRow struct {
-	ID         int64
-	Name       string
-	Image      string
-	MediaTitle string
-	Favorites  int32
-	UpdatedAt  pgtype.Timestamp
-}
-
-func (q *Queries) GetStaleCharacters(ctx context.Context, arg GetStaleCharactersParams) ([]GetStaleCharactersRow, error) {
-	rows, err := q.db.Query(ctx, getStaleCharacters, arg.UpdatedAt, arg.CursorID, arg.Lim)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetStaleCharactersRow
-	for rows.Next() {
-		var i GetStaleCharactersRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Image,
-			&i.MediaTitle,
-			&i.Favorites,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const give = `-- name: Give :one
 UPDATE collection col
 SET
@@ -569,50 +518,6 @@ func (q *Queries) SearchGlobalCharacters(ctx context.Context, arg SearchGlobalCh
 		return nil, err
 	}
 	return items, nil
-}
-
-const updateCharacterSync = `-- name: UpdateCharacterSync :one
-UPDATE characters
-SET name = $1, image = $2, media_title = $3, favorites = $4, updated_at = NOW()
-WHERE id = $5
-RETURNING id, name, image, media_title, favorites, updated_at
-`
-
-type UpdateCharacterSyncParams struct {
-	Name       string
-	Image      string
-	MediaTitle string
-	Favorites  int32
-	ID         int64
-}
-
-type UpdateCharacterSyncRow struct {
-	ID         int64
-	Name       string
-	Image      string
-	MediaTitle string
-	Favorites  int32
-	UpdatedAt  pgtype.Timestamp
-}
-
-func (q *Queries) UpdateCharacterSync(ctx context.Context, arg UpdateCharacterSyncParams) (UpdateCharacterSyncRow, error) {
-	row := q.db.QueryRow(ctx, updateCharacterSync,
-		arg.Name,
-		arg.Image,
-		arg.MediaTitle,
-		arg.Favorites,
-		arg.ID,
-	)
-	var i UpdateCharacterSyncRow
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Image,
-		&i.MediaTitle,
-		&i.Favorites,
-		&i.UpdatedAt,
-	)
-	return i, err
 }
 
 const updateImageName = `-- name: UpdateImageName :one

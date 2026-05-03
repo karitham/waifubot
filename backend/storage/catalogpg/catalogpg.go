@@ -122,50 +122,6 @@ func (p *Pg) DeleteGuildMembersNotIn(ctx context.Context, guildID uint64, member
 	})
 }
 
-func (p *Pg) GetStaleCharacters(ctx context.Context, cursorUpdatedAt time.Time, cursorID int64, limit int) ([]catalog.Character, error) {
-	rows, err := p.C.GetStaleCharacters(ctx, collectionstore.GetStaleCharactersParams{
-		UpdatedAt: pgtype.Timestamp{Time: cursorUpdatedAt.UTC(), Valid: true},
-		CursorID:  cursorID,
-		Lim:       int32(limit),
-	})
-	if err != nil {
-		return nil, err
-	}
-	chars := make([]catalog.Character, len(rows))
-	for i, r := range rows {
-		chars[i] = catalog.Character{
-			ID:         r.ID,
-			Name:       r.Name,
-			Image:      r.Image,
-			MediaTitle: r.MediaTitle,
-			Favorites:  int(r.Favorites),
-			UpdatedAt:  r.UpdatedAt.Time,
-		}
-	}
-	return chars, nil
-}
-
-func (p *Pg) UpdateCharacterSync(ctx context.Context, char catalog.Character) (catalog.Character, error) {
-	c, err := p.C.UpdateCharacterSync(ctx, collectionstore.UpdateCharacterSyncParams{
-		Name:       char.Name,
-		Image:      char.Image,
-		MediaTitle: char.MediaTitle,
-		Favorites:  int32(char.Favorites),
-		ID:         char.ID,
-	})
-	if err != nil {
-		return catalog.Character{}, err
-	}
-	return catalog.Character{
-		ID:         c.ID,
-		Name:       c.Name,
-		Image:      c.Image,
-		MediaTitle: c.MediaTitle,
-		Favorites:  int(c.Favorites),
-		UpdatedAt:  c.UpdatedAt.Time,
-	}, nil
-}
-
 func (p *Pg) MarkCharacterInactive(ctx context.Context, charID int64) error {
 	_, err := p.C.MarkCharacterInactive(ctx, charID)
 	return err
