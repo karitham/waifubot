@@ -13,12 +13,12 @@ import (
 
 var BackfillCommand = &cli.Command{
 	Name:  "backfill",
-	Usage: "Backfill the local character catalog from AniList",
-	Description: `Pagination all characters from AniList sorted by favorites and upserts them
-into the local characters table. This is idempotent — safe to re-run.
+	Usage: "Sample random characters from AniList into the local catalog",
+	Description: `Generates random character IDs, batch-fetches them from AniList,
+and upserts valid results into the local characters table.
 
-The backfill respects AniList rate limits (5 req/min) and includes a deletion
-sweep to detect characters removed from AniList.`,
+The process respects AniList rate limits (5 req/min) and converges on the
+full character set over time.`,
 	Flags: []cli.Flag{
 		dbURLFlag,
 	},
@@ -36,11 +36,11 @@ sweep to detect characters removed from AniList.`,
 		catalogStore := newCatalogStore(store)
 		svc := sync.NewService(catalogStore, anilistClient)
 
-		slog.Info("starting character backfill")
-		if err := svc.Backfill(ctx, 50); err != nil {
-			return fmt.Errorf("backfill failed: %w", err)
+		slog.Info("starting character sync")
+		if err := svc.Backfill(ctx, 0); err != nil {
+			return fmt.Errorf("sync failed: %w", err)
 		}
-		slog.Info("character backfill complete")
+		slog.Info("character sync complete")
 		return nil
 	},
 }

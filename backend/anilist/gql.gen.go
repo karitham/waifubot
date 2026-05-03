@@ -31,18 +31,6 @@ type __characterInput struct {
 // GetName returns __characterInput.Name, and is useful for accessing the field via an interface.
 func (v *__characterInput) GetName() string { return v.Name }
 
-// __charactersBackfillInput is used internally by genqlient
-type __charactersBackfillInput struct {
-	Page    int64 `json:"page"`
-	PerPage int64 `json:"perPage"`
-}
-
-// GetPage returns __charactersBackfillInput.Page, and is useful for accessing the field via an interface.
-func (v *__charactersBackfillInput) GetPage() int64 { return v.Page }
-
-// GetPerPage returns __charactersBackfillInput.PerPage, and is useful for accessing the field via an interface.
-func (v *__charactersBackfillInput) GetPerPage() int64 { return v.PerPage }
-
 // __charactersByIdsInput is used internally by genqlient
 type __charactersByIdsInput struct {
 	Ids []int64 `json:"ids"`
@@ -171,124 +159,6 @@ type characterResponse struct {
 
 // GetPage returns characterResponse.Page, and is useful for accessing the field via an interface.
 func (v *characterResponse) GetPage() characterPage { return v.Page }
-
-// charactersBackfillPage includes the requested fields of the GraphQL type Page.
-// The GraphQL type's documentation follows.
-//
-// Page of data
-type charactersBackfillPage struct {
-	Characters []charactersBackfillPageCharactersCharacter `json:"characters"`
-}
-
-// GetCharacters returns charactersBackfillPage.Characters, and is useful for accessing the field via an interface.
-func (v *charactersBackfillPage) GetCharacters() []charactersBackfillPageCharactersCharacter {
-	return v.Characters
-}
-
-// charactersBackfillPageCharactersCharacter includes the requested fields of the GraphQL type Character.
-// The GraphQL type's documentation follows.
-//
-// A character that features in an anime or manga
-type charactersBackfillPageCharactersCharacter struct {
-	// The id of the character
-	Id int64 `json:"id"`
-	// The names of the character
-	Name charactersBackfillPageCharactersCharacterName `json:"name"`
-	// Character images
-	Image charactersBackfillPageCharactersCharacterImage `json:"image"`
-	// The amount of user's who have favourited the character
-	Favourites int64 `json:"favourites"`
-	// Media that includes the character
-	Media charactersBackfillPageCharactersCharacterMediaMediaConnection `json:"media"`
-}
-
-// GetId returns charactersBackfillPageCharactersCharacter.Id, and is useful for accessing the field via an interface.
-func (v *charactersBackfillPageCharactersCharacter) GetId() int64 { return v.Id }
-
-// GetName returns charactersBackfillPageCharactersCharacter.Name, and is useful for accessing the field via an interface.
-func (v *charactersBackfillPageCharactersCharacter) GetName() charactersBackfillPageCharactersCharacterName {
-	return v.Name
-}
-
-// GetImage returns charactersBackfillPageCharactersCharacter.Image, and is useful for accessing the field via an interface.
-func (v *charactersBackfillPageCharactersCharacter) GetImage() charactersBackfillPageCharactersCharacterImage {
-	return v.Image
-}
-
-// GetFavourites returns charactersBackfillPageCharactersCharacter.Favourites, and is useful for accessing the field via an interface.
-func (v *charactersBackfillPageCharactersCharacter) GetFavourites() int64 { return v.Favourites }
-
-// GetMedia returns charactersBackfillPageCharactersCharacter.Media, and is useful for accessing the field via an interface.
-func (v *charactersBackfillPageCharactersCharacter) GetMedia() charactersBackfillPageCharactersCharacterMediaMediaConnection {
-	return v.Media
-}
-
-// charactersBackfillPageCharactersCharacterImage includes the requested fields of the GraphQL type CharacterImage.
-type charactersBackfillPageCharactersCharacterImage struct {
-	// The character's image of media at its largest size
-	Large string `json:"large"`
-}
-
-// GetLarge returns charactersBackfillPageCharactersCharacterImage.Large, and is useful for accessing the field via an interface.
-func (v *charactersBackfillPageCharactersCharacterImage) GetLarge() string { return v.Large }
-
-// charactersBackfillPageCharactersCharacterMediaMediaConnection includes the requested fields of the GraphQL type MediaConnection.
-type charactersBackfillPageCharactersCharacterMediaMediaConnection struct {
-	Nodes []charactersBackfillPageCharactersCharacterMediaMediaConnectionNodesMedia `json:"nodes"`
-}
-
-// GetNodes returns charactersBackfillPageCharactersCharacterMediaMediaConnection.Nodes, and is useful for accessing the field via an interface.
-func (v *charactersBackfillPageCharactersCharacterMediaMediaConnection) GetNodes() []charactersBackfillPageCharactersCharacterMediaMediaConnectionNodesMedia {
-	return v.Nodes
-}
-
-// charactersBackfillPageCharactersCharacterMediaMediaConnectionNodesMedia includes the requested fields of the GraphQL type Media.
-// The GraphQL type's documentation follows.
-//
-// Anime or Manga
-type charactersBackfillPageCharactersCharacterMediaMediaConnectionNodesMedia struct {
-	// The official titles of the media in various languages
-	Title charactersBackfillPageCharactersCharacterMediaMediaConnectionNodesMediaTitle `json:"title"`
-}
-
-// GetTitle returns charactersBackfillPageCharactersCharacterMediaMediaConnectionNodesMedia.Title, and is useful for accessing the field via an interface.
-func (v *charactersBackfillPageCharactersCharacterMediaMediaConnectionNodesMedia) GetTitle() charactersBackfillPageCharactersCharacterMediaMediaConnectionNodesMediaTitle {
-	return v.Title
-}
-
-// charactersBackfillPageCharactersCharacterMediaMediaConnectionNodesMediaTitle includes the requested fields of the GraphQL type MediaTitle.
-// The GraphQL type's documentation follows.
-//
-// The official titles of the media in various languages
-type charactersBackfillPageCharactersCharacterMediaMediaConnectionNodesMediaTitle struct {
-	// The romanization of the native language title
-	Romaji string `json:"romaji"`
-}
-
-// GetRomaji returns charactersBackfillPageCharactersCharacterMediaMediaConnectionNodesMediaTitle.Romaji, and is useful for accessing the field via an interface.
-func (v *charactersBackfillPageCharactersCharacterMediaMediaConnectionNodesMediaTitle) GetRomaji() string {
-	return v.Romaji
-}
-
-// charactersBackfillPageCharactersCharacterName includes the requested fields of the GraphQL type CharacterName.
-// The GraphQL type's documentation follows.
-//
-// The names of the character
-type charactersBackfillPageCharactersCharacterName struct {
-	// The character's first and last name
-	Full string `json:"full"`
-}
-
-// GetFull returns charactersBackfillPageCharactersCharacterName.Full, and is useful for accessing the field via an interface.
-func (v *charactersBackfillPageCharactersCharacterName) GetFull() string { return v.Full }
-
-// charactersBackfillResponse is returned by charactersBackfill on success.
-type charactersBackfillResponse struct {
-	Page charactersBackfillPage `json:"Page"`
-}
-
-// GetPage returns charactersBackfillResponse.Page, and is useful for accessing the field via an interface.
-func (v *charactersBackfillResponse) GetPage() charactersBackfillPage { return v.Page }
 
 // charactersByIdsPage includes the requested fields of the GraphQL type Page.
 // The GraphQL type's documentation follows.
@@ -820,58 +690,6 @@ func character(
 	}
 
 	data_ = &characterResponse{}
-	resp_ := &graphql.Response{Data: data_}
-
-	err_ = client_.MakeRequest(
-		ctx_,
-		req_,
-		resp_,
-	)
-
-	return data_, err_
-}
-
-// The query executed by charactersBackfill.
-const charactersBackfill_Operation = `
-query charactersBackfill ($page: Int!, $perPage: Int!) {
-	Page(page: $page, perPage: $perPage) {
-		characters(sort: FAVOURITES_DESC) {
-			id
-			name {
-				full
-			}
-			image {
-				large
-			}
-			favourites
-			media(perPage: 1, sort: POPULARITY_DESC) {
-				nodes {
-					title {
-						romaji
-					}
-				}
-			}
-		}
-	}
-}
-`
-
-func charactersBackfill(
-	ctx_ context.Context,
-	client_ graphql.Client,
-	page int64,
-	perPage int64,
-) (data_ *charactersBackfillResponse, err_ error) {
-	req_ := &graphql.Request{
-		OpName: "charactersBackfill",
-		Query:  charactersBackfill_Operation,
-		Variables: &__charactersBackfillInput{
-			Page:    page,
-			PerPage: perPage,
-		},
-	}
-
-	data_ = &charactersBackfillResponse{}
 	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(

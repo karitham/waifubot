@@ -64,9 +64,9 @@ var RunCommand = &cli.Command{
 		},
 		&cli.BoolFlag{
 			Name:    "sync",
-			Usage:   "Enable background character sync worker. Can be quite heavy on Anilist",
+			Usage:   "Background character sync from AniList (5 req/min)",
 			EnvVars: []string{"SYNC"},
-			Value:   false,
+			Value:   true,
 		},
 		logLevelFlag,
 		apiFlag,

@@ -122,32 +122,6 @@ func (a *Anilist) Character(ctx context.Context, name string) ([]collection.Medi
 	return resp, nil
 }
 
-// BackfillPage fetches a single page of characters sorted by favorites descending.
-// Used by the backfill sync worker to populate the local character catalog.
-// Each call is rate-limited automatically by the sync worker.
-func (a *Anilist) BackfillPage(ctx context.Context, page, perPage int) ([]collection.MediaCharacter, error) {
-	resp, err := charactersBackfill(ctx, a.c, int64(page), int64(perPage))
-	if err != nil {
-		return nil, err
-	}
-
-	chars := make([]collection.MediaCharacter, 0, len(resp.Page.Characters))
-	for _, c := range resp.Page.Characters {
-		mediaTitle := ""
-		if len(c.Media.Nodes) > 0 {
-			mediaTitle = c.Media.Nodes[0].Title.Romaji
-		}
-		chars = append(chars, collection.MediaCharacter{
-			ID:         c.Id,
-			Name:       strings.Join(strings.Fields(c.Name.Full), " "),
-			ImageURL:   c.Image.Large,
-			Favorites:  int(c.Favourites),
-			MediaTitle: strings.Join(strings.Fields(mediaTitle), " "),
-		})
-	}
-	return chars, nil
-}
-
 // CharactersByIDs fetches multiple characters by their AniList IDs
 func (a *Anilist) CharactersByIDs(ctx context.Context, ids []int64) ([]collection.MediaCharacter, error) {
 	if len(ids) == 0 {
