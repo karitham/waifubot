@@ -13,8 +13,8 @@ type MockCatalogStore struct {
 	SearchCharactersFunc           func(ctx context.Context, userID uint64, term string) ([]catalog.Character, error)
 	SearchGlobalCharactersFunc     func(ctx context.Context, term string) ([]catalog.Character, error)
 	GetCharacterHoldersInGuildFunc func(ctx context.Context, guildID uint64, charID int64) ([]uint64, error)
-	MarkCharacterInactiveFunc      func(ctx context.Context, charID int64) error
 	GetActiveIDsFunc               func(ctx context.Context) ([]int64, error)
+	MarkCharactersInactiveFunc     func(ctx context.Context, ids []int64) error
 }
 
 var _ catalog.Store = (*MockCatalogStore)(nil)
@@ -54,9 +54,9 @@ func (m *MockCatalogStore) GetCharacterHoldersInGuild(ctx context.Context, guild
 	return nil, nil
 }
 
-func (m *MockCatalogStore) MarkCharacterInactive(ctx context.Context, charID int64) error {
-	if m.MarkCharacterInactiveFunc != nil {
-		return m.MarkCharacterInactiveFunc(ctx, charID)
+func (m *MockCatalogStore) MarkCharactersInactive(ctx context.Context, ids []int64) error {
+	if m.MarkCharactersInactiveFunc != nil {
+		return m.MarkCharactersInactiveFunc(ctx, ids)
 	}
 	return nil
 }

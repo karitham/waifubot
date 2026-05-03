@@ -44,8 +44,8 @@ type MockStore struct {
 	SearchCharactersFunc           func(ctx context.Context, userID uint64, term string) ([]catalog.Character, error)
 	SearchGlobalCharactersFunc     func(ctx context.Context, term string) ([]catalog.Character, error)
 	GetCharacterHoldersInGuildFunc func(ctx context.Context, guildID uint64, charID int64) ([]uint64, error)
-	MarkCharacterInactiveFunc      func(ctx context.Context, charID int64) error
 	GetActiveIDsFunc               func(ctx context.Context) ([]int64, error)
+	MarkCharactersInactiveFunc     func(ctx context.Context, ids []int64) error
 
 	RandomCharNotOwnedFunc func(ctx context.Context, userID collection.UserID) (catalog.Character, error)
 	RandomActiveCharFunc   func(ctx context.Context) (catalog.Character, error)
@@ -275,18 +275,18 @@ func (m *MockStore) GetCharacterHoldersInGuild(ctx context.Context, guildID uint
 	return nil, nil
 }
 
-func (m *MockStore) MarkCharacterInactive(ctx context.Context, charID int64) error {
-	if m.MarkCharacterInactiveFunc != nil {
-		return m.MarkCharacterInactiveFunc(ctx, charID)
-	}
-	return nil
-}
-
 func (m *MockStore) GetActiveIDs(ctx context.Context) ([]int64, error) {
 	if m.GetActiveIDsFunc != nil {
 		return m.GetActiveIDsFunc(ctx)
 	}
 	return nil, nil
+}
+
+func (m *MockStore) MarkCharactersInactive(ctx context.Context, ids []int64) error {
+	if m.MarkCharactersInactiveFunc != nil {
+		return m.MarkCharactersInactiveFunc(ctx, ids)
+	}
+	return nil
 }
 
 func (m *MockStore) RandomCharNotOwned(ctx context.Context, userID collection.UserID) (catalog.Character, error) {

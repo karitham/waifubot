@@ -29,6 +29,6 @@ type Store interface {
 	SearchCharacters(ctx context.Context, userID uint64, term string) ([]Character, error)
 	SearchGlobalCharacters(ctx context.Context, term string) ([]Character, error)
 	GetCharacterHoldersInGuild(ctx context.Context, guildID uint64, charID int64) ([]uint64, error)
-	MarkCharacterInactive(ctx context.Context, charID int64) error
 	GetActiveIDs(ctx context.Context) ([]int64, error)
+	MarkCharactersInactive(ctx context.Context, ids []int64) error
 }

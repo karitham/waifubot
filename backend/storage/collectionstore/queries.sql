@@ -140,8 +140,9 @@ SELECT DISTINCT
 FROM
   characters c
 WHERE
-  c.id::VARCHAR LIKE sqlc.arg (term)::VARCHAR || '%'
-  OR c.name ILIKE '%' || sqlc.arg (term) || '%'
+  c.is_active = true
+  AND (c.id::VARCHAR LIKE sqlc.arg (term)::VARCHAR || '%'
+    OR c.name ILIKE '%' || sqlc.arg (term) || '%')
 ORDER BY
   c.id
 LIMIT
@@ -158,13 +159,14 @@ WHERE
 
 -- name: UpsertCharacter :one
 INSERT INTO
-  characters (id, name, image, favorites)
+  characters (id, name, image, media_title, favorites)
 VALUES
-  ($1, $2, $3, $4)
+  ($1, $2, $3, $4, $5)
 ON CONFLICT (id) DO UPDATE
 SET
   name = excluded.name,
   image = excluded.image,
+  media_title = excluded.media_title,
   favorites = excluded.favorites
 RETURNING
   *;
@@ -187,9 +189,8 @@ WHERE is_active = true
 ORDER BY -ln(random()) / GREATEST(ln(favorites + 1), 0.01)
 LIMIT 1;
 
--- name: MarkCharacterInactive :one
-UPDATE characters SET is_active = false WHERE id = $1
-RETURNING *;
+-- name: MarkCharactersInactive :exec
+UPDATE characters SET is_active = false WHERE id = ANY(sqlc.arg(ids)::BIGINT[]) AND is_active = true;
 
 -- name: GetActiveIDs :many
 SELECT id FROM characters WHERE is_active = true;

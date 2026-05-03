@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/failsafe-go/failsafe-go"
+	"github.com/failsafe-go/failsafe-go/circuitbreaker"
 	"github.com/failsafe-go/failsafe-go/ratelimiter"
 	"github.com/failsafe-go/failsafe-go/retrypolicy"
 
@@ -42,6 +43,11 @@ func NewService(store catalog.Store, fetcher CharacterFetcher, maxIDProvider Max
 	rl := ratelimiter.NewSmoothBuilder[[]collection.MediaCharacter](5, time.Minute).
 		WithMaxWaitTime(2 * time.Minute).
 		Build()
+	cb := circuitbreaker.NewBuilder[[]collection.MediaCharacter]().
+		WithFailureThreshold(5).
+		WithSuccessThreshold(2).
+		WithDelay(30 * time.Second).
+		Build()
 	rp := retrypolicy.NewBuilder[[]collection.MediaCharacter]().
 		WithMaxRetries(3).
 		WithBackoff(2*time.Second, 10*time.Second).
@@ -52,7 +58,7 @@ func NewService(store catalog.Store, fetcher CharacterFetcher, maxIDProvider Max
 		Store:    store,
 		Anilist:  fetcher,
 		MaxID:    maxIDProvider,
-		Executor: failsafe.With(rl, rp),
+		Executor: failsafe.With(rl, cb, rp),
 		maxID:    atomic.Int64{},
 		rng:      rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
@@ -100,15 +106,44 @@ func (s *Service) Sync(ctx context.Context) error {
 		}
 	}
 
+	// Mark characters that no longer exist on AniList as inactive.
+	if len(chars) < len(ids) {
+		if err := s.markMissingInactive(ctx, ids, chars); err != nil {
+			slog.Error("failed to mark missing characters inactive", "error", err)
+		}
+	}
+
 	if len(chars) > 0 {
 		slog.Debug("sync batch complete", "requested", batchSize, "found", len(chars))
 	}
 	return nil
 }
 
+// markMissingInactive marks characters that were requested but not returned by
+// AniList as inactive. This detects deletions.
+func (s *Service) markMissingInactive(ctx context.Context, requested []int64, found []collection.MediaCharacter) error {
+	foundIDs := make(map[int64]struct{}, len(found))
+	for _, c := range found {
+		foundIDs[c.ID] = struct{}{}
+	}
+
+	missing := make([]int64, 0, len(requested))
+	for _, id := range requested {
+		if _, ok := foundIDs[id]; !ok {
+			missing = append(missing, id)
+		}
+	}
+
+	if len(missing) == 0 {
+		return nil
+	}
+
+	return s.Store.MarkCharactersInactive(ctx, missing)
+}
+
 // Backfill is a convenience wrapper that calls Sync once.
 // Kept for backward compatibility with CLI.
-func (s *Service) Backfill(ctx context.Context, _ int) error {
+func (s *Service) Backfill(ctx context.Context) error {
 	return s.Sync(ctx)
 }
 
@@ -134,10 +169,27 @@ func (s *Service) Run(ctx context.Context) {
 		go s.periodicRefreshLoop(ctx)
 	}
 
+	var backoff time.Duration
 	for {
 		if err := s.Sync(ctx); err != nil {
 			slog.Error("sync failed", "error", err)
+			if backoff == 0 {
+				backoff = time.Second
+			} else {
+				backoff *= 2
+				if backoff > time.Minute {
+					backoff = time.Minute
+				}
+			}
+			select {
+			case <-ctx.Done():
+				slog.Info("character sync worker stopped")
+				return
+			case <-time.After(backoff):
+			}
+			continue
 		}
+		backoff = 0
 
 		select {
 		case <-ctx.Done():

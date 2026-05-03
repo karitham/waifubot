@@ -25,10 +25,11 @@ func New(c collectionstore.Querier, g guildstore.Querier) *Pg {
 
 func (p *Pg) UpsertCharacter(ctx context.Context, char catalog.Character) error {
 	_, err := p.C.UpsertCharacter(ctx, collectionstore.UpsertCharacterParams{
-		ID:        char.ID,
-		Name:      char.Name,
-		Image:     char.Image,
-		Favorites: int32(char.Favorites),
+		ID:         char.ID,
+		Name:       char.Name,
+		Image:      char.Image,
+		MediaTitle: char.MediaTitle,
+		Favorites:  int32(char.Favorites),
 	})
 	return err
 }
@@ -122,9 +123,8 @@ func (p *Pg) DeleteGuildMembersNotIn(ctx context.Context, guildID uint64, member
 	})
 }
 
-func (p *Pg) MarkCharacterInactive(ctx context.Context, charID int64) error {
-	_, err := p.C.MarkCharacterInactive(ctx, charID)
-	return err
+func (p *Pg) MarkCharactersInactive(ctx context.Context, ids []int64) error {
+	return p.C.MarkCharactersInactive(ctx, ids)
 }
 
 func (p *Pg) GetActiveIDs(ctx context.Context) ([]int64, error) {

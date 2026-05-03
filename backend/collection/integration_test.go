@@ -4,6 +4,7 @@ package collection_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -357,4 +358,27 @@ func TestIntegration_GetCharacterHoldersInGuild(t *testing.T) {
 
 	holders, _ = store.GetCharacterHoldersInGuild(ctx, gid, 9999)
 	assert.Empty(t, holders)
+}
+
+func TestIntegration_RandomCharNotOwned_ExcludesInactive(t *testing.T) {
+	store := setupStore(t)
+	ctx := t.Context()
+
+	// Insert active characters.
+	for i := int64(1); i <= 10; i++ {
+		require.NoError(t, store.UpsertCharacter(ctx, collection.Character{
+			ID: i, Name: fmt.Sprintf("Char%d", i), Image: "img", Favorites: 100,
+		}))
+	}
+
+	// Mark some as inactive.
+	require.NoError(t, store.MarkCharactersInactive(ctx, []int64{3, 7, 9}))
+
+	// Roll 50 times and ensure we never get 3, 7, or 9.
+	for range 50 {
+		char, err := store.RandomCharNotOwned(ctx, 999) // 999 = user with no collection
+		require.NoError(t, err)
+		assert.NotContains(t, []int64{3, 7, 9}, char.ID,
+			"inactive character %d was rolled", char.ID)
+	}
 }

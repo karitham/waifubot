@@ -62,10 +62,11 @@ func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID int
 	char := unowned[rand.IntN(len(unowned))]
 
 	if err := s.store.UpsertCharacter(ctx, Character{
-		ID:        char.ID,
-		Name:      char.Name,
-		Image:     char.ImageURL,
-		Favorites: char.Favorites,
+		ID:         char.ID,
+		Name:       char.Name,
+		Image:      char.ImageURL,
+		MediaTitle: char.MediaTitle,
+		Favorites:  char.Favorites,
 	}); err != nil {
 		return MediaCharacter{}, err
 	}

@@ -18,7 +18,7 @@ type Querier interface {
 	Insert(ctx context.Context, arg InsertParams) (Collection, error)
 	List(ctx context.Context, userID uint64) ([]ListRow, error)
 	ListIDs(ctx context.Context, userID uint64) ([]int64, error)
-	MarkCharacterInactive(ctx context.Context, id int64) (Character, error)
+	MarkCharactersInactive(ctx context.Context, ids []int64) error
 	RandomActiveChar(ctx context.Context) (Character, error)
 	RandomCharNotOwned(ctx context.Context, userID uint64) (RandomCharNotOwnedRow, error)
 	SearchCharacters(ctx context.Context, arg SearchCharactersParams) ([]SearchCharactersRow, error)

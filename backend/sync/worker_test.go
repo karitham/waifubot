@@ -27,21 +27,30 @@ func (m *mockFetcher) CharactersByIDs(ctx context.Context, ids []int64) ([]colle
 
 func TestSync(t *testing.T) {
 	tests := []struct {
-		name       string
-		fetchErr   error
-		fetchChars []collection.MediaCharacter
-		wantErr    bool
-		wantCount  int
+		name          string
+		fetchErr      error
+		numReturned   int // number of characters to return from the requested batch
+		wantErr       bool
+		wantUpserted  int
+		wantMarkCount int // expected number of IDs marked inactive
 	}{
 		{
-			name:       "characters found",
-			fetchChars: []collection.MediaCharacter{{ID: 1, Name: "A"}, {ID: 2, Name: "B"}},
-			wantCount:  2,
+			name:          "all found - nothing to mark",
+			numReturned:   50,
+			wantUpserted:  50,
+			wantMarkCount: 0,
 		},
 		{
-			name:       "no matches",
-			fetchChars: nil,
-			wantCount:  0,
+			name:          "some missing - marked inactive",
+			numReturned:   1,
+			wantUpserted:  1,
+			wantMarkCount: 49,
+		},
+		{
+			name:          "all missing - all marked inactive",
+			numReturned:   0,
+			wantUpserted:  0,
+			wantMarkCount: 50,
 		},
 		{
 			name:     "fetch error",
@@ -53,26 +62,45 @@ func TestSync(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var upserted int
+			var markedInactive []int64
+
 			store := &collectiontest.MockStore{
 				UpsertCharacterFunc: func(_ context.Context, _ catalog.Character) error {
 					upserted++
 					return nil
 				},
-			}
-			fetcher := &mockFetcher{
-				CharactersByIDsFunc: func(_ context.Context, _ []int64) ([]collection.MediaCharacter, error) {
-					return tt.fetchChars, tt.fetchErr
+				MarkCharactersInactiveFunc: func(_ context.Context, ids []int64) error {
+					markedInactive = append(markedInactive, ids...)
+					return nil
 				},
 			}
+
+			fetcher := &mockFetcher{
+				CharactersByIDsFunc: func(_ context.Context, ids []int64) ([]collection.MediaCharacter, error) {
+					if tt.fetchErr != nil {
+						return nil, tt.fetchErr
+					}
+					// Return the first numReturned IDs from the batch so they
+					// are guaranteed to intersect with requested IDs.
+					chars := make([]collection.MediaCharacter, tt.numReturned)
+					for i := range chars {
+						chars[i] = collection.MediaCharacter{ID: ids[i], Name: "Char"}
+					}
+					return chars, nil
+				},
+			}
+
 			svc := &Service{Store: store, Anilist: fetcher, rng: rand.New(rand.NewSource(0))}
 			err := svc.Sync(t.Context())
 
 			if tt.wantErr {
 				assert.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				assert.Equal(t, tt.wantCount, upserted)
+				return
 			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantUpserted, upserted)
+			assert.Len(t, markedInactive, tt.wantMarkCount)
 		})
 	}
 }

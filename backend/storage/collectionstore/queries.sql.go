@@ -321,24 +321,13 @@ func (q *Queries) ListIDs(ctx context.Context, userID uint64) ([]int64, error) {
 	return items, nil
 }
 
-const markCharacterInactive = `-- name: MarkCharacterInactive :one
-UPDATE characters SET is_active = false WHERE id = $1
-RETURNING id, name, image, media_title, favorites, is_active, updated_at
+const markCharactersInactive = `-- name: MarkCharactersInactive :exec
+UPDATE characters SET is_active = false WHERE id = ANY($1::BIGINT[]) AND is_active = true
 `
 
-func (q *Queries) MarkCharacterInactive(ctx context.Context, id int64) (Character, error) {
-	row := q.db.QueryRow(ctx, markCharacterInactive, id)
-	var i Character
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Image,
-		&i.MediaTitle,
-		&i.Favorites,
-		&i.IsActive,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) MarkCharactersInactive(ctx context.Context, ids []int64) error {
+	_, err := q.db.Exec(ctx, markCharactersInactive, ids)
+	return err
 }
 
 const randomActiveChar = `-- name: RandomActiveChar :one
@@ -479,8 +468,9 @@ SELECT DISTINCT
 FROM
   characters c
 WHERE
-  c.id::VARCHAR LIKE $1::VARCHAR || '%'
-  OR c.name ILIKE '%' || $1 || '%'
+  c.is_active = true
+  AND (c.id::VARCHAR LIKE $1::VARCHAR || '%'
+    OR c.name ILIKE '%' || $1 || '%')
 ORDER BY
   c.id
 LIMIT
@@ -554,23 +544,25 @@ func (q *Queries) UpdateImageName(ctx context.Context, arg UpdateImageNameParams
 
 const upsertCharacter = `-- name: UpsertCharacter :one
 INSERT INTO
-  characters (id, name, image, favorites)
+  characters (id, name, image, media_title, favorites)
 VALUES
-  ($1, $2, $3, $4)
+  ($1, $2, $3, $4, $5)
 ON CONFLICT (id) DO UPDATE
 SET
   name = excluded.name,
   image = excluded.image,
+  media_title = excluded.media_title,
   favorites = excluded.favorites
 RETURNING
   id, name, image, media_title, favorites, is_active, updated_at
 `
 
 type UpsertCharacterParams struct {
-	ID        int64
-	Name      string
-	Image     string
-	Favorites int32
+	ID         int64
+	Name       string
+	Image      string
+	MediaTitle string
+	Favorites  int32
 }
 
 func (q *Queries) UpsertCharacter(ctx context.Context, arg UpsertCharacterParams) (Character, error) {
@@ -578,6 +570,7 @@ func (q *Queries) UpsertCharacter(ctx context.Context, arg UpsertCharacterParams
 		arg.ID,
 		arg.Name,
 		arg.Image,
+		arg.MediaTitle,
 		arg.Favorites,
 	)
 	var i Character
