@@ -334,7 +334,7 @@ const randomActiveChar = `-- name: RandomActiveChar :one
 SELECT id, name, image, media_title, favorites, is_active, updated_at
 FROM characters
 WHERE is_active = true
-ORDER BY -ln(random()) / GREATEST(ln(favorites + 1), 0.01)
+ORDER BY -ln(random()) / ln(favorites + 10)
 LIMIT 1
 `
 
@@ -361,7 +361,7 @@ WHERE c.is_active = true
     SELECT 1 FROM collection col
     WHERE col.user_id = $1 AND col.character_id = c.id
   )
-ORDER BY -ln(random()) / GREATEST(ln(c.favorites + 1), 0.01)
+ORDER BY -ln(random()) / ln(c.favorites + 10)
 LIMIT 1
 `
 
