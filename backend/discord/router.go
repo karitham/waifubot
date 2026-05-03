@@ -42,7 +42,6 @@ var (
 
 // TrackingService is the interface for the anilist service.
 type TrackingService interface {
-	RandomChar(ctx context.Context, notIn ...int64) (collection.MediaCharacter, error)
 	Anime(ctx context.Context, name string) ([]collection.Media, error)
 	Manga(ctx context.Context, name string) ([]collection.Media, error)
 	User(ctx context.Context, name string) ([]collection.TrackerUser, error)
@@ -120,13 +119,13 @@ func (r *Router) Register() *corde.Mux {
 	}
 	holdersHandler := &HoldersHandler{guildOps: r.GuildOps, catalog: r.Catalog, guildIndexer: r.GuildIndexer, guildTxFn: r.guildTxFn}
 	rollHandler := &RollHandler{
-		rollService: collection.NewRollService(r.Store, r.AnimeService, collection.RollConfig{RollCooldown: r.RollCooldown}),
+		rollService: collection.NewRollService(r.Store, collection.RollConfig{RollCooldown: r.RollCooldown}),
 		wishlist:    r.WishlistStore,
 	}
 	tokenHandler := &TokenHandler{
 		store:        r.Store,
 		animeService: r.AnimeService,
-		rollService:  collection.NewRollService(r.Store, r.AnimeService, collection.RollConfig{RollCooldown: r.RollCooldown}),
+		rollService:  collection.NewRollService(r.Store, collection.RollConfig{RollCooldown: r.RollCooldown}),
 		config:       collection.Config{RollCooldown: r.RollCooldown, SeriesRollCost: r.SeriesRollCost},
 	}
 	wishlistHandler := &WishlistHandler{

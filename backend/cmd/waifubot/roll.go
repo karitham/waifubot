@@ -8,7 +8,6 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/karitham/waifubot/anilist"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage"
 )
@@ -40,8 +39,7 @@ var RollCommand = &cli.Command{
 		config := collection.RollConfig{
 			RollCooldown: rollCooldown,
 		}
-		animeService := anilist.New(anilist.MaxChar(30_000))
-		svc := collection.NewRollService(newCollectionStore(store), animeService, config)
+		svc := collection.NewRollService(newCollectionStore(store), config)
 		char, err := svc.Roll(ctx, userID)
 		if err != nil {
 			return fmt.Errorf("error rolling: %w", err)

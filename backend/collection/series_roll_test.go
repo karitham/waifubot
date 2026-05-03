@@ -195,8 +195,8 @@ func TestSeriesRoll(t *testing.T) {
 				tt.setup(store, anime)
 			}
 
-			svc := collection.NewRollService(store, anime, rollConfig)
-			got, err := svc.SeriesRoll(t.Context(), tt.userID, tt.mediaID, config.SeriesRollCost)
+			svc := collection.NewRollService(store, rollConfig)
+			got, err := svc.SeriesRoll(t.Context(), tt.userID, tt.mediaID, config.SeriesRollCost, anime)
 
 			if tt.wantErr {
 				require.Error(t, err)

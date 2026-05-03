@@ -36,12 +36,11 @@ func withTx(ctx context.Context, store Store, fn func(tx Store) error) error {
 // RollService orchestrates roll operations.
 type RollService struct {
 	store  Store
-	anime  AnimeService
 	config RollConfig
 }
 
-func NewRollService(store Store, anime AnimeService, config RollConfig) *RollService {
-	return &RollService{store: store, anime: anime, config: config}
+func NewRollService(store Store, config RollConfig) *RollService {
+	return &RollService{store: store, config: config}
 }
 
 // Roll executes the free roll for a user, enforcing the cooldown constraint.
@@ -61,15 +60,21 @@ func (s *RollService) Roll(ctx context.Context, userID UserID) (MediaCharacter, 
 		}
 	}
 
-	ownedIDs, err := s.store.GetCollectionIDs(ctx, userID)
+	// --- PROCESS ---
+	catChar, err := s.store.RandomCharNotOwned(ctx, userID)
 	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return MediaCharacter{}, ErrNoUnownedCharacters
+		}
 		return MediaCharacter{}, err
 	}
 
-	// --- PROCESS ---
-	char, err := s.anime.RandomChar(ctx, ownedIDs...)
-	if err != nil {
-		return MediaCharacter{}, err
+	char := MediaCharacter{
+		ID:         catChar.ID,
+		Name:       catChar.Name,
+		ImageURL:   catChar.Image,
+		MediaTitle: catChar.MediaTitle,
+		Favorites:  catChar.Favorites,
 	}
 
 	// --- COMMIT ---
@@ -94,10 +99,11 @@ func (s *RollService) Roll(ctx context.Context, userID UserID) (MediaCharacter, 
 		}
 
 		if err := tx.UpsertCharacter(ctx, Character{
-			ID:        char.ID,
-			Name:      char.Name,
-			Image:     char.ImageURL,
-			Favorites: char.Favorites,
+			ID:         char.ID,
+			Name:       char.Name,
+			Image:      char.ImageURL,
+			MediaTitle: char.MediaTitle,
+			Favorites:  char.Favorites,
 		}); err != nil {
 			return err
 		}

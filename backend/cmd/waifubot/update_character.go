@@ -29,7 +29,7 @@ var UpdateCharacterCommand = &cli.Command{
 			return fmt.Errorf("error connecting to db %v", err)
 		}
 
-		char, err := anilist.New(anilist.NoCache).Character(c.Context, c.Args().First())
+		char, err := anilist.New().Character(c.Context, c.Args().First())
 		if err != nil {
 			return err
 		}

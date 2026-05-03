@@ -8,7 +8,7 @@ import (
 )
 
 // SeriesRoll executes a paid, series-specific roll for a user, deducting tokens.
-func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID int64, seriesRollCost int32) (MediaCharacter, error) {
+func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID int64, seriesRollCost int32, anime AnimeService) (MediaCharacter, error) {
 	// --- GATHER ---
 	user, err := s.store.GetUser(ctx, userID)
 	if err != nil {
@@ -33,7 +33,7 @@ func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID int
 		return MediaCharacter{}, err
 	}
 
-	allChars, err := s.anime.GetMediaCharacters(ctx, mediaID)
+	allChars, err := anime.GetMediaCharacters(ctx, mediaID)
 	if err != nil {
 		return MediaCharacter{}, err
 	}

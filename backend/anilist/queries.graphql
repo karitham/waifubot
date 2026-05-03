@@ -15,29 +15,6 @@ query character($name: String) {
 	}
 }
 
-query charactersRandom($pageNumber: Int, $not_in: [Int]) {
-	Page(perPage: 1, page: $pageNumber) {
-		characters(sort: FAVOURITES_DESC, id_not_in: $not_in) {
-			id
-			siteUrl
-			image {
-				large
-			}
-			name {
-				full
-			}
-			favourites
-			media(perPage: 1, sort: POPULARITY_DESC) {
-				nodes {
-					title {
-						romaji
-					}
-				}
-			}
-		}
-	}
-}
-
 query user($name: String) {
 	Page(page: 1, perPage: 3) {
 		users(search: $name) {

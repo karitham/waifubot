@@ -171,7 +171,7 @@ func (h *TokenHandler) Roll(ctx context.Context, w corde.ResponseWriter, cmd Com
 		return
 	}
 
-	char, err := h.rollService.SeriesRoll(ctx, cmd.UserID(), opts.mediaID, h.config.SeriesRollCost)
+	char, err := h.rollService.SeriesRoll(ctx, cmd.UserID(), opts.mediaID, h.config.SeriesRollCost, h.animeService)
 	if err != nil {
 		if errors.Is(err, collection.ErrInsufficientTokens) {
 			w.Respond(rspErr(fmt.Sprintf("You need %d tokens to roll for a series", h.config.SeriesRollCost)))

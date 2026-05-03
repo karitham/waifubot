@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/collection/collectiontest"
 	"github.com/karitham/waifubot/discord/cordetest"
@@ -18,7 +19,6 @@ func TestRollHandler_Roll(t *testing.T) {
 	tests := []struct {
 		name           string
 		store          *collectiontest.MockStore
-		animeService   *collectiontest.MockAnimeService
 		wishlist       *wishlisttest.MockStore
 		cmd            CommandContext
 		config         collection.Config
@@ -37,8 +37,7 @@ func TestRollHandler_Roll(t *testing.T) {
 					}, nil
 				},
 			},
-			animeService: &collectiontest.MockAnimeService{},
-			wishlist:     &wishlisttest.MockStore{},
+			wishlist: &wishlisttest.MockStore{},
 			cmd: &MockCommandContext{
 				UserIDVal:  1,
 				GuildIDVal: 2,
@@ -54,8 +53,7 @@ func TestRollHandler_Roll(t *testing.T) {
 					return collection.User{}, errors.New("database on fire")
 				},
 			},
-			animeService: &collectiontest.MockAnimeService{},
-			wishlist:     &wishlisttest.MockStore{},
+			wishlist: &wishlisttest.MockStore{},
 			cmd: &MockCommandContext{
 				UserIDVal:  1,
 				GuildIDVal: 2,
@@ -70,27 +68,22 @@ func TestRollHandler_Roll(t *testing.T) {
 				GetUserFunc: func(ctx context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID}, nil
 				},
-				GetCollectionIDsFunc: func(ctx context.Context, userID collection.UserID) ([]int64, error) {
-					return nil, nil
+				RandomCharNotOwnedFunc: func(ctx context.Context, userID collection.UserID) (catalog.Character, error) {
+					return catalog.Character{
+						ID:         42,
+						Name:       "Rem",
+						Image:      "https://example.com/rem.png",
+						MediaTitle: "Re:Zero",
+						Favorites:  5000,
+					}, nil
 				},
-				UpsertCharacterFunc: func(ctx context.Context, char collection.Character) error { return nil },
+				UpsertCharacterFunc: func(ctx context.Context, char catalog.Character) error { return nil },
 				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, char collection.Character, source string, acquiredAt time.Time) error {
 					return nil
 				},
 				RemoveFromWishlistFunc: func(ctx context.Context, userID collection.UserID, charID int64) error { return nil },
 				UpdateLastRollFunc:     func(ctx context.Context, userID collection.UserID, when time.Time) error { return nil },
 				CommitFunc:             func(ctx context.Context) error { return nil },
-			},
-			animeService: &collectiontest.MockAnimeService{
-				RandomCharFunc: func(ctx context.Context, notIn ...int64) (collection.MediaCharacter, error) {
-					return collection.MediaCharacter{
-						ID:         42,
-						Name:       "Rem",
-						ImageURL:   "https://example.com/rem.png",
-						MediaTitle: "Re:Zero",
-						Favorites:  5000,
-					}, nil
-				},
 			},
 			wishlist: &wishlisttest.MockStore{
 				GetUsersWantingCharacterFunc: func(ctx context.Context, charID int64, guildID, excludeUserID uint64) ([]uint64, error) {
@@ -111,27 +104,22 @@ func TestRollHandler_Roll(t *testing.T) {
 				GetUserFunc: func(ctx context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID}, nil
 				},
-				GetCollectionIDsFunc: func(ctx context.Context, userID collection.UserID) ([]int64, error) {
-					return nil, nil
+				RandomCharNotOwnedFunc: func(ctx context.Context, userID collection.UserID) (catalog.Character, error) {
+					return catalog.Character{
+						ID:         42,
+						Name:       "Rem",
+						Image:      "https://example.com/rem.png",
+						MediaTitle: "Re:Zero",
+						Favorites:  5000,
+					}, nil
 				},
-				UpsertCharacterFunc: func(ctx context.Context, char collection.Character) error { return nil },
+				UpsertCharacterFunc: func(ctx context.Context, char catalog.Character) error { return nil },
 				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, char collection.Character, source string, acquiredAt time.Time) error {
 					return nil
 				},
 				RemoveFromWishlistFunc: func(ctx context.Context, userID collection.UserID, charID int64) error { return nil },
 				UpdateLastRollFunc:     func(ctx context.Context, userID collection.UserID, when time.Time) error { return nil },
 				CommitFunc:             func(ctx context.Context) error { return nil },
-			},
-			animeService: &collectiontest.MockAnimeService{
-				RandomCharFunc: func(ctx context.Context, notIn ...int64) (collection.MediaCharacter, error) {
-					return collection.MediaCharacter{
-						ID:         42,
-						Name:       "Rem",
-						ImageURL:   "https://example.com/rem.png",
-						MediaTitle: "Re:Zero",
-						Favorites:  5000,
-					}, nil
-				},
 			},
 			wishlist: &wishlisttest.MockStore{
 				GetUsersWantingCharacterFunc: func(ctx context.Context, charID int64, guildID, excludeUserID uint64) ([]uint64, error) {
@@ -152,7 +140,7 @@ func TestRollHandler_Roll(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
-			svc := collection.NewRollService(tt.store, tt.animeService, collection.RollConfig{RollCooldown: tt.config.RollCooldown})
+			svc := collection.NewRollService(tt.store, collection.RollConfig{RollCooldown: tt.config.RollCooldown})
 			h := &RollHandler{
 				rollService: svc,
 				wishlist:    tt.wishlist,

@@ -61,12 +61,6 @@ var (
 		Value:   20,
 	}
 
-	// AnilistMaxCharsFlag is the maximum characters for Anilist queries
-	AnilistMaxCharsFlag = &cli.Int64Flag{
-		Name:  "anilist-max-chars",
-		Value: 30000,
-	}
-
 	// NameFlag is the name flag
 	NameFlag = &cli.StringFlag{
 		Name:     "name",

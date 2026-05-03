@@ -6,16 +6,15 @@ import (
 
 // Re-export flags from shared package with original names for backwards compatibility
 var (
-	dbURLFlag           = flags.DbURLFlag
-	userFlag            = flags.UserFlag
-	guildIDFlag         = flags.GuildIDFlag
-	appIDFlag           = flags.AppIDFlag
-	charIDFlag          = flags.CharIDFlag
-	botTokenFlag        = flags.BotTokenFlag
-	rollCooldownFlag    = flags.RollCooldownFlag
-	seriesRollCostFlag  = flags.SeriesRollCostFlag
-	anilistMaxCharsFlag = flags.AnilistMaxCharsFlag
-	nameFlag            = flags.NameFlag
-	logLevelFlag        = flags.LogLevelFlag
-	apiFlag             = flags.ApiFlag
+	dbURLFlag          = flags.DbURLFlag
+	userFlag           = flags.UserFlag
+	guildIDFlag        = flags.GuildIDFlag
+	appIDFlag          = flags.AppIDFlag
+	charIDFlag         = flags.CharIDFlag
+	botTokenFlag       = flags.BotTokenFlag
+	rollCooldownFlag   = flags.RollCooldownFlag
+	seriesRollCostFlag = flags.SeriesRollCostFlag
+	nameFlag           = flags.NameFlag
+	logLevelFlag       = flags.LogLevelFlag
+	apiFlag            = flags.ApiFlag
 )

@@ -8,7 +8,6 @@ import (
 
 // AnimeService defines the interface for anime operations.
 type AnimeService interface {
-	RandomChar(ctx context.Context, notIn ...int64) (MediaCharacter, error)
 	GetMediaCharacters(ctx context.Context, mediaId int64) ([]MediaCharacter, error)
 	Anime(ctx context.Context, name string) ([]Media, error)
 	Manga(ctx context.Context, name string) ([]Media, error)

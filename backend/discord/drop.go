@@ -7,16 +7,25 @@ import (
 
 	"github.com/Karitham/corde"
 
+	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage/dropstore"
 )
 
 func (r *Router) drop(ctx context.Context, channelID corde.Snowflake) {
 	logger := slog.With("channel_id", uint64(channelID))
 
-	char, err := r.AnimeService.RandomChar(ctx)
+	catChar, err := r.Store.RandomActiveChar(ctx)
 	if err != nil {
 		logger.Error("failed to get random character for drop", "error", err)
 		return
+	}
+
+	char := collection.MediaCharacter{
+		ID:         catChar.ID,
+		Name:       catChar.Name,
+		ImageURL:   catChar.Image,
+		MediaTitle: catChar.MediaTitle,
+		Favorites:  catChar.Favorites,
 	}
 
 	err = r.DropStore.Set(ctx, channelID, dropstore.Drop{

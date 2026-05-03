@@ -16,16 +16,6 @@ type FakeTrackingService struct {
 	MediaTitle string
 }
 
-// RandomChar returns the configured test character.
-func (f *FakeTrackingService) RandomChar(ctx context.Context, notIn ...int64) (collection.MediaCharacter, error) {
-	return collection.MediaCharacter{
-		ID:         f.CharID,
-		Name:       f.CharName,
-		ImageURL:   f.CharImage,
-		MediaTitle: f.MediaTitle,
-	}, nil
-}
-
 // Anime returns empty results for testing.
 func (f *FakeTrackingService) Anime(ctx context.Context, name string) ([]collection.Media, error) {
 	return nil, nil

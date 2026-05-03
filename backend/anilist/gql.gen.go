@@ -51,18 +51,6 @@ type __charactersByIdsInput struct {
 // GetIds returns __charactersByIdsInput.Ids, and is useful for accessing the field via an interface.
 func (v *__charactersByIdsInput) GetIds() []int64 { return v.Ids }
 
-// __charactersRandomInput is used internally by genqlient
-type __charactersRandomInput struct {
-	PageNumber int64   `json:"pageNumber"`
-	Not_in     []int64 `json:"not_in"`
-}
-
-// GetPageNumber returns __charactersRandomInput.PageNumber, and is useful for accessing the field via an interface.
-func (v *__charactersRandomInput) GetPageNumber() int64 { return v.PageNumber }
-
-// GetNot_in returns __charactersRandomInput.Not_in, and is useful for accessing the field via an interface.
-func (v *__charactersRandomInput) GetNot_in() []int64 { return v.Not_in }
-
 // __getMediaCharactersInput is used internally by genqlient
 type __getMediaCharactersInput struct {
 	MediaId int64 `json:"mediaId"`
@@ -419,129 +407,6 @@ type charactersByIdsResponse struct {
 
 // GetPage returns charactersByIdsResponse.Page, and is useful for accessing the field via an interface.
 func (v *charactersByIdsResponse) GetPage() charactersByIdsPage { return v.Page }
-
-// charactersRandomPage includes the requested fields of the GraphQL type Page.
-// The GraphQL type's documentation follows.
-//
-// Page of data
-type charactersRandomPage struct {
-	Characters []charactersRandomPageCharactersCharacter `json:"characters"`
-}
-
-// GetCharacters returns charactersRandomPage.Characters, and is useful for accessing the field via an interface.
-func (v *charactersRandomPage) GetCharacters() []charactersRandomPageCharactersCharacter {
-	return v.Characters
-}
-
-// charactersRandomPageCharactersCharacter includes the requested fields of the GraphQL type Character.
-// The GraphQL type's documentation follows.
-//
-// A character that features in an anime or manga
-type charactersRandomPageCharactersCharacter struct {
-	// The id of the character
-	Id int64 `json:"id"`
-	// The url for the character page on the AniList website
-	SiteUrl string `json:"siteUrl"`
-	// Character images
-	Image charactersRandomPageCharactersCharacterImage `json:"image"`
-	// The names of the character
-	Name charactersRandomPageCharactersCharacterName `json:"name"`
-	// The amount of user's who have favourited the character
-	Favourites int64 `json:"favourites"`
-	// Media that includes the character
-	Media charactersRandomPageCharactersCharacterMediaMediaConnection `json:"media"`
-}
-
-// GetId returns charactersRandomPageCharactersCharacter.Id, and is useful for accessing the field via an interface.
-func (v *charactersRandomPageCharactersCharacter) GetId() int64 { return v.Id }
-
-// GetSiteUrl returns charactersRandomPageCharactersCharacter.SiteUrl, and is useful for accessing the field via an interface.
-func (v *charactersRandomPageCharactersCharacter) GetSiteUrl() string { return v.SiteUrl }
-
-// GetImage returns charactersRandomPageCharactersCharacter.Image, and is useful for accessing the field via an interface.
-func (v *charactersRandomPageCharactersCharacter) GetImage() charactersRandomPageCharactersCharacterImage {
-	return v.Image
-}
-
-// GetName returns charactersRandomPageCharactersCharacter.Name, and is useful for accessing the field via an interface.
-func (v *charactersRandomPageCharactersCharacter) GetName() charactersRandomPageCharactersCharacterName {
-	return v.Name
-}
-
-// GetFavourites returns charactersRandomPageCharactersCharacter.Favourites, and is useful for accessing the field via an interface.
-func (v *charactersRandomPageCharactersCharacter) GetFavourites() int64 { return v.Favourites }
-
-// GetMedia returns charactersRandomPageCharactersCharacter.Media, and is useful for accessing the field via an interface.
-func (v *charactersRandomPageCharactersCharacter) GetMedia() charactersRandomPageCharactersCharacterMediaMediaConnection {
-	return v.Media
-}
-
-// charactersRandomPageCharactersCharacterImage includes the requested fields of the GraphQL type CharacterImage.
-type charactersRandomPageCharactersCharacterImage struct {
-	// The character's image of media at its largest size
-	Large string `json:"large"`
-}
-
-// GetLarge returns charactersRandomPageCharactersCharacterImage.Large, and is useful for accessing the field via an interface.
-func (v *charactersRandomPageCharactersCharacterImage) GetLarge() string { return v.Large }
-
-// charactersRandomPageCharactersCharacterMediaMediaConnection includes the requested fields of the GraphQL type MediaConnection.
-type charactersRandomPageCharactersCharacterMediaMediaConnection struct {
-	Nodes []charactersRandomPageCharactersCharacterMediaMediaConnectionNodesMedia `json:"nodes"`
-}
-
-// GetNodes returns charactersRandomPageCharactersCharacterMediaMediaConnection.Nodes, and is useful for accessing the field via an interface.
-func (v *charactersRandomPageCharactersCharacterMediaMediaConnection) GetNodes() []charactersRandomPageCharactersCharacterMediaMediaConnectionNodesMedia {
-	return v.Nodes
-}
-
-// charactersRandomPageCharactersCharacterMediaMediaConnectionNodesMedia includes the requested fields of the GraphQL type Media.
-// The GraphQL type's documentation follows.
-//
-// Anime or Manga
-type charactersRandomPageCharactersCharacterMediaMediaConnectionNodesMedia struct {
-	// The official titles of the media in various languages
-	Title charactersRandomPageCharactersCharacterMediaMediaConnectionNodesMediaTitle `json:"title"`
-}
-
-// GetTitle returns charactersRandomPageCharactersCharacterMediaMediaConnectionNodesMedia.Title, and is useful for accessing the field via an interface.
-func (v *charactersRandomPageCharactersCharacterMediaMediaConnectionNodesMedia) GetTitle() charactersRandomPageCharactersCharacterMediaMediaConnectionNodesMediaTitle {
-	return v.Title
-}
-
-// charactersRandomPageCharactersCharacterMediaMediaConnectionNodesMediaTitle includes the requested fields of the GraphQL type MediaTitle.
-// The GraphQL type's documentation follows.
-//
-// The official titles of the media in various languages
-type charactersRandomPageCharactersCharacterMediaMediaConnectionNodesMediaTitle struct {
-	// The romanization of the native language title
-	Romaji string `json:"romaji"`
-}
-
-// GetRomaji returns charactersRandomPageCharactersCharacterMediaMediaConnectionNodesMediaTitle.Romaji, and is useful for accessing the field via an interface.
-func (v *charactersRandomPageCharactersCharacterMediaMediaConnectionNodesMediaTitle) GetRomaji() string {
-	return v.Romaji
-}
-
-// charactersRandomPageCharactersCharacterName includes the requested fields of the GraphQL type CharacterName.
-// The GraphQL type's documentation follows.
-//
-// The names of the character
-type charactersRandomPageCharactersCharacterName struct {
-	// The character's first and last name
-	Full string `json:"full"`
-}
-
-// GetFull returns charactersRandomPageCharactersCharacterName.Full, and is useful for accessing the field via an interface.
-func (v *charactersRandomPageCharactersCharacterName) GetFull() string { return v.Full }
-
-// charactersRandomResponse is returned by charactersRandom on success.
-type charactersRandomResponse struct {
-	Page charactersRandomPage `json:"Page"`
-}
-
-// GetPage returns charactersRandomResponse.Page, and is useful for accessing the field via an interface.
-func (v *charactersRandomResponse) GetPage() charactersRandomPage { return v.Page }
 
 // getMediaCharactersMedia includes the requested fields of the GraphQL type Media.
 // The GraphQL type's documentation follows.
@@ -1057,59 +922,6 @@ func charactersByIds(
 	}
 
 	data_ = &charactersByIdsResponse{}
-	resp_ := &graphql.Response{Data: data_}
-
-	err_ = client_.MakeRequest(
-		ctx_,
-		req_,
-		resp_,
-	)
-
-	return data_, err_
-}
-
-// The query executed by charactersRandom.
-const charactersRandom_Operation = `
-query charactersRandom ($pageNumber: Int, $not_in: [Int]) {
-	Page(perPage: 1, page: $pageNumber) {
-		characters(sort: FAVOURITES_DESC, id_not_in: $not_in) {
-			id
-			siteUrl
-			image {
-				large
-			}
-			name {
-				full
-			}
-			favourites
-			media(perPage: 1, sort: POPULARITY_DESC) {
-				nodes {
-					title {
-						romaji
-					}
-				}
-			}
-		}
-	}
-}
-`
-
-func charactersRandom(
-	ctx_ context.Context,
-	client_ graphql.Client,
-	pageNumber int64,
-	not_in []int64,
-) (data_ *charactersRandomResponse, err_ error) {
-	req_ := &graphql.Request{
-		OpName: "charactersRandom",
-		Query:  charactersRandom_Operation,
-		Variables: &__charactersRandomInput{
-			PageNumber: pageNumber,
-			Not_in:     not_in,
-		},
-	}
-
-	data_ = &charactersRandomResponse{}
 	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
