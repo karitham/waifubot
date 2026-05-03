@@ -3,7 +3,6 @@ package sync
 import (
 	"context"
 	"log/slog"
-	"math/rand"
 	"sync/atomic"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/karitham/waifubot/anilist"
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/sync/idprovider"
 )
 
 // MaxIDProvider optionally provides the maximum character ID.
@@ -30,7 +30,6 @@ type Service struct {
 	MaxID    MaxIDProvider // nil → use default bound
 	executor failsafe.Executor[[]collection.MediaCharacter]
 	maxID    atomic.Int64
-	rng      *rand.Rand
 }
 
 // NewService creates a sync Service with rate-limiting (5 req/min) and retry
@@ -56,40 +55,51 @@ func NewService(store catalog.Store, fetcher anilist.CharacterFetcher, maxIDProv
 		MaxID:    maxIDProvider,
 		executor: failsafe.With(rl, cb, rp),
 		maxID:    atomic.Int64{},
-		rng:      rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
-	s.maxID.Store(maxCharacterID)
+	s.maxID.Store(1_000_000) // fallback bound, updated by refreshMaxID
 	return s
 }
 
-// maxCharacterID is the upper bound for random character ID generation.
-// AniList character IDs are sequential; this covers the known space while
-// keeping hit rate reasonable. Increase if ID range grows significantly.
-const maxCharacterID = 1_000_000
+// discoveryWindow is the number of IDs at the top of the range to probe on
+// each pass. New characters get IDs above the previous max, so a short
+// window at the tail catches new entries without scanning the full dead space.
+const discoveryWindow = 10_000
 
-// batchSize is the number of random IDs to fetch per API call.
-const batchSize = 50
-
-// Sync generates random character IDs, batch-fetches them from AniList,
-// and upserts any valid results into the local catalog.
-//
-// Rate-limited to 5 req/min by the Executor.
+// Sync fetches one batch of character IDs and processes them.
+// Used by the CLI backfill command.
 func (s *Service) Sync(ctx context.Context) error {
-	limit := s.maxID.Load()
-	if limit <= 0 {
-		limit = maxCharacterID
+	provider := idprovider.New(s.maxID.Load(), idprovider.Config{BatchSize: 50})
+	batch := provider.NextBatch()
+	if batch == nil {
+		return nil
+	}
+	return s.processBatch(ctx, batch)
+}
+
+// buildDiscoveryPool returns known active IDs from the catalog plus a
+// discovery window at the top of the range for catching new characters.
+// Returns nil on error — caller should fall back to the full range.
+func (s *Service) buildDiscoveryPool(ctx context.Context) []int64 {
+	activeIDs, err := s.Store.GetActiveIDs(ctx)
+	if err != nil {
+		slog.Warn("failed to get active IDs, falling back to full range", "error", err)
+		return nil
 	}
 
-	ids := make([]int64, 0, batchSize)
-	seen := make(map[int64]struct{}, batchSize)
-	for len(ids) < batchSize {
-		id := s.rng.Int63n(limit) + 1
-		if _, ok := seen[id]; !ok {
-			seen[id] = struct{}{}
-			ids = append(ids, id)
-		}
+	maxID := s.maxID.Load()
+	tailStart := maxID - discoveryWindow
+	if tailStart < 1 {
+		tailStart = 1
 	}
+	for id := tailStart; id <= maxID; id++ {
+		activeIDs = append(activeIDs, id)
+	}
+	return activeIDs
+}
 
+// processBatch fetches a batch of IDs from AniList, upserts valid results,
+// and marks missing IDs as inactive.
+func (s *Service) processBatch(ctx context.Context, ids []int64) error {
 	chars, err := s.fetchCharacters(ctx, ids)
 	if err != nil {
 		return err
@@ -107,7 +117,6 @@ func (s *Service) Sync(ctx context.Context) error {
 		}
 	}
 
-	// Mark characters that no longer exist on AniList as inactive.
 	if len(chars) < len(ids) {
 		if err := s.markMissingInactive(ctx, ids, chars); err != nil {
 			slog.Error("failed to mark missing characters inactive", "error", err)
@@ -115,7 +124,7 @@ func (s *Service) Sync(ctx context.Context) error {
 	}
 
 	if len(chars) > 0 {
-		slog.Debug("sync batch complete", "requested", batchSize, "found", len(chars))
+		slog.Debug("sync batch complete", "requested", len(ids), "found", len(chars))
 	}
 	return nil
 }
@@ -153,20 +162,48 @@ func (s *Service) fetchCharacters(ctx context.Context, ids []int64) ([]collectio
 	return s.Anilist.CharactersByIDs(ctx, ids)
 }
 
-// Run starts the background sync loop. It calls Sync repeatedly, paced by the
-// rate limiter (~12s between requests at 5 req/min). The loop continues until
-// the context is cancelled.
+// Run starts the background sync loop. It uses the IDProvider to supply
+// batches of character IDs, refreshes the max ID bound when the pool is
+// exhausted, and processes each batch. The loop continues until the context
+// is cancelled.
 func (s *Service) Run(ctx context.Context) {
 	slog.Info("starting character sync worker")
 
 	if s.MaxID != nil {
-		s.refreshMaxID(ctx)
-		go s.periodicRefreshLoop(ctx)
+		s.refreshMaxID(ctx) // first refresh at startup
+	}
+
+	provider := idprovider.New(1, idprovider.Config{BatchSize: 50})
+	if pool := s.buildDiscoveryPool(ctx); pool != nil {
+		provider.SetPool(pool)
 	}
 
 	var backoff time.Duration
 	for {
-		if err := s.Sync(ctx); err != nil {
+		batch := provider.NextBatch()
+		if batch == nil {
+			// Pool exhausted. Refresh maxID and rebuild.
+			if s.MaxID != nil {
+				s.refreshMaxID(ctx)
+			}
+			if pool := s.buildDiscoveryPool(ctx); pool != nil {
+				provider.SetPool(pool)
+			} else {
+				provider.SetMaxID(s.maxID.Load()) // fallback to full range
+			}
+			batch = provider.NextBatch()
+			if batch == nil {
+				select {
+				case <-ctx.Done():
+					slog.Info("character sync worker stopped")
+					return
+				case <-time.After(time.Minute):
+				}
+				continue
+			}
+		}
+
+		if err := s.processBatch(ctx, batch); err != nil {
 			slog.Error("sync failed", "error", err)
 			if backoff == 0 {
 				backoff = time.Second
@@ -206,19 +243,5 @@ func (s *Service) refreshMaxID(ctx context.Context) {
 	if v > 0 {
 		s.maxID.Store(v)
 		slog.Debug("updated max character id", "new_max", v)
-	}
-}
-
-// periodicRefreshLoop refreshes the max character ID every 6 hours.
-func (s *Service) periodicRefreshLoop(ctx context.Context) {
-	ticker := time.NewTicker(6 * time.Hour)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			s.refreshMaxID(ctx)
-		}
 	}
 }

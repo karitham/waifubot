@@ -3,7 +3,6 @@ package sync
 import (
 	"context"
 	"errors"
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -90,7 +89,8 @@ func TestSync(t *testing.T) {
 				},
 			}
 
-			svc := &Service{Store: store, Anilist: fetcher, rng: rand.New(rand.NewSource(0))}
+			svc := &Service{Store: store, Anilist: fetcher}
+			svc.maxID.Store(100)
 			err := svc.Sync(t.Context())
 
 			if tt.wantErr {
