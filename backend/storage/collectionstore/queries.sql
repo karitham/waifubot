@@ -182,3 +182,28 @@ UPDATE characters
 SET name = $1, image = $2, media_title = $3, favorites = $4, updated_at = NOW()
 WHERE id = $5
 RETURNING id, name, image, media_title, favorites, updated_at;
+
+-- name: RandomCharNotOwned :one
+SELECT c.id, c.name, c.image, c.media_title, c.favorites
+FROM characters c
+WHERE c.is_active = true
+  AND NOT EXISTS (
+    SELECT 1 FROM collection col
+    WHERE col.user_id = $1 AND col.character_id = c.id
+  )
+ORDER BY -ln(random()) / GREATEST(c.favorites, 1)
+LIMIT 1;
+
+-- name: RandomActiveChar :one
+SELECT id, name, image, media_title, favorites, is_active, updated_at
+FROM characters
+WHERE is_active = true
+ORDER BY -ln(random()) / GREATEST(favorites, 1)
+LIMIT 1;
+
+-- name: MarkCharacterInactive :one
+UPDATE characters SET is_active = false WHERE id = $1
+RETURNING *;
+
+-- name: GetActiveIDs :many
+SELECT id FROM characters WHERE is_active = true;

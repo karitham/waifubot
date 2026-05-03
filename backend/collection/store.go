@@ -79,6 +79,8 @@ type CollectionRepository interface {
 	CountCollection(ctx context.Context, userID UserID) (int64, error)
 	// RemoveFromWishlist is called inside roll/claim/give transactions.
 	RemoveFromWishlist(ctx context.Context, userID UserID, charID int64) error
+	RandomCharNotOwned(ctx context.Context, userID UserID) (catalog.Character, error)
+	RandomActiveChar(ctx context.Context) (catalog.Character, error)
 }
 
 // DropRepository handles channel drop operations for the claim flow.

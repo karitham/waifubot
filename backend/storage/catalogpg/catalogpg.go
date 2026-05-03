@@ -165,3 +165,12 @@ func (p *Pg) UpdateCharacterSync(ctx context.Context, char catalog.Character) (c
 		UpdatedAt:  c.UpdatedAt.Time,
 	}, nil
 }
+
+func (p *Pg) MarkCharacterInactive(ctx context.Context, charID int64) error {
+	_, err := p.C.MarkCharacterInactive(ctx, charID)
+	return err
+}
+
+func (p *Pg) GetActiveIDs(ctx context.Context) ([]int64, error) {
+	return p.C.GetActiveIDs(ctx)
+}

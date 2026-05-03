@@ -15,6 +15,7 @@ type Character struct {
 	MediaTitle string
 	Favorites  int
 	UpdatedAt  time.Time // for cursor tracking
+	IsActive   bool
 }
 
 // Drop is a Character that appeared in a channel drop.
@@ -30,4 +31,6 @@ type Store interface {
 	GetCharacterHoldersInGuild(ctx context.Context, guildID uint64, charID int64) ([]uint64, error)
 	GetStaleCharacters(ctx context.Context, cursorUpdatedAt time.Time, cursorID int64, limit int) ([]Character, error)
 	UpdateCharacterSync(ctx context.Context, char Character) (Character, error)
+	MarkCharacterInactive(ctx context.Context, charID int64) error
+	GetActiveIDs(ctx context.Context) ([]int64, error)
 }

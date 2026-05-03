@@ -103,6 +103,30 @@ func (q *Queries) Get(ctx context.Context, arg GetParams) (GetRow, error) {
 	return i, err
 }
 
+const getActiveIDs = `-- name: GetActiveIDs :many
+SELECT id FROM characters WHERE is_active = true
+`
+
+func (q *Queries) GetActiveIDs(ctx context.Context) ([]int64, error) {
+	rows, err := q.db.Query(ctx, getActiveIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getByID = `-- name: GetByID :one
 SELECT
   id,
@@ -119,9 +143,18 @@ LIMIT
   1
 `
 
-func (q *Queries) GetByID(ctx context.Context, id int64) (Character, error) {
+type GetByIDRow struct {
+	ID         int64
+	Name       string
+	Image      string
+	MediaTitle string
+	Favorites  int32
+	UpdatedAt  pgtype.Timestamp
+}
+
+func (q *Queries) GetByID(ctx context.Context, id int64) (GetByIDRow, error) {
 	row := q.db.QueryRow(ctx, getByID, id)
-	var i Character
+	var i GetByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -148,15 +181,24 @@ type GetStaleCharactersParams struct {
 	Lim       int32
 }
 
-func (q *Queries) GetStaleCharacters(ctx context.Context, arg GetStaleCharactersParams) ([]Character, error) {
+type GetStaleCharactersRow struct {
+	ID         int64
+	Name       string
+	Image      string
+	MediaTitle string
+	Favorites  int32
+	UpdatedAt  pgtype.Timestamp
+}
+
+func (q *Queries) GetStaleCharacters(ctx context.Context, arg GetStaleCharactersParams) ([]GetStaleCharactersRow, error) {
 	rows, err := q.db.Query(ctx, getStaleCharacters, arg.UpdatedAt, arg.CursorID, arg.Lim)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Character
+	var items []GetStaleCharactersRow
 	for rows.Next() {
-		var i Character
+		var i GetStaleCharactersRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -330,6 +372,82 @@ func (q *Queries) ListIDs(ctx context.Context, userID uint64) ([]int64, error) {
 	return items, nil
 }
 
+const markCharacterInactive = `-- name: MarkCharacterInactive :one
+UPDATE characters SET is_active = false WHERE id = $1
+RETURNING id, name, image, media_title, favorites, is_active, updated_at
+`
+
+func (q *Queries) MarkCharacterInactive(ctx context.Context, id int64) (Character, error) {
+	row := q.db.QueryRow(ctx, markCharacterInactive, id)
+	var i Character
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Image,
+		&i.MediaTitle,
+		&i.Favorites,
+		&i.IsActive,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const randomActiveChar = `-- name: RandomActiveChar :one
+SELECT id, name, image, media_title, favorites, is_active, updated_at
+FROM characters
+WHERE is_active = true
+ORDER BY -ln(random()) / GREATEST(favorites, 1)
+LIMIT 1
+`
+
+func (q *Queries) RandomActiveChar(ctx context.Context) (Character, error) {
+	row := q.db.QueryRow(ctx, randomActiveChar)
+	var i Character
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Image,
+		&i.MediaTitle,
+		&i.Favorites,
+		&i.IsActive,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const randomCharNotOwned = `-- name: RandomCharNotOwned :one
+SELECT c.id, c.name, c.image, c.media_title, c.favorites
+FROM characters c
+WHERE c.is_active = true
+  AND NOT EXISTS (
+    SELECT 1 FROM collection col
+    WHERE col.user_id = $1 AND col.character_id = c.id
+  )
+ORDER BY -ln(random()) / GREATEST(c.favorites, 1)
+LIMIT 1
+`
+
+type RandomCharNotOwnedRow struct {
+	ID         int64
+	Name       string
+	Image      string
+	MediaTitle string
+	Favorites  int32
+}
+
+func (q *Queries) RandomCharNotOwned(ctx context.Context, userID uint64) (RandomCharNotOwnedRow, error) {
+	row := q.db.QueryRow(ctx, randomCharNotOwned, userID)
+	var i RandomCharNotOwnedRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Image,
+		&i.MediaTitle,
+		&i.Favorites,
+	)
+	return i, err
+}
+
 const searchCharacters = `-- name: SearchCharacters :many
 SELECT
   c.id,
@@ -408,7 +526,7 @@ func (q *Queries) SearchCharacters(ctx context.Context, arg SearchCharactersPara
 
 const searchGlobalCharacters = `-- name: SearchGlobalCharacters :many
 SELECT DISTINCT
-  id, name, image, media_title, favorites, updated_at
+  id, name, image, media_title, favorites, is_active, updated_at
 FROM
   characters c
 WHERE
@@ -440,6 +558,7 @@ func (q *Queries) SearchGlobalCharacters(ctx context.Context, arg SearchGlobalCh
 			&i.Image,
 			&i.MediaTitle,
 			&i.Favorites,
+			&i.IsActive,
 			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
@@ -467,7 +586,16 @@ type UpdateCharacterSyncParams struct {
 	ID         int64
 }
 
-func (q *Queries) UpdateCharacterSync(ctx context.Context, arg UpdateCharacterSyncParams) (Character, error) {
+type UpdateCharacterSyncRow struct {
+	ID         int64
+	Name       string
+	Image      string
+	MediaTitle string
+	Favorites  int32
+	UpdatedAt  pgtype.Timestamp
+}
+
+func (q *Queries) UpdateCharacterSync(ctx context.Context, arg UpdateCharacterSyncParams) (UpdateCharacterSyncRow, error) {
 	row := q.db.QueryRow(ctx, updateCharacterSync,
 		arg.Name,
 		arg.Image,
@@ -475,7 +603,7 @@ func (q *Queries) UpdateCharacterSync(ctx context.Context, arg UpdateCharacterSy
 		arg.Favorites,
 		arg.ID,
 	)
-	var i Character
+	var i UpdateCharacterSyncRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -495,7 +623,7 @@ SET
 WHERE
   c.id = $3
 RETURNING
-  id, name, image, media_title, favorites, updated_at
+  id, name, image, media_title, favorites, is_active, updated_at
 `
 
 type UpdateImageNameParams struct {
@@ -513,6 +641,7 @@ func (q *Queries) UpdateImageName(ctx context.Context, arg UpdateImageNameParams
 		&i.Image,
 		&i.MediaTitle,
 		&i.Favorites,
+		&i.IsActive,
 		&i.UpdatedAt,
 	)
 	return i, err
@@ -529,7 +658,7 @@ SET
   image = excluded.image,
   favorites = excluded.favorites
 RETURNING
-  id, name, image, media_title, favorites, updated_at
+  id, name, image, media_title, favorites, is_active, updated_at
 `
 
 type UpsertCharacterParams struct {
@@ -553,6 +682,7 @@ func (q *Queries) UpsertCharacter(ctx context.Context, arg UpsertCharacterParams
 		&i.Image,
 		&i.MediaTitle,
 		&i.Favorites,
+		&i.IsActive,
 		&i.UpdatedAt,
 	)
 	return i, err

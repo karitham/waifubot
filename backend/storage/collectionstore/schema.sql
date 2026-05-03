@@ -4,6 +4,7 @@ CREATE TABLE public.characters (
   image CHARACTER VARYING(256) CONSTRAINT characters_new_image_not_null NOT NULL,
   media_title TEXT NOT NULL DEFAULT '',
   favorites INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT true,
   updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
 );
 

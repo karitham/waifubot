@@ -46,6 +46,11 @@ type MockStore struct {
 	GetCharacterHoldersInGuildFunc func(ctx context.Context, guildID uint64, charID int64) ([]uint64, error)
 	GetStaleCharactersFunc         func(ctx context.Context, cursorUpdatedAt time.Time, cursorID int64, limit int) ([]catalog.Character, error)
 	UpdateCharacterSyncFunc        func(ctx context.Context, char catalog.Character) (catalog.Character, error)
+	MarkCharacterInactiveFunc      func(ctx context.Context, charID int64) error
+	GetActiveIDsFunc               func(ctx context.Context) ([]int64, error)
+
+	RandomCharNotOwnedFunc func(ctx context.Context, userID collection.UserID) (catalog.Character, error)
+	RandomActiveCharFunc   func(ctx context.Context) (catalog.Character, error)
 
 	WithTxFunc   func(ctx context.Context) (collection.Store, error)
 	CommitFunc   func(ctx context.Context) error
@@ -284,6 +289,34 @@ func (m *MockStore) UpdateCharacterSync(ctx context.Context, char catalog.Charac
 		return m.UpdateCharacterSyncFunc(ctx, char)
 	}
 	return char, nil
+}
+
+func (m *MockStore) MarkCharacterInactive(ctx context.Context, charID int64) error {
+	if m.MarkCharacterInactiveFunc != nil {
+		return m.MarkCharacterInactiveFunc(ctx, charID)
+	}
+	return nil
+}
+
+func (m *MockStore) GetActiveIDs(ctx context.Context) ([]int64, error) {
+	if m.GetActiveIDsFunc != nil {
+		return m.GetActiveIDsFunc(ctx)
+	}
+	return nil, nil
+}
+
+func (m *MockStore) RandomCharNotOwned(ctx context.Context, userID collection.UserID) (catalog.Character, error) {
+	if m.RandomCharNotOwnedFunc != nil {
+		return m.RandomCharNotOwnedFunc(ctx, userID)
+	}
+	return catalog.Character{}, nil
+}
+
+func (m *MockStore) RandomActiveChar(ctx context.Context) (catalog.Character, error) {
+	if m.RandomActiveCharFunc != nil {
+		return m.RandomActiveCharFunc(ctx)
+	}
+	return catalog.Character{}, nil
 }
 
 func (m *MockStore) WithTx(ctx context.Context) (collection.Store, error) {

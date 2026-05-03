@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage/collectionstore"
 	"github.com/karitham/waifubot/storage/wishliststore"
@@ -117,4 +118,26 @@ func (p *Pg) RemoveFromWishlist(ctx context.Context, userID collection.UserID, c
 		Column2: []int64{charID},
 	})
 	return nil
+}
+
+func (p *Pg) RandomCharNotOwned(ctx context.Context, userID collection.UserID) (catalog.Character, error) {
+	c, err := p.C.RandomCharNotOwned(ctx, userID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return catalog.Character{}, collection.ErrNotFound
+		}
+		return catalog.Character{}, err
+	}
+	return catalog.Character{ID: c.ID, Name: c.Name, Image: c.Image, MediaTitle: c.MediaTitle, Favorites: int(c.Favorites)}, nil
+}
+
+func (p *Pg) RandomActiveChar(ctx context.Context) (catalog.Character, error) {
+	c, err := p.C.RandomActiveChar(ctx)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return catalog.Character{}, collection.ErrNotFound
+		}
+		return catalog.Character{}, err
+	}
+	return catalog.Character{ID: c.ID, Name: c.Name, Image: c.Image, MediaTitle: c.MediaTitle, Favorites: int(c.Favorites), UpdatedAt: c.UpdatedAt.Time, IsActive: c.IsActive}, nil
 }
