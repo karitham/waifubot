@@ -19,8 +19,8 @@ type Querier interface {
 	List(ctx context.Context, userID uint64) ([]ListRow, error)
 	ListIDs(ctx context.Context, userID uint64) ([]int64, error)
 	MarkCharactersInactive(ctx context.Context, ids []int64) error
-	RandomActiveChar(ctx context.Context) (Character, error)
-	RandomCharNotOwned(ctx context.Context, userID uint64) (RandomCharNotOwnedRow, error)
+	RandomActiveChar(ctx context.Context, weightExponent float64) (Character, error)
+	RandomCharNotOwned(ctx context.Context, arg RandomCharNotOwnedParams) (RandomCharNotOwnedRow, error)
 	SearchCharacters(ctx context.Context, arg SearchCharactersParams) ([]SearchCharactersRow, error)
 	SearchGlobalCharacters(ctx context.Context, arg SearchGlobalCharactersParams) ([]Character, error)
 	UpdateImageName(ctx context.Context, arg UpdateImageNameParams) (Character, error)

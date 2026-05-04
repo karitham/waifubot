@@ -177,16 +177,19 @@ FROM characters c
 WHERE c.is_active = true
   AND NOT EXISTS (
     SELECT 1 FROM collection col
-    WHERE col.user_id = $1 AND col.character_id = c.id
+    WHERE col.user_id = sqlc.arg(user_id) AND col.character_id = c.id
   )
-ORDER BY -ln(random()) / ln(c.favorites + 10)
+ORDER BY -ln(random()) / pow(ln(c.favorites + 10), sqlc.arg(weight_exponent)::double precision)
 LIMIT 1;
 
 -- name: RandomActiveChar :one
+-- Excludes the default AniList placeholder image (set by AniList when a
+-- character has no custom artwork) since drops embed the image publicly.
 SELECT id, name, image, media_title, favorites, is_active, updated_at
 FROM characters
 WHERE is_active = true
-ORDER BY -ln(random()) / ln(favorites + 10)
+  AND image != 'https://s4.anilist.co/file/anilistcdn/character/large/default.jpg'
+ORDER BY -ln(random()) / pow(ln(favorites + 10), sqlc.arg(weight_exponent)::double precision)
 LIMIT 1;
 
 -- name: MarkCharactersInactive :exec

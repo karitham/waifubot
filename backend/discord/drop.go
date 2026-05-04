@@ -14,7 +14,7 @@ import (
 func (r *Router) drop(ctx context.Context, channelID corde.Snowflake) {
 	logger := slog.With("channel_id", uint64(channelID))
 
-	catChar, err := r.Store.RandomActiveChar(ctx)
+	catChar, err := r.Store.RandomActiveChar(ctx, collection.DropWeightExponent)
 	if err != nil {
 		logger.Error("failed to get random character for drop", "error", err)
 		return

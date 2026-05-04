@@ -376,7 +376,7 @@ func TestIntegration_RandomCharNotOwned_ExcludesInactive(t *testing.T) {
 
 	// Roll 50 times and ensure we never get 3, 7, or 9.
 	for range 50 {
-		char, err := store.RandomCharNotOwned(ctx, 999) // 999 = user with no collection
+		char, err := store.RandomCharNotOwned(ctx, 999, collection.RollWeightExponent) // 999 = user with no collection
 		require.NoError(t, err)
 		assert.NotContains(t, []int64{3, 7, 9}, char.ID,
 			"inactive character %d was rolled", char.ID)

@@ -68,7 +68,7 @@ func TestRollHandler_Roll(t *testing.T) {
 				GetUserFunc: func(ctx context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID}, nil
 				},
-				RandomCharNotOwnedFunc: func(ctx context.Context, userID collection.UserID) (catalog.Character, error) {
+				RandomCharNotOwnedFunc: func(ctx context.Context, userID collection.UserID, _ float64) (catalog.Character, error) {
 					return catalog.Character{
 						ID:         42,
 						Name:       "Rem",
@@ -104,7 +104,7 @@ func TestRollHandler_Roll(t *testing.T) {
 				GetUserFunc: func(ctx context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID}, nil
 				},
-				RandomCharNotOwnedFunc: func(ctx context.Context, userID collection.UserID) (catalog.Character, error) {
+				RandomCharNotOwnedFunc: func(ctx context.Context, userID collection.UserID, _ float64) (catalog.Character, error) {
 					return catalog.Character{
 						ID:         42,
 						Name:       "Rem",

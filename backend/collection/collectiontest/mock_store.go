@@ -47,8 +47,8 @@ type MockStore struct {
 	GetActiveIDsFunc               func(ctx context.Context) ([]int64, error)
 	MarkCharactersInactiveFunc     func(ctx context.Context, ids []int64) error
 
-	RandomCharNotOwnedFunc func(ctx context.Context, userID collection.UserID) (catalog.Character, error)
-	RandomActiveCharFunc   func(ctx context.Context) (catalog.Character, error)
+	RandomCharNotOwnedFunc func(ctx context.Context, userID collection.UserID, weightExponent float64) (catalog.Character, error)
+	RandomActiveCharFunc   func(ctx context.Context, weightExponent float64) (catalog.Character, error)
 
 	WithTxFunc   func(ctx context.Context) (collection.Store, error)
 	CommitFunc   func(ctx context.Context) error
@@ -289,16 +289,16 @@ func (m *MockStore) MarkCharactersInactive(ctx context.Context, ids []int64) err
 	return nil
 }
 
-func (m *MockStore) RandomCharNotOwned(ctx context.Context, userID collection.UserID) (catalog.Character, error) {
+func (m *MockStore) RandomCharNotOwned(ctx context.Context, userID collection.UserID, weightExponent float64) (catalog.Character, error) {
 	if m.RandomCharNotOwnedFunc != nil {
-		return m.RandomCharNotOwnedFunc(ctx, userID)
+		return m.RandomCharNotOwnedFunc(ctx, userID, weightExponent)
 	}
 	return catalog.Character{}, nil
 }
 
-func (m *MockStore) RandomActiveChar(ctx context.Context) (catalog.Character, error) {
+func (m *MockStore) RandomActiveChar(ctx context.Context, weightExponent float64) (catalog.Character, error) {
 	if m.RandomActiveCharFunc != nil {
-		return m.RandomActiveCharFunc(ctx)
+		return m.RandomActiveCharFunc(ctx, weightExponent)
 	}
 	return catalog.Character{}, nil
 }

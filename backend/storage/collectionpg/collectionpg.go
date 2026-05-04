@@ -120,8 +120,11 @@ func (p *Pg) RemoveFromWishlist(ctx context.Context, userID collection.UserID, c
 	return nil
 }
 
-func (p *Pg) RandomCharNotOwned(ctx context.Context, userID collection.UserID) (catalog.Character, error) {
-	c, err := p.C.RandomCharNotOwned(ctx, userID)
+func (p *Pg) RandomCharNotOwned(ctx context.Context, userID collection.UserID, weightExponent float64) (catalog.Character, error) {
+	c, err := p.C.RandomCharNotOwned(ctx, collectionstore.RandomCharNotOwnedParams{
+		UserID:         userID,
+		WeightExponent: weightExponent,
+	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return catalog.Character{}, collection.ErrNotFound
@@ -131,8 +134,8 @@ func (p *Pg) RandomCharNotOwned(ctx context.Context, userID collection.UserID) (
 	return catalog.Character{ID: c.ID, Name: c.Name, Image: c.Image, MediaTitle: c.MediaTitle, Favorites: int(c.Favorites)}, nil
 }
 
-func (p *Pg) RandomActiveChar(ctx context.Context) (catalog.Character, error) {
-	c, err := p.C.RandomActiveChar(ctx)
+func (p *Pg) RandomActiveChar(ctx context.Context, weightExponent float64) (catalog.Character, error) {
+	c, err := p.C.RandomActiveChar(ctx, weightExponent)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return catalog.Character{}, collection.ErrNotFound

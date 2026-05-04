@@ -29,7 +29,7 @@ func TestRoll(t *testing.T) {
 		{
 			name: "free_roll_success",
 			setup: func(m *collectiontest.MockStore) {
-				m.RandomCharNotOwnedFunc = func(_ context.Context, _ uint64) (catalog.Character, error) {
+				m.RandomCharNotOwnedFunc = func(_ context.Context, _ uint64, _ float64) (catalog.Character, error) {
 					return catalog.Character{ID: 3, Name: "Char3", Image: "img3"}, nil
 				}
 				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
@@ -58,7 +58,7 @@ func TestRoll(t *testing.T) {
 		{
 			name: "new_user",
 			setup: func(m *collectiontest.MockStore) {
-				m.RandomCharNotOwnedFunc = func(_ context.Context, _ uint64) (catalog.Character, error) {
+				m.RandomCharNotOwnedFunc = func(_ context.Context, _ uint64, _ float64) (catalog.Character, error) {
 					return catalog.Character{ID: 4, Name: "Char4", Image: "img4"}, nil
 				}
 				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
@@ -77,7 +77,7 @@ func TestRoll(t *testing.T) {
 		{
 			name: "no_unowned_characters",
 			setup: func(m *collectiontest.MockStore) {
-				m.RandomCharNotOwnedFunc = func(_ context.Context, _ uint64) (catalog.Character, error) {
+				m.RandomCharNotOwnedFunc = func(_ context.Context, _ uint64, _ float64) (catalog.Character, error) {
 					return catalog.Character{}, collection.ErrNotFound
 				}
 				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
@@ -91,7 +91,7 @@ func TestRoll(t *testing.T) {
 		{
 			name: "remove_from_wishlist_fails_roll",
 			setup: func(m *collectiontest.MockStore) {
-				m.RandomCharNotOwnedFunc = func(_ context.Context, _ uint64) (catalog.Character, error) {
+				m.RandomCharNotOwnedFunc = func(_ context.Context, _ uint64, _ float64) (catalog.Character, error) {
 					return catalog.Character{ID: 5, Name: "Char5", Image: "img5"}, nil
 				}
 				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {

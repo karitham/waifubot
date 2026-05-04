@@ -334,12 +334,13 @@ const randomActiveChar = `-- name: RandomActiveChar :one
 SELECT id, name, image, media_title, favorites, is_active, updated_at
 FROM characters
 WHERE is_active = true
-ORDER BY -ln(random()) / ln(favorites + 10)
+  AND image != 'https://s4.anilist.co/file/anilistcdn/character/large/default.jpg'
+ORDER BY -ln(random()) / pow(ln(favorites + 10), $1::double precision)
 LIMIT 1
 `
 
-func (q *Queries) RandomActiveChar(ctx context.Context) (Character, error) {
-	row := q.db.QueryRow(ctx, randomActiveChar)
+func (q *Queries) RandomActiveChar(ctx context.Context, weightExponent float64) (Character, error) {
+	row := q.db.QueryRow(ctx, randomActiveChar, weightExponent)
 	var i Character
 	err := row.Scan(
 		&i.ID,
@@ -361,9 +362,14 @@ WHERE c.is_active = true
     SELECT 1 FROM collection col
     WHERE col.user_id = $1 AND col.character_id = c.id
   )
-ORDER BY -ln(random()) / ln(c.favorites + 10)
+ORDER BY -ln(random()) / pow(ln(c.favorites + 10), $2::double precision)
 LIMIT 1
 `
+
+type RandomCharNotOwnedParams struct {
+	UserID         uint64
+	WeightExponent float64
+}
 
 type RandomCharNotOwnedRow struct {
 	ID         int64
@@ -373,8 +379,8 @@ type RandomCharNotOwnedRow struct {
 	Favorites  int32
 }
 
-func (q *Queries) RandomCharNotOwned(ctx context.Context, userID uint64) (RandomCharNotOwnedRow, error) {
-	row := q.db.QueryRow(ctx, randomCharNotOwned, userID)
+func (q *Queries) RandomCharNotOwned(ctx context.Context, arg RandomCharNotOwnedParams) (RandomCharNotOwnedRow, error) {
+	row := q.db.QueryRow(ctx, randomCharNotOwned, arg.UserID, arg.WeightExponent)
 	var i RandomCharNotOwnedRow
 	err := row.Scan(
 		&i.ID,

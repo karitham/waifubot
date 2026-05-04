@@ -61,7 +61,7 @@ func (s *RollService) Roll(ctx context.Context, userID UserID) (MediaCharacter, 
 	}
 
 	// --- PROCESS ---
-	catChar, err := s.store.RandomCharNotOwned(ctx, userID)
+	catChar, err := s.store.RandomCharNotOwned(ctx, userID, RollWeightExponent)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return MediaCharacter{}, ErrNoUnownedCharacters
