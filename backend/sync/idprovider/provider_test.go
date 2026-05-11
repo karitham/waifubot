@@ -187,10 +187,8 @@ func TestConcurrent(t *testing.T) {
 	var wg sync.WaitGroup
 
 	// Multiple goroutines reading batches concurrently.
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 10 {
+		wg.Go(func() {
 			for {
 				batch := p.NextBatch()
 				if batch == nil {
@@ -198,15 +196,13 @@ func TestConcurrent(t *testing.T) {
 				}
 				_ = batch
 			}
-		}()
+		})
 	}
 
 	// Concurrently rebuild the pool.
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		p.SetMaxID(500)
-	}()
+	})
 
 	wg.Wait()
 	// No panic, no data race — verified with -race.

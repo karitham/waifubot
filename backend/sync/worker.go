@@ -88,10 +88,7 @@ func (s *Service) buildDiscoveryPool(ctx context.Context) []int64 {
 	}
 
 	maxID := s.maxID.Load()
-	tailStart := maxID - discoveryWindow
-	if tailStart < 1 {
-		tailStart = 1
-	}
+	tailStart := max(maxID-discoveryWindow, 1)
 
 	// Deduplicate: active IDs and discovery window may overlap.
 	seen := make(map[int64]struct{}, len(activeIDs)+discoveryWindow)

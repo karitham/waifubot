@@ -66,10 +66,7 @@ func (p *Provider) NextBatch() []int64 {
 		return nil
 	}
 
-	n := remaining
-	if p.batchSize < n {
-		n = p.batchSize
-	}
+	n := min(p.batchSize, remaining)
 
 	batch := p.pool[p.index : p.index+n]
 	p.index += n
