@@ -43,7 +43,7 @@ export default function (props: FilterBarProps) {
 	const toggleSortDirection = () => filters.setCharSortAsc((prev: number) => -prev);
 
 	return (
-		<div class="flex flex-col gap-6 p-4 bg-surfaceA rounded-lg shadow-lg shadow-mauve/10 transition-shadow duration-300">
+		<div class="flex flex-col gap-6">
 			{/* Row 1: Search + Sort */}
 			<div class="flex flex-col md:flex-row gap-4 md:gap-6">
 				{/* Search Section */}
@@ -56,7 +56,7 @@ export default function (props: FilterBarProps) {
 				<div class="flex-shrink-0 w-full md:w-auto">
 					<FilterLabel>Sort</FilterLabel>
 					<div class="flex flex-row gap-2 items-center">
-						<div class="w-40 md:w-44">
+						<div class="flex-1 min-w-0 md:w-44 md:flex-none">
 							<CharSort {...charSortProps} />
 						</div>
 						<SortDirectionToggle
@@ -66,9 +66,6 @@ export default function (props: FilterBarProps) {
 					</div>
 				</div>
 			</div>
-
-			{/* Divider */}
-			<div class="h-px bg-surfaceB" />
 
 			{/* Row 2: Compare + Media */}
 			<div class="flex flex-col md:flex-row gap-4 md:gap-6">

@@ -31,7 +31,7 @@ export default (props: {
 	);
 
 	return (
-		<div class="flex flex-col gap-10">
+		<div class="flex flex-col gap-8">
 			{/* Always show user info header */}
 			<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
 				<Show when={displayName}>
@@ -81,7 +81,7 @@ export default (props: {
 				</Show>
 			</div>
 
-			{/* Conditional: Favorite character section — featured card with accent border */}
+			{/* Favorite character section — sits directly on card surface, no nesting */}
 			<Show
 				when={
 					props.favorite && props.favorite.name !== ""
@@ -90,19 +90,17 @@ export default (props: {
 				}
 			>
 				{(fav) => (
-					<div class="relative p-px rounded-2xl bg-gradient-to-br from-mauve/50 via-pink/30 to-mauve/20 overflow-hidden">
-						<div class="bg-surface p-6 rounded-2xl">
-							<h3 class="text-sm font-semibold tracking-wider text-mauve/70 uppercase mb-4">
-								Favorite Character
-							</h3>
-							<div class="flex gap-6 items-start">
-								<img
-									src={fav().image}
-									class="w-36 md:w-40 h-auto object-cover rounded-2xl shadow-lg shadow-mauve/10"
-									alt={fav().name}
-								/>
-								<CharacterDetails char={fav()} />
-							</div>
+					<div>
+						<h3 class="text-sm font-semibold tracking-wider text-mauve/70 uppercase mb-4">
+							Favorite Character
+						</h3>
+						<div class="flex gap-6 items-start">
+							<img
+								src={fav().image}
+								class="w-36 md:w-40 h-auto object-cover rounded-2xl shadow-lg shadow-mauve/10"
+								alt={fav().name}
+							/>
+							<CharacterDetails char={fav()} />
 						</div>
 					</div>
 				)}

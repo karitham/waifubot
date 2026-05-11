@@ -83,25 +83,25 @@ export default defineConfig({
 				"space-x-xl":  "px-[--space-xl]",
 
 				"input-base":
-					"w-full p-4 rounded-md bg-surfaceA hover:bg-surfaceB placeholder:font-sans border-none hover:cursor-text placeholder:text-overlayC text-text overflow-clip transition-colors focus:outline-none",
+					"w-full p-4 rounded-md border border-surfaceB/40 hover:border-surfaceB placeholder:font-sans hover:cursor-text placeholder:text-overlayC text-text overflow-clip transition-colors focus:outline-none",
 				"select-trigger":
-					"flex justify-between w-full text-text rounded-md font-sans border-none hover:cursor-pointer bg-surfaceA p-4 hover:bg-surfaceB transition-colors outline-none",
+					"flex items-center justify-between w-full text-text text-sm rounded-md font-sans border border-surfaceB/40 hover:border-surfaceB hover:cursor-pointer p-4 h-[52px] transition-colors outline-none",
 				"select-item":
 					"p-4 w-full text-text cursor-pointer hover:bg-surfaceC transition-colors focus:ring-0 focus:outline-none",
 				"select-listbox":
-					"p-0 m-0 overflow-clip hover:overflow-clip list-none flex w-full border-none rounded-xl items-start flex-col bg-surfaceB shadow-xl text-sm",
+					"p-0 m-0 overflow-clip hover:overflow-clip list-none flex w-full border-none rounded-xl items-start flex-col bg-surfaceA shadow-xl text-sm",
 				"search-input":
 					"w-full text-sm p-4 placeholder:font-sans border-none hover:cursor-text placeholder:text-overlayC text-text bg-transparent",
 			"search-control":
-				"relative flex w-full flex-row rounded-md overflow-clip bg-surfaceA hover:bg-surfaceB transition-colors duration-200 focus-within:outline-none focus-within:ring-2 focus-within:ring-mauve focus-within:ring-opacity-100",
+				"relative flex w-full flex-row rounded-md overflow-clip border border-surfaceB/40 hover:border-surfaceB transition-colors duration-200 focus-within:outline-none focus-within:ring-2 focus-within:ring-mauve focus-within:ring-opacity-100",
 			"search-item":
 				"flex flex-row items-center justify-between px-4 py-2 gap-4 hover:bg-surfaceC cursor-pointer text-text w-full transition-colors duration-200 focus:ring-0 focus:outline-none data-[selected]:bg-mauve/20",
 			"search-listbox":
-				"p-0 m-0 overflow-clip hover:overflow-clip list-none flex w-full border-none rounded-xl items-start flex-col bg-surfaceB shadow-xl text-sm",
+				"p-0 m-0 overflow-clip hover:overflow-clip list-none flex w-full border-none rounded-xl items-start flex-col bg-surfaceA shadow-xl text-sm",
 			"search-content": "focus:outline-none",
 			"select-content": "focus:outline-none",
 				"search-icon":
-					"bg-surfaceA hover:bg-surfaceB border-none w-16 flex text-center items-center justify-center transition-colors",
+					"border-l border-surfaceB/40 hover:bg-surfaceA/30 w-16 flex text-center items-center justify-center transition-colors",
 			},
 		}),
 		solidPlugin(),

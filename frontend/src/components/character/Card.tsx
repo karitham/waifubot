@@ -12,10 +12,10 @@ export default (props: {
 }) => {
 	return (
 		<article
-			class="bg-surfaceA rounded-lg relative flex h-48 w-full overflow-clip hover:shadow-lg hover:shadow-mauve/10 transition-shadow duration-300 hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+			class="rounded-lg relative flex h-48 w-full overflow-clip hover:scale-[1.01] active:scale-[0.99] cursor-pointer transition-all duration-200"
 			classList={{ "opacity-60": props.missing }}
 			style={{
-				"border-left": `5px solid ${getRarityHex(props.char.favorites)}`,
+				border: `1px solid ${getRarityHex(props.char.favorites)}`,
 			}}
 			aria-label={`${props.char.name} character card${
 				props.missing ? " (missing from collection)" : ""

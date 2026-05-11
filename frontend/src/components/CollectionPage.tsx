@@ -76,36 +76,38 @@ export default (props: CollectionPageProps) => {
 							discordAvatar={u().discord_avatar}
 						/>
 					}
-					navbar={
-						<CollectionNav
-							navbarLink={props.navbarLink}
-							searchParams={searchParams()}
-						/>
-					}
 					body={
-						<CollectionFiltersProvider
-							charSearch={charSearch}
-							setCharSearch={setCharSearch}
-							charSort={charSort}
-							setCharSort={setCharSort}
-							charSortAsc={charSortAsc}
-							setCharSortAsc={setCharSortAsc}
-							compareUsers={compareUsers}
-							compareIds={compareIds}
-							media={media}
-							setMedia={(m) => {
-								setMedia(m);
-								if (!m) setMediaCharacters(undefined);
-							}}
-							onCompareAdd={onCompareAdd}
-							onCompareRemove={onCompareRemove}
-						>
-							<CollectionBody
-								characters={props.characters}
-								mediaCharacters={mediaCharacters()}
-								mainUser={u()}
-							/>
-						</CollectionFiltersProvider>
+						<>
+							<div class="content-width">
+								<CollectionNav
+									navbarLink={props.navbarLink}
+									searchParams={searchParams()}
+								/>
+							</div>
+							<CollectionFiltersProvider
+								charSearch={charSearch}
+								setCharSearch={setCharSearch}
+								charSort={charSort}
+								setCharSort={setCharSort}
+								charSortAsc={charSortAsc}
+								setCharSortAsc={setCharSortAsc}
+								compareUsers={compareUsers}
+								compareIds={compareIds}
+								media={media}
+								setMedia={(m) => {
+									setMedia(m);
+									if (!m) setMediaCharacters(undefined);
+								}}
+								onCompareAdd={onCompareAdd}
+								onCompareRemove={onCompareRemove}
+							>
+								<CollectionBody
+									characters={props.characters}
+									mediaCharacters={mediaCharacters()}
+									mainUser={u()}
+								/>
+							</CollectionFiltersProvider>
+						</>
 					}
 				/>
 			)}
