@@ -105,6 +105,63 @@ func (q *Queries) GetByDiscordUsername(ctx context.Context, discordUsername stri
 	return i, err
 }
 
+const searchUsersSharedGuilds = `-- name: SearchUsersSharedGuilds :many
+SELECT DISTINCT ON (u.user_id)
+  u.user_id,
+  u.discord_username,
+  u.discord_avatar,
+  u.anilist_url
+FROM users u
+JOIN guild_members gm ON gm.user_id = u.user_id
+WHERE gm.guild_id IN (SELECT guild_id FROM guild_members AS my_gm WHERE my_gm.user_id = $1)
+  AND u.user_id != $1
+  AND u.discord_username != ''
+  AND (
+    LOWER(u.discord_username) LIKE LOWER($2) || '%'
+    OR LOWER(u.anilist_url) LIKE LOWER($2) || '%'
+  )
+ORDER BY u.user_id, u.discord_username
+LIMIT $3
+`
+
+type SearchUsersSharedGuildsParams struct {
+	UserID uint64
+	Lower  string
+	Limit  int32
+}
+
+type SearchUsersSharedGuildsRow struct {
+	UserID          uint64
+	DiscordUsername string
+	DiscordAvatar   string
+	AnilistUrl      string
+}
+
+func (q *Queries) SearchUsersSharedGuilds(ctx context.Context, arg SearchUsersSharedGuildsParams) ([]SearchUsersSharedGuildsRow, error) {
+	rows, err := q.db.Query(ctx, searchUsersSharedGuilds, arg.UserID, arg.Lower, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchUsersSharedGuildsRow
+	for rows.Next() {
+		var i SearchUsersSharedGuildsRow
+		if err := rows.Scan(
+			&i.UserID,
+			&i.DiscordUsername,
+			&i.DiscordAvatar,
+			&i.AnilistUrl,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const spendTokens = `-- name: SpendTokens :one
 UPDATE users
 SET
@@ -255,6 +312,40 @@ type UpdateTokensParams struct {
 
 func (q *Queries) UpdateTokens(ctx context.Context, arg UpdateTokensParams) (User, error) {
 	row := q.db.QueryRow(ctx, updateTokens, arg.Tokens, arg.UserID)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Quote,
+		&i.Date,
+		&i.Favorite,
+		&i.Tokens,
+		&i.AnilistUrl,
+		&i.DiscordUsername,
+		&i.DiscordAvatar,
+		&i.LastUpdated,
+	)
+	return i, err
+}
+
+const upsertFromDiscord = `-- name: UpsertFromDiscord :one
+INSERT INTO users (user_id, discord_username, discord_avatar, last_updated)
+VALUES ($1, $2, $3, NOW())
+ON CONFLICT (user_id) DO UPDATE
+  SET discord_username = EXCLUDED.discord_username,
+      discord_avatar   = EXCLUDED.discord_avatar,
+      last_updated     = NOW()
+RETURNING id, user_id, quote, date, favorite, tokens, anilist_url, discord_username, discord_avatar, last_updated
+`
+
+type UpsertFromDiscordParams struct {
+	UserID          uint64
+	DiscordUsername string
+	DiscordAvatar   string
+}
+
+func (q *Queries) UpsertFromDiscord(ctx context.Context, arg UpsertFromDiscordParams) (User, error) {
+	row := q.db.QueryRow(ctx, upsertFromDiscord, arg.UserID, arg.DiscordUsername, arg.DiscordAvatar)
 	var i User
 	err := row.Scan(
 		&i.ID,

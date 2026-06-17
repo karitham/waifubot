@@ -6,6 +6,7 @@ package api
 type OperationName = string
 
 const (
+	AuthLogoutOperation      OperationName = "AuthLogout"
 	FindUserOperation        OperationName = "FindUser"
 	FindUserV1Operation      OperationName = "FindUserV1"
 	GetCollectionV1Operation OperationName = "GetCollectionV1"
@@ -13,4 +14,5 @@ const (
 	GetUserOperation         OperationName = "GetUser"
 	GetUserV1Operation       OperationName = "GetUserV1"
 	GetWishlistOperation     OperationName = "GetWishlist"
+	SearchUsersOperation     OperationName = "SearchUsers"
 )

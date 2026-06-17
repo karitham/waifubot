@@ -19,6 +19,8 @@ type Querier interface {
 	List(ctx context.Context, userID uint64) ([]ListRow, error)
 	ListIDs(ctx context.Context, userID uint64) ([]int64, error)
 	MarkCharactersInactive(ctx context.Context, ids []int64) error
+	// Excludes the default AniList placeholder image (set by AniList when a
+	// character has no custom artwork) since drops embed the image publicly.
 	RandomActiveChar(ctx context.Context, weightExponent float64) (Character, error)
 	RandomCharNotOwned(ctx context.Context, arg RandomCharNotOwnedParams) (RandomCharNotOwnedRow, error)
 	SearchCharacters(ctx context.Context, arg SearchCharactersParams) ([]SearchCharactersRow, error)

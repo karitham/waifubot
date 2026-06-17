@@ -8,6 +8,12 @@ import (
 
 // Handler handles operations described by OpenAPI v3 specification.
 type Handler interface {
+	// AuthLogout implements authLogout operation.
+	//
+	// Revokes the bearer token used to authenticate this request.
+	//
+	// POST /api/v1/auth/logout
+	AuthLogout(ctx context.Context) (AuthLogoutRes, error)
 	// FindUser implements findUser operation.
 	//
 	// Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
@@ -58,23 +64,32 @@ type Handler interface {
 	//
 	// GET /api/v1/wishlist/{userID}
 	GetWishlist(ctx context.Context, params GetWishlistParams) (GetWishlistRes, error)
+	// SearchUsers implements searchUsers operation.
+	//
+	// Prefix-search bot users by Discord username or Anilist URL, scoped to users
+	// who share at least one guild with the requesting user. Requires bearer auth.
+	//
+	// GET /api/v1/user/search
+	SearchUsers(ctx context.Context, params SearchUsersParams) (SearchUsersRes, error)
 }
 
 // Server implements http server based on OpenAPI v3 specification and
 // calls Handler to handle requests.
 type Server struct {
-	h Handler
+	h   Handler
+	sec SecurityHandler
 	baseServer
 }
 
 // NewServer creates new Server.
-func NewServer(h Handler, opts ...ServerOption) (*Server, error) {
+func NewServer(h Handler, sec SecurityHandler, opts ...ServerOption) (*Server, error) {
 	s, err := newServerConfig(opts...).baseServer()
 	if err != nil {
 		return nil, err
 	}
 	return &Server{
 		h:          h,
+		sec:        sec,
 		baseServer: s,
 	}, nil
 }

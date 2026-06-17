@@ -13,6 +13,15 @@ type UnimplementedHandler struct{}
 
 var _ Handler = UnimplementedHandler{}
 
+// AuthLogout implements authLogout operation.
+//
+// Revokes the bearer token used to authenticate this request.
+//
+// POST /api/v1/auth/logout
+func (UnimplementedHandler) AuthLogout(ctx context.Context) (r AuthLogoutRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // FindUser implements findUser operation.
 //
 // Find a user by their Anilist URL or Discord username. Query parameters are mutually exclusive.
@@ -81,5 +90,15 @@ func (UnimplementedHandler) GetUserV1(ctx context.Context, params GetUserV1Param
 //
 // GET /api/v1/wishlist/{userID}
 func (UnimplementedHandler) GetWishlist(ctx context.Context, params GetWishlistParams) (r GetWishlistRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// SearchUsers implements searchUsers operation.
+//
+// Prefix-search bot users by Discord username or Anilist URL, scoped to users
+// who share at least one guild with the requesting user. Requires bearer auth.
+//
+// GET /api/v1/user/search
+func (UnimplementedHandler) SearchUsers(ctx context.Context, params SearchUsersParams) (r SearchUsersRes, _ error) {
 	return r, ht.ErrNotImplemented
 }

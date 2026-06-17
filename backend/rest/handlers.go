@@ -16,6 +16,8 @@ import (
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/discord"
 	"github.com/karitham/waifubot/services"
+	"github.com/karitham/waifubot/storage/authstore"
+	"github.com/karitham/waifubot/storage/userstore"
 	"github.com/karitham/waifubot/wishlist"
 
 	"github.com/karitham/waifubot/rest/api"
@@ -25,13 +27,28 @@ type Server struct {
 	db             collection.Store
 	wishlistStore  wishlist.Store
 	discordService *services.DiscordService
+	authStore      authstore.Querier
+	userStore      userstore.Querier
+	oauth          OAuthConfig
+	states         *stateStore
 }
 
-func New(db collection.Store, ws wishlist.Store, discordService *services.DiscordService) *Server {
+func New(
+	db collection.Store,
+	ws wishlist.Store,
+	discordService *services.DiscordService,
+	authStore authstore.Querier,
+	userStore userstore.Querier,
+	oauth OAuthConfig,
+) *Server {
 	return &Server{
 		db:             db,
 		wishlistStore:  ws,
 		discordService: discordService,
+		authStore:      authStore,
+		userStore:      userStore,
+		oauth:          oauth,
+		states:         newStateStore(),
 	}
 }
 
@@ -355,4 +372,64 @@ func normalizeAnilistURL(input string) string {
 	}
 
 	return fmt.Sprintf("https://anilist.co/user/%s", input)
+}
+
+// AuthLogout revokes the bearer token used to authenticate this request.
+// Returns 204 on success. The bearer auth middleware has already validated
+// the token and attached it to the context.
+func (s *Server) AuthLogout(ctx context.Context) (api.AuthLogoutRes, error) {
+	token, ok := tokenFromContext(ctx)
+	if !ok {
+		return &api.Error{
+			Message:    "unauthorized",
+			ErrorCode:  "unauthorized",
+			StatusCode: 401,
+		}, nil
+	}
+	if err := s.authStore.DeleteToken(ctx, token); err != nil {
+		return nil, fmt.Errorf("delete token: %w", err)
+	}
+	return &api.AuthLogoutNoContent{}, nil
+}
+
+// SearchUsers returns bot users matching the prefix query, scoped to users
+// who share at least one guild with the requesting user. The bearer auth
+// middleware has already attached the requester ID to the context.
+func (s *Server) SearchUsers(ctx context.Context, params api.SearchUsersParams) (api.SearchUsersRes, error) {
+	requestingID, ok := currentUserID(ctx)
+	if !ok {
+		return &api.Error{
+			Message:    "unauthorized",
+			ErrorCode:  "unauthorized",
+			StatusCode: 401,
+		}, nil
+	}
+
+	limit := int32(10)
+	if l, ok := params.Limit.Get(); ok && l > 0 {
+		limit = int32(l)
+		if limit > 50 {
+			limit = 50
+		}
+	}
+
+	rows, err := s.userStore.SearchUsersSharedGuilds(ctx, userstore.SearchUsersSharedGuildsParams{
+		UserID: requestingID,
+		Lower:  params.Q,
+		Limit:  limit,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("search users: %w", err)
+	}
+
+	results := api.SearchUsersOKApplicationJSON(make([]api.UserSearchResult, 0, len(rows)))
+	for _, r := range rows {
+		results = append(results, api.UserSearchResult{
+			ID:              strconv.FormatUint(r.UserID, 10),
+			DiscordUsername: r.DiscordUsername,
+			DiscordAvatar:   api.NewOptString(discord.DiscordAvatarURL(r.UserID, r.DiscordAvatar)),
+			AnilistURL:      api.NewOptString(r.AnilistUrl),
+		})
+	}
+	return &results, nil
 }

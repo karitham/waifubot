@@ -2,16 +2,18 @@
 // versions:
 //   sqlc v1.30.0
 
-package userstore
+package authstore
 
 import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type GuildMember struct {
-	GuildID   uint64
+type AuthToken struct {
+	Token     string
 	UserID    uint64
-	IndexedAt pgtype.Timestamp
+	Scopes    string
+	CreatedAt pgtype.Timestamptz
+	ExpiresAt pgtype.Timestamptz
 }
 
 type User struct {

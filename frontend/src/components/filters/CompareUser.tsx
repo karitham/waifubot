@@ -1,6 +1,8 @@
 import { Search } from "@kobalte/core/search";
-import { createMemo, createEffect, createSignal } from "solid-js";
-import type { UserProfile } from "../../api/generated";
+import { createMemo, createEffect, createSignal, onCleanup } from "solid-js";
+import { searchUsers } from "../../api/generated";
+import type { UserProfile, UserSearchResult } from "../../api/generated";
+import { useAuth } from "../../context/AuthContext";
 import { useCollectionFilters } from "../../context/CollectionFiltersContext";
 import AvatarStack from "../ui/AvatarStack";
 import DropdownSearch, { type Option } from "../ui/DropdownSearch";
@@ -95,22 +97,69 @@ const renderSelectedUser = (user: UserProfile, onRemove: (id: string) => void) =
 
 export default () => {
 	const filters = useCollectionFilters();
+	const auth = useAuth();
 
 	const selectedUsers = (): UserProfile[] => {
 		return (filters.compareUsers() ?? []).map((cu) => cu.profile);
 	};
 
 	const [getSearchValue, setSearchValue] = createSignal("");
+	const [searchResults, setSearchResults] = createSignal<UserSearchResult[]>([]);
+
+	// Manual async effect instead of createResource: createResource is
+	// Suspense-aware in Solid, so reading it while loading would tear down
+	// the surrounding Suspense boundary (the one in index.tsx) and flash the
+	// page-wide "Loading..." screen. A signal + effect lets the typeahead
+	// update without touching the rest of the page.
+	createEffect(() => {
+		const q = getSearchValue();
+		if (!q || !auth.isAuthenticated()) {
+			setSearchResults([]);
+			return;
+		}
+		let cancelled = false;
+		searchUsers(q, { limit: 10 })
+			.then((res) => {
+				if (!cancelled) setSearchResults(res ?? []);
+			})
+			.catch((e) => {
+				if (!cancelled) {
+					console.error("searchUsers failed", e);
+					setSearchResults([]);
+				}
+			});
+		onCleanup(() => {
+			cancelled = true;
+		});
+	});
 
 	const options = (): Option[] => {
-		if (!getSearchValue()) {
+		const q = getSearchValue();
+		if (!q) {
 			return selectedUsers().map((u) => ({
 				value: u.id,
 				label: u.discord_username || u.id,
 				image: u.discord_avatar,
 			}));
 		}
-		return [{ value: "add", label: "Compare with this user", image: "" }];
+		if (!auth.isAuthenticated()) {
+			return [{ value: "__login__", label: "Log in to find users", image: "" }];
+		}
+		const results = searchResults() ?? [];
+		if (results.length === 0) {
+			return [
+				{ value: "__none__", label: "No users found", image: "" },
+				{ value: "add", label: "Compare with this user", image: "" },
+			];
+		}
+		return [
+			...results.map((r) => ({
+				value: r.id,
+				label: r.discord_username,
+				image: r.discord_avatar || "",
+			})),
+			{ value: "add", label: "Compare with this user", image: "" },
+		];
 	};
 
 	const customControl = (controlProps: { children: any }) => (
@@ -160,11 +209,16 @@ export default () => {
 		<DropdownSearch
 			options={options()}
 			onChange={(option) => {
-				if (option?.value === "add") {
+				if (option?.value === "__login__") {
+					auth.login();
+				} else if (option?.value === "__none__") {
+					// no-op
+				} else if (option?.value === "add") {
 					filters.onCompareAdd(getSearchValue());
 					setSearchValue("");
 				} else if (option) {
-					filters.onCompareRemove(String(option.value));
+					filters.onCompareAdd(String(option.value));
+					setSearchValue("");
 				}
 			}}
 			onInputChange={setSearchValue}

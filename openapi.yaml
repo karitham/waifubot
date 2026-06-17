@@ -165,7 +165,67 @@ paths:
         404:
           $ref: "#/components/responses/userNotFound"
 
+  /api/v1/auth/logout:
+    post:
+      summary: Log out (revoke bearer token)
+      description: Revokes the bearer token used to authenticate this request.
+      operationId: authLogout
+      tags:
+        - auth
+      security:
+        - bearerAuth: []
+      responses:
+        204:
+          description: Logged out
+        401:
+          $ref: "#/components/responses/unauthorized"
+
+  /api/v1/user/search:
+    get:
+      summary: Search users (typeahead)
+      description: |
+        Prefix-search bot users by Discord username or Anilist URL, scoped to users
+        who share at least one guild with the requesting user. Requires bearer auth.
+      operationId: searchUsers
+      tags:
+        - user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+      responses:
+        200:
+          description: Matching users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserSearchResult"
+        401:
+          $ref: "#/components/responses/unauthorized"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+
   parameters:
     userID:
       name: userID
@@ -308,6 +368,36 @@ components:
             message: "anilist or discord query param is required"
             error_code: "missing_query_param"
             status_code: 400
+    invalidRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            message: "invalid request"
+            error_code: "invalid_request"
+            status_code: 400
+    internalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            message: "internal server error"
+            error_code: "internal_error"
+            status_code: 500
+    unauthorized:
+      description: Missing or invalid bearer token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            message: "unauthorized"
+            error_code: "unauthorized"
+            status_code: 401
 
   schemas:
     Profile:
@@ -505,3 +595,26 @@ components:
           type: integer
           description: HTTP status code
           example: 404
+    UserSearchResult:
+      type: object
+      description: Minimal user info for typeahead search results
+      required:
+        - id
+        - discord_username
+      properties:
+        id:
+          type: string
+          description: User ID
+          example: "1234567890"
+        discord_username:
+          type: string
+          description: Discord username
+          example: "waifu_lover"
+        discord_avatar:
+          type: string
+          description: Discord avatar URL
+          example: "https://cdn.discordapp.com/avatars/1234567890/abc123.png"
+        anilist_url:
+          type: string
+          description: Anilist user URL
+          example: "https://anilist.co/user/animefan"

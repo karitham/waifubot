@@ -11,8 +11,11 @@ CREATE TABLE public.users (
   last_updated TIMESTAMP WITHOUT TIME ZONE DEFAULT '1970-01-01 00:00:00'::TIMESTAMP WITHOUT TIME ZONE NOT NULL
 );
 
-CREATE TABLE public.guild_members (
-  guild_id BIGINT NOT NULL,
-  user_id BIGINT NOT NULL,
-  indexed_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW() NOT NULL
+CREATE TABLE public.auth_tokens (
+    token TEXT PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES public.users(user_id) ON DELETE CASCADE,
+    scopes TEXT NOT NULL DEFAULT 'all',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL
 );
+CREATE INDEX auth_tokens_user_id_idx ON auth_tokens(user_id);

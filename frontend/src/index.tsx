@@ -4,6 +4,7 @@ import "./index.css";
 import { lazy } from "solid-js";
 import "virtual:uno.css";
 import { defaults } from "./api/generated";
+import { AuthProvider } from "./context/AuthContext";
 
 defaults.baseUrl =
 	import.meta.env.VITE_API_URL || "https://waifuapi.karitham.dev";
@@ -35,7 +36,8 @@ if (app) {
 					</div>
 				}
 			>
-				<HashRouter>
+				<AuthProvider>
+					<HashRouter>
 					<ErrorBoundary fallback={(e) => <ErrorFallback error={e} />}>
 						<Route path="/list/:id" component={List} />
 					</ErrorBoundary>
@@ -49,6 +51,7 @@ if (app) {
 						<Route path="*" component={Page404} />
 					</ErrorBoundary>
 				</HashRouter>
+				</AuthProvider>
 			</Suspense>
 		),
 		app,

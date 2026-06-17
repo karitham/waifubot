@@ -339,6 +339,8 @@ ORDER BY -ln(random()) / pow(ln(favorites + 10), $1::double precision)
 LIMIT 1
 `
 
+// Excludes the default AniList placeholder image (set by AniList when a
+// character has no custom artwork) since drops embed the image publicly.
 func (q *Queries) RandomActiveChar(ctx context.Context, weightExponent float64) (Character, error) {
 	row := q.db.QueryRow(ctx, randomActiveChar, weightExponent)
 	var i Character

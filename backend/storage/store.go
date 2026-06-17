@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/tracelog"
 
+	"github.com/karitham/waifubot/storage/authstore"
 	"github.com/karitham/waifubot/storage/collectionstore"
 	"github.com/karitham/waifubot/storage/commandstore"
 	"github.com/karitham/waifubot/storage/dropstore"
@@ -33,6 +34,7 @@ type Store interface {
 	GuildStore() guildstore.Querier
 	WishlistStore() wishliststore.Querier
 	CommandStore() commandstore.Querier
+	AuthStore() authstore.Querier
 	Tx(ctx context.Context) (Store, error)
 	Commit(ctx context.Context) error
 	Rollback(ctx context.Context) error
@@ -46,6 +48,7 @@ type DBStore struct {
 	guildStore       *guildstore.Queries
 	wishlistStore    *wishliststore.Queries
 	commandStore     *commandstore.Queries
+	authStore        *authstore.Queries
 	db               TXer
 	tx               pgx.Tx
 }
@@ -80,6 +83,7 @@ func NewStore(ctx context.Context, url string) (*DBStore, error) {
 		db:               conn,
 		interactionStore: interactionstore.New(conn),
 		dropStore:        dropstore.New(conn),
+		authStore:        authstore.New(conn),
 	}, nil
 }
 
@@ -93,6 +97,7 @@ func (s *DBStore) withTx(tx pgx.Tx) *DBStore {
 		db:               tx,
 		interactionStore: s.interactionStore.WithTx(tx),
 		dropStore:        s.dropStore.WithTx(tx),
+		authStore:        s.authStore.WithTx(tx),
 		tx:               tx,
 	}
 }
@@ -167,6 +172,10 @@ func (s *DBStore) DB() TXer {
 
 func (s *DBStore) CommandStore() commandstore.Querier {
 	return s.commandStore
+}
+
+func (s *DBStore) AuthStore() authstore.Querier {
+	return s.authStore
 }
 
 func (s *DBStore) Tx(ctx context.Context) (Store, error) {

@@ -84,6 +84,16 @@ export type WishlistResponse = {
     /** Total number of characters in wishlist */
     total: number;
 };
+export type UserSearchResult = {
+    /** User ID */
+    id: string;
+    /** Discord username */
+    discord_username: string;
+    /** Discord avatar URL */
+    discord_avatar?: string;
+    /** Anilist user URL */
+    anilist_url?: string;
+};
 /**
  * Get user profile
  */
@@ -212,6 +222,39 @@ export function getWishlist(userId: string, opts?: Oazapfts.RequestOpts) {
         status: 404;
         data: Error;
     }>(`/api/v1/wishlist/${encodeURIComponent(userId)}`, {
+        ...opts
+    }));
+}
+/**
+ * Log out (revoke bearer token)
+ */
+export function authLogout(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 204;
+    } | {
+        status: 401;
+        data: Error;
+    }>("/api/v1/auth/logout", {
+        ...opts,
+        method: "POST"
+    }));
+}
+/**
+ * Search users (typeahead)
+ */
+export function searchUsers(q: string, { limit }: {
+    limit?: number;
+} = {}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: UserSearchResult[];
+    } | {
+        status: 401;
+        data: Error;
+    }>(`/api/v1/user/search${QS.query(QS.explode({
+        q,
+        limit
+    }))}`, {
         ...opts
     }));
 }

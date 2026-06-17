@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Karitham/corde"
@@ -70,6 +72,26 @@ var RunCommand = &cli.Command{
 		},
 		logLevelFlag,
 		apiFlag,
+		&cli.StringFlag{
+			Name:    "oauth-client-id",
+			EnvVars: []string{"DISCORD_OAUTH_CLIENT_ID", "DISCORD_CLIENT_ID", "OAUTH_CLIENT_ID"},
+			Usage:   "Discord OAuth application client ID (for frontend login)",
+		},
+		&cli.StringFlag{
+			Name:    "oauth-client-secret",
+			EnvVars: []string{"DISCORD_OAUTH_CLIENT_SECRET", "DISCORD_CLIENT_SECRET", "OAUTH_CLIENT_SECRET"},
+			Usage:   "Discord OAuth application client secret",
+		},
+		&cli.StringFlag{
+			Name:    "oauth-redirect-url",
+			EnvVars: []string{"OAUTH_REDIRECT_URL", "DISCORD_OAUTH_REDIRECT_URL", "DISCORD_REDIRECT_URL"},
+			Usage:   "Discord OAuth redirect URL, e.g. https://api.example.com/api/v1/auth/callback",
+		},
+		&cli.StringFlag{
+			Name:    "allowed-frontend-origins",
+			EnvVars: []string{"ALLOWED_FRONTEND_ORIGINS"},
+			Usage:   "Comma-separated list of origins the browser may be redirected to after Discord auth. Defaults to the origin of oauth-redirect-url.",
+		},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
@@ -100,6 +122,12 @@ var RunCommand = &cli.Command{
 		anilistClient := anilist.New()
 
 		slog.Info("Starting WaifuBot", "port", c.String("port"), "app_id", c.String("app-id"), "api_enabled", c.Bool(apiFlag.Name))
+		slog.Info("OAuth login config",
+			"client_id_set", c.String("oauth-client-id") != "",
+			"client_secret_set", c.String("oauth-client-secret") != "",
+			"redirect_url", c.String("oauth-redirect-url"),
+			"allowed_origins", parseAllowedOrigins(c.String("allowed-frontend-origins"), c.String("oauth-redirect-url")),
+		)
 		router := discord.New(&discord.Router{
 			Store:             collStore,
 			Catalog:           catalogStore,
@@ -138,8 +166,8 @@ var RunCommand = &cli.Command{
 
 		r.Use(cors.Handler(cors.Options{
 			AllowedOrigins:   []string{"https://*", "http://*"},
-			AllowedMethods:   []string{"GET", "OPTIONS"},
-			AllowedHeaders:   []string{"Accept", "Content-Type", "If-None-Match"},
+			AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
+			AllowedHeaders:   []string{"Accept", "Content-Type", "If-None-Match", "Authorization"},
 			MaxAge:           300,
 			AllowCredentials: true,
 		}))
@@ -154,7 +182,16 @@ var RunCommand = &cli.Command{
 				discordService = services.NewDiscordService(discordToken)
 			}
 
-			restServer := rest.New(collStore, wishStore, discordService)
+			restServer := rest.New(collStore, wishStore, discordService,
+				store.AuthStore(),
+				store.UserStore(),
+				rest.OAuthConfig{
+					ClientID:       c.String("oauth-client-id"),
+					ClientSecret:   c.String("oauth-client-secret"),
+					RedirectURL:    c.String("oauth-redirect-url"),
+					AllowedOrigins: parseAllowedOrigins(c.String("allowed-frontend-origins"), c.String("oauth-redirect-url")),
+				},
+			)
 
 			telemetry, err := rest.SetupTelemetry(prometheus.DefaultRegisterer)
 			if err != nil {
@@ -168,11 +205,17 @@ var RunCommand = &cli.Command{
 
 			apiRouter, err := api.NewServer(
 				restServer,
+				restServer,
 				api.WithMeterProvider(telemetry.MeterProvider()),
 			)
 			if err != nil {
 				return fmt.Errorf("failed to create API router: %w", err)
 			}
+
+			// Auth login + callback are browser-side OAuth redirects, not API
+			// endpoints. Mount them on chi so we can use http.Redirect directly.
+			r.Method("GET", "/api/v1/auth/login", http.HandlerFunc(restServer.HandleAuthLogin))
+			r.Method("GET", "/api/v1/auth/callback", http.HandlerFunc(restServer.HandleAuthCallback))
 
 			r.Mount("/", rest.ETagMiddleware(apiRouter))
 			slog.Info("REST API server started", "port", port)
@@ -188,4 +231,25 @@ var RunCommand = &cli.Command{
 		slog.Info("Server shutting down", "port", port)
 		return nil
 	},
+}
+
+// parseAllowedOrigins splits a comma-separated ALLOWED_FRONTEND_ORIGINS value.
+// If empty, falls back to the origin of the OAuth redirect URL (covers the
+// same-origin case where the frontend and API share a host).
+func parseAllowedOrigins(s, redirectURL string) []string {
+	if s != "" {
+		var out []string
+		for _, p := range strings.Split(s, ",") {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				out = append(out, p)
+			}
+		}
+		return out
+	}
+	u, err := url.Parse(redirectURL)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return nil
+	}
+	return []string{u.Scheme + "://" + u.Host}
 }

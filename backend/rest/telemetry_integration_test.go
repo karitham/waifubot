@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -20,6 +21,7 @@ func TestOgenTelemetryIntegration(t *testing.T) {
 
 	srv, err := api.NewServer(
 		api.UnimplementedHandler{},
+		noopSecurityHandler{},
 		api.WithMeterProvider(telemetry.MeterProvider()),
 	)
 	require.NoError(t, err)
@@ -51,4 +53,10 @@ func TestOgenTelemetryIntegration(t *testing.T) {
 			}
 		}
 	})
+}
+
+type noopSecurityHandler struct{}
+
+func (noopSecurityHandler) HandleBearerAuth(_ context.Context, _ api.OperationName, _ api.BearerAuth) (context.Context, error) {
+	return context.Background(), nil
 }

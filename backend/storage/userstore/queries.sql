@@ -84,3 +84,30 @@ SET
   last_updated = $3
 WHERE
   user_id = $4;
+
+-- name: UpsertFromDiscord :one
+INSERT INTO users (user_id, discord_username, discord_avatar, last_updated)
+VALUES ($1, $2, $3, NOW())
+ON CONFLICT (user_id) DO UPDATE
+  SET discord_username = EXCLUDED.discord_username,
+      discord_avatar   = EXCLUDED.discord_avatar,
+      last_updated     = NOW()
+RETURNING *;
+
+-- name: SearchUsersSharedGuilds :many
+SELECT DISTINCT ON (u.user_id)
+  u.user_id,
+  u.discord_username,
+  u.discord_avatar,
+  u.anilist_url
+FROM users u
+JOIN guild_members gm ON gm.user_id = u.user_id
+WHERE gm.guild_id IN (SELECT guild_id FROM guild_members AS my_gm WHERE my_gm.user_id = $1)
+  AND u.user_id != $1
+  AND u.discord_username != ''
+  AND (
+    LOWER(u.discord_username) LIKE LOWER($2) || '%'
+    OR LOWER(u.anilist_url) LIKE LOWER($2) || '%'
+  )
+ORDER BY u.user_id, u.discord_username
+LIMIT $3;

@@ -13,6 +13,7 @@ type Querier interface {
 	Get(ctx context.Context, userID uint64) (User, error)
 	GetByAnilist(ctx context.Context, lower string) (User, error)
 	GetByDiscordUsername(ctx context.Context, discordUsername string) (User, error)
+	SearchUsersSharedGuilds(ctx context.Context, arg SearchUsersSharedGuildsParams) ([]SearchUsersSharedGuildsRow, error)
 	SpendTokens(ctx context.Context, arg SpendTokensParams) (User, error)
 	UpdateAnilistURL(ctx context.Context, arg UpdateAnilistURLParams) error
 	UpdateDate(ctx context.Context, arg UpdateDateParams) error
@@ -20,6 +21,7 @@ type Querier interface {
 	UpdateFavorite(ctx context.Context, arg UpdateFavoriteParams) error
 	UpdateQuote(ctx context.Context, arg UpdateQuoteParams) error
 	UpdateTokens(ctx context.Context, arg UpdateTokensParams) (User, error)
+	UpsertFromDiscord(ctx context.Context, arg UpsertFromDiscordParams) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -8,6 +8,36 @@ import (
 	"github.com/go-faster/errors"
 )
 
+// AuthLogoutNoContent is response for AuthLogout operation.
+type AuthLogoutNoContent struct{}
+
+func (*AuthLogoutNoContent) authLogoutRes() {}
+
+type BearerAuth struct {
+	Token string
+	Roles []string
+}
+
+// GetToken returns the value of Token.
+func (s *BearerAuth) GetToken() string {
+	return s.Token
+}
+
+// GetRoles returns the value of Roles.
+func (s *BearerAuth) GetRoles() []string {
+	return s.Roles
+}
+
+// SetToken sets the value of Token.
+func (s *BearerAuth) SetToken(val string) {
+	s.Token = val
+}
+
+// SetRoles sets the value of Roles.
+func (s *BearerAuth) SetRoles(val []string) {
+	s.Roles = val
+}
+
 // Character information.
 // Ref: #/components/schemas/Character
 type Character struct {
@@ -227,6 +257,9 @@ func (s *Error) SetStatusCode(val int) {
 	s.StatusCode = val
 }
 
+func (*Error) authLogoutRes()  {}
+func (*Error) searchUsersRes() {}
+
 type FindUserBadRequest Error
 
 func (*FindUserBadRequest) findUserRes() {}
@@ -323,6 +356,52 @@ func (o OptCharacter) Get() (v Character, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptCharacter) Or(d Character) Character {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptInt returns new OptInt with value set to v.
+func NewOptInt(v int) OptInt {
+	return OptInt{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptInt is optional int.
+type OptInt struct {
+	Value int
+	Set   bool
+}
+
+// IsSet returns true if OptInt was set.
+func (o OptInt) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptInt) Reset() {
+	var v int
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptInt) SetTo(v int) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptInt) Get() (v int, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptInt) Or(d int) int {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -605,6 +684,10 @@ func (s *Profile) SetWaifus(val []Character) {
 func (*Profile) getUserRes()   {}
 func (*Profile) getUserV1Res() {}
 
+type SearchUsersOKApplicationJSON []UserSearchResult
+
+func (*SearchUsersOKApplicationJSON) searchUsersRes() {}
+
 // Response containing only the user ID.
 // Ref: #/components/schemas/UserIdResponse
 type UserIdResponse struct {
@@ -715,6 +798,59 @@ func (s *UserProfile) SetFavorite(val OptCharacter) {
 }
 
 func (*UserProfile) getProfileV1Res() {}
+
+// Minimal user info for typeahead search results.
+// Ref: #/components/schemas/UserSearchResult
+type UserSearchResult struct {
+	// User ID.
+	ID string `json:"id"`
+	// Discord username.
+	DiscordUsername string `json:"discord_username"`
+	// Discord avatar URL.
+	DiscordAvatar OptString `json:"discord_avatar"`
+	// Anilist user URL.
+	AnilistURL OptString `json:"anilist_url"`
+}
+
+// GetID returns the value of ID.
+func (s *UserSearchResult) GetID() string {
+	return s.ID
+}
+
+// GetDiscordUsername returns the value of DiscordUsername.
+func (s *UserSearchResult) GetDiscordUsername() string {
+	return s.DiscordUsername
+}
+
+// GetDiscordAvatar returns the value of DiscordAvatar.
+func (s *UserSearchResult) GetDiscordAvatar() OptString {
+	return s.DiscordAvatar
+}
+
+// GetAnilistURL returns the value of AnilistURL.
+func (s *UserSearchResult) GetAnilistURL() OptString {
+	return s.AnilistURL
+}
+
+// SetID sets the value of ID.
+func (s *UserSearchResult) SetID(val string) {
+	s.ID = val
+}
+
+// SetDiscordUsername sets the value of DiscordUsername.
+func (s *UserSearchResult) SetDiscordUsername(val string) {
+	s.DiscordUsername = val
+}
+
+// SetDiscordAvatar sets the value of DiscordAvatar.
+func (s *UserSearchResult) SetDiscordAvatar(val OptString) {
+	s.DiscordAvatar = val
+}
+
+// SetAnilistURL sets the value of AnilistURL.
+func (s *UserSearchResult) SetAnilistURL(val OptString) {
+	s.AnilistURL = val
+}
 
 // User's wishlist response.
 // Ref: #/components/schemas/WishlistResponse

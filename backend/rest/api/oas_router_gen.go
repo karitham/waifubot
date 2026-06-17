@@ -73,6 +73,26 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					break
 				}
 				switch elem[0] {
+				case 'a': // Prefix: "auth/logout"
+
+					if l := len("auth/logout"); len(elem) >= l && elem[0:l] == "auth/logout" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch r.Method {
+						case "POST":
+							s.handleAuthLogoutRequest([0]string{}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, "POST")
+						}
+
+						return
+					}
+
 				case 'c': // Prefix: "collection/"
 
 					if l := len("collection/"); len(elem) >= l && elem[0:l] == "collection/" {
@@ -160,6 +180,27 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							switch r.Method {
 							case "GET":
 								s.handleFindUserV1Request([0]string{}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, "GET")
+							}
+
+							return
+						}
+
+						elem = origElem
+					case 's': // Prefix: "search"
+						origElem := elem
+						if l := len("search"); len(elem) >= l && elem[0:l] == "search" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch r.Method {
+							case "GET":
+								s.handleSearchUsersRequest([0]string{}, elemIsEscaped, w, r)
 							default:
 								s.notAllowed(w, r, "GET")
 							}
@@ -394,6 +435,31 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 					break
 				}
 				switch elem[0] {
+				case 'a': // Prefix: "auth/logout"
+
+					if l := len("auth/logout"); len(elem) >= l && elem[0:l] == "auth/logout" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch method {
+						case "POST":
+							r.name = AuthLogoutOperation
+							r.summary = "Log out (revoke bearer token)"
+							r.operationID = "authLogout"
+							r.operationGroup = ""
+							r.pathPattern = "/api/v1/auth/logout"
+							r.args = args
+							r.count = 0
+							return r, true
+						default:
+							return
+						}
+					}
+
 				case 'c': // Prefix: "collection/"
 
 					if l := len("collection/"); len(elem) >= l && elem[0:l] == "collection/" {
@@ -491,6 +557,32 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 								r.operationID = "findUserV1"
 								r.operationGroup = ""
 								r.pathPattern = "/api/v1/user/find"
+								r.args = args
+								r.count = 0
+								return r, true
+							default:
+								return
+							}
+						}
+
+						elem = origElem
+					case 's': // Prefix: "search"
+						origElem := elem
+						if l := len("search"); len(elem) >= l && elem[0:l] == "search" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch method {
+							case "GET":
+								r.name = SearchUsersOperation
+								r.summary = "Search users (typeahead)"
+								r.operationID = "searchUsers"
+								r.operationGroup = ""
+								r.pathPattern = "/api/v1/user/search"
 								r.args = args
 								r.count = 0
 								return r, true

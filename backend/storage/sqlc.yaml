@@ -21,6 +21,16 @@ sql:
         emit_prepared_queries: true
         sql_package: pgx/v5
         sql_driver: github.com/jackc/pgx/v5
+  - queries: "./authstore/queries.sql"
+    schema: "./authstore/schema.sql"
+    engine: "postgresql"
+    gen:
+      go:
+        out: authstore
+        emit_interface: true
+        emit_prepared_queries: true
+        sql_package: pgx/v5
+        sql_driver: github.com/jackc/pgx/v5
   - queries: "./guildstore/queries.sql"
     schema: "./guildstore/schema.sql"
     engine: "postgresql"
@@ -76,6 +86,8 @@ overrides:
   go:
     overrides:
       - column: users.user_id
+        go_type: uint64
+      - column: auth_tokens.user_id
         go_type: uint64
       - column: characters.user_id
         go_type: uint64
