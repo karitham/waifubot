@@ -12,27 +12,11 @@ export default (props: {
 }) => {
 	return (
 		<article
-			class="rounded-lg relative flex h-48 w-full overflow-clip hover:scale-[1.01] active:scale-[0.99] cursor-pointer transition-all duration-200"
+			class="rounded-lg relative flex h-48 w-full overflow-clip"
 			classList={{ "opacity-60": props.missing }}
 			style={{
 				border: `1px solid ${getRarityHex(props.char.favorites)}`,
 			}}
-			aria-label={`${props.char.name} character card${
-				props.missing ? " (missing from collection)" : ""
-			}`}
-			onClick={() =>
-				window.open(`https://anilist.co/character/${props.char.id}`, "_blank")
-			}
-			onKeyDown={(e) => {
-				if (e.key === "Enter" || e.key === " ") {
-					window.open(
-						`https://anilist.co/character/${props.char.id}`,
-						"_blank",
-					);
-					e.preventDefault();
-				}
-			}}
-			tabindex="0"
 		>
 			<div class="relative w-32 flex-shrink-0">
 				<img

@@ -45,8 +45,10 @@ type CharacterFetcher interface {
 }
 
 // Check that anilist actually implements the interfaces
-var _ CharacterFetcher = (*Anilist)(nil)
-var _ discord.TrackingService = (*Anilist)(nil)
+var (
+	_ CharacterFetcher        = (*Anilist)(nil)
+	_ discord.TrackingService = (*Anilist)(nil)
+)
 
 // New returns a new anilist client
 func New() *Anilist {

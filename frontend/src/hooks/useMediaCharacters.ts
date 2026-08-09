@@ -1,21 +1,19 @@
-import { createResource } from "solid-js";
+import { createEffect, createResource, on } from "solid-js";
 import { getMediaCharacters } from "../api/anilist";
 import type { Character } from "../api/generated";
 import { Type } from "../api/generated";
-import type { Option } from "../components/filters/FilterMedia";
+import type { MediaOption } from "../components/filters/MediaFilter";
 
 const fetchCharacters = async (
-	media?: Option,
+	media: MediaOption,
 ): Promise<Character[] | undefined> => {
-	if (!media) return undefined;
-
-	const m = await getMediaCharacters(String(media.value));
-	if (!m) {
+	const result = await getMediaCharacters(String(media.value));
+	if (!result) {
 		console.error("no media characters found");
 		return undefined;
 	}
 
-	return m.map(
+	return result.map(
 		(c): Character => ({
 			id: parseInt(c.id, 10),
 			name: c.name.full,
@@ -27,6 +25,19 @@ const fetchCharacters = async (
 	);
 };
 
-export const useMediaCharacters = (media: () => Option | null) => {
-	return createResource(media, fetchCharacters);
+/**
+ * Characters of the selected media filter, for the grid's owned/missing
+ * split. Returns the resource accessor.
+ *
+ * createResource keeps its previous value when the source turns null, so
+ * the effect clears it explicitly when the media filter is removed.
+ */
+export const useMediaCharacters = (media: () => MediaOption | null) => {
+	const [characters, { mutate }] = createResource(media, fetchCharacters);
+	createEffect(
+		on(media, (selected) => {
+			if (!selected) mutate(undefined);
+		}),
+	);
+	return characters;
 };

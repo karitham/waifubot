@@ -27,6 +27,7 @@ export default function <T>(props: CharSortProps<T>) {
 			optionValue="id"
 			optionTextValue="label"
 			placeholder="Sort by..."
+			ariaLabel="Sort by"
 		/>
 	);
 }

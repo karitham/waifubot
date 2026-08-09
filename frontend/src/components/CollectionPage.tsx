@@ -2,7 +2,6 @@ import { useSearchParams } from "@solidjs/router";
 import { createMemo, Show } from "solid-js";
 import type { Character, UserProfile } from "../api/generated";
 import CollectionBody from "../components/CollectionBody";
-import CollectionNav from "../components/CollectionNav";
 import PageLayout from "../components/layout/Layout";
 import ProfileBar from "../components/profile/Profile";
 import { CollectionFiltersProvider } from "../context/CollectionFiltersContext";
@@ -36,17 +35,16 @@ export default (props: CollectionPageProps) => {
 		setCharSortAsc,
 		charSearch,
 		setCharSearch,
-		compareUsersResource,
+		compareUsers,
+		compareUserList,
 		media,
 		setMedia,
 		onCompareAdd,
 		onCompareRemove,
+		onCompareRetry,
 	} = usePageFilters(user()?.id);
 
-	const compareUsers = createMemo(() => compareUsersResource());
-
-	const [mediaCharacters, { mutate: setMediaCharacters }] =
-		useMediaCharacters(media);
+	const mediaCharacters = useMediaCharacters(media);
 
 	const showWhen = () =>
 		user() && (props.allowEmpty || !!props.characters) ? user() : undefined;
@@ -77,37 +75,30 @@ export default (props: CollectionPageProps) => {
 						/>
 					}
 					body={
-						<>
-							<div class="content-width">
-								<CollectionNav
-									navbarLink={props.navbarLink}
-									searchParams={searchParams()}
-								/>
-							</div>
-							<CollectionFiltersProvider
-								charSearch={charSearch}
-								setCharSearch={setCharSearch}
-								charSort={charSort}
-								setCharSort={setCharSort}
-								charSortAsc={charSortAsc}
-								setCharSortAsc={setCharSortAsc}
-								compareUsers={compareUsers}
-								compareIds={compareIds}
-								media={media}
-								setMedia={(m) => {
-									setMedia(m);
-									if (!m) setMediaCharacters(undefined);
-								}}
-								onCompareAdd={onCompareAdd}
-								onCompareRemove={onCompareRemove}
-							>
-								<CollectionBody
-									characters={props.characters}
-									mediaCharacters={mediaCharacters()}
-									mainUser={u()}
-								/>
-							</CollectionFiltersProvider>
-						</>
+						<CollectionFiltersProvider
+							charSearch={charSearch}
+							setCharSearch={setCharSearch}
+							charSort={charSort}
+							setCharSort={setCharSort}
+							charSortAsc={charSortAsc}
+							setCharSortAsc={setCharSortAsc}
+							compareUsers={compareUsers}
+							compareUserList={compareUserList}
+							compareIds={compareIds}
+							media={media}
+							setMedia={setMedia}
+							onCompareAdd={onCompareAdd}
+							onCompareRemove={onCompareRemove}
+							onCompareRetry={onCompareRetry}
+						>
+							<CollectionBody
+								characters={props.characters}
+								mediaCharacters={mediaCharacters()}
+								mainUser={u()}
+								navbarLink={props.navbarLink}
+								searchParams={searchParams()}
+							/>
+						</CollectionFiltersProvider>
 					}
 				/>
 			)}

@@ -1,16 +1,21 @@
 import { useNavigate } from "@solidjs/router";
 import { findUserV1 } from "../api/generated";
 
+/**
+ * Resolves a search input (numeric ID, Discord username, or AniList
+ * username) to a user ID and navigates to their collection.
+ * Returns true when navigation happened.
+ */
 export const useUserSearch = () => {
 	const nav = useNavigate();
 
-	const searchUser = async (id: string) => {
+	const searchUser = async (id: string): Promise<boolean> => {
 		const userId = await getUserID(id);
 		if (userId) {
 			nav(`/list/${userId}`);
-		} else {
-			alert("User not found");
+			return true;
 		}
+		return false;
 	};
 
 	return searchUser;

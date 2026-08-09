@@ -12,15 +12,11 @@ export type SelectFieldProps<T extends Record<string, unknown>> = {
 	placeholder?: string;
 	class?: string;
 	allowDuplicateSelectionEvents?: boolean;
+	ariaLabel?: string;
 };
 
-const defaultItemComponent = <T extends Record<string, unknown>>(
-	props: any,
-): JSX.Element => (
-	<Select.Item
-		item={props.item}
-		class="select-item"
-	>
+const defaultItemComponent = (props: any): JSX.Element => (
+	<Select.Item item={props.item} class="select-item">
 		<Select.ItemLabel>
 			{props.item.rawValue[props.optionTextValue] as string}
 		</Select.ItemLabel>
@@ -56,19 +52,21 @@ export default function <T extends Record<string, unknown>>(
 			itemComponent={ItemComponent as any}
 			allowDuplicateSelectionEvents={props.allowDuplicateSelectionEvents}
 			class={props.class || "w-full"}
+			sameWidth={true}
 		>
 			<Select.Label />
-			<Select.Trigger class="select-trigger">
+			<Select.Trigger class="select-trigger" aria-label={props.ariaLabel}>
 				<Select.Value<T>>
 					{(state) => {
 						const selected = state.selectedOption() as T | null;
-						if (!selected) return props.placeholder;
+						if (!selected)
+							return <span class="text-overlayC">{props.placeholder}</span>;
 						return selected[props.optionTextValue] as string;
 					}}
 				</Select.Value>
 				<Select.Icon class="text-subtextB">
-				<span class="i-ph-caret-down text-sm" />
-			</Select.Icon>
+					<span class="i-ph-caret-down text-sm" />
+				</Select.Icon>
 			</Select.Trigger>
 			<Select.Portal>
 				<Select.Content class="focus:outline-none">

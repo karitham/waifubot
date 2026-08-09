@@ -1,7 +1,7 @@
 import { useNavigate } from "@solidjs/router";
 
 const buttonClass =
-	"bg-mauve hover:bg-pink px-8 py-4 rounded-lg focus:outline-none active:scale-96 transition-colors transition-transform cursor-pointer font-sans";
+	"inline-flex items-center bg-mauve hover:bg-pink px-8 py-4 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-mauve/60 focus-visible:ring-offset-2 focus-visible:ring-offset-base active:scale-[0.96] transition cursor-pointer font-sans";
 
 export default () => {
 	const navigate = useNavigate();

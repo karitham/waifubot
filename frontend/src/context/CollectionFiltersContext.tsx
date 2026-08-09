@@ -1,10 +1,11 @@
 import { createContext, useContext, type ParentProps } from "solid-js";
 import type { Character } from "../api/generated";
-import type { Option } from "../components/filters/FilterMedia";
-import { sortOptions, type CompareUser } from "../hooks/usePageFilters";
-
-export { sortOptions };
-export type { CompareUser, Option };
+import type { MediaOption } from "../components/filters/MediaFilter";
+import type {
+	CompareAddResult,
+	CompareUser,
+	CompareUserListItem,
+} from "../hooks/usePageFilters";
 
 interface SortFn {
 	id: string;
@@ -19,12 +20,16 @@ interface CollectionFiltersContextValue {
 	setCharSort: (value: SortFn) => void;
 	charSortAsc: () => number;
 	setCharSortAsc: (value: number | ((prev: number) => number)) => void;
-	compareUsers: () => CompareUser[] | undefined;
 	compareIds: () => string[];
-	media: () => Option | null;
-	setMedia: (value: Option | null) => void;
-	onCompareAdd: (input: string) => Promise<void>;
+	/** Loaded compare users (profiles + collections) for the grid. */
+	compareUsers: () => CompareUser[];
+	/** Per-user state (loading/error) for the chip list. */
+	compareUserList: () => CompareUserListItem[];
+	media: () => MediaOption | null;
+	setMedia: (value: MediaOption | null) => void;
+	onCompareAdd: (input: string) => Promise<CompareAddResult>;
 	onCompareRemove: (id: string) => void;
+	onCompareRetry: (id: string) => void;
 }
 
 const CollectionFiltersContext = createContext<CollectionFiltersContextValue>();

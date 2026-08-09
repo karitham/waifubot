@@ -1,178 +1,186 @@
-import { Search } from "@kobalte/core/search";
-import { createMemo, createEffect, createSignal } from "solid-js";
-import type { UserProfile } from "../../api/generated";
+import { TextField } from "@kobalte/core/text-field";
+import { createSignal, For, Show } from "solid-js";
 import { useCollectionFilters } from "../../context/CollectionFiltersContext";
-import AvatarStack from "../ui/AvatarStack";
-import DropdownSearch, { type Option } from "../ui/DropdownSearch";
+import type { CompareUserListItem } from "../../hooks/usePageFilters";
 
-const renderItem = (itemProps: any) => {
-	const [hovered, setHovered] = createSignal(false);
-	return (
-		<Search.Item
-			item={itemProps.item}
-			class="search-item"
-			onMouseEnter={() => setHovered(true)}
-			onMouseLeave={() => setHovered(false)}
-		>
-			<div class="flex flex-row items-center gap-4">
-				{itemProps.item.rawValue.image ? (
-					<div class="relative h-12 w-12">
-						<img
-							alt={itemProps.item.rawValue.label}
-							src={itemProps.item.rawValue.image}
-							class="h-12 w-12 object-cover rounded-full border-2 border-maroon absolute inset-0 transition-opacity duration-200"
-							classList={{
-								"opacity-100": !hovered(),
-								"opacity-0": hovered(),
-							}}
-						/>
-						<div
-							class="h-12 w-12 flex items-center justify-center bg-surfaceB rounded-full absolute inset-0 transition-opacity duration-200"
-							classList={{
-								"opacity-100": hovered(),
-								"opacity-0": !hovered(),
-							}}
-						>
-							<span class="i-ph-x text-lg" />
-						</div>
-					</div>
-				) : (
-					<div class="h-12 w-12 flex items-center justify-center bg-surfaceB rounded-full">
-						<span class="i-ph-plus text-lg" />
-					</div>
-				)}
-				<Search.ItemLabel>{itemProps.item.rawValue.label}</Search.ItemLabel>
-			</div>
-		</Search.Item>
-	);
-};
+type Feedback = { kind: "error" | "success"; text: string };
 
-const renderSelectedUser = (user: UserProfile, onRemove: (id: string) => void) => {
-	const [hovered, setHovered] = createSignal(false);
+const Chip = (props: {
+	item: CompareUserListItem;
+	onRemove: (id: string) => void;
+	onRetry: (id: string) => void;
+}) => {
+	const name = () =>
+		props.item.user()?.profile.discord_username ||
+		props.item.user()?.profile.id ||
+		"";
 
-	const handleClick = () => {
-		onRemove(user.id);
-	};
+	const initials = () => name().slice(0, 2).toUpperCase();
 
 	return (
-		<button
-			type="button"
-			class="flex flex-row items-center gap-4 p-2 rounded cursor-pointer w-full text-left search-item bg-transparent hover:bg-surfaceA/50 transition-colors duration-200"
-			onMouseEnter={() => setHovered(true)}
-			onMouseLeave={() => setHovered(false)}
-			onClick={handleClick}
+		<div
+			class={`inline-flex items-center gap-2 h-10 pl-1.5 rounded-full border bg-surfaceA ${
+				props.item.error()
+					? "border-red/50 cursor-pointer hover:bg-surfaceB/50"
+					: "border-surfaceB/40"
+			}`}
+			title={props.item.error() ? "Failed to load — click to retry" : name()}
+			onClick={() => props.item.error() && props.onRetry(props.item.id)}
 		>
-			{user.discord_avatar ? (
-				<div class="relative h-12 w-12 shrink-0">
-					<img
-						alt={user.discord_username || user.id}
-						src={user.discord_avatar}
-						class="h-12 w-12 object-cover rounded-full border-2 border-maroon absolute inset-0 transition-opacity duration-200"
-						classList={{
-							"opacity-100": !hovered(),
-							"opacity-0": hovered(),
-						}}
+			<Show
+				when={!props.item.loading()}
+				fallback={
+					<span
+						class="w-8 h-8 rounded-full bg-surfaceB animate-pulse shrink-0"
+						aria-hidden="true"
 					/>
-					<div
-						class="h-12 w-12 flex items-center justify-center bg-surfaceB rounded-full absolute inset-0 transition-opacity duration-200"
-						classList={{
-							"opacity-100": hovered(),
-							"opacity-0": !hovered(),
-						}}
-					>
-						<span class="i-ph-x text-lg" />
-					</div>
-				</div>
-			) : (
-				<div class="h-12 w-12 flex items-center justify-center bg-surfaceB rounded-full shrink-0">
-					<span class="i-ph-x text-lg" />
-				</div>
-			)}
-			<span>{user.discord_username || user.id}</span>
-		</button>
+				}
+			>
+				<Show
+					when={props.item.user()?.profile.discord_avatar}
+					fallback={
+						<span class="w-8 h-8 rounded-full bg-surfaceB border-2 border-maroon flex items-center justify-center text-xs font-medium text-text shrink-0">
+							{initials()}
+						</span>
+					}
+				>
+					{(avatar) => (
+						<img
+							src={avatar()}
+							alt={name()}
+							class="w-8 h-8 rounded-full border-2 border-maroon object-cover shrink-0"
+						/>
+					)}
+				</Show>
+			</Show>
+			<span class="text-sm text-text max-w-36 truncate">
+				{props.item.error()
+					? "Failed to load"
+					: props.item.loading()
+						? "Loading…"
+						: name()}
+			</span>
+			<button
+				type="button"
+				class="flex items-center justify-center w-9 self-stretch rounded-full text-subtextA hover:text-text hover:bg-surfaceC transition active:scale-[0.96] shrink-0"
+				onClick={(e) => {
+					e.stopPropagation();
+					props.onRemove(props.item.id);
+				}}
+				aria-label={`Remove ${name()} from comparison`}
+			>
+				<span class="i-ph-x text-sm" aria-hidden="true" />
+			</button>
+		</div>
 	);
 };
 
 export default () => {
 	const filters = useCollectionFilters();
+	const [input, setInput] = createSignal("");
+	const [busy, setBusy] = createSignal(false);
+	const [feedback, setFeedback] = createSignal<Feedback | null>(null);
+	let feedbackTimeout: ReturnType<typeof setTimeout> | undefined;
 
-	const selectedUsers = (): UserProfile[] => {
-		return (filters.compareUsers() ?? []).map((cu) => cu.profile);
+	const showFeedback = (kind: Feedback["kind"], text: string) => {
+		setFeedback({ kind, text });
+		clearTimeout(feedbackTimeout);
+		if (kind === "success") {
+			feedbackTimeout = setTimeout(() => setFeedback(null), 2500);
+		}
 	};
 
-	const [getSearchValue, setSearchValue] = createSignal("");
-
-	const options = (): Option[] => {
-		if (!getSearchValue()) {
-			return selectedUsers().map((u) => ({
-				value: u.id,
-				label: u.discord_username || u.id,
-				image: u.discord_avatar,
-			}));
+	const addUser = async () => {
+		const value = input().trim();
+		if (!value || busy()) return;
+		setBusy(true);
+		try {
+			const result = await filters.onCompareAdd(value);
+			switch (result) {
+				case "added":
+					setInput("");
+					showFeedback("success", "Added to comparison");
+					break;
+				case "not_found":
+					showFeedback("error", "User not found");
+					break;
+				case "self":
+					showFeedback("error", "That's you — compare with someone else");
+					break;
+				case "duplicate":
+					showFeedback("error", "Already comparing with this user");
+					break;
+				case "error":
+					showFeedback("error", "Something went wrong");
+					break;
+			}
+		} finally {
+			setBusy(false);
 		}
-		return [{ value: "add", label: "Compare with this user", image: "" }];
-	};
-
-	const customControl = (controlProps: { children: any }) => (
-		<Search.Control aria-label="Users" class="search-control relative">
-			<div class="relative w-full">
-				{controlProps.children}
-				<div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-end pointer-events-none">
-					<AvatarStack
-						avatars={[
-							...selectedUsers()
-								.map((u) => u.discord_avatar)
-								.filter((a): a is string => a !== undefined),
-						].reverse()}
-						names={[
-							...selectedUsers().map((u) => u.discord_username || u.id),
-						].reverse()}
-						small
-					/>
-				</div>
-			</div>
-		</Search.Control>
-	);
-
-	const customPortalContent = () => {
-		const searchValue = getSearchValue();
-		const users = selectedUsers();
-		const userCount = users.length;
-
-		if (!searchValue && userCount > 0) {
-			return (
-				<div class="p-0 m-0 overflow-clip list-none w-full border-none rounded-xl flex flex-col bg-surfaceB shadow-xl text-sm">
-					<div class="p-2">
-						<div class="text-xs text-text/60 px-2 py-1 uppercase tracking-wide font-medium">
-							Selected users
-						</div>
-						<div class="flex flex-col gap-1">
-							{users.map((user) => renderSelectedUser(user, filters.onCompareRemove))}
-						</div>
-					</div>
-				</div>
-			);
-		}
-		return <Search.Listbox class="search-listbox" />;
 	};
 
 	return (
-		<DropdownSearch
-			options={options()}
-			onChange={(option) => {
-				if (option?.value === "add") {
-					filters.onCompareAdd(getSearchValue());
-					setSearchValue("");
-				} else if (option) {
-					filters.onCompareRemove(String(option.value));
+		<div class="flex flex-col gap-2">
+			<div class="flex gap-2">
+				<TextField class="w-full flex-1 min-w-0">
+					<TextField.Input
+						class="control-base"
+						value={input()}
+						onInput={(e) => {
+							setInput(e.currentTarget.value);
+							setFeedback(null);
+						}}
+						onKeyDown={(e) => e.key === "Enter" && addUser()}
+						placeholder="Add user by Discord or AniList username"
+						aria-label="Add user to compare"
+					/>
+				</TextField>
+				<button
+					type="button"
+					class="inline-flex items-center gap-1.5 px-4 h-[40px] rounded-lg bg-surfaceB/60 hover:bg-surfaceB/80 text-sm font-medium text-text transition active:scale-[0.96] focus:outline-none focus-visible:ring-2 focus-visible:ring-mauve/60 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+					onClick={addUser}
+					disabled={busy() || !input().trim()}
+				>
+					<span
+						class={`i-ph-plus text-sm ${busy() ? "animate-spin" : ""}`}
+						aria-hidden="true"
+					/>
+					<span class="hidden sm:inline">Add</span>
+				</button>
+			</div>
+
+			<Show when={filters.compareUserList().length > 0}>
+				<div class="flex flex-wrap gap-2">
+					<For each={filters.compareUserList()}>
+						{(item) => (
+							<Chip
+								item={item}
+								onRemove={filters.onCompareRemove}
+								onRetry={filters.onCompareRetry}
+							/>
+						)}
+					</For>
+				</div>
+			</Show>
+
+			<Show
+				when={feedback()}
+				fallback={
+					<Show when={filters.compareUserList().length === 0}>
+						<p class="text-xs text-subtextA">
+							Add users to highlight characters shared with your collection.
+						</p>
+					</Show>
 				}
-			}}
-			onInputChange={setSearchValue}
-			placeholder="Search users..."
-			triggerMode="focus"
-			itemComponent={renderItem}
-			customControl={customControl}
-			customPortalContent={customPortalContent}
-		/>
+			>
+				{(fb) => (
+					<p
+						class={`text-xs ${fb().kind === "error" ? "text-red" : "text-green"}`}
+					>
+						{fb().text}
+					</p>
+				)}
+			</Show>
+		</div>
 	);
 };

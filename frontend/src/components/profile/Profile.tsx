@@ -12,6 +12,9 @@ const getDisplayName = (
 	discordUsername ||
 	(anilistURL?.split(/https:\/\/anilist.co\/user\/([\w\d]+)/g)?.[1] ?? user);
 
+const sectionTitle =
+	"text-sm font-semibold tracking-wider text-mauve/70 uppercase mb-4";
+
 export default (props: {
 	favorite?: Character;
 	user: string | undefined;
@@ -30,8 +33,14 @@ export default (props: {
 		props.user,
 	);
 
+	const favorite = () =>
+		props.favorite && props.favorite.name !== "" ? props.favorite : undefined;
+
+	const about = () =>
+		props.about && props.about !== "" ? props.about : undefined;
+
 	return (
-		<div class="flex flex-col gap-8">
+		<div class="bg-surface rounded-2xl border border-surfaceB/40 p-5 md:p-8 flex flex-col gap-6 md:gap-8">
 			{/* Always show user info header */}
 			<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
 				<Show when={displayName}>
@@ -74,50 +83,49 @@ export default (props: {
 				<Show when={props.actionLink}>
 					<a
 						href={props.actionLink?.href}
-						class="px-6 py-3 bg-mauve text-base rounded-lg hover:bg-pink transition-colors active:scale-96 transition-transform min-h-10"
+						class="inline-flex items-center px-6 py-3 bg-mauve text-base rounded-lg hover:bg-pink transition active:scale-[0.96] min-h-10 focus-visible:ring-2 focus-visible:ring-mauve/60 focus-visible:ring-offset-2 focus-visible:ring-offset-base"
 					>
 						{props.actionLink?.label}
 					</a>
 				</Show>
 			</div>
 
-			{/* Favorite character section — sits directly on card surface, no nesting */}
-			<Show
-				when={
-					props.favorite && props.favorite.name !== ""
-						? props.favorite
-						: undefined
-				}
-			>
-				{(fav) => (
-					<div>
-						<h3 class="text-sm font-semibold tracking-wider text-mauve/70 uppercase mb-4">
-							Favorite Character
-						</h3>
-						<div class="flex gap-6 items-start">
-							<img
-								src={fav().image}
-								class="w-36 md:w-40 h-auto object-cover rounded-2xl shadow-lg shadow-mauve/10"
-								alt={fav().name}
-							/>
-							<CharacterDetails char={fav()} />
-						</div>
-					</div>
-				)}
-			</Show>
-
-			{/* Conditional: Quote/about section with refined typography */}
-			<Show when={props.about && props.about !== ""}>
-				<div class="max-w-prose">
-					<div
-						id="about"
-						class="font-sans text-[--text-body] leading-relaxed text-text/90 [&_p]:mb-4 [&_p]:last:mb-0 [&_a]:text-mauve [&_a]:hover:text-pink [&_a]:border-b [&_a]:border-mauve/30 [&_a]:hover:border-pink/50 [&_a]:transition-colors"
-						innerHTML={DOMPurify.sanitize(
-							marked.parse(props.about?.replaceAll("\n", "\n\n") ?? "", {
-								async: false,
-							}) as string,
+			{/* Favorite + about — side by side on desktop, stacked on mobile */}
+			<Show when={favorite() || about()}>
+				<div class="flex flex-col md:flex-row gap-8 md:gap-12 border-t border-surfaceB/40 pt-6 md:pt-8">
+					<Show when={favorite()}>
+						{(fav) => (
+							<section class="md:flex-1 min-w-0">
+								<h3 class={sectionTitle}>Favorite Character</h3>
+								<div class="flex gap-4 items-start">
+									<img
+										src={fav().image}
+										class="w-28 md:w-32 h-auto object-cover rounded-xl outline-1 outline-text/10"
+										alt={fav().name}
+									/>
+									<CharacterDetails char={fav()} class="min-w-0" />
+								</div>
+							</section>
 						)}
-					/>
+					</Show>
+					<Show when={about()}>
+						{(text) => (
+							<section class="md:flex-1 min-w-0">
+								<h3 class={sectionTitle}>About</h3>
+								<div class="max-w-prose">
+									<div
+										id="about"
+										class="font-sans text-[--text-body] leading-relaxed text-text/90 [&_p]:mb-4 [&_p]:last:mb-0 [&_a]:text-mauve [&_a]:hover:text-pink [&_a]:border-b [&_a]:border-mauve/30 [&_a]:hover:border-pink/50 [&_a]:transition-colors"
+										innerHTML={DOMPurify.sanitize(
+											marked.parse(text().replaceAll("\n", "\n\n") ?? "", {
+												async: false,
+											}) as string,
+										)}
+									/>
+								</div>
+							</section>
+						)}
+					</Show>
 				</div>
 			</Show>
 		</div>

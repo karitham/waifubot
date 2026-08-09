@@ -1,14 +1,12 @@
 import { createWindowVirtualizer } from "@tanstack/solid-virtual";
-import { createMemo, createSignal, onCleanup, onMount, Show } from "solid-js";
+import { createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import type { Character, UserProfile } from "../../api/generated";
 import { useCollectionFilters } from "../../context/CollectionFiltersContext";
-import type { CompareUser } from "../../hooks/usePageFilters";
 import {
 	type CharOwned,
 	combineFilters,
 	filterBySearchTerm,
 } from "../../utils/filterUtils";
-import EmptyState from "../ui/EmptyState";
 import CharCard from "./Card";
 
 const CARD_HEIGHT = 192; // h-48 = 12rem = 192px
@@ -192,15 +190,15 @@ export default (props: {
 	});
 
 	return (
-			<div
-				ref={containerRef}
-				id="list"
-				style={{
-					position: "relative",
-					width: "100%",
-					height: `${virtualizer.getTotalSize()}px`,
-				}}
-			>
+		<div
+			ref={containerRef}
+			id="list"
+			style={{
+				position: "relative",
+				width: "100%",
+				height: `${virtualizer.getTotalSize()}px`,
+			}}
+		>
 			<div
 				style={{
 					position: "relative",
@@ -208,44 +206,43 @@ export default (props: {
 					"min-width": "100%",
 				}}
 			>
-					{virtualizer.getVirtualItems().map((virtualItem) => {
-						const char = list()[virtualItem.index];
+				{virtualizer.getVirtualItems().map((virtualItem) => {
+					const char = list()[virtualItem.index];
 
-						const ownersAvatars =
-							char.owners
-								?.map((id) => findUser(id)?.discord_avatar)
-								.filter((a): a is string => a !== undefined) || [];
-						const ownersNames =
-							char.owners
-								?.map((id) => findUser(id)?.discord_username || id)
-								.filter((name): name is string => name !== undefined) || [];
+					const ownersAvatars =
+						char.owners
+							?.map((id) => findUser(id)?.discord_avatar)
+							.filter((a): a is string => a !== undefined) || [];
+					const ownersNames =
+						char.owners
+							?.map((id) => findUser(id)?.discord_username || id)
+							.filter((name): name is string => name !== undefined) || [];
 
-						const colWidth = columnWidth();
-						const left = virtualItem.lane * (colWidth + GAP);
+					const colWidth = columnWidth();
+					const left = virtualItem.lane * (colWidth + GAP);
 
-						return (
-							<div
-								data-key={virtualItem.key}
-								style={{
-									position: "absolute",
-									top: 0,
-									left: `${left}px`,
-									width: `${colWidth}px`,
-									height: `${CARD_HEIGHT}px`,
-									transform: `translateY(${virtualItem.start - scrollMargin()}px)`,
-								}}
-							>
-								<CharCard
-									char={char}
-									ownersAvatars={ownersAvatars}
-									ownersNames={ownersNames}
-									missing={char.missing}
-								/>
-							</div>
-						);
-					})}
-				</div>
+					return (
+						<div
+							data-key={virtualItem.key}
+							style={{
+								position: "absolute",
+								top: 0,
+								left: `${left}px`,
+								width: `${colWidth}px`,
+								height: `${CARD_HEIGHT}px`,
+								transform: `translateY(${virtualItem.start - scrollMargin()}px)`,
+							}}
+						>
+							<CharCard
+								char={char}
+								ownersAvatars={ownersAvatars}
+								ownersNames={ownersNames}
+								missing={char.missing}
+							/>
+						</div>
+					);
+				})}
 			</div>
-		);
-	};
-
+		</div>
+	);
+};

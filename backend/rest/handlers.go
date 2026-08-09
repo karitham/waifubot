@@ -208,7 +208,6 @@ func (s *Server) FindUser(ctx context.Context, params api.FindUserParams) (api.F
 	}
 
 	resp, err := s.findUserByQuery(ctx, anilistVal, discordVal, anilistSet)
-
 	if err != nil {
 		if errors.Is(err, errUserNotFound) {
 			return &api.FindUserNotFound{
@@ -236,7 +235,6 @@ func (s *Server) FindUserV1(ctx context.Context, params api.FindUserV1Params) (a
 	}
 
 	resp, err := s.findUserByQuery(ctx, anilistVal, discordVal, anilistSet)
-
 	if err != nil {
 		if errors.Is(err, errUserNotFound) {
 			return &api.FindUserV1NotFound{
@@ -251,9 +249,7 @@ func (s *Server) FindUserV1(ctx context.Context, params api.FindUserV1Params) (a
 	return resp, nil
 }
 
-var (
-	errUserNotFound = errors.New("user not found")
-)
+var errUserNotFound = errors.New("user not found")
 
 func (s *Server) findUserByQuery(ctx context.Context, anilist, discord string, useAnilist bool) (*api.UserIdResponse, error) {
 	var user collection.User

@@ -54,17 +54,17 @@
 
 :root {
 	--text-display: clamp(2.5rem, 5vw, 4rem);
-	--text-h1:      clamp(2rem,   4vw, 3rem);
-	--text-h2:      clamp(1.5rem, 3vw, 2rem);
-	--text-h3:      clamp(1.25rem, 2vw, 1.5rem);
-	--text-body:    1rem;
-	--text-sm:      0.875rem;
+	--text-h1: clamp(2rem, 4vw, 3rem);
+	--text-h2: clamp(1.5rem, 3vw, 2rem);
+	--text-h3: clamp(1.25rem, 2vw, 1.5rem);
+	--text-body: 1rem;
+	--text-sm: 0.875rem;
 
-	--space-xs:  0.5rem;
-	--space-sm:  1rem;
-	--space-md:  1.5rem;
-	--space-lg:  2rem;
-	--space-xl:  3rem;
+	--space-xs: 0.5rem;
+	--space-sm: 1rem;
+	--space-md: 1.5rem;
+	--space-lg: 2rem;
+	--space-xl: 3rem;
 	--space-2xl: 4rem;
 	--space-3xl: 6rem;
 }
@@ -80,29 +80,36 @@ body {
 	-moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
 	font-family: "Fredoka", sans-serif;
 	line-height: 1.15;
 	font-weight: 600;
+	text-wrap: balance;
 }
 
 /*
  * Fluid container max-width
  * Uses clamp() to scale between 320px (mobile) and 1536px (desktop)
  * 90vw ensures horizontal padding on smaller screens
+ * Padding: 16px on mobile, 24px from 640px up
  */
 .content-width {
 	max-width: clamp(320px, 90vw, 1536px);
 	width: 100%;
 	margin: 0 auto;
-	padding-left: var(--space-md);
-	padding-right: var(--space-md);
+	padding-left: var(--space-sm);
+	padding-right: var(--space-sm);
 }
 
 @media (min-width: 640px) {
 	.content-width {
-		padding-left: var(--space-sm);
-		padding-right: var(--space-sm);
+		padding-left: var(--space-md);
+		padding-right: var(--space-md);
 	}
 }
 
@@ -115,7 +122,8 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Float animation for background orbs */
 @keyframes float-slow {
-	0%, 100% {
+	0%,
+	100% {
 		transform: translateY(0) translateX(0);
 	}
 	50% {
@@ -125,7 +133,8 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Subtle pulse for glow effects */
 @keyframes pulse-subtle {
-	0%, 100% {
+	0%,
+	100% {
 		opacity: 0.6;
 		transform: scale(1);
 	}
@@ -147,9 +156,16 @@ h1, h2, h3, h4, h5, h6 {
 	}
 }
 
-/* Custom ease-out-quart timing function */
-@keyframes ease-out-quart {
-	animation-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+/* Dropdown / popover entrance */
+@keyframes pop-in {
+	from {
+		opacity: 0;
+		transform: translateY(4px) scale(0.98);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
 }
 
 /* Animation utilities */
@@ -167,7 +183,7 @@ h1, h2, h3, h4, h5, h6 {
 	.animate-pulse-subtle {
 		animation: none;
 	}
-	
+
 	* {
 		transition-duration: 0.01ms !important;
 		animation-duration: 0.01ms !important;

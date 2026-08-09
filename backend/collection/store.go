@@ -30,8 +30,10 @@ const RollWeightExponent = 1.0
 type UserID = uint64
 
 // Re-export catalog types so callers don't need a separate import.
-type Character = catalog.Character
-type Drop = catalog.Drop
+type (
+	Character = catalog.Character
+	Drop      = catalog.Drop
+)
 
 // User holds user profile data.
 type User struct {

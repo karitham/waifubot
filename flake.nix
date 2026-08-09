@@ -37,6 +37,23 @@
         default = self.nixosModules.default;
       };
 
+      formatter = forSystems (
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
+        pkgs.writeShellApplication {
+          name = "treefmt";
+          runtimeInputs = with pkgs; [
+            biome
+            gofumpt
+            nixfmt
+            treefmt
+          ];
+          text = ''exec treefmt "$@"'';
+        }
+      );
+
       devShells = forSystems (
         system:
         let
@@ -55,6 +72,9 @@
               nodejs
               nodePackages.npm
               ogen
+              biome
+              nixfmt
+              treefmt
               self.packages.${system}.genqlient
             ];
           };

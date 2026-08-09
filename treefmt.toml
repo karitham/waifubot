@@ -1,0 +1,36 @@
+# One-command formatting for the whole repo: `treefmt` from the devShell.
+# Formatter binaries are provided by the flake devShell / formatter output.
+
+[global]
+excludes = [
+  "result",
+  "flake.lock",
+  "frontend/node_modules/**",
+  "frontend/dist/**",
+  "frontend/package-lock.json",
+  "frontend/src/api/generated.ts",
+  "backend/anilist/schema.graphql",
+]
+
+[formatter.go]
+command = "gofumpt"
+options = ["-w"]
+includes = ["*.go"]
+excludes = [
+  "backend/anilist/*.gen.go",        # genqlient
+  "backend/rest/api/*.go",           # ogen
+  "backend/storage/*store/*.sql.go", # sqlc
+  "backend/storage/*store/db.go",    # sqlc
+  "backend/storage/*store/models.go", # sqlc
+  "backend/storage/*store/querier.go", # sqlc
+  "backend/**/mocks/*.go",           # mockgen
+]
+
+[formatter.frontend]
+command = "biome"
+options = ["format", "--write"]
+includes = ["*.ts", "*.tsx", "*.mts", "*.js", "*.jsx", "*.json", "*.css"]
+
+[formatter.nix]
+command = "nixfmt"
+includes = ["*.nix"]

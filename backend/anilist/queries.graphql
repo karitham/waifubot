@@ -1,123 +1,123 @@
 query character($name: String) {
-	Page(page: 1, perPage: 3) {
-		characters(search: $name) {
-			id
-			name {
-				full
-			}
-			description
-			siteUrl
-			image {
-				large
-			}
-			favourites
-		}
-	}
+  Page(page: 1, perPage: 3) {
+    characters(search: $name) {
+      id
+      name {
+        full
+      }
+      description
+      siteUrl
+      image {
+        large
+      }
+      favourites
+    }
+  }
 }
 
 query user($name: String) {
-	Page(page: 1, perPage: 3) {
-		users(search: $name) {
-			id
-			name
-			about
-			siteUrl
-			avatar {
-				large
-			}
-			bannerImage
-		}
-	}
+  Page(page: 1, perPage: 3) {
+    users(search: $name) {
+      id
+      name
+      about
+      siteUrl
+      avatar {
+        large
+      }
+      bannerImage
+    }
+  }
 }
 
 query media($name: String, $typ: MediaType) {
-	Page(page: 1, perPage: 3) {
-		media(search: $name, type: $typ) {
-			id
-			title {
-				romaji
-			}
-			description
-			siteUrl
-			coverImage {
-				large
-				color
-			}
-			bannerImage
-		}
-	}
+  Page(page: 1, perPage: 3) {
+    media(search: $name, type: $typ) {
+      id
+      title {
+        romaji
+      }
+      description
+      siteUrl
+      coverImage {
+        large
+        color
+      }
+      bannerImage
+    }
+  }
 }
 
 query searchMedia($search: String) {
-	Page(page: 1, perPage: 10) {
-		media(search: $search, sort: POPULARITY_DESC) {
-			id
-			title {
-				romaji
-				english
-				native
-			}
-			type
-			coverImage {
-				large
-			}
-		}
-	}
+  Page(page: 1, perPage: 10) {
+    media(search: $search, sort: POPULARITY_DESC) {
+      id
+      title {
+        romaji
+        english
+        native
+      }
+      type
+      coverImage {
+        large
+      }
+    }
+  }
 }
 
 query getMediaCharacters($mediaId: Int!, $page: Int) {
-	Media(id: $mediaId) {
-		id
-		title {
-			romaji
-			english
-		}
-		characters(sort: ROLE, page: $page, perPage: 25) {
-			edges {
-				node {
-					id
-					name {
-						full
-					}
-					image {
-						large
-					}
-					favourites
-				}
-			}
-			pageInfo {
-				hasNextPage
-			}
-		}
-	}
+  Media(id: $mediaId) {
+    id
+    title {
+      romaji
+      english
+    }
+    characters(sort: ROLE, page: $page, perPage: 25) {
+      edges {
+        node {
+          id
+          name {
+            full
+          }
+          image {
+            large
+          }
+          favourites
+        }
+      }
+      pageInfo {
+        hasNextPage
+      }
+    }
+  }
 }
 
 query maxCharacterID {
-	Page(page: 1, perPage: 1) {
-		characters(sort: ID_DESC) {
-			id
-		}
-	}
+  Page(page: 1, perPage: 1) {
+    characters(sort: ID_DESC) {
+      id
+    }
+  }
 }
 
 query charactersByIds($ids: [Int!]!) {
-	Page(page: 1, perPage: 50) {
-		characters(id_in: $ids) {
-			id
-			name {
-				full
-			}
-			image {
-				large
-			}
-			favourites
-			media(perPage: 1, sort: POPULARITY_DESC) {
-				nodes {
-					title {
-						romaji
-					}
-				}
-			}
-		}
-	}
+  Page(page: 1, perPage: 50) {
+    characters(id_in: $ids) {
+      id
+      name {
+        full
+      }
+      image {
+        large
+      }
+      favourites
+      media(perPage: 1, sort: POPULARITY_DESC) {
+        nodes {
+          title {
+            romaji
+          }
+        }
+      }
+    }
+  }
 }
