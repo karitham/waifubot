@@ -1,135 +1,101 @@
 # Waifu Bot
 
-**[Add it to your server](https://discord.com/oauth2/authorize?scope=bot&client_id=712332547694264341&permissions=92224)**
+[Add to server](https://discord.com/oauth2/authorize?scope=bot&client_id=712332547694264341&permissions=92224)
 
-A Discord bot for collecting and trading anime/manga characters. Roll for random characters, claim drops, build your collection, and trade with friends.
+Waifu Bot is a Discord bot for collecting and trading anime and manga characters. Users roll for random characters, claim drops that appear after channel activity, build collections, and trade with other users.
 
 ## Features
 
-- **Character collection**: Roll and claim characters from anime and manga
-- **Trading system**: Give characters to other users or exchange them for tokens
-- **Wishlist system**: Create and manage wishlists of desired characters, find trading partners
-- **Web interface**: View and manage your collection and wishlist at [waifugui.karitham.dev](https://waifugui.karitham.dev)
-- **API access**: Retrieve data programmatically at [waifuapi.karitham.dev](https://waifuapi.karitham.dev)
-- **AniList integration**: Search for anime, manga, characters, and users
+- Character collection via rolls and channel drops that require a name match to claim.
+- Trading between users and token exchange for characters.
+- Wishlist to track desired characters and find trading partners, including bulk add from anime or manga.
+- Profiles with favorite character, quote, and AniList link.
+- Search for anime, manga, characters, and AniList users via AniList.
+- Web interface and API for browsing collections and wishlists.
 
-## Commands
-
-- **claim**: claim a dropped character
-- **exchange**: exchange a character for a token
-- **give**: give a character to someone
-- **holders**: list users in this server who have a character
-- **info**: information about the bot
-- **list**: view character collection
-- **roll**: roll a random character
-- **verify**: check if a user has a character
-- **profile**:
-  - **view**: view a user's profile
-  - **edit**: edit your profile
-    - **anilist**: set your AniList URL
-    - **favorite**: set your favorite character
-    - **quote**: set your quote
-- **search**:
-  - **anime**: search for an anime
-  - **char**: search for a character
-  - **manga**: search for a manga
-  - **user**: search for a user
-- **wishlist**:
-  - **character add**: add a character to your wishlist
-  - **character remove**: remove a character from your wishlist
-  - **character list**: view your wishlist
-  - **media add**: add all characters from an anime/manga to your wishlist
-  - **holders**: find users who have characters from your wishlist
-  - **wanted**: find users who want characters you own
-  - **compare**: compare your wishlist with another user's collection
+The web interface is at [waifugui.karitham.dev](https://waifugui.karitham.dev). The API is at [waifuapi.karitham.dev](https://waifuapi.karitham.dev) and is defined in `openapi.yaml`; the frontend generates its client from that file.
 
 ## Development
 
-This project uses [nix flakes](https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-flake) for development.
+The project uses [Nix flakes](https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-flake) for development. The dev shell provides Go, Node.js, and required tools.
 
 ### Prerequisites
 
 - [Nix](https://nixos.org/download.html) with flakes enabled
-- [Direnv](https://direnv.net/) (optional, for auto-loading the shell)
+- [Direnv](https://direnv.net/) for automatic shell loading (optional)
 
 ### Setup
 
 ```bash
-# Clone the repository
 git clone https://github.com/karitham/waifubot
 cd waifubot
-
-# Enable direnv (recommended) or enter the dev shell manually
 direnv allow
 # OR
 nix develop
 ```
 
-### Running Locally
+Create environment variables for local development (`.envrc` is gitignored):
 
-1. **Start PostgreSQL**:
+```bash
+export BOT_TOKEN=...
+export APP_ID=...
+export PUBLIC_KEY=...
+export DB_URL=postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
+```
+
+For all options, see `backend/cmd/waifubot/run.go`.
+
+### Running locally
+
+1. Start PostgreSQL:
 
    ```bash
    docker-compose up -d
    ```
 
-2. **Backend**:
+2. Start the backend:
 
    ```bash
-   # Build binaries via nix
-   nix build .#waifubot
-
-   # Or run directly
    cd backend
-   go run ./cmd/bot run
+   go run ./cmd/waifubot run
    ```
 
-3. **Frontend**:
+   Migrations run automatically. The bot and API listen on `http://localhost:8080` (`/metrics` on the same port). The frontend expects the API at that address.
+
+3. Start the frontend:
+
    ```bash
    cd frontend
+   npm install
    npm run dev
    ```
 
-The backend will be available at `http://localhost:8080` (bot, metrics at `/metrics`) and `http://localhost:3333` (API).
-The frontend will be available at `http://localhost:5173`.
+   The frontend listens on `http://localhost:5173`.
 
-## Self-Hosting
+For Discord slash commands, see `backend/discord/commands.go` and the in-app command list. For API details, see `openapi.yaml`.
+
+## Self-hosting
 
 ### Backend
 
-The backend can be deployed via Kubernetes using the manifests in the [infra repository](https://github.com/karitham/infra/tree/main/apps/waifubot).
+Build a binary with `nix build .#waifubot` or use the container from `ghcr.io/karitham/waifubot`. Provide a PostgreSQL database and the required environment variables (`BOT_TOKEN`, `APP_ID`, `PUBLIC_KEY`, `DB_URL`). Run with `waifubot run`.
 
-**Requirements:**
-
-- Discord application (bot token, application ID, public key)
-- PostgreSQL database
-
-**Environment variables:**
-
-- `BOT_TOKEN` - Discord bot token
-- `APP_ID` - Discord application ID
-- `PUBLIC_KEY` - Discord application public key
-- `DB_URL` - PostgreSQL connection string
+For NixOS, see `nix/module.nix`. For Kubernetes, see [karitham/infra](https://github.com/karitham/infra/tree/main/apps/waifubot).
 
 ### Frontend
 
-The frontend is a static site. Build it and deploy to any static hosting provider.
+Build a static site:
 
 ```bash
 cd frontend
 npm install
-npm run build
+VITE_API_URL=https://api.example.com npm run build
 ```
 
-Deploy the `dist/` directory to:
+Deploy `dist/` to any static host such as Cloudflare Pages, Vercel, or Netlify.
 
-- Cloudflare Pages
-- Vercel
-- Netlify
-- Any web server
+Set `VITE_API_URL` at build time to the API instance.
 
-**API URL**: Set `VITE_API_URL` at build time to point to your API instance:
+## License
 
-```bash
-VITE_API_URL=https://your-api.example.com npm run build
-```
+MIT — see [LICENSE](LICENSE). Copyright 2020 PERY "Karitham" Pierre-Louis.
