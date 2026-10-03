@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSignal } from "solid-js";
 import { render } from "solid-js/web";
-import MediaFilter, { type MediaOption } from "./MediaFilter";
+import type { MediaOption } from "../../types";
+import MediaFilter from "./MediaFilter";
 
 vi.mock("../../api/anilist", () => ({
   searchMedia: vi.fn(async () => ({

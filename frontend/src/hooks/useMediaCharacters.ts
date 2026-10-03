@@ -2,7 +2,7 @@ import { createEffect, createResource, on } from "solid-js";
 import { getMediaCharacters } from "../api/anilist";
 import type { Character } from "../api/generated";
 import { Type } from "../api/generated";
-import type { MediaOption } from "../components/filters/MediaFilter";
+import type { MediaOption } from "../types";
 
 const fetchCharacters = async (media: MediaOption): Promise<Character[] | undefined> => {
   const result = await getMediaCharacters(String(media.value));

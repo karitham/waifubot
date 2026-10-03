@@ -2,11 +2,7 @@ import { Search, type SearchRootItemComponentProps } from "@kobalte/core/search"
 import { type Component, createEffect, createSignal, on, Show } from "solid-js";
 import { type Media, searchMedia } from "../../api/anilist";
 
-export type MediaOption = {
-  value: string | number;
-  label: string;
-  image?: string;
-};
+import type { MediaOption } from "../../types";
 
 export type MediaFilterProps = {
   onChange: (media: MediaOption | null) => void;

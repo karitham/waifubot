@@ -2,7 +2,7 @@ import { useSearchParams } from "@solidjs/router";
 import { createEffect, createMemo, createSignal } from "solid-js";
 import type { Character, CollectionResponse, UserProfile } from "../api/generated";
 import { getCollectionV1, getProfileV1 } from "../api/generated";
-import type { MediaOption } from "../components/filters/MediaFilter";
+import type { MediaOption } from "../types";
 import { useDebounce } from "./useDebounce";
 import { getUserID } from "./useUserSearch";
 
