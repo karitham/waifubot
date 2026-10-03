@@ -1,7 +1,7 @@
 import { createContext, useContext, type ParentProps } from "solid-js";
 import type { Character } from "../api/generated";
 import type { MediaOption } from "../types";
-import type { CompareAddResult, CompareUser, CompareUserListItem } from "../hooks/usePageFilters";
+import type { CompareAddResult, CompareUser, CompareUserListItem } from "../hooks/useCompareUsers";
 
 interface SortFn {
   id: string;

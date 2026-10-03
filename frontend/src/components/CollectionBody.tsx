@@ -2,7 +2,7 @@ import type { Character, UserProfile } from "../api/generated";
 import CharGrid from "../components/character/CharGrid";
 import CollectionNav from "../components/CollectionNav";
 import FilterBar from "../components/filters/FilterBar";
-import { sortOptions } from "../hooks/usePageFilters";
+import { sortOptions } from "../hooks/useSort";
 
 interface CollectionBodyProps {
   characters: Character[] | undefined;

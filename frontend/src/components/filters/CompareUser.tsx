@@ -1,7 +1,7 @@
 import { TextField } from "@kobalte/core/text-field";
 import { createSignal, For, Show } from "solid-js";
 import { useCollectionFilters } from "../../context/CollectionFiltersContext";
-import type { CompareUserListItem } from "../../hooks/usePageFilters";
+import type { CompareUserListItem } from "../../hooks/useCompareUsers";
 
 type Feedback = { kind: "error" | "success"; text: string };
 

@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "solid-js/web";
 import { CollectionFiltersProvider } from "../../context/CollectionFiltersContext";
-import { sortOptions, usePageFilters } from "../../hooks/usePageFilters";
+import { usePageFilters } from "../../hooks/usePageFilters";
+import { sortOptions } from "../../hooks/useSort";
 import FilterBar from "./FilterBar";
 
 // Real-router .js build has split context objects; the mock keeps the
