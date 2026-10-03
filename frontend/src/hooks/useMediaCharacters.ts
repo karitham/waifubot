@@ -11,16 +11,14 @@ const fetchCharacters = async (media: MediaOption): Promise<Character[] | undefi
     return undefined;
   }
 
-  return result.map(
-    (c): Character => ({
-      id: parseInt(c.id, 10),
-      name: c.name.full,
-      image: c.image.large,
-      date: new Date().toISOString(),
-      type: Type.Roll,
-      favorites: c.favourites ?? 0,
-    }),
-  );
+  return result.map((c): Character => ({
+    id: parseInt(c.id, 10),
+    name: c.name.full,
+    image: c.image.large,
+    date: new Date().toISOString(),
+    type: Type.Roll,
+    favorites: c.favourites ?? 0,
+  }));
 };
 
 /**
