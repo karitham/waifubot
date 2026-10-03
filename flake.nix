@@ -62,7 +62,7 @@
         {
           default = pkgs.mkShell {
             packages = with pkgs; [
-              go
+              go_latest
               gofumpt
               mockgen
               golangci-lint
@@ -70,7 +70,6 @@
               dbmate
               sqlc
               nodejs
-              nodePackages.npm
               ogen
               oxfmt
               nixfmt

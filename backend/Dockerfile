@@ -1,6 +1,5 @@
-FROM golang:1.26-alpine AS builder
+FROM golang:1.27-alpine AS builder
 
-ENV GOEXPERIMENT="jsonv2"
 ENV CGO_ENABLED=0
 
 WORKDIR /app
