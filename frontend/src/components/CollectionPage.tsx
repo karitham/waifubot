@@ -25,24 +25,9 @@ export default (props: CollectionPageProps) => {
 
   const searchParams = () => getSearchParams(sp);
 
-  const {
-    compareIds,
-    charSort,
-    setCharSort,
-    charSortAsc,
-    setCharSortAsc,
-    charSearch,
-    setCharSearch,
-    compareUsers,
-    compareUserList,
-    media,
-    setMedia,
-    onCompareAdd,
-    onCompareRemove,
-    onCompareRetry,
-  } = usePageFilters(props.user?.id);
+  const filters = usePageFilters(props.user?.id);
 
-  const mediaCharacters = useMediaCharacters(media);
+  const mediaCharacters = useMediaCharacters(filters.media);
 
   const showWhen = () =>
     props.user && (props.allowEmpty || !!props.characters) ? props.user : undefined;
@@ -73,22 +58,7 @@ export default (props: CollectionPageProps) => {
             />
           }
           body={
-            <CollectionFiltersProvider
-              charSearch={charSearch}
-              setCharSearch={setCharSearch}
-              charSort={charSort}
-              setCharSort={setCharSort}
-              charSortAsc={charSortAsc}
-              setCharSortAsc={setCharSortAsc}
-              compareUsers={compareUsers}
-              compareUserList={compareUserList}
-              compareIds={compareIds}
-              media={media}
-              setMedia={setMedia}
-              onCompareAdd={onCompareAdd}
-              onCompareRemove={onCompareRemove}
-              onCompareRetry={onCompareRetry}
-            >
+            <CollectionFiltersProvider value={filters}>
               <CollectionBody
                 characters={props.characters}
                 mediaCharacters={mediaCharacters()}

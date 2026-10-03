@@ -1,26 +1,21 @@
 import type { Setter } from "solid-js";
+import type { SortOption } from "../../hooks/useSort";
 import SelectField from "../ui/SelectField";
 
-type SortFn<T> = {
-  id: string;
-  value: (a: T, b: T) => number;
-  label: string;
+export type CharSortProps = {
+  value: SortOption;
+  options: Array<SortOption>;
+  onChange: Setter<SortOption>;
 };
 
-export type CharSortProps<T> = {
-  value: SortFn<T>;
-  options: Array<SortFn<T>>;
-  onChange: Setter<SortFn<T>>;
-};
-
-export default function <T>(props: CharSortProps<T>) {
-  const handleChange = (value: SortFn<T> | null) => {
+export default function (props: CharSortProps) {
+  const handleChange = (value: SortOption | null) => {
     if (!value) return;
     props.onChange(value);
   };
 
   return (
-    <SelectField<SortFn<T>>
+    <SelectField<SortOption>
       options={props.options}
       value={props.value}
       onChange={handleChange}

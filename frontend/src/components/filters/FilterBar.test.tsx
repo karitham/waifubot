@@ -62,7 +62,7 @@ describe("FilterBar media wiring", () => {
     dispose = render(() => {
       const filters = usePageFilters("main-user");
       return (
-        <CollectionFiltersProvider {...filters}>
+        <CollectionFiltersProvider value={filters}>
           <FilterBar sortOptions={sortOptions} />
         </CollectionFiltersProvider>
       );

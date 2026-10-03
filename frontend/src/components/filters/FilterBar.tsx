@@ -1,4 +1,4 @@
-import type { Character } from "../../api/generated";
+import type { SortOption } from "../../hooks/useSort";
 import { useCollectionFilters } from "../../context/CollectionFiltersContext";
 import FilterLabel from "../ui/FilterLabel";
 import CompareUser from "./CompareUser";
@@ -8,11 +8,7 @@ import CharSort, { type CharSortProps } from "./Sort";
 import SortDirectionToggle from "./SortDirectionToggle";
 
 interface FilterBarProps {
-  sortOptions: Array<{
-    id: string;
-    label: string;
-    value: (a: Character, b: Character) => number;
-  }>;
+  sortOptions: SortOption[];
 }
 
 /**
@@ -23,9 +19,6 @@ interface FilterBarProps {
  */
 export default function FilterBar(props: FilterBarProps) {
   const filters = useCollectionFilters();
-
-  const updateSort: CharSortProps<Character>["onChange"] = (value) =>
-    filters.setCharSort(typeof value === "function" ? value(filters.charSort()) : value);
 
   return (
     <div class="flex flex-col gap-6">
@@ -43,7 +36,7 @@ export default function FilterBar(props: FilterBarProps) {
               <CharSort
                 value={filters.charSort()}
                 options={props.sortOptions}
-                onChange={updateSort}
+                onChange={filters.setCharSort}
               />
             </div>
             <SortDirectionToggle
