@@ -37,11 +37,8 @@ const parseCompareIds = (param: string | undefined): string[] => {
 };
 
 /**
- * Users being compared against the main user, mirrored into the URL as a
- * comma-separated id list so a comparison can be shared.
- *
- * Owns a per-id cache plus in-flight dedup: loading one user never refetches
- * the others, and state for removed users is pruned as the list shrinks.
+ * Per-id cache with in-flight dedup: loading one user never refetches the
+ * others, and entries for removed users are dropped so re-adding them refetches.
  */
 export function useCompareUsers(userId?: string) {
   const [sp, setSp] = useSearchParams<{ compare: string }>();

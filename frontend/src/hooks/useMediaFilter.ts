@@ -3,13 +3,9 @@ import { createMemo } from "solid-js";
 import type { MediaOption } from "../types";
 
 /**
- * Selected AniList media, mirrored into the URL so a media-filtered view can
- * be shared. The label and image are carried alongside the id because the
- * filter renders a chip from them and would otherwise have to re-query
- * AniList on load.
- *
- * Writes use `replace: true` so changing the filter doesn't push a history
- * entry per change.
+ * The label and image ride along in the URL because the filter renders them as
+ * a chip, which would otherwise mean re-querying AniList on every page load.
+ * Writes use `replace: true` so each change doesn't add a history entry.
  */
 export function useMediaFilter() {
   const [sp, setSp] = useSearchParams<{

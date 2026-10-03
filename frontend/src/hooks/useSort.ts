@@ -28,10 +28,8 @@ export const sortOptions = [
 export type SortOption = (typeof sortOptions)[number];
 
 /**
- * Sort column and direction for the character grid.
- *
- * Local state rather than URL state: a sort is a viewing preference, and
- * putting it in the query string would make every shared link carry it.
+ * Sort is local view state, unlike the media filter: putting it in the query
+ * string would make every shared link carry it.
  */
 export function useSort() {
   const [charSort, setCharSort] = createSignal(sortOptions[0]);
