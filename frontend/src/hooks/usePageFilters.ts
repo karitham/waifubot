@@ -11,7 +11,7 @@ export const sortOptions = [
     id: "date",
     label: "Date",
     value: (a: Character, b: Character) =>
-      b.date && a.date ? new Date(b.date).getTime() - new Date(a.date).getTime() : -1,
+      b.date && a.date ? new Date(b.date).getTime() - new Date(a.date).getTime() : 0,
   },
   {
     id: "name",
