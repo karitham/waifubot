@@ -5,13 +5,79 @@ on:
     branches:
       - main
   push:
-    tags:
-      - "*"
     branches:
-      - "*"
+      - main
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump for this release
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+
+permissions:
+  contents: read
+
+# Serialize release runs so the version computed for a build is still free
+# when the merge job tags it. A pending run is replaced by a newer one; its
+# code is contained in the newer commit, only its version number is skipped.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "version=pr-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            echo "::error::workflow_dispatch releases must run on the main branch"
+            exit 1
+          fi
+
+          # Next patch by default; workflow_dispatch picks patch/minor/major.
+          latest=$(git tag --list 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1)
+          latest=${latest:-v0.0.0}
+          major=${latest#v}; major=${major%%.*}
+          rest=${latest#v}; rest=${rest#*.}; minor=${rest%%.*}; patch=${rest#*.}
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            case "${{ inputs.bump }}" in
+              major) major=$((major + 1)); minor=0; patch=0 ;;
+              minor) minor=$((minor + 1)); patch=0 ;;
+              *) patch=$((patch + 1)) ;;
+            esac
+          else
+            patch=$((patch + 1))
+          fi
+
+          tag="v${major}.${minor}.${patch}"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "version=${tag}" >> "$GITHUB_OUTPUT"
+          echo "Release version ${tag} (previous: ${latest})"
+
   build:
+    needs: version
     strategy:
       matrix:
         include:
@@ -22,37 +88,31 @@ jobs:
             runner: ubuntu-24.04-arm
             suffix: arm64
     runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Login to GitHub Container Registry
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve version
-        id: version
-        run: |
-          if [ "${{ github.ref_type }}" = "tag" ]; then
-            echo "value=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "value=${{ github.ref_name }}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Build and push by digest
         id: build
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ./backend
           platforms: ${{ matrix.platform }}
-          build-args: VERSION=${{ steps.version.outputs.value }}
+          build-args: VERSION=${{ needs.version.outputs.version }}
           outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' }},oci-mediatypes=true
           cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache-${{ matrix.suffix }}
           cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache-${{ matrix.suffix }}
@@ -66,7 +126,7 @@ jobs:
 
       - name: Upload digest
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: digests-${{ matrix.suffix }}
           path: /tmp/digests/*
@@ -74,27 +134,81 @@ jobs:
           retention-days: 1
 
   merge:
-    needs: build
-    if: github.event_name != 'pull_request'
+    needs:
+      - version
+      - build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
     steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
       - name: Download digests
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: digests-*
           merge-multiple: true
           path: /tmp/digests
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Bump nix package version
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          sed -i "s/^  version = \".*\";$/  version = \"${TAG#v}\";/" nix/package.nix
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nix/package.nix
+          if git diff --cached --quiet; then
+            echo "nix/package.nix already at ${TAG#v}"
+          else
+            git commit -m "flake: waifubot ${TAG}"
+          fi
+          # Rebase if main moved while this release was building.
+          for _ in 1 2 3; do
+            git push origin HEAD:main && exit 0
+            git fetch origin main
+            git rebase origin/main || {
+              git rebase --abort
+              exit 1
+            }
+          done
+          exit 1
+
       - name: Create manifest list and push
         working-directory: /tmp/digests
         run: |
+          digests=()
+          for digest in *; do
+            digests+=("ghcr.io/${{ github.repository }}@sha256:${digest}")
+          done
           docker buildx imagetools create \
-            --tag ghcr.io/${{ github.repository }}:${{ github.ref_name }} \
-            $(printf 'ghcr.io/${{ github.repository }}@sha256:%s ' *)
+            --tag ghcr.io/${{ github.repository }}:main \
+            --tag ghcr.io/${{ github.repository }}:${{ needs.version.outputs.tag }} \
+            "${digests[@]}"
+
+      - name: Push release tag
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          git tag "${TAG}"
+          git push origin "refs/tags/${TAG}"
+
+      - name: Summary
+        run: |
+          {
+            echo "### Released \`${{ needs.version.outputs.tag }}\`"
+            echo ""
+            echo "Image: \`ghcr.io/${{ github.repository }}:${{ needs.version.outputs.tag }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
