@@ -206,7 +206,6 @@ jobs:
           git push origin "refs/tags/${TAG}"
 
       - name: Notify Flux
-        continue-on-error: true
         env:
           FLUX_WEBHOOK_URL: ${{ secrets.FLUX_WEBHOOK_URL }}
         run: |
@@ -214,7 +213,10 @@ jobs:
             echo "::warning::FLUX_WEBHOOK_URL is not set; relying on the registry poll"
             exit 0
           fi
-          curl -fsS --retry 3 --retry-delay 2 --max-time 15 "${FLUX_WEBHOOK_URL}"
+          if ! curl -fsS --retry 3 --retry-delay 2 --max-time 15 "${FLUX_WEBHOOK_URL}"; then
+            echo "::warning::Flux webhook notification failed; the registry poll will catch up"
+            echo "> :warning: Flux webhook notification failed; the registry poll will catch up" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Summary
         run: |
