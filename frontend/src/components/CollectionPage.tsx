@@ -1,5 +1,5 @@
 import { useSearchParams } from "@solidjs/router";
-import { createMemo, Show } from "solid-js";
+import { Show } from "solid-js";
 import type { Character, UserProfile } from "../api/generated";
 import CollectionBody from "../components/CollectionBody";
 import PageLayout from "../components/layout/Layout";
@@ -25,8 +25,6 @@ export default (props: CollectionPageProps) => {
 
   const searchParams = () => getSearchParams(sp);
 
-  const user = createMemo(() => props.user);
-
   const {
     compareIds,
     charSort,
@@ -42,18 +40,19 @@ export default (props: CollectionPageProps) => {
     onCompareAdd,
     onCompareRemove,
     onCompareRetry,
-  } = usePageFilters(user()?.id);
+  } = usePageFilters(props.user?.id);
 
   const mediaCharacters = useMediaCharacters(media);
 
-  const showWhen = () => (user() && (props.allowEmpty || !!props.characters) ? user() : undefined);
+  const showWhen = () =>
+    props.user && (props.allowEmpty || !!props.characters) ? props.user : undefined;
 
   return (
     <Show
       when={showWhen()}
       fallback={
         <div class="p-8 text-center">
-          {!user()
+          {!props.user
             ? "User not found"
             : !props.characters
               ? `${props.profileTitle} not found`
