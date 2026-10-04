@@ -1,16 +1,27 @@
 const url = "https://graphql.anilist.co";
 
-type getCharactersResponse = {
-  data: {
-    Media: {
-      characters: {
-        nodes: CharacterNode[];
-        pageInfo: {
-          hasNextPage: boolean;
-        };
-      };
-    };
-  };
+/** AniList rate-limits aggressively, so 429 is the failure worth naming. */
+export class AniListError extends Error {
+  readonly status: number | undefined;
+
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = "AniListError";
+    this.status = status;
+  }
+}
+
+/**
+ * A character as AniList knows it.
+ *
+ * Deliberately not the backend's `Character`: an AniList entry has no
+ * acquisition date and no roll/trade source, so it must not be given any.
+ */
+export type MediaCharacter = {
+  id: number;
+  name: string;
+  image: string;
+  favorites: number;
 };
 
 type CharacterNode = {
@@ -24,10 +35,33 @@ type CharacterNode = {
   favourites?: number;
 };
 
-export async function getMediaCharacters(mediaId: string) {
-  const query = `query ($id: Int, $page: Int) {
+const toMediaCharacter = (node: CharacterNode): MediaCharacter => ({
+  id: Number(node.id),
+  name: node.name.full,
+  image: node.image.large,
+  favorites: node.favourites ?? 0,
+});
+
+type CharactersResponse = {
+  data: {
+    Media: {
+      characters: {
+        nodes: CharacterNode[];
+        pageInfo: {
+          hasNextPage: boolean;
+        };
+      };
+    };
+  };
+};
+
+/** 25 per page, capped so a character-heavy media cannot loop forever. */
+const PER_PAGE = 25;
+const MAX_PAGES = 8;
+
+const CHARACTERS_QUERY = `query ($id: Int, $page: Int) {
     Media(id: $id) {
-      characters(perPage: 25, page: $page) {
+      characters(perPage: ${PER_PAGE}, page: $page) {
         nodes {
           id
           name {
@@ -45,41 +79,38 @@ export async function getMediaCharacters(mediaId: string) {
     }
   }`;
 
-  const chars: CharacterNode[] = [];
+const SEARCH_QUERY = `query ($search: String, $perPage: Int) {
+        Page (perPage: $perPage) {
+            media (search: $search) {
+                id
+                title {
+                    romaji
+                }
+                coverImage {
+                    large
+                }
+            }
+        }
+    }`;
 
-  // Cap pagination (25 * 8 = 200 characters max) so a
-  // character-heavy media can't trigger an unbounded request loop.
-  const maxPages = 8;
-  let hasNextPage = true;
+export async function getMediaCharacters(mediaId: string): Promise<MediaCharacter[]> {
+  const characters: MediaCharacter[] = [];
+
   let page = 1;
-  while (hasNextPage && page <= maxPages) {
-    const response: getCharactersResponse = await fetchGraphQL(query, {
+  let hasNextPage = true;
+  while (hasNextPage && page <= MAX_PAGES) {
+    const response = await fetchGraphQL<CharactersResponse>(CHARACTERS_QUERY, {
       id: mediaId,
-      page: page,
+      page,
     });
 
-    hasNextPage = response.data.Media.characters.pageInfo.hasNextPage;
+    const { nodes, pageInfo } = response.data.Media.characters;
+    characters.push(...nodes.map(toMediaCharacter));
+    hasNextPage = pageInfo.hasNextPage;
     page++;
-    chars.push(...response.data.Media.characters.nodes);
   }
 
-  return chars;
-}
-
-async function fetchGraphQL<T>(query: string, variables: T) {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({
-      variables,
-      query,
-    }),
-  });
-
-  return await response.json();
+  return characters;
 }
 
 export type Media = {
@@ -100,25 +131,36 @@ export type SearchMediaResponse = {
   };
 };
 
-export async function searchMedia(anime: string, count: number) {
-  const query = `query ($search: String, $perPage: Int) {
-        Page (perPage: $perPage) {
-            media (search: $search) {
-                id
-                title {
-                    romaji
-                }
-                coverImage {
-                    large
-                }
-            }
-        }
-    }`;
-
-  const response = await fetchGraphQL(query, {
+export async function searchMedia(
+  anime: string,
+  count: number,
+): Promise<SearchMediaResponse["data"]["Page"]["media"]> {
+  const response = await fetchGraphQL<SearchMediaResponse>(SEARCH_QUERY, {
     search: anime,
     perPage: count,
   });
 
-  return response as SearchMediaResponse;
+  return response.data.Page.media;
+}
+
+async function fetchGraphQL<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      variables,
+      query,
+    }),
+  });
+
+  // Checking only that the body parses meant a 429 surfaced later as a
+  // TypeError on response.data, discarding the status that explains it.
+  if (!response.ok) {
+    throw new AniListError(`AniList responded with ${response.status}`, response.status);
+  }
+
+  return (await response.json()) as T;
 }

@@ -1,19 +1,18 @@
 import { Show } from "solid-js";
-import type { Character } from "../../api/generated";
 import { getRarityHex } from "../../utils/rarity";
+import type { CardCharacter } from "../../utils/gridItems";
 import AvatarStack from "../ui/AvatarStack";
 import CharacterDetails from "./CharacterDetails";
 
 export default (props: {
-  char: Character;
+  char: CardCharacter;
   ownersAvatars?: string[];
   ownersNames?: string[];
-  missing?: boolean;
 }) => {
   return (
     <article
       class="rounded-lg relative flex h-48 w-full overflow-clip"
-      classList={{ "opacity-60": props.missing }}
+      classList={{ "opacity-60": props.char.missing }}
       style={{
         border: `1px solid ${getRarityHex(props.char.favorites)}`,
       }}

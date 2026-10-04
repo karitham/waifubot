@@ -11,6 +11,7 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    setupFiles: ["./vitest.setup.ts"],
     server: {
       deps: {
         // Force these through Vite's resolver so the "solid"

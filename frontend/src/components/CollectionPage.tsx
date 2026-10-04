@@ -1,17 +1,20 @@
 import { useSearchParams } from "@solidjs/router";
 import { createMemo, Show } from "solid-js";
+import { describeApiError, isNotFound } from "../api/errors";
 import type { Character, UserProfile } from "../api/generated";
 import CollectionBody from "../components/CollectionBody";
 import PageLayout from "../components/layout/Layout";
 import ProfileBar from "../components/profile/Profile";
+import Notice from "../components/ui/Notice";
 import { CollectionFiltersProvider } from "../context/CollectionFiltersContext";
 import { useMediaCharacters } from "../hooks/useMediaCharacters";
 import { usePageFilters } from "../hooks/usePageFilters";
-import { getSearchParams } from "../utils";
+import type { ResourceState } from "../resource";
+import { getSearchParams } from "../utils/format";
 
 interface CollectionPageProps {
-  user: UserProfile | undefined;
-  characters: Character[] | undefined;
+  user: ResourceState<UserProfile>;
+  characters: ResourceState<Character[]>;
   allowEmpty: boolean;
   profileTitle: string;
   navbarLink: {
@@ -25,42 +28,33 @@ export default (props: CollectionPageProps) => {
 
   const searchParams = () => getSearchParams(sp);
 
-  const user = createMemo(() => props.user);
+  const filters = usePageFilters(props.user.status === "ready" ? props.user.value.id : undefined);
 
-  const {
-    compareIds,
-    charSort,
-    setCharSort,
-    charSortAsc,
-    setCharSortAsc,
-    charSearch,
-    setCharSearch,
-    compareUsers,
-    compareUserList,
-    media,
-    setMedia,
-    onCompareAdd,
-    onCompareRemove,
-    onCompareRetry,
-  } = usePageFilters(user()?.id);
+  const mediaCharacters = useMediaCharacters(filters.media);
 
-  const mediaCharacters = useMediaCharacters(media);
+  const user = () => {
+    const state = props.user;
+    return state.status === "ready" ? state.value : undefined;
+  };
 
-  const showWhen = () => (user() && (props.allowEmpty || !!props.characters) ? user() : undefined);
+  // A 404 is an answer, not a failure, so it stays a plain status rather than
+  // an interrupting alert.
+  const notice = createMemo(() => {
+    const state = props.user;
+    if (state.status === "loading") return { text: "Loading profile…" };
+    if (state.status === "error") {
+      return isNotFound(state.error)
+        ? { text: "User not found" }
+        : {
+            tone: "error" as const,
+            text: `Could not load this user — ${describeApiError(state.error)}`,
+          };
+    }
+    return undefined;
+  });
 
   return (
-    <Show
-      when={showWhen()}
-      fallback={
-        <div class="p-8 text-center">
-          {!user()
-            ? "User not found"
-            : !props.characters
-              ? `${props.profileTitle} not found`
-              : "Unknown error"}
-        </div>
-      }
-    >
+    <Show when={user()} fallback={<Notice tone={notice()?.tone}>{notice()?.text ?? ""}</Notice>}>
       {(u) => (
         <PageLayout
           profile={
@@ -74,26 +68,13 @@ export default (props: CollectionPageProps) => {
             />
           }
           body={
-            <CollectionFiltersProvider
-              charSearch={charSearch}
-              setCharSearch={setCharSearch}
-              charSort={charSort}
-              setCharSort={setCharSort}
-              charSortAsc={charSortAsc}
-              setCharSortAsc={setCharSortAsc}
-              compareUsers={compareUsers}
-              compareUserList={compareUserList}
-              compareIds={compareIds}
-              media={media}
-              setMedia={setMedia}
-              onCompareAdd={onCompareAdd}
-              onCompareRemove={onCompareRemove}
-              onCompareRetry={onCompareRetry}
-            >
+            <CollectionFiltersProvider value={filters}>
               <CollectionBody
                 characters={props.characters}
                 mediaCharacters={mediaCharacters()}
                 mainUser={u()}
+                profileTitle={props.profileTitle}
+                allowEmpty={props.allowEmpty}
                 navbarLink={props.navbarLink}
                 searchParams={searchParams()}
               />

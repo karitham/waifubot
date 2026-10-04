@@ -1,27 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSignal } from "solid-js";
 import { render } from "solid-js/web";
-import MediaFilter, { type MediaOption } from "./MediaFilter";
+import type { MediaOption } from "../../types";
+import MediaFilter from "./MediaFilter";
 
 vi.mock("../../api/anilist", () => ({
-  searchMedia: vi.fn(async () => ({
-    data: {
-      Page: {
-        media: [
-          {
-            id: "12345",
-            title: { romaji: "Fate/Zero" },
-            coverImage: { large: "https://img.example/fz.jpg" },
-          },
-          {
-            id: "67890",
-            title: { romaji: "Fate/stay night" },
-            coverImage: { large: "https://img.example/fsn.jpg" },
-          },
-        ],
-      },
+  searchMedia: vi.fn(async () => [
+    {
+      id: "12345",
+      title: { romaji: "Fate/Zero" },
+      coverImage: { large: "https://img.example/fz.jpg" },
     },
-  })),
+    {
+      id: "67890",
+      title: { romaji: "Fate/stay night" },
+      coverImage: { large: "https://img.example/fsn.jpg" },
+    },
+  ]),
 }));
 
 import { searchMedia } from "../../api/anilist";

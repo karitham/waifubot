@@ -1,19 +1,11 @@
-import type { Character } from "../../api/generated";
 import { useCollectionFilters } from "../../context/CollectionFiltersContext";
+import { sortOptions } from "../../hooks/useSort";
 import FilterLabel from "../ui/FilterLabel";
 import CompareUser from "./CompareUser";
 import CharFilter from "./Filter";
 import MediaFilter from "./MediaFilter";
-import CharSort, { type CharSortProps } from "./Sort";
+import CharSort from "./Sort";
 import SortDirectionToggle from "./SortDirectionToggle";
-
-interface FilterBarProps {
-  sortOptions: Array<{
-    id: string;
-    label: string;
-    value: (a: Character, b: Character) => number;
-  }>;
-}
 
 /**
  * Filter bar layout. Context values MUST be bound inline in JSX, which
@@ -21,11 +13,8 @@ interface FilterBarProps {
  * prop objects: a plain property is evaluated once at mount and silently
  * freezes the binding.
  */
-export default function FilterBar(props: FilterBarProps) {
+export default function FilterBar() {
   const filters = useCollectionFilters();
-
-  const updateSort: CharSortProps<Character>["onChange"] = (value) =>
-    filters.setCharSort(typeof value === "function" ? value(filters.charSort()) : value);
 
   return (
     <div class="flex flex-col gap-6">
@@ -42,13 +31,13 @@ export default function FilterBar(props: FilterBarProps) {
             <div class="flex-1 min-w-0 md:w-44 md:flex-none">
               <CharSort
                 value={filters.charSort()}
-                options={props.sortOptions}
-                onChange={updateSort}
+                options={sortOptions}
+                onChange={filters.setCharSort}
               />
             </div>
             <SortDirectionToggle
               direction={filters.charSortAsc()}
-              onToggle={() => filters.setCharSortAsc((prev: number) => -prev)}
+              onToggle={filters.toggleCharSortAsc}
             />
           </div>
         </div>
