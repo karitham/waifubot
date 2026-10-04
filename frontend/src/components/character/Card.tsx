@@ -8,12 +8,11 @@ export default (props: {
   char: CardCharacter;
   ownersAvatars?: string[];
   ownersNames?: string[];
-  missing?: boolean;
 }) => {
   return (
     <article
       class="rounded-lg relative flex h-48 w-full overflow-clip"
-      classList={{ "opacity-60": props.missing }}
+      classList={{ "opacity-60": props.char.missing }}
       style={{
         border: `1px solid ${getRarityHex(props.char.favorites)}`,
       }}

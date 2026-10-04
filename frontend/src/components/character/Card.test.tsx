@@ -31,7 +31,6 @@ const renderCard = (items: GridItem[], index = 0) => {
     () => (
       <CharCard
         char={toCardCharacter(item)}
-        missing={item.kind === "missing"}
         ownersAvatars={item.kind === "owned" ? ["a.png"] : []}
         ownersNames={item.kind === "owned" ? ["someone"] : []}
       />
@@ -66,17 +65,25 @@ describe("CharCard source label", () => {
     dispose();
   });
 
-  // The requested change: an unowned character shows the route to obtaining
-  // it rather than having no source at all.
-  it("renders roll for a missing character", () => {
+  // The requested label: an unowned character says "missing" rather than
+  // showing nothing, and never claims a source it does not have.
+  it("renders 'missing' for an unowned character", () => {
     const { container, dispose } = renderCard(built, 1);
 
-    expect(container.textContent).toContain("roll");
+    expect(container.textContent).toContain("missing");
+    expect(container.textContent).not.toContain("roll");
+    expect(container.textContent).not.toContain("traded");
     dispose();
   });
 
-  // Still no date, because nothing knows when an unowned character would be
-  // obtained. Only the source label is a route, not a record.
+  it("does not label an owned character as missing", () => {
+    const { container, dispose } = renderCard(built, 0);
+
+    expect(container.textContent).not.toContain("missing");
+    dispose();
+  });
+
+  // Nothing knows when an unowned character would be obtained, so no date.
   it("renders no date for a missing character", () => {
     const { container, dispose } = renderCard(built, 1);
 

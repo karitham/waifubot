@@ -6,7 +6,6 @@ import { useCollectionFilters } from "../../context/CollectionFiltersContext";
 import { combineFilters, filterBySearchTerm } from "../../utils/filterUtils";
 import {
   buildGridItems,
-  isMissing,
   toCardCharacter,
   type Filterable,
   type GridItem,
@@ -185,7 +184,6 @@ export default (props: {
         {virtualizer.getVirtualItems().map((virtualItem) => {
           const item = list()[virtualItem.index];
           const char = toCardCharacter(item);
-          const missing = isMissing(item);
 
           const ownersAvatars =
             item.kind === "owned"
@@ -215,12 +213,7 @@ export default (props: {
                 transform: `translateY(${virtualItem.start - scrollMargin()}px)`,
               }}
             >
-              <CharCard
-                char={char}
-                ownersAvatars={ownersAvatars}
-                ownersNames={ownersNames}
-                missing={missing}
-              />
+              <CharCard char={char} ownersAvatars={ownersAvatars} ownersNames={ownersNames} />
             </div>
           );
         })}

@@ -1,6 +1,5 @@
 import type { MediaCharacter } from "../api/anilist";
 import type { Character } from "../api/generated";
-import { Type } from "../api/generated";
 import type { Filterable } from "./filterUtils";
 import type { Ownership } from "./ownership";
 
@@ -22,10 +21,9 @@ export type { Filterable };
 /**
  * What a card renders.
  *
- * `type` is the label under the name. For an owned character that is where it
- * came from; for a missing one there is no record, so it names the route to
- * obtaining it instead. The two are deliberately not the same claim, which is
- * why `date` stays absent for missing characters: nothing knows when.
+ * `type` and `date` describe where an owned character came from and when.
+ * A missing character has neither, so both stay absent and `missing` marks it
+ * as unowned -- the card says so rather than inventing a source.
  */
 export type CardCharacter = {
   id: number;
@@ -33,11 +31,10 @@ export type CardCharacter = {
   image: string;
   favorites: number;
   date?: string | null;
-  type?: Character["type"];
+  type?: Character["type"] | null;
+  /** Shown for a character the user does not own. */
+  missing?: boolean;
 };
-
-/** How an unowned character can be obtained: by rolling for it. */
-const MISSING_SOURCE = Type.Roll;
 
 export const toCardCharacter = (item: GridItem): CardCharacter => {
   const base = {
@@ -49,7 +46,7 @@ export const toCardCharacter = (item: GridItem): CardCharacter => {
 
   return item.kind === "owned"
     ? { ...base, date: item.character.date, type: item.character.type }
-    : { ...base, type: MISSING_SOURCE };
+    : { ...base, missing: true };
 };
 
 export const isMissing = (item: GridItem): boolean => item.kind === "missing";

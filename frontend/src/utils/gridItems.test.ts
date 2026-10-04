@@ -129,10 +129,9 @@ describe("toCardCharacter", () => {
     });
   });
 
-  // A missing character has no acquisition record. The source label names the
-  // route to obtaining it, so the date must stay absent -- that is the part
-  // that would be a fabricated claim.
-  it("labels a missing character with how to obtain it, and no date", () => {
+  // A missing character has no acquisition record at all: no source and no
+  // date. The card says "missing" instead of inventing either.
+  it("marks a missing character, with neither source nor date", () => {
     const items = buildGridItems([], [mediaChar(5)], ownership({}), always, byId);
 
     expect(toCardCharacter(items[0])).toEqual({
@@ -140,8 +139,9 @@ describe("toCardCharacter", () => {
       name: "Media 5",
       image: "https://img.example/m5.jpg",
       favorites: 5,
-      type: "ROLL",
+      missing: true,
     });
+    expect(toCardCharacter(items[0]).type).toBeUndefined();
     expect(toCardCharacter(items[0]).date).toBeUndefined();
   });
 
