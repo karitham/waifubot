@@ -9,24 +9,30 @@ import CharGrid from "./CharGrid";
 /**
  * Guards the virtual grid's scroll behaviour.
  *
- * "The cards re-render" can mean two different things, and they need separate
- * checks. How many cards are mounted covers unbounded rendering. Whether cards
- * that stay on screen keep their component instance covers remounting, which
- * re-requests every card image and shows as a flash even though the rendered
- * output is identical.
+ * "The cards re-render" has two distinct causes needing separate checks. Too
+ * many cards mounted is unbounded rendering. Cards torn down and rebuilt is
+ * remounting, which re-requests every card image.
+ *
+ * Remount detection stamps each DOM node as it is created, via a ref callback.
+ * Stamping per character id would not work: a remounted card has the same
+ * character, so a per-id counter hands it the same stamp and reports nothing.
  *
  * The layout stubs matter: jsdom has no geometry, so without them scrollMargin
  * stays 0 and the window virtualizer is never asked to compensate for one.
  */
-let nextInstance = 1;
-const instances = new Map<number, number>();
+let nextNode = 1;
 
 vi.mock("./Card", () => ({
-  default: (props: { char: { id: number } }) => {
-    const id = props.char.id;
-    if (!instances.has(id)) instances.set(id, nextInstance++);
-    return <div data-card={id} data-instance={instances.get(id)} />;
-  },
+  default: (props: { char: { id: number; image: string } }) => (
+    <div
+      ref={(node) => {
+        node.dataset.node = String(nextNode++);
+      }}
+      data-card={props.char.id}
+    >
+      <img src={props.char.image} alt="" />
+    </div>
+  ),
 }));
 
 vi.mock("@solidjs/router", () => import("../../hooks/router-mock"));
@@ -48,7 +54,7 @@ const VIEWPORT_HEIGHT = 800;
 const characters = Array.from({ length: TOTAL }, (_, i) => ({
   id: i + 1,
   name: `Character ${i + 1}`,
-  image: "",
+  image: `/img/${i + 1}.jpg`,
   favorites: i,
   date: new Date(Date.UTC(2024, 0, 1) + i * 86400000).toISOString(),
   type: "ROLL",
@@ -69,18 +75,17 @@ describe("CharGrid scroll behaviour", () => {
       Number(el.dataset.card),
     );
 
-  /** Character id -> component instance id, as currently in the DOM. */
-  const mountedInstances = () =>
+  /** Character id -> the stamp of the DOM node currently holding it. */
+  const mountedNodes = () =>
     new Map(
       Array.from(container.querySelectorAll<HTMLElement>("[data-card]"), (el) => [
         Number(el.dataset.card),
-        Number(el.dataset.instance),
+        el.dataset.node,
       ]),
     );
 
   beforeEach(async () => {
-    instances.clear();
-    nextInstance = 1;
+    nextNode = 1;
     const restoreViewport = stubViewport(VIEWPORT_HEIGHT);
     const restoreLayout = stubLayout(600, 1000);
     restore = () => {
@@ -135,26 +140,35 @@ describe("CharGrid scroll behaviour", () => {
     expect(mountedIds().length).toBeLessThan(TOTAL / 4);
   });
 
-  // The decisive one, and the reason this file tracks instance identity rather
-  // than render counts: tearing down and rebuilding the subtree would recreate
-  // every card still on screen and re-request its image, for identical output.
-  it("reconciles cards that stay visible instead of remounting them", async () => {
+  // The decisive one, and the reason this file tracks DOM nodes rather than
+  // render counts. Scrolling a real page advances the window one row at a time,
+  // so most cards stay visible while the positions around them change. If the
+  // grid binds cards to list positions rather than to characters, every
+  // surviving card is handed a different character -- and a different image
+  // src -- and the browser re-requests it.
+  it("keeps each character's DOM node as the window advances a row at a time", async () => {
     await scrollWindowTo(2000);
-    const before = mountedInstances();
+    const first = mountedNodes();
+    expect(first.size).toBeGreaterThan(4);
 
-    // Exactly one row, so the range advances but most cards overlap.
-    await scrollWindowTo(2000 + ROW_HEIGHT);
-    const after = mountedInstances();
+    const stamps = new Map(first);
+    let rewroteSrc = 0;
 
-    const survivors = [...before.keys()].filter((id) => after.has(id));
-    const entered = [...after.keys()].filter((id) => !before.has(id));
+    for (let row = 1; row <= 4; row++) {
+      await scrollWindowTo(2000 + row * ROW_HEIGHT);
 
-    // Guard the premise: if the window had not actually moved, "no remounts"
-    // would be trivially true and the assertion below would prove nothing.
-    expect(entered.length).toBeGreaterThan(0);
-    expect(survivors.length).toBeGreaterThan(before.size / 2);
+      for (const [id, node] of mountedNodes()) {
+        const previous = stamps.get(id);
+        if (previous === undefined) {
+          stamps.set(id, node);
+          continue;
+        }
+        // Same character, different node: it was moved rather than reused.
+        if (previous !== node) rewroteSrc++;
+        stamps.set(id, node);
+      }
+    }
 
-    const remounted = survivors.filter((id) => after.get(id) !== before.get(id));
-    expect(remounted).toEqual([]);
+    expect(rewroteSrc).toBe(0);
   });
 });

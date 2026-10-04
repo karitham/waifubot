@@ -1,5 +1,5 @@
 import { createWindowVirtualizer } from "@tanstack/solid-virtual";
-import { createMemo, createSignal, onCleanup, onMount } from "solid-js";
+import { createMemo, createSignal, Index, onCleanup, onMount } from "solid-js";
 import type { MediaCharacter } from "../../api/anilist";
 import type { Character, UserProfile } from "../../api/generated";
 import { useCollectionFilters } from "../../context/CollectionFiltersContext";
@@ -181,42 +181,50 @@ export default (props: {
           "min-width": "100%",
         }}
       >
-        {virtualizer.getVirtualItems().map((virtualItem) => {
-          const item = list()[virtualItem.index];
-          const char = toCardCharacter(item);
+        {/* Index, not map: this is a sliding window over a stable list, and a
+            bare map lets Solid reuse DOM nodes by position. Advancing the
+            window then hands each surviving card a different character -- and a
+            different image src -- re-requesting every card image on each row.
+            Index binds each row to a list position, so a character keeps its
+            own node for as long as it stays mounted. */}
+        <Index each={virtualizer.getVirtualItems()}>
+          {(virtualItem) => {
+            const { index, lane, start } = virtualItem();
+            const item = list()[index];
+            const char = toCardCharacter(item);
 
-          const ownersAvatars =
-            item.kind === "owned"
-              ? item.owners
-                  .map((id) => findUser(id)?.discord_avatar)
-                  .filter((a): a is string => a !== undefined)
-              : [];
-          const ownersNames =
-            item.kind === "owned"
-              ? item.owners
-                  .map((id) => findUser(id)?.discord_username || id)
-                  .filter((name): name is string => name !== undefined)
-              : [];
+            const ownersAvatars =
+              item.kind === "owned"
+                ? item.owners
+                    .map((id) => findUser(id)?.discord_avatar)
+                    .filter((a): a is string => a !== undefined)
+                : [];
+            const ownersNames =
+              item.kind === "owned"
+                ? item.owners
+                    .map((id) => findUser(id)?.discord_username || id)
+                    .filter((name): name is string => name !== undefined)
+                : [];
 
-          const colWidth = columnWidth();
-          const left = virtualItem.lane * (colWidth + GAP);
+            const colWidth = columnWidth();
+            const left = lane * (colWidth + GAP);
 
-          return (
-            <div
-              data-key={virtualItem.key}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: `${left}px`,
-                width: `${colWidth}px`,
-                height: `${CARD_HEIGHT}px`,
-                transform: `translateY(${virtualItem.start - scrollMargin()}px)`,
-              }}
-            >
-              <CharCard char={char} ownersAvatars={ownersAvatars} ownersNames={ownersNames} />
-            </div>
-          );
-        })}
+            return (
+              <div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: `${left}px`,
+                  width: `${colWidth}px`,
+                  height: `${CARD_HEIGHT}px`,
+                  transform: `translateY(${start - scrollMargin()}px)`,
+                }}
+              >
+                <CharCard char={char} ownersAvatars={ownersAvatars} ownersNames={ownersNames} />
+              </div>
+            );
+          }}
+        </Index>
       </div>
     </div>
   );
