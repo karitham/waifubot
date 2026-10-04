@@ -10,7 +10,7 @@ import { CollectionFiltersProvider } from "../context/CollectionFiltersContext";
 import { useMediaCharacters } from "../hooks/useMediaCharacters";
 import { usePageFilters } from "../hooks/usePageFilters";
 import type { ResourceState } from "../resource";
-import { getSearchParams } from "../utils";
+import { getSearchParams } from "../utils/format";
 
 interface CollectionPageProps {
   user: ResourceState<UserProfile>;

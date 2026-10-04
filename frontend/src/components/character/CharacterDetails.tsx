@@ -1,5 +1,5 @@
 import { Match, Show, Switch, createMemo, createSignal, onCleanup } from "solid-js";
-import { formatDate, mapCharType } from "../../utils";
+import { formatDate, mapCharType } from "../../utils/format";
 import type { CardCharacter } from "../../utils/gridItems";
 import { formatFavorites } from "../../utils/rarity";
 

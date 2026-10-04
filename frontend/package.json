@@ -1,7 +1,7 @@
 {
-  "name": "vite-template-solid",
+  "name": "waifubot-frontend",
   "version": "0.0.0",
-  "description": "",
+  "description": "Web interface for browsing waifubot character collections and wishlists",
   "homepage": "https://waifugui.karitham.dev",
   "license": "MIT",
   "scripts": {
@@ -13,8 +13,6 @@
     "generate:api": "oazapfts ../openapi.yaml --optimistic --useEnumType --optimistic --futureStripLegacyMethods > ./src/api/generated.ts"
   },
   "dependencies": {
-    "@emnapi/core": "^1.9.2",
-    "@emnapi/runtime": "^1.9.2",
     "@kobalte/core": "^0.13.10",
     "@oazapfts/runtime": "^1.2.0",
     "@tanstack/solid-virtual": "^3.13.23",
@@ -26,12 +24,11 @@
   "devDependencies": {
     "@iconify-json/ph": "^1.2.2",
     "@solidjs/router": "^0.15.3",
-    "@types/dompurify": "^3.0.5",
     "@types/node": "^25.3.3",
     "@unocss/preset-icons": "^66.5.10",
     "@unocss/preset-wind4": "^66.5.10",
     "@unocss/vite": "^66.5.10",
-    "jsdom": "^29.0.1",
+    "jsdom": "^29.1.0",
     "typescript": "^5.8.3",
     "unocss": "^66.5.10",
     "vite": "^8.0.0",
