@@ -28,3 +28,16 @@ export const __resetSearchParams = () => setQuery({});
 
 /** Present so modules importing useNavigate under this mock still resolve. */
 export const useNavigate = () => (_to: string) => {};
+
+/** Fixed params: tests drive routing through __setSearchParams, not path params. */
+export const useParams = () => ({ id: "test-user" });
+
+/** CollectionNav only reads `pathname` to mark the active link. */
+export const useLocation = () => ({ pathname: "/list/test-user" });
+
+/** Renders a plain anchor; the router's own <A> needs routing context. */
+export const A = (props: { href: string; class?: string; children?: unknown }) => (
+  <a href={props.href} class={props.class}>
+    {props.children as never}
+  </a>
+);

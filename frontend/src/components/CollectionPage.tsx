@@ -1,17 +1,20 @@
 import { useSearchParams } from "@solidjs/router";
-import { Show } from "solid-js";
+import { createMemo, Show } from "solid-js";
+import { describeApiError, isNotFound } from "../api/errors";
 import type { Character, UserProfile } from "../api/generated";
 import CollectionBody from "../components/CollectionBody";
 import PageLayout from "../components/layout/Layout";
 import ProfileBar from "../components/profile/Profile";
+import Notice from "../components/ui/Notice";
 import { CollectionFiltersProvider } from "../context/CollectionFiltersContext";
 import { useMediaCharacters } from "../hooks/useMediaCharacters";
 import { usePageFilters } from "../hooks/usePageFilters";
+import type { ResourceState } from "../resource";
 import { getSearchParams } from "../utils";
 
 interface CollectionPageProps {
-  user: UserProfile | undefined;
-  characters: Character[] | undefined;
+  user: ResourceState<UserProfile>;
+  characters: ResourceState<Character[]>;
   allowEmpty: boolean;
   profileTitle: string;
   navbarLink: {
@@ -25,26 +28,33 @@ export default (props: CollectionPageProps) => {
 
   const searchParams = () => getSearchParams(sp);
 
-  const filters = usePageFilters(props.user?.id);
+  const filters = usePageFilters(props.user.status === "ready" ? props.user.value.id : undefined);
 
   const mediaCharacters = useMediaCharacters(filters.media);
 
-  const showWhen = () =>
-    props.user && (props.allowEmpty || !!props.characters) ? props.user : undefined;
+  const user = () => {
+    const state = props.user;
+    return state.status === "ready" ? state.value : undefined;
+  };
+
+  // A 404 is an answer, not a failure, so it stays a plain status rather than
+  // an interrupting alert.
+  const notice = createMemo(() => {
+    const state = props.user;
+    if (state.status === "loading") return { text: "Loading profile…" };
+    if (state.status === "error") {
+      return isNotFound(state.error)
+        ? { text: "User not found" }
+        : {
+            tone: "error" as const,
+            text: `Could not load this user — ${describeApiError(state.error)}`,
+          };
+    }
+    return undefined;
+  });
 
   return (
-    <Show
-      when={showWhen()}
-      fallback={
-        <div class="p-8 text-center">
-          {!props.user
-            ? "User not found"
-            : !props.characters
-              ? `${props.profileTitle} not found`
-              : "Unknown error"}
-        </div>
-      }
-    >
+    <Show when={user()} fallback={<Notice tone={notice()?.tone}>{notice()?.text ?? ""}</Notice>}>
       {(u) => (
         <PageLayout
           profile={
@@ -63,6 +73,8 @@ export default (props: CollectionPageProps) => {
                 characters={props.characters}
                 mediaCharacters={mediaCharacters()}
                 mainUser={u()}
+                profileTitle={props.profileTitle}
+                allowEmpty={props.allowEmpty}
                 navbarLink={props.navbarLink}
                 searchParams={searchParams()}
               />
