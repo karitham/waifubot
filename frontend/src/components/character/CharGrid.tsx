@@ -110,11 +110,15 @@ export default (props: {
    * Measures the container, and keeps the measurement current.
    *
    * Runs from a ref callback rather than onMount because onMount fires after
-   * the first reactive pass: the lane count and the virtualizer's `lanes` would
-   * already have been derived from a width of zero, and neither recomputes on
-   * its own. The virtualizer reads `lanes` through a plain getter, so a signal
-   * written after that point is not something it reacts to. A ref callback runs
-   * during the first render instead, with the element in hand.
+   * the first reactive pass, by which point the lane count has already been
+   * derived from a width of zero and the grid has been laid out at it. Nothing
+   * downstream re-derives that on its own, so the width has to be known before
+   * the first layout rather than corrected afterwards. A ref callback runs
+   * during the first render, with the element in hand.
+   *
+   * Later measurements do propagate on their own: the virtualizer reads these
+   * values through getters, and reads them inside a reactive scope, so a
+   * resize or a moved grid reaches it without help.
    */
   const observeContainer = (element: HTMLDivElement) => {
     const measure = () => {
@@ -231,7 +235,7 @@ export default (props: {
               // card was first mounted with, and stay there while the
               // measurement it came from is recomputed.
               const index = () => virtualItem().index;
-              const lane = virtualItem().lane;
+              const lane = () => virtualItem().lane;
               const start = () => virtualItem().start;
 
               const item = createMemo(() => list()[index()]);
@@ -257,7 +261,7 @@ export default (props: {
                   style={{
                     position: "absolute",
                     top: 0,
-                    left: `${lane * (columnWidth() + GAP)}px`,
+                    left: `${lane() * (columnWidth() + GAP)}px`,
                     width: `${columnWidth()}px`,
                     height: `${CARD_HEIGHT}px`,
                     // start is measured from the scroll margin, which is the

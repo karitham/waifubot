@@ -203,11 +203,18 @@ describe("CharGrid remeasures its geometry", () => {
       return /left:\s*(-?[\d.]+)px/.exec(style)?.[1];
     });
 
-  // Narrowing the grid re-lanes every card, and three lanes cannot fold into
-  // two one-for-one. Today a card that was in the third column keeps its
-  // horizontal offset, landing outside the container: at 700px the grid lays
-  // out two lanes yet cards still sit at 0, 362 and 724px. Re-measuring and
-  // scrolling afterwards both leave it, so the stale lane is not a missed
-  // recomputation. Recorded here until it is understood.
-  it.todo("moves cards into the lanes a narrower grid gives them");
+  // A card that reads its lane once keeps the column it was mounted in. In a
+  // one-lane grid that leaves cards at the offsets of a three-lane one, past
+  // the right edge of the container, overlapping each other.
+  it("moves cards into the lanes a narrower grid gives them", async () => {
+    await mount();
+    expect(new Set(laneOffsets()).size).toBe(3);
+
+    grid.width = 400;
+    window.dispatchEvent(new Event("resize"));
+    await settle();
+
+    expect(reportedColumns()).toBe(1);
+    expect(new Set(laneOffsets())).toEqual(new Set(["0"]));
+  });
 });
