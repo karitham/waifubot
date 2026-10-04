@@ -115,15 +115,6 @@ describe("CharGrid lane count", () => {
     it(`lays out ${expected} lane(s) at ${width}px`, async () => {
       await mountAt(width);
 
-      // eslint-disable-next-line no-console
-      console.log(`[lanes] cards=${cards().length} html=${container.innerHTML.slice(0, 300)}`);
-
-      const offsets = cards().map(
-        (el) => el.getAttribute("style")?.match(/left:\s*(-?[\d.]+)px/)?.[1],
-      );
-      const counts = new Map();
-      for (const o of offsets) counts.set(o, (counts.get(o) ?? 0) + 1);
-      console.log("[dup] lanes=" + laneCount() + " perLane=" + JSON.stringify([...counts]));
       expect(laneCount()).toBe(expected);
     });
   }
@@ -148,7 +139,6 @@ describe("CharGrid lane count", () => {
     }
 
     // eslint-disable-next-line no-console
-    console.log(`[dup] lanes=${laneCount()} perLane=${JSON.stringify([...perLane])}`);
 
     const counts = [...perLane.values()];
     expect(counts.length).toBe(4);

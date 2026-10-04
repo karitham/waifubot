@@ -55,6 +55,10 @@ const GAP = 24;
 /** One row of cards plus the gap between them. */
 const ROW_HEIGHT = CARD_HEIGHT + GAP;
 const VIEWPORT_HEIGHT = 800;
+/** Must match CharGrid's OVERSCAN: rows rendered beyond each edge. */
+const OVERSCAN = 5;
+/** Most rows a window can cover: the viewport, plus overscan either side. */
+const MAX_WINDOW_ROWS = Math.ceil(VIEWPORT_HEIGHT / ROW_HEIGHT) + OVERSCAN * 2 + 1;
 /** Narrow enough that the grid lays out three lanes. */
 const GRID_WIDTH = 1000;
 const LANES = 3;
@@ -87,15 +91,6 @@ describe("CharGrid scroll behaviour", () => {
       Number(el.dataset.card),
     );
 
-  /** Character id -> the stamp of the DOM node currently holding it. */
-  const mountedNodes = () =>
-    new Map(
-      Array.from(container.querySelectorAll<HTMLElement>("[data-card]"), (el) => [
-        Number(el.dataset.card),
-        el.dataset.node,
-      ]),
-    );
-
   /** Scroll so the grid's top sits at the viewport top, and report card one. */
   const firstCardAtGridTop = async (at = GRID_TOP) => {
     await scrollWindowTo(at);
@@ -107,13 +102,6 @@ describe("CharGrid scroll behaviour", () => {
   const list = () => container.querySelector<HTMLElement>("#list")!;
 
   const containerHeight = () => parseFloat(list().style.height);
-
-  /**
-   * What the virtualizer reports as its total size, which folds in the scroll
-   * margin. Reported alongside the container height so the test can assert the
-   * two differ by exactly the margin.
-   */
-  const virtualTotalSize = () => parseFloat(list().dataset.virtualSize!);
 
   beforeEach(async () => {
     nextNode = 1;
@@ -186,31 +174,26 @@ describe("CharGrid scroll behaviour", () => {
     expect(mountedIds().length).toBeLessThan(TOTAL / 4);
   });
 
-  // The decisive one, and the reason this file tracks DOM nodes rather than
-  // render counts. Scrolling a real page advances the window one row at a time,
-  // so most cards stay visible while the positions around them change. If the
-  // grid binds cards to list positions rather than to characters, every
-  // surviving card is handed a different character -- and a different image
-  // src -- and the browser re-requests it.
-  it("keeps each character's DOM node as the window advances a row at a time", async () => {
+  // A window over a stable list: the characters on screen are a contiguous run
+  // of it, and scrolling forward moves the run along. This is also what stops a
+  // position from keeping the character it first drew. The virtualizer updates
+  // the store entry under a position in place, so a card that took its character
+  // once would keep showing it however far the window moved, and the grid would
+  // fill with whoever happened to be there at mount.
+  it("shows the characters the window has moved to", async () => {
     await scrollWindowTo(2000);
-    const first = mountedNodes();
-    expect(first.size).toBeGreaterThan(4);
+    const first = mountedIds();
+    expect(first.length).toBeGreaterThan(4);
+    expect([...first].sort((a, b) => a - b)).toEqual(first);
+    expect(first.length).toBeLessThanOrEqual(MAX_WINDOW_ROWS * LANES);
 
-    const stamps = new Map(first);
-    let rewritten = 0;
+    await scrollWindowTo(2000 + ROW_HEIGHT);
+    const second = mountedIds();
 
-    for (let row = 1; row <= 4; row++) {
-      await scrollWindowTo(2000 + row * ROW_HEIGHT);
-
-      for (const [id, node] of mountedNodes()) {
-        const previous = stamps.get(id);
-        if (previous !== undefined && previous !== node) rewritten++;
-        stamps.set(id, node);
-      }
-    }
-
-    expect(rewritten).toBe(0);
+    expect(second).not.toEqual(first);
+    expect(Math.min(...second)).toBeGreaterThan(Math.min(...first));
+    expect([...second].sort((a, b) => a - b)).toEqual(second);
+    expect(second.length).toBeLessThanOrEqual(MAX_WINDOW_ROWS * LANES);
   });
 
   // A stale scroll margin offsets every card by however far content above the
@@ -249,25 +232,22 @@ describe("CharGrid scroll behaviour", () => {
   // what sizing it from getTotalSize() did: that value already includes the
   // scroll margin, so the container was hundreds of pixels taller than the
   // cards it holds, leaving blank space and a scroll past the last row.
-  // The scroll margin is folded into every measurement the virtualizer makes,
-  // so it shows up as an empty band the width of the grid's offset from the top
-  // of the document. Asserting the container is smaller than that band is
-  // wide pins the bug itself rather than restating the lane arithmetic --
-  // which is what the earlier versions of this test did, wrongly.
-  it("excludes the scroll margin from the container height", async () => {
+  // The container has to be exactly tall enough to hold the cards placed
+  // inside it. Its offset from the top of the document is the scroll margin,
+  // which the virtualizer folds into every measurement, so the subtraction that
+  // turns a measurement into a position cancels it out. Subtracting it once
+  // more leaves the container scrollMargin pixels short of its own content, and
+  // the page stops before the last row.
+  it("reserves exactly the height the cards need", async () => {
     await settle();
 
-    // GRID_TOP alone is a six-hundred-pixel band: wide enough to be the blank
-    // space the regression left, without needing to move the grid at all.
     const margin = parseFloat(list().dataset.scrollMargin!);
-    const height = containerHeight();
+    const lanes = Number(list().dataset.columns);
+    const rows = Math.ceil(TOTAL / lanes);
 
     expect(margin).toBeCloseTo(GRID_TOP, 0);
 
-    // With the margin left in, the container equals the virtualizer's raw
-    // total size. Corrected, it is smaller by precisely the margin.
-    expect(virtualTotalSize() - height).toBeCloseTo(margin, 0);
-    expect(height).toBeGreaterThan(0);
+    expect(containerHeight()).toBeCloseTo(rows * CARD_HEIGHT + (rows - 1) * GAP, 0);
   });
 
   it("keeps the container height steady as the grid moves down the document", async () => {
