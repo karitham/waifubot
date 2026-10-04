@@ -1,3 +1,4 @@
+import { createSignal } from "solid-js";
 import { render } from "solid-js/web";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Character, UserProfile } from "../../api/generated";
@@ -135,6 +136,20 @@ describe("CharGrid remeasures its geometry", () => {
     return settle();
   };
 
+  /** Mount with media characters the test can supply later. */
+  const mountResizable = () => {
+    const [media, setMedia] = createSignal<Character[] | undefined>(undefined);
+    dispose = render(
+      () => (
+        <CollectionFiltersProvider value={usePageFilters("me")}>
+          <CharGrid characters={characters} mediaCharacters={media()} mainUser={mainUser} />
+        </CollectionFiltersProvider>
+      ),
+      container,
+    );
+    return { setMedia };
+  };
+
   const list = () => container.querySelector<HTMLElement>("#list")!;
   const reportedMargin = () => Number(list().dataset.scrollMargin);
   const reportedColumns = () => Number(list().dataset.columns);
@@ -203,9 +218,33 @@ describe("CharGrid remeasures its geometry", () => {
       return /left:\s*(-?[\d.]+)px/.exec(style)?.[1];
     });
 
-  // A card that reads its lane once keeps the column it was mounted in. In a
-  // one-lane grid that leaves cards at the offsets of a three-lane one, past
-  // the right edge of the container, overlapping each other.
+  // The window the virtualizer has measured and the list it measured against do
+  // not update in the same step, so a card can be asked for a character the
+  // list no longer holds. Applying a media filter is enough: it narrows the
+  // grid from the whole collection to the few characters in one show.
+  //
+  // jsdom updates both in one go and never catches the card out, so this does
+  // not reproduce the race. It pins the behaviour either side of it -- the grid
+  // collapses to the filtered characters and keeps rendering -- which is what
+  // the crash destroyed.
+  it("collapses to the filtered characters when a media filter is applied", async () => {
+    const { setMedia } = mountResizable();
+    await settle();
+
+    expect(cardOffsets().length).toBeGreaterThan(0);
+
+    setMedia([
+      { id: 9001, name: "A", image: "", favorites: 1 },
+      { id: 9002, name: "B", image: "", favorites: 2 },
+    ] as Character[]);
+    await settle();
+
+    const shown = Array.from(container.querySelectorAll<HTMLElement>("[data-card]"), (el) =>
+      Number(el.dataset.card),
+    );
+    expect([...shown].sort((a, b) => a - b)).toEqual([9001, 9002]);
+  });
+
   it("moves cards into the lanes a narrower grid gives them", async () => {
     await mount();
     expect(new Set(laneOffsets()).size).toBe(3);

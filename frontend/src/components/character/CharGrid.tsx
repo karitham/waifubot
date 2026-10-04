@@ -219,7 +219,13 @@ export default (props: {
    * screen keep their node and their loaded image, and only the row that has just
    * entered is fetched.
    */
-  const mounted = createMemo(() => virtualizer.getVirtualItems().map((item) => item.index));
+  const mounted = createMemo(() => {
+    const items = list();
+    return virtualizer
+      .getVirtualItems()
+      .map((item) => item.index)
+      .filter((index) => index < items.length);
+  });
 
   /**
    * The container's height: the extent the cards occupy within it.
@@ -263,11 +269,20 @@ export default (props: {
           <For each={mounted()}>
             {(key) => {
               const item = createMemo(() => list()[key]);
-              const char = createMemo(() => toCardCharacter(item()));
+
+              // A window the virtualizer has already measured can outlive the
+              // list it was measured against: the window and the list update in
+              // separate steps, so an entry can be gone by the time its card
+              // reads it. Renders nothing rather than reaching into an absent
+              // character.
+              const char = createMemo(() => {
+                const current = item();
+                return current && toCardCharacter(current);
+              });
 
               const owners = createMemo(() => {
                 const current = item();
-                return current.kind === "owned" ? current.owners : [];
+                return current?.kind === "owned" ? current.owners : [];
               });
               const ownersAvatars = createMemo(() =>
                 owners()
@@ -281,25 +296,30 @@ export default (props: {
               );
 
               return (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: `${(placements[key]?.lane ?? 0) * (columnWidth() + GAP)}px`,
-                    width: `${columnWidth()}px`,
-                    height: `${CARD_HEIGHT}px`,
-                    // start is measured from the scroll margin, which is the
-                    // grid's offset from the top of the document. Cards are
-                    // positioned within the container, so that offset comes off.
-                    transform: `translateY(${(placements[key]?.start ?? 0) - scrollMargin()}px)`,
-                  }}
-                >
-                  <CharCard
-                    char={char()}
-                    ownersAvatars={ownersAvatars()}
-                    ownersNames={ownersNames()}
-                  />
-                </div>
+                <Show when={char()}>
+                  {(current) => (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: `${(placements[key]?.lane ?? 0) * (columnWidth() + GAP)}px`,
+                        width: `${columnWidth()}px`,
+                        height: `${CARD_HEIGHT}px`,
+                        // start is measured from the scroll margin, which is the
+                        // grid's offset from the top of the document. Cards are
+                        // positioned within the container, so that offset comes
+                        // off.
+                        transform: `translateY(${(placements[key]?.start ?? 0) - scrollMargin()}px)`,
+                      }}
+                    >
+                      <CharCard
+                        char={current()}
+                        ownersAvatars={ownersAvatars()}
+                        ownersNames={ownersNames()}
+                      />
+                    </div>
+                  )}
+                </Show>
               );
             }}
           </For>
