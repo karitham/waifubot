@@ -1,5 +1,6 @@
 import { createWindowVirtualizer } from "@tanstack/solid-virtual";
-import { createMemo, createSignal, Index, onCleanup, Show } from "solid-js";
+import { createComputed, createMemo, createSignal, For, onCleanup, Show } from "solid-js";
+import { createStore, reconcile } from "solid-js/store";
 import type { MediaCharacter } from "../../api/anilist";
 import type { Character, UserProfile } from "../../api/generated";
 import { useCollectionFilters } from "../../context/CollectionFiltersContext";
@@ -19,7 +20,10 @@ import {
 import { sortByKey } from "../../utils/sortByKey";
 import CharCard from "./Card";
 
-const CARD_HEIGHT = 192; // h-48 = 12rem = 192px
+const CARD_HEIGHT = 192;
+
+/** Where one mounted card sits: which column, and how far down the grid. */
+type Slot = { lane: number; start: number }; // h-48 = 12rem = 192px
 const GAP = 24; // gap-6 = 1.5rem = 24px
 const MIN_CARD_WIDTH = 300; // w-75 = 18.75rem = 300px
 const OVERSCAN = 5; // rows of overscan above/below viewport
@@ -189,6 +193,35 @@ export default (props: {
   });
 
   /**
+   * Where each mounted card sits, by the list position it stands for.
+   *
+   * A card's row and column change as the window moves, but the character it
+   * shows does not. Keeping position here rather than in the card means a card
+   * can be told which character it is without also being handed a fresh one.
+   */
+  const [placements, setPlacements] = createStore<Record<number, Slot>>({});
+
+  createComputed(() => {
+    const next: Record<number, Slot> = {};
+    for (const item of virtualizer.getVirtualItems()) {
+      next[item.index] = { lane: item.lane, start: item.start };
+    }
+    setPlacements(reconcile(next));
+  });
+
+  /**
+   * The list positions currently on screen.
+   *
+   * Keyed by character rather than by window slot. A window over lanes advances
+   * a whole row at a time, so tying each node to a slot hands every card still
+   * in view a different character on each row scrolled, and the browser re-requests
+   * every card image each time. Keyed to the character, the cards that stay on
+   * screen keep their node and their loaded image, and only the row that has just
+   * entered is fetched.
+   */
+  const mounted = createMemo(() => virtualizer.getVirtualItems().map((item) => item.index));
+
+  /**
    * The container's height: the extent the cards occupy within it.
    *
    * getTotalSize() is the last card's bottom edge minus the scroll margin, which
@@ -221,24 +254,15 @@ export default (props: {
             "min-width": "100%",
           }}
         >
-          {/* Index, not map: the grid is a sliding window over a stable
-              list, and a bare map lets Solid reuse nodes by position. Advancing
-              the window then gives each surviving node a different character,
-              and so a different image src, re-requesting every card image on
-              each row. Index ties each node to a position in the list instead,
-              so a character keeps its own node while it stays mounted. */}
-          <Index each={virtualizer.getVirtualItems()}>
-            {(virtualItem) => {
-              // Read through accessors rather than destructured. Index keeps one
-              // child per position and reconcile updates the store entry in
-              // place, so a value taken once here would keep the number the
-              // card was first mounted with, and stay there while the
-              // measurement it came from is recomputed.
-              const index = () => virtualItem().index;
-              const lane = () => virtualItem().lane;
-              const start = () => virtualItem().start;
-
-              const item = createMemo(() => list()[index()]);
+          {/* For, not Index. For diffs by value, so it keys these nodes to the
+              characters they show: scrolling a row advances the window by a
+              whole row, and a positional mapping would hand every card still
+              in view a different character, re-requesting every card image on
+              every row scrolled. Each card reads its own placement from the
+              store above, so moving does not mean remounting. */}
+          <For each={mounted()}>
+            {(key) => {
+              const item = createMemo(() => list()[key]);
               const char = createMemo(() => toCardCharacter(item()));
 
               const owners = createMemo(() => {
@@ -261,13 +285,13 @@ export default (props: {
                   style={{
                     position: "absolute",
                     top: 0,
-                    left: `${lane() * (columnWidth() + GAP)}px`,
+                    left: `${(placements[key]?.lane ?? 0) * (columnWidth() + GAP)}px`,
                     width: `${columnWidth()}px`,
                     height: `${CARD_HEIGHT}px`,
                     // start is measured from the scroll margin, which is the
                     // grid's offset from the top of the document. Cards are
                     // positioned within the container, so that offset comes off.
-                    transform: `translateY(${start() - scrollMargin()}px)`,
+                    transform: `translateY(${(placements[key]?.start ?? 0) - scrollMargin()}px)`,
                   }}
                 >
                   <CharCard
@@ -278,7 +302,7 @@ export default (props: {
                 </div>
               );
             }}
-          </Index>
+          </For>
         </div>
       </Show>
     </div>

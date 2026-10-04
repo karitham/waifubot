@@ -174,12 +174,46 @@ describe("CharGrid scroll behaviour", () => {
     expect(mountedIds().length).toBeLessThan(TOTAL / 4);
   });
 
+  // The card images are the expensive part of a card: one request each, and a
+  // blank frame while they load. Scrolling a row brings in one row of new
+  // characters and nothing else, so only that row's images should be requested.
+  //
+  // Tying nodes to window slots instead of to characters re-requests every
+  // visible card's image on every row scrolled, which is what shows up as cards
+  // flashing as they scroll past.
+  it("requests no image for a card that is still on screen", async () => {
+    await scrollWindowTo(2000);
+
+    const snapshot = () =>
+      new Map(
+        Array.from(container.querySelectorAll("img"), (img) => [img, img.getAttribute("src")]),
+      );
+
+    const seen = snapshot();
+    let reused = 0;
+    let changed = 0;
+
+    for (let row = 1; row <= 4; row++) {
+      await scrollWindowTo(2000 + row * ROW_HEIGHT);
+
+      for (const [img, src] of snapshot()) {
+        if (!seen.has(img)) continue;
+        reused++;
+        if (seen.get(img) !== src) changed++;
+        seen.set(img, src);
+      }
+    }
+
+    // Enough cards persisted across the scroll for the assertion to mean
+    // something, rather than passing because everything was torn down.
+    expect(reused).toBeGreaterThan(0);
+    expect(changed).toBe(0);
+  });
+
   // A window over a stable list: the characters on screen are a contiguous run
   // of it, and scrolling forward moves the run along. This is also what stops a
-  // position from keeping the character it first drew. The virtualizer updates
-  // the store entry under a position in place, so a card that took its character
-  // once would keep showing it however far the window moved, and the grid would
-  // fill with whoever happened to be there at mount.
+  // card from keeping the character it first drew: a card takes its character
+  // from the list by its own position, so it shows whoever is there now.
   it("shows the characters the window has moved to", async () => {
     await scrollWindowTo(2000);
     const first = mountedIds();
