@@ -5,26 +5,15 @@ import type { CompareUserListItem } from "../../hooks/useCompareUsers";
 
 type Feedback = { kind: "error" | "success"; text: string };
 
-const Chip = (props: {
-  item: CompareUserListItem;
-  onRemove: (id: string) => void;
-  onRetry: (id: string) => void;
-}) => {
-  const name = () =>
-    props.item.user()?.profile.discord_username || props.item.user()?.profile.id || "";
+const chipName = (item: CompareUserListItem) =>
+  item.user()?.profile.discord_username || item.user()?.profile.id || "";
 
+const ChipBody = (props: { item: CompareUserListItem }) => {
+  const name = () => chipName(props.item);
   const initials = () => name().slice(0, 2).toUpperCase();
 
   return (
-    <div
-      class={`inline-flex items-center gap-2 h-10 pl-1.5 rounded-full border bg-surfaceA ${
-        props.item.error()
-          ? "border-red/50 cursor-pointer hover:bg-surfaceB/50"
-          : "border-surfaceB/40"
-      }`}
-      title={props.item.error() ? "Failed to load — click to retry" : name()}
-      onClick={() => props.item.error() && props.onRetry(props.item.id)}
-    >
+    <>
       <Show
         when={!props.item.loading()}
         fallback={
@@ -54,14 +43,48 @@ const Chip = (props: {
       <span class="text-sm text-text max-w-36 truncate">
         {props.item.error() ? "Failed to load" : props.item.loading() ? "Loading…" : name()}
       </span>
+    </>
+  );
+};
+
+const Chip = (props: {
+  item: CompareUserListItem;
+  onRemove: (id: string) => void;
+  onRetry: (id: string) => void;
+}) => {
+  const name = () => chipName(props.item);
+
+  return (
+    <div
+      class={`inline-flex items-center h-10 pl-1.5 rounded-full border bg-surfaceA ${
+        props.item.error() ? "border-red/50" : "border-surfaceB/40"
+      }`}
+    >
+      {/* Retry is a button rather than a click handler on the chip so it is
+          keyboard reachable, and a sibling of Remove: nesting one button
+          inside another is invalid. */}
+      <Show
+        when={props.item.error()}
+        fallback={
+          <span class="inline-flex items-center gap-2 pr-1" aria-busy={props.item.loading()}>
+            <ChipBody item={props.item} />
+          </span>
+        }
+      >
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 h-full pl-1.5 pr-1 rounded-full cursor-pointer hover:bg-surfaceB/50 focus-visible:ring-2 focus-visible:ring-mauve/60 focus-visible:outline-none"
+          onClick={() => props.onRetry(props.item.id)}
+          aria-label={`Retry loading ${name() || "user"}`}
+        >
+          <ChipBody item={props.item} />
+        </button>
+      </Show>
       <button
         type="button"
-        class="flex items-center justify-center w-9 self-stretch rounded-full text-subtextA hover:text-text hover:bg-surfaceC transition active:scale-[0.96] shrink-0"
-        onClick={(e) => {
-          e.stopPropagation();
-          props.onRemove(props.item.id);
-        }}
-        aria-label={`Remove ${name()} from comparison`}
+        class="flex items-center justify-center w-9 self-stretch rounded-full text-subtextA hover:text-text hover:bg-surfaceC transition active:scale-[0.96] shrink-0 focus-visible:ring-2 focus-visible:ring-mauve/60 focus-visible:outline-none"
+        onClick={() => props.onRemove(props.item.id)}
+        aria-label={`Remove ${name() || "user"} from comparison`}
       >
         <span class="i-ph-x text-sm" aria-hidden="true" />
       </button>
@@ -165,7 +188,12 @@ export default () => {
         }
       >
         {(fb) => (
-          <p class={`text-xs ${fb().kind === "error" ? "text-red" : "text-green"}`}>{fb().text}</p>
+          <p
+            class={`text-xs ${fb().kind === "error" ? "text-red" : "text-green"}`}
+            role={fb().kind === "error" ? "alert" : "status"}
+          >
+            {fb().text}
+          </p>
         )}
       </Show>
     </div>
