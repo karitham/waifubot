@@ -1,8 +1,10 @@
 import { createWindowVirtualizer } from "@tanstack/solid-virtual";
 import { createMemo, createSignal, onCleanup, onMount } from "solid-js";
+import type { MediaCharacter } from "../../api/anilist";
 import type { Character, UserProfile } from "../../api/generated";
 import { useCollectionFilters } from "../../context/CollectionFiltersContext";
-import { type CharOwned, combineFilters, filterBySearchTerm } from "../../utils/filterUtils";
+import { combineFilters, filterBySearchTerm } from "../../utils/filterUtils";
+import { buildGridItems, isMissing, toCardCharacter, type Filterable } from "../../utils/gridItems";
 import {
   buildOwnership,
   buildUserIndex,
@@ -18,7 +20,7 @@ const OVERSCAN = 5; // rows of overscan above/below viewport
 
 export default (props: {
   characters: Character[];
-  mediaCharacters: Character[] | undefined;
+  mediaCharacters: MediaCharacter[] | undefined;
   mainUser: UserProfile;
 }) => {
   const { charSearch, charSort, charSortAsc, compareUsers } = useCollectionFilters();
@@ -49,54 +51,32 @@ export default (props: {
 
   const mediaIds = createMemo(() => toIdSet(props.mediaCharacters));
 
-  const enrichCharacterWithOwners = (char: Character): CharOwned => {
-    const owners = ownershipMap().get(char.id.toString());
-    return { ...char, owners: owners && owners.length > 0 ? [...owners] : undefined };
-  };
-
-  const filters = createMemo(() =>
-    combineFilters([
+  // With a media filter active, owned characters are narrowed to that media
+  // too -- otherwise the grid would show the whole collection beside a
+  // "missing" list drawn from one show.
+  const matches = createMemo(() =>
+    combineFilters<Filterable>([
       filterBySearchTerm(charSearch()),
       ...(props.mediaCharacters && props.mediaCharacters.length > 0
-        ? [(char: Character) => mediaIds().has(char.id)]
+        ? [(item: Filterable) => mediaIds().has(item.id)]
         : []),
     ]),
   );
-  const filteredOwnedCharacters = createMemo(() =>
-    props.characters.filter(filters()).map(enrichCharacterWithOwners),
+
+  const list = createMemo(() =>
+    buildGridItems(props.characters, props.mediaCharacters, ownershipMap(), matches(), (a, b) => {
+      // Characters the main user owns stay ahead of the rest.
+      const aOwnedByMain = a.kind === "owned" && a.owners.includes(mainUserId() || "") ? 1 : 0;
+      const bOwnedByMain = b.kind === "owned" && b.owners.includes(mainUserId() || "") ? 1 : 0;
+
+      if (aOwnedByMain !== bOwnedByMain) {
+        return bOwnedByMain - aOwnedByMain;
+      }
+
+      return charSort().value(a.character, b.character) * charSortAsc();
+    }),
   );
 
-  const filteredMissingCharacters = createMemo(() => {
-    if (!props.mediaCharacters) return [];
-
-    const ownedIds = new Set(filteredOwnedCharacters().map((c) => c.id));
-
-    return props.mediaCharacters
-      .filter(filters())
-      .filter((char) => !ownedIds.has(char.id))
-      .map((char) => ({
-        ...enrichCharacterWithOwners(char),
-        missing: true,
-      }));
-  });
-
-  const list = createMemo(() => {
-    return [...filteredOwnedCharacters(), ...filteredMissingCharacters()].sort(
-      (a: CharOwned, b: CharOwned) => {
-        const aOwnedByMain = a.owners?.includes(mainUserId() || "") ? 1 : 0;
-        const bOwnedByMain = b.owners?.includes(mainUserId() || "") ? 1 : 0;
-
-        if (aOwnedByMain !== bOwnedByMain) {
-          return bOwnedByMain - aOwnedByMain;
-        }
-
-        const result = charSort().value(a, b);
-        return result * charSortAsc();
-      },
-    );
-  });
-
-  // Lookup a user's avatar/username by id from allUsersWithChars
   const findUser = (id: string) => usersById().get(id);
 
   let containerRef: HTMLDivElement | undefined;
@@ -179,16 +159,22 @@ export default (props: {
         }}
       >
         {virtualizer.getVirtualItems().map((virtualItem) => {
-          const char = list()[virtualItem.index];
+          const item = list()[virtualItem.index];
+          const char = toCardCharacter(item);
+          const missing = isMissing(item);
 
           const ownersAvatars =
-            char.owners
-              ?.map((id) => findUser(id)?.discord_avatar)
-              .filter((a): a is string => a !== undefined) || [];
+            item.kind === "owned"
+              ? item.owners
+                  .map((id) => findUser(id)?.discord_avatar)
+                  .filter((a): a is string => a !== undefined)
+              : [];
           const ownersNames =
-            char.owners
-              ?.map((id) => findUser(id)?.discord_username || id)
-              .filter((name): name is string => name !== undefined) || [];
+            item.kind === "owned"
+              ? item.owners
+                  .map((id) => findUser(id)?.discord_username || id)
+                  .filter((name): name is string => name !== undefined)
+              : [];
 
           const colWidth = columnWidth();
           const left = virtualItem.lane * (colWidth + GAP);
@@ -209,7 +195,7 @@ export default (props: {
                 char={char}
                 ownersAvatars={ownersAvatars}
                 ownersNames={ownersNames}
-                missing={char.missing}
+                missing={missing}
               />
             </div>
           );

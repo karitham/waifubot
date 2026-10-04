@@ -11,6 +11,19 @@ export class AniListError extends Error {
   }
 }
 
+/**
+ * A character as AniList knows it.
+ *
+ * Deliberately not the backend's `Character`: an AniList entry has no
+ * acquisition date and no roll/trade source, so it must not be given any.
+ */
+export type MediaCharacter = {
+  id: number;
+  name: string;
+  image: string;
+  favorites: number;
+};
+
 type CharacterNode = {
   id: string;
   name: {
@@ -21,6 +34,13 @@ type CharacterNode = {
   };
   favourites?: number;
 };
+
+const toMediaCharacter = (node: CharacterNode): MediaCharacter => ({
+  id: Number(node.id),
+  name: node.name.full,
+  image: node.image.large,
+  favorites: node.favourites ?? 0,
+});
 
 type CharactersResponse = {
   data: {
@@ -73,8 +93,8 @@ const SEARCH_QUERY = `query ($search: String, $perPage: Int) {
         }
     }`;
 
-export async function getMediaCharacters(mediaId: string): Promise<CharacterNode[]> {
-  const characters: CharacterNode[] = [];
+export async function getMediaCharacters(mediaId: string): Promise<MediaCharacter[]> {
+  const characters: MediaCharacter[] = [];
 
   let page = 1;
   let hasNextPage = true;
@@ -85,7 +105,7 @@ export async function getMediaCharacters(mediaId: string): Promise<CharacterNode
     });
 
     const { nodes, pageInfo } = response.data.Media.characters;
-    characters.push(...nodes);
+    characters.push(...nodes.map(toMediaCharacter));
     hasNextPage = pageInfo.hasNextPage;
     page++;
   }

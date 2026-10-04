@@ -1,11 +1,11 @@
 import { Show } from "solid-js";
-import type { Character } from "../../api/generated";
 import { getRarityHex } from "../../utils/rarity";
+import type { CardCharacter } from "../../utils/gridItems";
 import AvatarStack from "../ui/AvatarStack";
 import CharacterDetails from "./CharacterDetails";
 
 export default (props: {
-  char: Character;
+  char: CardCharacter;
   ownersAvatars?: string[];
   ownersNames?: string[];
   missing?: boolean;

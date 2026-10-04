@@ -38,5 +38,5 @@ export const buildOwnership = (users: UserWithCharacters[]): Ownership => {
   return new Map(Array.from(ownersByCharacter, ([charId, owners]) => [charId, Array.from(owners)]));
 };
 
-export const toIdSet = (characters: Character[] | undefined): IdSet =>
+export const toIdSet = (characters: ReadonlyArray<{ id: number }> | undefined): IdSet =>
   new Set((characters ?? []).map((char) => char.id));

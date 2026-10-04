@@ -1,6 +1,6 @@
 import { Match, Show, Switch, createMemo, createSignal, onCleanup } from "solid-js";
-import type { Character } from "../../api/generated";
 import { formatDate, mapCharType } from "../../utils";
+import type { CardCharacter } from "../../utils/gridItems";
 import { formatFavorites } from "../../utils/rarity";
 
 const metadataLine = "inline-flex gap-1.5 items-center text-xs text-subtextA leading-relaxed";
@@ -8,7 +8,7 @@ const metadataLine = "inline-flex gap-1.5 items-center text-xs text-subtextA lea
 const iconSwap =
   "absolute inset-0 flex items-center justify-center transition-[opacity,scale,filter] duration-200 ease-[cubic-bezier(0.2,0,0,1)]";
 
-export default (props: { char: Character; class?: string }) => {
+export default (props: { char: CardCharacter; class?: string }) => {
   const charType = () => mapCharType(props.char.type || "");
   const charDate = createMemo(() => props.char.date ?? "");
   const [copied, setCopied] = createSignal(false);

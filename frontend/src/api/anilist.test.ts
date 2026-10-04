@@ -51,7 +51,45 @@ describe("getMediaCharacters", () => {
 
     const characters = await getMediaCharacters("42");
 
-    expect(characters.map((c) => c.id)).toEqual(["1", "2", "3"]);
+    expect(characters.map((c) => c.id)).toEqual([1, 2, 3]);
+  });
+
+  it("normalises AniList's string ids to numbers for comparison", async () => {
+    mockFetch(okResponse(page(["12345"], false)));
+
+    const [character] = await getMediaCharacters("42");
+
+    expect(typeof character.id).toBe("number");
+    expect(character.name).toBe("Character 12345");
+  });
+
+  // The fabricated fields are what this change removes: an AniList character
+  // has no acquisition date and no roll/trade source.
+  it("returns no date or source type", async () => {
+    mockFetch(okResponse(page(["1"], false)));
+
+    const [character] = await getMediaCharacters("42");
+
+    expect(character).not.toHaveProperty("date");
+    expect(character).not.toHaveProperty("type");
+  });
+
+  it("defaults missing favourites to zero", async () => {
+    const withoutFavourites = {
+      data: {
+        Media: {
+          characters: {
+            nodes: [{ id: "1", name: { full: "X" }, image: { large: "i.jpg" } }],
+            pageInfo: { hasNextPage: false },
+          },
+        },
+      },
+    };
+    mockFetch(okResponse(withoutFavourites));
+
+    const [character] = await getMediaCharacters("42");
+
+    expect(character.favorites).toBe(0);
   });
 
   it("stops requesting pages once the media is exhausted", async () => {
