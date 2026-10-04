@@ -75,10 +75,10 @@ export default () => {
         />
       </div>
 
-      {/* Main content - asymmetric layout */}
-      <div class="content-width min-h-screen flex flex-col lg:flex-row lg:items-center lg:justify-between gap-[--space-2xl] py-[--space-3xl]">
-        {/* Left column - Hero content */}
-        <div class="flex-1 lg:max-w-xl space-y-[--space-lg]">
+      {/* Main content - grid areas place one search field per breakpoint */}
+      <div class="home-grid content-width min-h-screen py-[--space-3xl]">
+        {/* Hero content */}
+        <div class="home-hero flex-1 lg:max-w-xl space-y-[--space-lg]">
           {/* Icon */}
           <img
             src={Icon}
@@ -111,50 +111,38 @@ export default () => {
           >
             Discover anime character collections from Discord users. Roll. Trade. Collect.
           </p>
-
-          {/* Mobile search - visible first on small screens */}
-          <div
-            class={`
-							lg:hidden space-y-[--space-xs]
-							transition duration-700 delay-400 ease-[cubic-bezier(0.25,1,0.5,1)]
-							${mounted() ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}
-						`}
-          >
-            <SearchSection searchUser={searchUser} value={value} setValue={setValue} />
-          </div>
-          {/* Feature highlights - visual cards */}
-          <div
-            class={`
-							grid grid-cols-1 gap-[--space-sm]
-							transition duration-700 delay-500 ease-[cubic-bezier(0.25,1,0.5,1)]
-							${mounted() ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}
-						`}
-          >
-            {features.map((f) => (
-              <div class="flex items-start gap-[--space-sm] p-[--space-sm] rounded-lg bg-surfaceA/40 border border-surfaceB/30 hover:bg-surfaceA/60 hover:border-surfaceB/50 transition duration-200 group">
-                <div class="w-10 h-10 rounded-md bg-gradient-to-br from-mauve/20 to-pink/10 flex items-center justify-center flex-shrink-0 group-hover:shadow-[0_0_20px_rgba(203,166,247,0.2)] transition-shadow duration-200">
-                  <div class={`${f.icon} text-mauve text-xl`} />
-                </div>
-                <div>
-                  <strong class="text-text font-medium block mb-0.5">{f.strong}</strong>
-                  <span class="text-sm text-subtextA leading-snug">{f.text}</span>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
 
-        {/* Right column - Desktop search */}
+        {/* Search - one instance, repositioned by grid area */}
         <div
           class={`
-						hidden lg:block lg:w-[28rem] xl:w-[32rem]
-						transition duration-700 delay-300 ease-[cubic-bezier(0.25,1,0.5,1)]
+						home-search w-full
+						transition duration-700 delay-400 ease-[cubic-bezier(0.25,1,0.5,1)]
 						${mounted() ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}
 					`}
         >
-          <div class="sticky top-[--space-3xl]">
-            <SearchSection searchUser={searchUser} value={value} setValue={setValue} />
-          </div>
+          <SearchSection searchUser={searchUser} value={value} setValue={setValue} />
+        </div>
+
+        {/* Feature highlights - visual cards */}
+        <div
+          class={`
+						home-features grid grid-cols-1 gap-[--space-sm]
+						transition duration-700 delay-500 ease-[cubic-bezier(0.25,1,0.5,1)]
+						${mounted() ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}
+					`}
+        >
+          {features.map((f) => (
+            <div class="flex items-start gap-[--space-sm] p-[--space-sm] rounded-lg bg-surfaceA/40 border border-surfaceB/30 hover:bg-surfaceA/60 hover:border-surfaceB/50 transition duration-200 group">
+              <div class="w-10 h-10 rounded-md bg-gradient-to-br from-mauve/20 to-pink/10 flex items-center justify-center flex-shrink-0 group-hover:shadow-[0_0_20px_rgba(203,166,247,0.2)] transition-shadow duration-200">
+                <div class={`${f.icon} text-mauve text-xl`} />
+              </div>
+              <div>
+                <strong class="text-text font-medium block mb-0.5">{f.strong}</strong>
+                <span class="text-sm text-subtextA leading-snug">{f.text}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -207,7 +195,11 @@ const SearchSection = (props: {
 
   return (
     <div class="w-full">
-      <TextField onChange={props.setValue} class="flex flex-col gap-[--space-xs]">
+      <TextField
+        value={props.value()}
+        onChange={props.setValue}
+        class="flex flex-col gap-[--space-xs]"
+      >
         <TextField.Label class="text-sm text-subtextA font-medium">
           Search by Discord or AniList username
         </TextField.Label>

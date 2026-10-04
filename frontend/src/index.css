@@ -113,6 +113,60 @@ h6 {
   }
 }
 
+/*
+ * Home layout
+ * ===========
+ * Named grid areas let a single search field sit between the hero and the
+ * feature cards on mobile and in a right-hand column on desktop. The previous
+ * markup rendered two copies of the form and toggled them with `lg:hidden` /
+ * `hidden lg:block`, which duplicated the input, its label association and the
+ * error state, and let the two copies drift apart.
+ *
+ * UnoCSS has no readable way to express responsive grid-template-areas, so the
+ * two breakpoints live here with the rest of the layout primitives.
+ */
+.home-grid {
+  display: grid;
+  grid-template-areas:
+    "hero"
+    "search"
+    "features";
+  gap: var(--space-lg);
+}
+
+.home-hero {
+  grid-area: hero;
+}
+
+.home-search {
+  grid-area: search;
+}
+
+.home-features {
+  grid-area: features;
+}
+
+@media (min-width: 1024px) {
+  .home-grid {
+    grid-template-columns: minmax(0, 1fr) 28rem;
+    grid-template-areas:
+      "hero search"
+      "features search";
+    align-items: center;
+    column-gap: var(--space-2xl);
+  }
+
+  .home-search {
+    align-self: center;
+  }
+}
+
+@media (min-width: 1280px) {
+  .home-grid {
+    grid-template-columns: minmax(0, 1fr) 32rem;
+  }
+}
+
 /**
  * Animation System
  * ================
