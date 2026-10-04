@@ -37,7 +37,7 @@ export default function FilterBar() {
             </div>
             <SortDirectionToggle
               direction={filters.charSortAsc()}
-              onToggle={() => filters.setCharSortAsc((prev: number) => -prev)}
+              onToggle={filters.toggleCharSortAsc}
             />
           </div>
         </div>

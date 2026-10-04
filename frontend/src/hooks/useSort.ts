@@ -27,13 +27,21 @@ export const sortOptions = [
 
 export type SortOption = (typeof sortOptions)[number];
 
+export type SortDirection = 1 | -1;
+
 /**
  * Sort is local view state, unlike the media filter: putting it in the query
  * string would make every shared link carry it.
+ *
+ * The direction is a sign, not a magnitude. Typing it as `1 | -1` keeps a
+ * stray 0 -- which would make every comparison a tie and leave the grid
+ * unsorted -- out of reach.
  */
 export function useSort() {
   const [charSort, setCharSort] = createSignal(sortOptions[0]);
-  const [charSortAsc, setCharSortAsc] = createSignal(1);
+  const [charSortAsc, setCharSortAsc] = createSignal<SortDirection>(1);
 
-  return { charSort, setCharSort, charSortAsc, setCharSortAsc };
+  const toggleCharSortAsc = () => setCharSortAsc((prev) => (prev === 1 ? -1 : 1));
+
+  return { charSort, setCharSort, charSortAsc, setCharSortAsc, toggleCharSortAsc };
 }

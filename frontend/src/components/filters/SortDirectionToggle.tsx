@@ -1,5 +1,7 @@
+import type { SortDirection } from "../../hooks/useSort";
+
 export type SortDirectionToggleProps = {
-  direction: number;
+  direction: SortDirection;
   onToggle: () => void;
 };
 
