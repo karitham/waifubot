@@ -6,7 +6,8 @@ import UserCollectionPage from "./UserCollectionPage";
 
 vi.mock("@solidjs/router", () => import("../hooks/router-mock"));
 
-vi.mock("../api/generated", () => ({
+vi.mock("../api/generated", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../api/generated")>()),
   getCollectionV1: vi.fn(async () => ({ characters: [], total: 0 })),
   getProfileV1: vi.fn(async () => ({ id: "test-user", discord_username: "tester" })),
   getWishlist: vi.fn(async () => ({ characters: [], total: 0 })),

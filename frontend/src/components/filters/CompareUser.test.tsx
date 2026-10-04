@@ -9,7 +9,8 @@ import CompareUser from "./CompareUser";
 
 vi.mock("@solidjs/router", () => import("../../hooks/router-mock"));
 
-vi.mock("../../api/generated", () => ({
+vi.mock("../../api/generated", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../api/generated")>()),
   getCollectionV1: vi.fn(async (id: string) => ({ characters: [], total: 0, id })),
   getProfileV1: vi.fn(async (id: string) => ({ id, discord_username: `name-${id}` })),
   getWishlist: vi.fn(async () => ({ characters: [], total: 0 })),

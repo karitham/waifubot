@@ -5,7 +5,8 @@ import { useCompareUsers } from "./useCompareUsers";
 
 vi.mock("@solidjs/router", () => import("./router-mock"));
 
-vi.mock("../api/generated", () => ({
+vi.mock("../api/generated", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../api/generated")>()),
   getProfileV1: vi.fn(async (id: string) => ({
     id,
     discord_username: `name-${id}`,

@@ -4,7 +4,8 @@ import Home from "./Home";
 
 vi.mock("@solidjs/router", () => import("../hooks/router-mock"));
 
-vi.mock("../api/generated", () => ({
+vi.mock("../api/generated", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../api/generated")>()),
   findUserV1: vi.fn(async ({ discord }: { discord?: string; anilist?: string }) => ({
     id: `resolved-${discord ?? ""}`,
   })),

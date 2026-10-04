@@ -129,9 +129,10 @@ describe("toCardCharacter", () => {
     });
   });
 
-  // The fabricated fields are the bug: an AniList character was given today's
-  // date and ROLL, so filtering a show claimed everything was rolled today.
-  it("gives a missing character no date or source", () => {
+  // A missing character has no acquisition record. The source label names the
+  // route to obtaining it, so the date must stay absent -- that is the part
+  // that would be a fabricated claim.
+  it("labels a missing character with how to obtain it, and no date", () => {
     const items = buildGridItems([], [mediaChar(5)], ownership({}), always, byId);
 
     expect(toCardCharacter(items[0])).toEqual({
@@ -139,12 +140,12 @@ describe("toCardCharacter", () => {
       name: "Media 5",
       image: "https://img.example/m5.jpg",
       favorites: 5,
+      type: "ROLL",
     });
     expect(toCardCharacter(items[0]).date).toBeUndefined();
-    expect(toCardCharacter(items[0]).type).toBeUndefined();
   });
 
-  it("preserves a null date on an owned character", () => {
+  it("keeps a null type on an owned character rather than substituting one", () => {
     const items = buildGridItems(
       [owned(1, { date: null, type: null })],
       undefined,
