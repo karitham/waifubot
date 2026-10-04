@@ -3,6 +3,7 @@ import type { MediaCharacter } from "../api/anilist";
 import type { Character } from "../api/generated";
 import { buildGridItems, isMissing, toCardCharacter, type GridItem } from "./gridItems";
 import type { Ownership } from "./ownership";
+import { sortByKey } from "./sortByKey";
 
 const owned = (id: number, extra: Partial<Character> = {}): Character =>
   ({
@@ -23,7 +24,9 @@ const mediaChar = (id: number): MediaCharacter => ({
 });
 
 const always = () => true;
-const byId = (a: GridItem, b: GridItem) => a.character.id - b.character.id;
+
+/** Default ordering: ascending by id, as a stand-in for the real sort. */
+const byId = (items: GridItem[]) => sortByKey(items, (i) => i.character.id, false);
 
 const ownership = (entries: Record<string, string[]>): Ownership =>
   new Map(Object.entries(entries));
@@ -89,16 +92,22 @@ describe("buildGridItems", () => {
     expect(items[0]).toMatchObject({ owners: [] });
   });
 
-  it("sorts with the supplied comparator", () => {
+  it("sorts each group with the supplied ordering", () => {
     const items = buildGridItems(
       [owned(2), owned(1)],
       [mediaChar(3)],
       ownership({}),
       always,
-      (a, b) => b.character.id - a.character.id,
+      (group) => sortByKey(group, (i) => i.character.id, true),
     );
 
-    expect(ids(items)).toEqual([3, 2, 1]);
+    expect(ids(items)).toEqual([2, 1, 3]);
+  });
+
+  it("orders owned before missing regardless of the ordering", () => {
+    const items = buildGridItems([owned(9)], [mediaChar(1)], ownership({}), always, byId);
+
+    expect(kinds(items)).toEqual(["owned", "missing"]);
   });
 
   it("is empty for no characters and no media", () => {

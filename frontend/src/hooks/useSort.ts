@@ -1,31 +1,51 @@
 import { createSignal } from "solid-js";
 import type { Character } from "../api/generated";
 
-export const sortOptions = [
+export type SortOption = {
+  id: string;
+  label: string;
+  /** Computed once per character, not once per comparison. */
+  key: (character: Character) => string | number;
+  /** The direction this column reads most naturally in. */
+  descending: boolean;
+};
+
+/**
+ * Columns are key extractors rather than comparators. `descending` only
+ * records the natural reading; the toggle inverts it.
+ *
+ * Date uses Date.parse rather than comparing the strings. Lexical order would
+ * be cheaper still, and matches the API today -- every date is
+ * `YYYY-MM-DDTHH:MM:SSZ` -- but openapi.yaml only declares `format:
+ * date-time`, which RFC3339 allows with any offset (`+05:00`) and lowercase
+ * `t`/`z`. Those break lexical order silently, with no error to notice.
+ */
+export const sortOptions: SortOption[] = [
   {
     id: "date",
     label: "Date",
-    value: (a: Character, b: Character) =>
-      b.date && a.date ? new Date(b.date).getTime() - new Date(a.date).getTime() : 0,
+    key: (c) => (c.date ? Date.parse(c.date) : Number.NEGATIVE_INFINITY),
+    descending: true,
   },
   {
     id: "name",
     label: "Name",
-    value: (a: Character, b: Character) => a.name.localeCompare(b.name),
+    key: (c) => c.name,
+    descending: false,
   },
   {
     id: "id",
     label: "ID",
-    value: (a: Character, b: Character) => Number(a.id) - Number(b.id),
+    key: (c) => c.id,
+    descending: false,
   },
   {
     id: "favorites",
     label: "Favorites",
-    value: (a: Character, b: Character) => (b.favorites ?? 0) - (a.favorites ?? 0),
+    key: (c) => c.favorites ?? 0,
+    descending: true,
   },
 ];
-
-export type SortOption = (typeof sortOptions)[number];
 
 export type SortDirection = 1 | -1;
 

@@ -4,13 +4,20 @@ import type { MediaCharacter } from "../../api/anilist";
 import type { Character, UserProfile } from "../../api/generated";
 import { useCollectionFilters } from "../../context/CollectionFiltersContext";
 import { combineFilters, filterBySearchTerm } from "../../utils/filterUtils";
-import { buildGridItems, isMissing, toCardCharacter, type Filterable } from "../../utils/gridItems";
+import {
+  buildGridItems,
+  isMissing,
+  toCardCharacter,
+  type Filterable,
+  type GridItem,
+} from "../../utils/gridItems";
 import {
   buildOwnership,
   buildUserIndex,
   toIdSet,
   type UserWithCharacters,
 } from "../../utils/ownership";
+import { sortByKey } from "../../utils/sortByKey";
 import CharCard from "./Card";
 
 const CARD_HEIGHT = 192; // h-48 = 12rem = 192px
@@ -63,18 +70,35 @@ export default (props: {
     ]),
   );
 
+  /** The chosen column, in the direction the toggle currently selects. */
+  const sortOrder = createMemo(() => {
+    const option = charSort();
+    const ascending = charSortAsc() === 1;
+    return (items: GridItem[]) =>
+      sortByKey(
+        items,
+        (item) => option.key(item.character),
+        ascending ? !option.descending : option.descending,
+      );
+  });
+
+  /**
+   * Characters the main user owns lead within each group. Partitioning first
+   * keeps that out of the comparator, so the key is only extracted once per
+   * item rather than once per comparison.
+   */
+  const order = (items: GridItem[]): GridItem[] => {
+    const id = mainUserId() || "";
+    const ownedByMain = (item: GridItem) => item.kind === "owned" && item.owners.includes(id);
+
+    return [
+      ...sortOrder()(items.filter(ownedByMain)),
+      ...sortOrder()(items.filter((item) => !ownedByMain(item))),
+    ];
+  };
+
   const list = createMemo(() =>
-    buildGridItems(props.characters, props.mediaCharacters, ownershipMap(), matches(), (a, b) => {
-      // Characters the main user owns stay ahead of the rest.
-      const aOwnedByMain = a.kind === "owned" && a.owners.includes(mainUserId() || "") ? 1 : 0;
-      const bOwnedByMain = b.kind === "owned" && b.owners.includes(mainUserId() || "") ? 1 : 0;
-
-      if (aOwnedByMain !== bOwnedByMain) {
-        return bOwnedByMain - aOwnedByMain;
-      }
-
-      return charSort().value(a.character, b.character) * charSortAsc();
-    }),
+    buildGridItems(props.characters, props.mediaCharacters, ownershipMap(), matches(), order),
   );
 
   const findUser = (id: string) => usersById().get(id);

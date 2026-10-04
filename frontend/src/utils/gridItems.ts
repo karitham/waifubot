@@ -48,15 +48,18 @@ export const isMissing = (item: GridItem): boolean => item.kind === "missing";
 
 /**
  * Builds the grid's rows: owned characters first, then media characters the
- * user does not own. `matches` applies the active filters and `compare` the
- * chosen ordering.
+ * user does not own. `matches` applies the active filters.
+ *
+ * `order` sorts within each group rather than across the whole list, so the
+ * main user's characters stay ahead of the rest without a compound comparator
+ * that re-derives ownership on every comparison.
  */
 export const buildGridItems = (
   characters: Character[],
   mediaCharacters: MediaCharacter[] | undefined,
   ownership: Ownership,
   matches: (item: Filterable) => boolean,
-  compare: (a: GridItem, b: GridItem) => number,
+  order: (items: GridItem[]) => GridItem[],
 ): GridItem[] => {
   const owned: GridItem[] = characters.filter(matches).map((character) => ({
     kind: "owned" as const,
@@ -70,5 +73,5 @@ export const buildGridItems = (
     .filter((character) => !ownedIds.has(character.id) && matches(character))
     .map((character) => ({ kind: "missing" as const, character }));
 
-  return [...owned, ...missing].sort(compare);
+  return [...order(owned), ...order(missing)];
 };
