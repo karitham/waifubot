@@ -1,15 +1,11 @@
-import type { SortOption } from "../../hooks/useSort";
 import { useCollectionFilters } from "../../context/CollectionFiltersContext";
+import { sortOptions } from "../../hooks/useSort";
 import FilterLabel from "../ui/FilterLabel";
 import CompareUser from "./CompareUser";
 import CharFilter from "./Filter";
 import MediaFilter from "./MediaFilter";
-import CharSort, { type CharSortProps } from "./Sort";
+import CharSort from "./Sort";
 import SortDirectionToggle from "./SortDirectionToggle";
-
-interface FilterBarProps {
-  sortOptions: SortOption[];
-}
 
 /**
  * Filter bar layout. Context values MUST be bound inline in JSX, which
@@ -17,7 +13,7 @@ interface FilterBarProps {
  * prop objects: a plain property is evaluated once at mount and silently
  * freezes the binding.
  */
-export default function FilterBar(props: FilterBarProps) {
+export default function FilterBar() {
   const filters = useCollectionFilters();
 
   return (
@@ -35,7 +31,7 @@ export default function FilterBar(props: FilterBarProps) {
             <div class="flex-1 min-w-0 md:w-44 md:flex-none">
               <CharSort
                 value={filters.charSort()}
-                options={props.sortOptions}
+                options={sortOptions}
                 onChange={filters.setCharSort}
               />
             </div>

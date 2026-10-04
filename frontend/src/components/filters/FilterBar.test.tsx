@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "solid-js/web";
 import { CollectionFiltersProvider } from "../../context/CollectionFiltersContext";
 import { usePageFilters } from "../../hooks/usePageFilters";
-import { sortOptions } from "../../hooks/useSort";
 import FilterBar from "./FilterBar";
 
 // Real-router .js build has split context objects; the mock keeps the
@@ -46,7 +45,7 @@ const pressItem = (el: Element) => {
 // objects, evaluating them once at mount — selection never produced a
 // chip and clearing never restored the search. This exercises the real
 // JSX wiring.
-describe("FilterBar media wiring", () => {
+describe("FilterBar", () => {
   let container: HTMLDivElement;
   let dispose: () => void;
 
@@ -57,7 +56,7 @@ describe("FilterBar media wiring", () => {
       const filters = usePageFilters("main-user");
       return (
         <CollectionFiltersProvider value={filters}>
-          <FilterBar sortOptions={sortOptions} />
+          <FilterBar />
         </CollectionFiltersProvider>
       );
     }, container);
@@ -96,5 +95,41 @@ describe("FilterBar media wiring", () => {
 
     expect(container.querySelector('input[placeholder="Search media…"]')).not.toBeNull();
     expect(container.querySelector('button[aria-label^="Clear media filter"]')).toBeNull();
+  });
+
+  const sortTrigger = () =>
+    container.querySelector<HTMLButtonElement>('button[aria-label="Sort by"]');
+
+  it("shows the default sort column", () => {
+    expect(sortTrigger()?.textContent).toContain("Date");
+  });
+
+  it("offers every sort column from useSort without it being passed in", async () => {
+    sortTrigger()?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(0);
+
+    const options = Array.from(document.body.querySelectorAll('[role="option"]'));
+    expect(options.map((o) => o.textContent?.trim())).toEqual(["Date", "Name", "ID", "Favorites"]);
+  });
+
+  it("updates the displayed column when another is chosen", async () => {
+    sortTrigger()?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(0);
+
+    const options = Array.from(document.body.querySelectorAll('[role="option"]'));
+    pressItem(options[1]);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(sortTrigger()?.textContent).toContain("Name");
+  });
+
+  it("toggles sort direction", async () => {
+    const toggle = container.querySelector<HTMLButtonElement>('button[aria-label="Ascending"]');
+    expect(toggle).not.toBeNull();
+
+    toggle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(container.querySelector('button[aria-label="Descending"]')).not.toBeNull();
   });
 });

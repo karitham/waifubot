@@ -4,7 +4,6 @@ import CollectionNav from "../components/CollectionNav";
 import CharGrid from "../components/character/CharGrid";
 import FilterBar from "../components/filters/FilterBar";
 import Notice from "../components/ui/Notice";
-import { sortOptions } from "../hooks/useSort";
 import type { ResourceState } from "../resource";
 
 interface CollectionBodyProps {
@@ -65,7 +64,7 @@ export default (props: CollectionBodyProps) => {
         <div class="flex flex-col gap-5">
           <CollectionNav navbarLink={props.navbarLink} searchParams={props.searchParams} />
           <div class="border-t border-surfaceB/40 pt-5">
-            <FilterBar sortOptions={sortOptions} />
+            <FilterBar />
           </div>
         </div>
       </div>
