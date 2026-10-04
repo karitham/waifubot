@@ -169,14 +169,25 @@ export default (props: {
     },
   });
 
+  // getTotalSize() ends at the last card's bottom edge, and the virtualizer
+  // measures from the scroll margin -- so it includes the distance from the top
+  // of the document down to the grid. Sizing the container with it directly
+  // left that margin's worth of blank space below the last card, and a scroll
+  // range running past the end of the list.
+  const virtualSize = () => virtualizer.getTotalSize();
+  const containerHeight = () => virtualSize() - scrollMargin();
+
   return (
     <div
       ref={containerRef}
       id="list"
+      // Exposed so tests can assert the container height excludes the margin.
+      data-scroll-margin={scrollMargin()}
+      data-virtual-size={virtualSize()}
       style={{
         position: "relative",
         width: "100%",
-        height: `${virtualizer.getTotalSize()}px`,
+        height: `${containerHeight()}px`,
       }}
     >
       <div

@@ -5,6 +5,7 @@ import { CollectionFiltersProvider } from "../../context/CollectionFiltersContex
 import { usePageFilters } from "../../hooks/usePageFilters";
 import { scrollWindowTo, stubLayout, stubViewport } from "../../testing/layout";
 import { installResizeObserver } from "../../testing/resizeObserver";
+
 import CharGrid from "./CharGrid";
 
 /**
@@ -48,11 +49,15 @@ vi.mock("../../api/generated", async (importOriginal) => ({
 vi.mock("../../api/anilist", () => ({ getMediaCharacters: vi.fn(async () => []) }));
 
 const TOTAL = 500;
+/** Must match CharGrid's CARD_HEIGHT and GAP. */
+const CARD_HEIGHT = 192;
+const GAP = 24;
 /** One row of cards plus the 24px gap, at three lanes. */
-const ROW_HEIGHT = 216;
+const ROW_HEIGHT = CARD_HEIGHT + GAP;
 const VIEWPORT_HEIGHT = 800;
 /** Three lanes at this width. */
 const GRID_WIDTH = 1000;
+const LANES = 3;
 /** Where the grid starts down the document, as on a real collection page. */
 const GRID_TOP = 600;
 
@@ -99,8 +104,22 @@ describe("CharGrid scroll behaviour", () => {
     return ids[0];
   };
 
+  const list = () => container.querySelector<HTMLElement>("#list")!;
+
+  const containerHeight = () => parseFloat(list().style.height);
+
+  /**
+   * What the virtualizer reports as its total size, which folds in the scroll
+   * margin. Reported alongside the container height so the test can assert the
+   * two differ by exactly the margin.
+   */
+  const virtualTotalSize = () => parseFloat(list().dataset.virtualSize!);
+
   beforeEach(async () => {
     nextNode = 1;
+    // scrollMargin is rect.top + window.scrollY, so a scroll position left
+    // over from a previous case would silently inflate it.
+    Object.defineProperty(window, "scrollY", { value: 0, configurable: true, writable: true });
     const restoreViewport = stubViewport(VIEWPORT_HEIGHT);
     layout = stubLayout(GRID_TOP, GRID_WIDTH);
     resizeObserver = installResizeObserver();
@@ -221,5 +240,46 @@ describe("CharGrid scroll behaviour", () => {
   it("observes the document rather than a fixed number of ancestors", () => {
     // A future wrapper in the DOM must not be able to silently break this.
     expect(resizeObserver.observed().has(document.body)).toBe(true);
+  });
+
+  // Asserted as an invariant rather than as arithmetic. Restating the
+  // virtualizer's lane maths in the test only duplicates it, and got the
+  // expected value wrong when tried. What must hold is that the container does
+  // not resize just because the grid moved down the page, which is exactly
+  // what sizing it from getTotalSize() did: that value already includes the
+  // scroll margin, so the container was hundreds of pixels taller than the
+  // cards it holds, leaving blank space and a scroll past the last row.
+  // The scroll margin is folded into every measurement the virtualizer makes,
+  // so it shows up as an empty band the width of the grid's offset from the top
+  // of the document. Asserting the container is smaller than that band is
+  // wide pins the bug itself rather than restating the lane arithmetic --
+  // which is what the earlier versions of this test did, wrongly.
+  it("excludes the scroll margin from the container height", async () => {
+    await settle();
+
+    // GRID_TOP alone is a six-hundred-pixel band: wide enough to be the blank
+    // space the regression left, without needing to move the grid at all.
+    const margin = parseFloat(list().dataset.scrollMargin!);
+    const height = containerHeight();
+
+    expect(margin).toBeCloseTo(GRID_TOP, 0);
+
+    // With the margin left in, the container equals the virtualizer's raw
+    // total size. Corrected, it is smaller by precisely the margin.
+    expect(virtualTotalSize() - height).toBeCloseTo(margin, 0);
+    expect(height).toBeGreaterThan(0);
+  });
+
+  it("keeps the container height steady as the grid moves down the document", async () => {
+    await settle();
+    const before = containerHeight();
+
+    layout.moveTo(GRID_TOP + 400);
+    await settle();
+    expect(containerHeight()).toBe(before);
+
+    layout.moveTo(GRID_TOP + 1500);
+    await settle();
+    expect(containerHeight()).toBe(before);
   });
 });
