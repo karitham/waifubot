@@ -3,6 +3,12 @@ import { createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import type { Character, UserProfile } from "../../api/generated";
 import { useCollectionFilters } from "../../context/CollectionFiltersContext";
 import { type CharOwned, combineFilters, filterBySearchTerm } from "../../utils/filterUtils";
+import {
+  buildOwnership,
+  buildUserIndex,
+  toIdSet,
+  type UserWithCharacters,
+} from "../../utils/ownership";
 import CharCard from "./Card";
 
 const CARD_HEIGHT = 192; // h-48 = 12rem = 192px
@@ -20,60 +26,39 @@ export default (props: {
   const compareUsersList = () => compareUsers() || [];
   const mainUserId = () => props.mainUser?.id;
 
-  // Build a list of all users with their characters for ownership tracking
-  const allUsersWithChars = createMemo(() => {
-    const result: {
-      id: string;
-      characters: Character[];
-      discord_avatar?: string;
-      discord_username: string;
-    }[] = [];
-    // Main user
-    result.push({
-      id: props.mainUser?.id,
+  // Main user, then everyone being compared against.
+  const allUsersWithChars = createMemo<UserWithCharacters[]>(() => [
+    {
+      id: props.mainUser.id,
       characters: props.characters,
-      discord_avatar: props.mainUser?.discord_avatar,
-      discord_username: props.mainUser?.discord_username || "",
-    });
-    // Compare users
-    for (const cu of compareUsersList()) {
-      result.push({
-        id: cu.profile.id,
-        characters: cu.characters.characters,
-        discord_avatar: cu.profile.discord_avatar,
-        discord_username: cu.profile.discord_username,
-      });
-    }
-    return result;
-  });
+      discord_avatar: props.mainUser.discord_avatar,
+      discord_username: props.mainUser.discord_username || "",
+    },
+    ...compareUsersList().map((cu) => ({
+      id: cu.profile.id,
+      characters: cu.characters.characters,
+      discord_avatar: cu.profile.discord_avatar,
+      discord_username: cu.profile.discord_username,
+    })),
+  ]);
 
-  const ownershipMap = createMemo(() => {
-    const map = new Map<string, Set<string>>();
-    allUsersWithChars().forEach((user) => {
-      user.characters?.forEach((char) => {
-        const charId = char.id.toString();
-        if (!map.has(charId)) map.set(charId, new Set());
-        map.get(charId)?.add(user.id);
-      });
-    });
-    return new Map(
-      Array.from(map.entries()).map(([charId, userSet]) => [charId, Array.from(userSet)]),
-    );
-  });
+  const ownershipMap = createMemo(() => buildOwnership(allUsersWithChars()));
+
+  // Indexed once instead of scanning the user list per rendered avatar.
+  const usersById = createMemo(() => buildUserIndex(allUsersWithChars()));
+
+  const mediaIds = createMemo(() => toIdSet(props.mediaCharacters));
 
   const enrichCharacterWithOwners = (char: Character): CharOwned => {
-    const owners = ownershipMap().get(char.id.toString()) || [];
-    return {
-      ...char,
-      owners: owners.length > 0 ? owners : undefined,
-    };
+    const owners = ownershipMap().get(char.id.toString());
+    return { ...char, owners: owners && owners.length > 0 ? [...owners] : undefined };
   };
 
   const filters = createMemo(() =>
     combineFilters([
       filterBySearchTerm(charSearch()),
       ...(props.mediaCharacters && props.mediaCharacters.length > 0
-        ? [(char: Character) => props.mediaCharacters!.some((c) => c.id === char.id)]
+        ? [(char: Character) => mediaIds().has(char.id)]
         : []),
     ]),
   );
@@ -112,7 +97,7 @@ export default (props: {
   });
 
   // Lookup a user's avatar/username by id from allUsersWithChars
-  const findUser = (id: string) => allUsersWithChars().find((u) => u.id === id);
+  const findUser = (id: string) => usersById().get(id);
 
   let containerRef: HTMLDivElement | undefined;
   const [containerWidth, setContainerWidth] = createSignal(0);
