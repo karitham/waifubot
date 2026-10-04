@@ -90,9 +90,9 @@ const MediaSearch = (props: { onSelect: (media: MediaOption | null) => void }) =
 
         setStatus({ kind: "searching" });
         try {
-          const result = await searchMedia(value, 10);
+          const media = await searchMedia(value, 10);
           if (seq !== requestSeq) return; // superseded by a newer search
-          const found = result?.data.Page.media.map(toOption) ?? [];
+          const found = media.map(toOption);
           setOptions(found);
           setStatus(found.length > 0 ? { kind: "idle" } : { kind: "no-results" });
         } catch (e) {

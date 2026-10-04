@@ -10,19 +10,13 @@ import FilterBar from "./FilterBar";
 vi.mock("@solidjs/router", () => import("../../hooks/router-mock"));
 
 vi.mock("../../api/anilist", () => ({
-  searchMedia: vi.fn(async () => ({
-    data: {
-      Page: {
-        media: [
-          {
-            id: "12345",
-            title: { romaji: "Fate/Zero" },
-            coverImage: { large: "https://img.example/fz.jpg" },
-          },
-        ],
-      },
+  searchMedia: vi.fn(async () => [
+    {
+      id: "12345",
+      title: { romaji: "Fate/Zero" },
+      coverImage: { large: "https://img.example/fz.jpg" },
     },
-  })),
+  ]),
 }));
 
 const fireInput = (el: HTMLInputElement, value: string) => {
