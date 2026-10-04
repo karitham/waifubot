@@ -118,6 +118,12 @@ describe("CharGrid lane count", () => {
       // eslint-disable-next-line no-console
       console.log(`[lanes] cards=${cards().length} html=${container.innerHTML.slice(0, 300)}`);
 
+      const offsets = cards().map(
+        (el) => el.getAttribute("style")?.match(/left:\s*(-?[\d.]+)px/)?.[1],
+      );
+      const counts = new Map();
+      for (const o of offsets) counts.set(o, (counts.get(o) ?? 0) + 1);
+      console.log("[dup] lanes=" + laneCount() + " perLane=" + JSON.stringify([...counts]));
       expect(laneCount()).toBe(expected);
     });
   }
@@ -126,5 +132,63 @@ describe("CharGrid lane count", () => {
     await mountAt(1483);
 
     expect(rowCount()).toBeGreaterThan(1);
+  });
+
+  // Guards against two grids coexisting. The virtualizer reconciles its items
+  // by index, so cards drawn before the width was known -- at a single lane --
+  // are not replaced when the correct lane count arrives; they are joined by a
+  // second set. Both then paint, one lane offset from the other.
+  it("renders exactly one card per grid slot, not a stale set alongside", async () => {
+    await mountAt(1483);
+
+    const perLane = new Map<string, number>();
+    for (const card of cards()) {
+      const offset = card.getAttribute("style")?.match(/left:\s*(-?[\d.]+)px/)?.[1] ?? "?";
+      perLane.set(offset, (perLane.get(offset) ?? 0) + 1);
+    }
+
+    // eslint-disable-next-line no-console
+    console.log(`[dup] lanes=${laneCount()} perLane=${JSON.stringify([...perLane])}`);
+
+    const counts = [...perLane.values()];
+    expect(counts.length).toBe(4);
+
+    // Each lane holds at most one viewport's worth of cards. A leftover
+    // single-lane column instead spans the whole list, so it holds more than any
+    // lane here.
+    const [first, ...rest] = counts;
+    for (const count of rest) {
+      expect(count).toBeLessThanOrEqual(first);
+      expect(count).toBeGreaterThan(0);
+    }
+    expect(first).toBeLessThanOrEqual(6);
+  });
+
+  it("does not render cards before the container has been measured", async () => {
+    // Offset width reports 0, as it does before layout: the grid must not
+    // paint a set of cards it is going to have to throw away.
+    const originalWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetWidth");
+    Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
+      configurable: true,
+      get: () => 0,
+    });
+
+    try {
+      dispose = render(
+        () => (
+          <CollectionFiltersProvider value={usePageFilters("me")}>
+            <CharGrid characters={characters} mediaCharacters={undefined} mainUser={mainUser} />
+          </CollectionFiltersProvider>
+        ),
+        container,
+      );
+      await settle();
+
+      expect(container.querySelectorAll("[data-card]")).toHaveLength(0);
+    } finally {
+      if (originalWidth) {
+        Object.defineProperty(HTMLElement.prototype, "offsetWidth", originalWidth);
+      }
+    }
   });
 });

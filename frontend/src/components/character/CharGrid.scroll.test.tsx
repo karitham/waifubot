@@ -52,13 +52,13 @@ const TOTAL = 500;
 /** Must match CharGrid's CARD_HEIGHT and GAP. */
 const CARD_HEIGHT = 192;
 const GAP = 24;
-/** One row of cards plus the 24px gap, at three lanes. */
+/** One row of cards plus the gap between them. */
 const ROW_HEIGHT = CARD_HEIGHT + GAP;
 const VIEWPORT_HEIGHT = 800;
-/** Three lanes at this width. */
+/** Narrow enough that the grid lays out three lanes. */
 const GRID_WIDTH = 1000;
 const LANES = 3;
-/** Where the grid starts down the document, as on a real collection page. */
+/** Distance from the top of the document to the grid. */
 const GRID_TOP = 600;
 
 const characters = Array.from({ length: TOTAL }, (_, i) => ({
@@ -213,10 +213,10 @@ describe("CharGrid scroll behaviour", () => {
     expect(rewritten).toBe(0);
   });
 
-  // The reported symptom: the grid jumps and re-renders when content above it
-  // settles, such as the profile card growing as its images load. A stale
-  // scroll margin makes every card's offset wrong by that growth, so scrolling
-  // to the grid's new position would show characters from well past it.
+  // A stale scroll margin offsets every card by however far content above the
+  // grid has grown, so scrolling to the grid's new position shows characters
+  // from well past it. The profile card growing as its images load is the case
+  // that moves it.
   it("re-measures when content above the grid pushes it down the document", async () => {
     const firstBefore = await firstCardAtGridTop();
     expect(firstBefore).toBeGreaterThan(0);

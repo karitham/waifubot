@@ -1,5 +1,5 @@
 import { createWindowVirtualizer } from "@tanstack/solid-virtual";
-import { createMemo, createSignal, Index, onCleanup } from "solid-js";
+import { createMemo, createSignal, Index, onCleanup, Show } from "solid-js";
 import type { MediaCharacter } from "../../api/anilist";
 import type { Character, UserProfile } from "../../api/generated";
 import { useCollectionFilters } from "../../context/CollectionFiltersContext";
@@ -34,7 +34,8 @@ export default (props: {
   const compareUsersList = () => compareUsers() || [];
   const mainUserId = () => props.mainUser?.id;
 
-  // Main user, then everyone being compared against.
+  // Everyone whose collection is on screen: the main user, then each user being
+  // compared against.
   const allUsersWithChars = createMemo<UserWithCharacters[]>(() => [
     {
       id: props.mainUser.id,
@@ -52,7 +53,7 @@ export default (props: {
 
   const ownershipMap = createMemo(() => buildOwnership(allUsersWithChars()));
 
-  // Indexed once instead of scanning the user list per rendered avatar.
+  // By id, so resolving a card's owner is a lookup rather than a scan.
   const usersById = createMemo(() => buildUserIndex(allUsersWithChars()));
 
   const mediaIds = createMemo(() => toIdSet(props.mediaCharacters));
@@ -82,9 +83,9 @@ export default (props: {
   });
 
   /**
-   * Characters the main user owns lead within each group. Partitioning first
-   * keeps that out of the comparator, so the key is only extracted once per
-   * item rather than once per comparison.
+   * Orders each group, keeping the characters the main user owns ahead of the
+   * ones only a compared user owns. The split happens before sorting so the
+   * ordering key is extracted once per item instead of once per comparison.
    */
   const order = (items: GridItem[]): GridItem[] => {
     const id = mainUserId() || "";
@@ -106,19 +107,14 @@ export default (props: {
   const [containerWidth, setContainerWidth] = createSignal(0);
 
   /**
-   * Measures the container as soon as it exists, via a ref callback rather than
-   * onMount.
+   * Measures the container, and keeps the measurement current.
    *
-   * onMount runs after the first reactive pass, by which point columns() and
-   * the virtualizer's `lanes` have already been computed from a width of 0 --
-   * and since the virtualizer reads `lanes` through a plain getter rather than
-   * a Solid signal, nothing re-runs those. The grid stayed at one lane, drawing
-   * every card as a single long row.
-   *
-   * A ref callback runs during the first render, so the width is set before
-   * anything depends on it. An effect reading containerRef cannot do this: it
-   * is a plain variable, so the effect sees undefined and nothing invalidates it
-   * once the ref lands.
+   * Runs from a ref callback rather than onMount because onMount fires after
+   * the first reactive pass: the lane count and the virtualizer's `lanes` would
+   * already have been derived from a width of zero, and neither recomputes on
+   * its own. The virtualizer reads `lanes` through a plain getter, so a signal
+   * written after that point is not something it reacts to. A ref callback runs
+   * during the first render instead, with the element in hand.
    */
   const observeContainer = (element: HTMLDivElement) => {
     const measure = () => {
@@ -131,13 +127,12 @@ export default (props: {
     const widthRO = new ResizeObserver(measure);
     widthRO.observe(element);
 
-    // The scroll margin depends on how far down the document the container
-    // sits, which anything above it can change -- the profile card growing as
-    // its images load is the common case. Observing document.body catches that
-    // wherever it happens. A fixed walk up the ancestors only worked because
-    // one of them happened to be <main>, which is min-h-screen: while content
-    // fits the viewport its height does not change, so a profile card growing
-    // underneath it produced no callback at all.
+    // The scroll margin is how far down the document the grid sits, so anything
+    // above it moving changes it -- a profile card growing as its images load
+    // is the usual cause. Observing the body catches that wherever it happens.
+    // Walking up a fixed number of ancestors is not enough: an ancestor whose
+    // own height is already pinned by the viewport reports no resize when the
+    // content inside it grows.
     const marginRO = new ResizeObserver(measure);
     marginRO.observe(document.body);
 
@@ -155,6 +150,17 @@ export default (props: {
     if (width === 0) return 1;
     return Math.max(1, Math.floor((width + GAP) / (MIN_CARD_WIDTH + GAP)));
   });
+
+  /**
+   * Whether the container has been measured, and so whether the lane count is
+   * known.
+   *
+   * The virtualizer takes its lane count on first use, so painting before this
+   * is true means painting a layout that is about to change. Nothing is
+   * rendered until then: one blank frame is cheaper than drawing cards at the
+   * wrong lane count and moving them afterwards.
+   */
+  const measured = () => containerWidth() > 0;
 
   const columnWidth = createMemo(() => {
     const cols = columns();
@@ -178,11 +184,15 @@ export default (props: {
     },
   });
 
-  // getTotalSize() ends at the last card's bottom edge, and the virtualizer
-  // measures from the scroll margin -- so it includes the distance from the top
-  // of the document down to the grid. Sizing the container with it directly
-  // left that margin's worth of blank space below the last card, and a scroll
-  // range running past the end of the list.
+  /**
+   * The container's height, which reserves exactly the cards' own extent.
+   *
+   * getTotalSize() reaches the last card's bottom edge, measured from the scroll
+   * margin, so it also counts the distance from the top of the document to the
+   * grid. The container sits below that distance already, so using the total
+   * directly would add the same blank space again below the last card and let
+   * the page scroll past the end of the list.
+   */
   const virtualSize = () => virtualizer.getTotalSize();
   const containerHeight = () => virtualSize() - scrollMargin();
 
@@ -190,74 +200,74 @@ export default (props: {
     <div
       ref={observeContainer}
       id="list"
-      // Exposed so tests can assert the container height excludes the margin.
-      // Exposed so tests can assert on the measured geometry, since that is
-      // what determines the lane count and so the entire layout.
+      // Exposed so tests can assert on the measured geometry, which determines
+      // the lane count and so the whole layout.
       data-scroll-margin={scrollMargin()}
       data-columns={columns()}
       data-virtual-size={virtualSize()}
       style={{
         position: "relative",
         width: "100%",
-        height: `${containerHeight()}px`,
+        height: measured() ? `${containerHeight()}px` : "0px",
       }}
     >
-      {/* Width is written to the DOM so the next layout measures the real
-          box. Before that it must not be "100%": the grid sits in normal flow
-          and would otherwise resolve against its parent, which is how a stale
-          lane count survives a re-render. */}
-      <div
-        style={{
-          position: "relative",
-          width: `${containerWidth() > 0 ? containerWidth() : "100%"}`,
-          "min-width": "100%",
-        }}
-      >
-        {/* Index, not map: this is a sliding window over a stable list, and a
-            bare map lets Solid reuse DOM nodes by position. Advancing the
-            window then hands each surviving card a different character -- and a
-            different image src -- re-requesting every card image on each row.
-            Index binds each row to a list position, so a character keeps its
-            own node for as long as it stays mounted. */}
-        <Index each={virtualizer.getVirtualItems()}>
-          {(virtualItem) => {
-            const { index, lane, start } = virtualItem();
-            const item = list()[index];
-            const char = toCardCharacter(item);
-
-            const ownersAvatars =
-              item.kind === "owned"
-                ? item.owners
-                    .map((id) => findUser(id)?.discord_avatar)
-                    .filter((a): a is string => a !== undefined)
-                : [];
-            const ownersNames =
-              item.kind === "owned"
-                ? item.owners
-                    .map((id) => findUser(id)?.discord_username || id)
-                    .filter((name): name is string => name !== undefined)
-                : [];
-
-            const colWidth = columnWidth();
-            const left = lane * (colWidth + GAP);
-
-            return (
-              <div
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: `${left}px`,
-                  width: `${colWidth}px`,
-                  height: `${CARD_HEIGHT}px`,
-                  transform: `translateY(${start - scrollMargin()}px)`,
-                }}
-              >
-                <CharCard char={char} ownersAvatars={ownersAvatars} ownersNames={ownersNames} />
-              </div>
-            );
+      <Show when={measured()}>
+        <div
+          style={{
+            position: "relative",
+            width: `${containerWidth()}px`,
+            "min-width": "100%",
           }}
-        </Index>
-      </div>
+        >
+          {/* Index, not map: the grid is a sliding window over a stable
+              list, and a bare map lets Solid reuse nodes by position. Advancing
+              the window then gives each surviving node a different character,
+              and so a different image src, re-requesting every card image on
+              each row. Index ties each node to a position in the list instead,
+              so a character keeps its own node while it stays mounted. */}
+          <Index each={virtualizer.getVirtualItems()}>
+            {(virtualItem) => {
+              const { index, lane, start } = virtualItem();
+              const item = list()[index];
+              const char = toCardCharacter(item);
+
+              const ownersAvatars =
+                item.kind === "owned"
+                  ? item.owners
+                      .map((id) => findUser(id)?.discord_avatar)
+                      .filter((a): a is string => a !== undefined)
+                  : [];
+              const ownersNames =
+                item.kind === "owned"
+                  ? item.owners
+                      .map((id) => findUser(id)?.discord_username || id)
+                      .filter((name): name is string => name !== undefined)
+                  : [];
+
+              const colWidth = columnWidth();
+              const left = lane * (colWidth + GAP);
+
+              return (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: `${left}px`,
+                    width: `${colWidth}px`,
+                    height: `${CARD_HEIGHT}px`,
+                    // start is measured from the scroll margin, which is the
+                    // grid's offset from the top of the document. Cards are
+                    // positioned within the container, so that offset comes off.
+                    transform: `translateY(${start - scrollMargin()}px)`,
+                  }}
+                >
+                  <CharCard char={char} ownersAvatars={ownersAvatars} ownersNames={ownersNames} />
+                </div>
+              );
+            }}
+          </Index>
+        </div>
+      </Show>
     </div>
   );
 };
