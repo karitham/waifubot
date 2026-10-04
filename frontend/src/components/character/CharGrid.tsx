@@ -185,16 +185,15 @@ export default (props: {
   });
 
   /**
-   * The container's height, which reserves exactly the cards' own extent.
+   * The container's height: the extent the cards occupy within it.
    *
-   * getTotalSize() reaches the last card's bottom edge, measured from the scroll
-   * margin, so it also counts the distance from the top of the document to the
-   * grid. The container sits below that distance already, so using the total
-   * directly would add the same blank space again below the last card and let
-   * the page scroll past the end of the list.
+   * getTotalSize() is the last card's bottom edge minus the scroll margin, which
+   * is the distance from the top of the document to the grid. Cards are
+   * positioned at the same measure minus that margin, so the total already
+   * describes their extent inside the container. Subtracting the margin again
+   * would leave the container scrollMargin pixels shorter than its own content.
    */
-  const virtualSize = () => virtualizer.getTotalSize();
-  const containerHeight = () => virtualSize() - scrollMargin();
+  const containerHeight = () => virtualizer.getTotalSize();
 
   return (
     <div
@@ -204,7 +203,6 @@ export default (props: {
       // the lane count and so the whole layout.
       data-scroll-margin={scrollMargin()}
       data-columns={columns()}
-      data-virtual-size={virtualSize()}
       style={{
         position: "relative",
         width: "100%",
@@ -227,41 +225,52 @@ export default (props: {
               so a character keeps its own node while it stays mounted. */}
           <Index each={virtualizer.getVirtualItems()}>
             {(virtualItem) => {
-              const { index, lane, start } = virtualItem();
-              const item = list()[index];
-              const char = toCardCharacter(item);
+              // Read through accessors rather than destructured. Index keeps one
+              // child per position and reconcile updates the store entry in
+              // place, so a value taken once here would keep the number the
+              // card was first mounted with, and stay there while the
+              // measurement it came from is recomputed.
+              const index = () => virtualItem().index;
+              const lane = virtualItem().lane;
+              const start = () => virtualItem().start;
 
-              const ownersAvatars =
-                item.kind === "owned"
-                  ? item.owners
-                      .map((id) => findUser(id)?.discord_avatar)
-                      .filter((a): a is string => a !== undefined)
-                  : [];
-              const ownersNames =
-                item.kind === "owned"
-                  ? item.owners
-                      .map((id) => findUser(id)?.discord_username || id)
-                      .filter((name): name is string => name !== undefined)
-                  : [];
+              const item = createMemo(() => list()[index()]);
+              const char = createMemo(() => toCardCharacter(item()));
 
-              const colWidth = columnWidth();
-              const left = lane * (colWidth + GAP);
+              const owners = createMemo(() => {
+                const current = item();
+                return current.kind === "owned" ? current.owners : [];
+              });
+              const ownersAvatars = createMemo(() =>
+                owners()
+                  .map((id) => findUser(id)?.discord_avatar)
+                  .filter((a): a is string => a !== undefined),
+              );
+              const ownersNames = createMemo(() =>
+                owners()
+                  .map((id) => findUser(id)?.discord_username || id)
+                  .filter((name): name is string => name !== undefined),
+              );
 
               return (
                 <div
                   style={{
                     position: "absolute",
                     top: 0,
-                    left: `${left}px`,
-                    width: `${colWidth}px`,
+                    left: `${lane * (columnWidth() + GAP)}px`,
+                    width: `${columnWidth()}px`,
                     height: `${CARD_HEIGHT}px`,
                     // start is measured from the scroll margin, which is the
                     // grid's offset from the top of the document. Cards are
                     // positioned within the container, so that offset comes off.
-                    transform: `translateY(${start - scrollMargin()}px)`,
+                    transform: `translateY(${start() - scrollMargin()}px)`,
                   }}
                 >
-                  <CharCard char={char} ownersAvatars={ownersAvatars} ownersNames={ownersNames} />
+                  <CharCard
+                    char={char()}
+                    ownersAvatars={ownersAvatars()}
+                    ownersNames={ownersNames()}
+                  />
                 </div>
               );
             }}
