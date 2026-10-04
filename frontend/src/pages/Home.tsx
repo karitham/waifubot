@@ -78,7 +78,7 @@ export default () => {
       {/* Main content - grid areas place one search field per breakpoint */}
       <div class="home-grid content-width min-h-screen py-[--space-3xl]">
         {/* Hero content */}
-        <div class="home-hero flex-1 lg:max-w-xl space-y-[--space-lg]">
+        <div class="home-hero lg:max-w-xl space-y-[--space-lg]">
           {/* Icon */}
           <img
             src={Icon}

@@ -131,7 +131,8 @@ h6 {
     "hero"
     "search"
     "features";
-  gap: var(--space-lg);
+  /* Page-level sections, per the spacing scale above. */
+  gap: var(--space-2xl);
 }
 
 .home-hero {
@@ -154,10 +155,8 @@ h6 {
       "features search";
     align-items: center;
     column-gap: var(--space-2xl);
-  }
-
-  .home-search {
-    align-self: center;
+    /* Hero and feature cards share a column here, so component spacing. */
+    row-gap: var(--space-lg);
   }
 }
 
