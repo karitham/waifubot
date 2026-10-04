@@ -4,6 +4,7 @@ import type { Character, UserProfile } from "../../api/generated";
 import { CollectionFiltersProvider } from "../../context/CollectionFiltersContext";
 import { usePageFilters } from "../../hooks/usePageFilters";
 import { scrollWindowTo, stubLayout, stubViewport } from "../../testing/layout";
+import { installResizeObserver } from "../../testing/resizeObserver";
 import CharGrid from "./CharGrid";
 
 /**
@@ -50,6 +51,10 @@ const TOTAL = 500;
 /** One row of cards plus the 24px gap, at three lanes. */
 const ROW_HEIGHT = 216;
 const VIEWPORT_HEIGHT = 800;
+/** Three lanes at this width. */
+const GRID_WIDTH = 1000;
+/** Where the grid starts down the document, as on a real collection page. */
+const GRID_TOP = 600;
 
 const characters = Array.from({ length: TOTAL }, (_, i) => ({
   id: i + 1,
@@ -69,6 +74,8 @@ describe("CharGrid scroll behaviour", () => {
   let container: HTMLDivElement;
   let dispose: () => void;
   let restore: () => void;
+  let layout: ReturnType<typeof stubLayout>;
+  let resizeObserver: ReturnType<typeof installResizeObserver>;
 
   const mountedIds = () =>
     Array.from(container.querySelectorAll<HTMLElement>("[data-card]"), (el) =>
@@ -84,17 +91,37 @@ describe("CharGrid scroll behaviour", () => {
       ]),
     );
 
+  /** Scroll so the grid's top sits at the viewport top, and report card one. */
+  const firstCardAtGridTop = async (at = GRID_TOP) => {
+    await scrollWindowTo(at);
+    const ids = mountedIds();
+    if (ids.length === 0) throw new Error("no cards mounted");
+    return ids[0];
+  };
+
   beforeEach(async () => {
     nextNode = 1;
     const restoreViewport = stubViewport(VIEWPORT_HEIGHT);
-    const restoreLayout = stubLayout(600, 1000);
+    layout = stubLayout(GRID_TOP, GRID_WIDTH);
+    resizeObserver = installResizeObserver();
     restore = () => {
-      restoreLayout();
+      resizeObserver.restore();
+      layout.restore();
       restoreViewport();
     };
 
+    // Mirror the real DOM depth: the grid sits inside CollectionBody's root,
+    // inside the layout's <main>, so any fixed-count walk up from the grid
+    // stops before reaching the document. Mounting it directly on body would
+    // make a shallow walk look correct.
+    let host = document.body;
+    for (const _ of [1, 2, 3]) {
+      const wrapper = document.createElement("div");
+      host.appendChild(wrapper);
+      host = wrapper;
+    }
     container = document.createElement("div");
-    document.body.appendChild(container);
+    host.appendChild(container);
     dispose = render(
       () => (
         <CollectionFiltersProvider value={usePageFilters("me")}>
@@ -152,23 +179,47 @@ describe("CharGrid scroll behaviour", () => {
     expect(first.size).toBeGreaterThan(4);
 
     const stamps = new Map(first);
-    let rewroteSrc = 0;
+    let rewritten = 0;
 
     for (let row = 1; row <= 4; row++) {
       await scrollWindowTo(2000 + row * ROW_HEIGHT);
 
       for (const [id, node] of mountedNodes()) {
         const previous = stamps.get(id);
-        if (previous === undefined) {
-          stamps.set(id, node);
-          continue;
-        }
-        // Same character, different node: it was moved rather than reused.
-        if (previous !== node) rewroteSrc++;
+        if (previous !== undefined && previous !== node) rewritten++;
         stamps.set(id, node);
       }
     }
 
-    expect(rewroteSrc).toBe(0);
+    expect(rewritten).toBe(0);
+  });
+
+  // The reported symptom: the grid jumps and re-renders when content above it
+  // settles, such as the profile card growing as its images load. A stale
+  // scroll margin makes every card's offset wrong by that growth, so scrolling
+  // to the grid's new position would show characters from well past it.
+  it("re-measures when content above the grid pushes it down the document", async () => {
+    const firstBefore = await firstCardAtGridTop();
+    expect(firstBefore).toBeGreaterThan(0);
+
+    // Four rows of content appear above the grid, as the profile card does
+    // when its images finish loading.
+    const movedTo = GRID_TOP + 4 * ROW_HEIGHT;
+    layout.moveTo(movedTo);
+    layout.growDocument(4 * ROW_HEIGHT);
+    resizeObserver.settle();
+    await settle();
+
+    const firstAfter = await firstCardAtGridTop(movedTo);
+
+    // Scrolling to wherever the grid's top now is must show the same first
+    // card. A stale scroll margin keeps the old offset, so the grid renders
+    // four rows further along and every card sits visibly shifted.
+    expect(firstAfter).toBe(firstBefore);
+  });
+
+  it("observes the document rather than a fixed number of ancestors", () => {
+    // A future wrapper in the DOM must not be able to silently break this.
+    expect(resizeObserver.observed().has(document.body)).toBe(true);
   });
 });

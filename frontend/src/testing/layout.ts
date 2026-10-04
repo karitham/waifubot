@@ -20,34 +20,65 @@ export const stubViewport = (height: number) => {
  * Give every element a fixed box. `offsetTop` stands in for how far down the
  * document the element sits, which is what a window virtualizer treats as its
  * scroll margin, and `width` decides how many lanes the grid lays out.
+ *
+ * Returns the values alongside the restore function so a test can simulate
+ * content above the grid growing -- the case a stale scroll margin causes.
  */
 export const stubLayout = (offsetTop: number, width: number, height = 4000) => {
-  const rect = {
-    top: offsetTop,
-    bottom: offsetTop + height,
-    left: 0,
-    right: width,
-    width,
-    height,
-    x: 0,
-    y: offsetTop,
-    toJSON: () => ({}),
-  } as DOMRect;
+  let top = offsetTop;
+  let boxWidth = width;
+  let documentHeight = height;
+
+  const rectFor = () =>
+    ({
+      top,
+      bottom: top + documentHeight,
+      left: 0,
+      right: boxWidth,
+      width: boxWidth,
+      height: documentHeight,
+      x: 0,
+      y: top,
+      toJSON: () => ({}),
+    }) as DOMRect;
 
   const originalRect = Element.prototype.getBoundingClientRect;
   const originalWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetWidth");
+  const originalHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight");
 
-  Element.prototype.getBoundingClientRect = () => rect;
+  Element.prototype.getBoundingClientRect = () => rectFor();
   Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
     configurable: true,
-    get: () => width,
+    get: () => boxWidth,
+  });
+  // Only the document grows when content above the grid grows. Inner elements
+  // keep their size, which is what makes observing document.body meaningful:
+  // a wrapper whose own box never resizes cannot notice anything.
+  Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+    configurable: true,
+    get(this: HTMLElement) {
+      return this === document.body ? documentHeight : height;
+    },
   });
 
-  return () => {
-    Element.prototype.getBoundingClientRect = originalRect;
-    if (originalWidth) {
-      Object.defineProperty(HTMLElement.prototype, "offsetWidth", originalWidth);
-    }
+  return {
+    /** Move the box down the document, as content above it growing would. */
+    moveTo: (nextTop: number) => {
+      top = nextTop;
+    },
+    /** Grow the document without moving the box, as a taller page would. */
+    growDocument: (px: number) => {
+      documentHeight += px;
+    },
+    restore: () => {
+      Element.prototype.getBoundingClientRect = originalRect;
+      if (originalWidth) {
+        Object.defineProperty(HTMLElement.prototype, "offsetWidth", originalWidth);
+      }
+      if (originalHeight) {
+        Object.defineProperty(HTMLElement.prototype, "offsetHeight", originalHeight);
+      }
+    },
   };
 };
 

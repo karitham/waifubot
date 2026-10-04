@@ -117,15 +117,20 @@ export default (props: {
 
     measure();
 
+    // Width depends on the container itself.
     const widthRO = new ResizeObserver(() => measure());
     widthRO.observe(containerRef);
 
+    // The scroll margin depends on how far down the document the container
+    // sits, which anything above it can change -- the profile card growing as
+    // its images load is the common case. Observing document.body catches that
+    // wherever it happens. The previous version walked three ancestors, which
+    // only worked because one of them happened to be <main>, and <main> is
+    // min-h-screen: while content fits the viewport its height does not change,
+    // so a profile card growing underneath it produced no callback at all and
+    // the margin went stale.
     const marginRO = new ResizeObserver(() => measure());
-    let el: HTMLElement | null = containerRef.parentElement;
-    for (let i = 0; i < 3 && el; i++) {
-      marginRO.observe(el);
-      el = el.parentElement;
-    }
+    marginRO.observe(document.body);
 
     window.addEventListener("resize", measure);
 
