@@ -1,5 +1,5 @@
 import { createWindowVirtualizer } from "@tanstack/solid-virtual";
-import { createMemo, createSignal, Index, onCleanup, onMount } from "solid-js";
+import { createMemo, createSignal, Index, onCleanup } from "solid-js";
 import type { MediaCharacter } from "../../api/anilist";
 import type { Character, UserProfile } from "../../api/generated";
 import { useCollectionFilters } from "../../context/CollectionFiltersContext";
@@ -102,34 +102,43 @@ export default (props: {
 
   const findUser = (id: string) => usersById().get(id);
 
-  let containerRef: HTMLDivElement | undefined;
-  const [containerWidth, setContainerWidth] = createSignal(0);
   const [scrollMargin, setScrollMargin] = createSignal(0);
+  const [containerWidth, setContainerWidth] = createSignal(0);
 
-  onMount(() => {
-    if (!containerRef) return;
-
+  /**
+   * Measures the container as soon as it exists, via a ref callback rather than
+   * onMount.
+   *
+   * onMount runs after the first reactive pass, by which point columns() and
+   * the virtualizer's `lanes` have already been computed from a width of 0 --
+   * and since the virtualizer reads `lanes` through a plain getter rather than
+   * a Solid signal, nothing re-runs those. The grid stayed at one lane, drawing
+   * every card as a single long row.
+   *
+   * A ref callback runs during the first render, so the width is set before
+   * anything depends on it. An effect reading containerRef cannot do this: it
+   * is a plain variable, so the effect sees undefined and nothing invalidates it
+   * once the ref lands.
+   */
+  const observeContainer = (element: HTMLDivElement) => {
     const measure = () => {
-      if (!containerRef) return;
-      setContainerWidth(containerRef.offsetWidth);
-      setScrollMargin(containerRef.getBoundingClientRect().top + window.scrollY);
+      setContainerWidth(element.offsetWidth);
+      setScrollMargin(element.getBoundingClientRect().top + window.scrollY);
     };
 
     measure();
 
-    // Width depends on the container itself.
-    const widthRO = new ResizeObserver(() => measure());
-    widthRO.observe(containerRef);
+    const widthRO = new ResizeObserver(measure);
+    widthRO.observe(element);
 
     // The scroll margin depends on how far down the document the container
     // sits, which anything above it can change -- the profile card growing as
     // its images load is the common case. Observing document.body catches that
-    // wherever it happens. The previous version walked three ancestors, which
-    // only worked because one of them happened to be <main>, and <main> is
-    // min-h-screen: while content fits the viewport its height does not change,
-    // so a profile card growing underneath it produced no callback at all and
-    // the margin went stale.
-    const marginRO = new ResizeObserver(() => measure());
+    // wherever it happens. A fixed walk up the ancestors only worked because
+    // one of them happened to be <main>, which is min-h-screen: while content
+    // fits the viewport its height does not change, so a profile card growing
+    // underneath it produced no callback at all.
+    const marginRO = new ResizeObserver(measure);
     marginRO.observe(document.body);
 
     window.addEventListener("resize", measure);
@@ -139,7 +148,7 @@ export default (props: {
       marginRO.disconnect();
       window.removeEventListener("resize", measure);
     });
-  });
+  };
 
   const columns = createMemo(() => {
     const width = containerWidth();
@@ -179,10 +188,13 @@ export default (props: {
 
   return (
     <div
-      ref={containerRef}
+      ref={observeContainer}
       id="list"
       // Exposed so tests can assert the container height excludes the margin.
+      // Exposed so tests can assert on the measured geometry, since that is
+      // what determines the lane count and so the entire layout.
       data-scroll-margin={scrollMargin()}
+      data-columns={columns()}
       data-virtual-size={virtualSize()}
       style={{
         position: "relative",
@@ -190,6 +202,10 @@ export default (props: {
         height: `${containerHeight()}px`,
       }}
     >
+      {/* Width is written to the DOM so the next layout measures the real
+          box. Before that it must not be "100%": the grid sits in normal flow
+          and would otherwise resolve against its parent, which is how a stale
+          lane count survives a re-render. */}
       <div
         style={{
           position: "relative",
