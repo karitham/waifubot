@@ -13,7 +13,7 @@ import (
 func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID tracker.MediaID, seriesRollCost int32, anime AnimeService) (catalog.Character, error) {
 	return acquire(ctx, s.store, userID, acquisition{
 		source: SourceSeriesRoll,
-		check: func(user User) error {
+		check: func(user User, _ time.Time) error {
 			if user.Tokens < seriesRollCost {
 				return ErrInsufficientTokens
 			}

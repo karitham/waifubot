@@ -49,9 +49,9 @@ func NewRollService(store Store, config RollConfig) *RollService {
 func (s *RollService) Roll(ctx context.Context, userID UserID) (catalog.Character, error) {
 	return acquire(ctx, s.store, userID, acquisition{
 		source: SourceRoll,
-		check: func(user User) error {
+		check: func(user User, now time.Time) error {
 			cooldownUntil := user.Date.Add(s.config.RollCooldown)
-			if time.Now().Before(cooldownUntil) {
+			if now.Before(cooldownUntil) {
 				return ErrRollCooldown{Until: cooldownUntil}
 			}
 			return nil
