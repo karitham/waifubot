@@ -17,7 +17,7 @@ func New(q wishliststore.Querier) Store {
 	return &store{q: q}
 }
 
-func characterIDs(ids []catalog.CharacterID) []int64 {
+func storageIDs(ids []catalog.CharacterID) []int64 {
 	out := make([]int64, len(ids))
 	for i, id := range ids {
 		out[i] = int64(id)
@@ -28,14 +28,14 @@ func characterIDs(ids []catalog.CharacterID) []int64 {
 func (s *store) AddCharactersToWishlist(ctx context.Context, userID collection.UserID, ids []catalog.CharacterID) error {
 	return s.q.AddCharactersToWishlist(ctx, wishliststore.AddCharactersToWishlistParams{
 		UserID:  uint64(userID),
-		Column2: characterIDs(ids),
+		Column2: storageIDs(ids),
 	})
 }
 
 func (s *store) RemoveCharactersFromWishlist(ctx context.Context, userID collection.UserID, ids []catalog.CharacterID) error {
 	return s.q.RemoveCharactersFromWishlist(ctx, wishliststore.RemoveCharactersFromWishlistParams{
 		UserID:  uint64(userID),
-		Column2: characterIDs(ids),
+		Column2: storageIDs(ids),
 	})
 }
 
@@ -65,13 +65,13 @@ func (s *store) GetUserCharacterWishlist(ctx context.Context, userID collection.
 	return entries, nil
 }
 
-func (s *store) GetWishlistHolders(ctx context.Context, ids []catalog.CharacterID, userID collection.UserID, guildID guild.GuildID) ([]UserCharacterSet, error) {
+func (s *store) GetWishlistHolders(ctx context.Context, ids []catalog.CharacterID, userID collection.UserID, guildID guild.ID) ([]UserCharacterSet, error) {
 	if len(ids) == 0 {
 		return []UserCharacterSet{}, nil
 	}
 
 	rows, err := s.q.GetWishlistHolders(ctx, wishliststore.GetWishlistHoldersParams{
-		Column1: characterIDs(ids),
+		Column1: storageIDs(ids),
 		UserID:  uint64(userID),
 		GuildID: uint64(guildID),
 	})
@@ -82,7 +82,7 @@ func (s *store) GetWishlistHolders(ctx context.Context, ids []catalog.CharacterI
 	return groupByUser(rows), nil
 }
 
-func (s *store) GetWantedCharacters(ctx context.Context, userID collection.UserID, guildID guild.GuildID) ([]UserCharacterSet, error) {
+func (s *store) GetWantedCharacters(ctx context.Context, userID collection.UserID, guildID guild.ID) ([]UserCharacterSet, error) {
 	rows, err := s.q.GetWantedCharacters(ctx, wishliststore.GetWantedCharactersParams{
 		UserID:  uint64(userID),
 		GuildID: uint64(guildID),
@@ -181,7 +181,7 @@ func (s *store) CompareWithUser(ctx context.Context, userID1, userID2 collection
 	}, nil
 }
 
-func (s *store) GetUsersWantingCharacter(ctx context.Context, charID catalog.CharacterID, guildID guild.GuildID, excludeUserID collection.UserID) ([]guild.MemberID, error) {
+func (s *store) GetUsersWantingCharacter(ctx context.Context, charID catalog.CharacterID, guildID guild.ID, excludeUserID collection.UserID) ([]guild.MemberID, error) {
 	ids, err := s.q.GetUsersWantingCharacter(ctx, wishliststore.GetUsersWantingCharacterParams{
 		CharacterID: int64(charID),
 		GuildID:     uint64(guildID),

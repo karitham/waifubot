@@ -14,7 +14,7 @@ type MockCatalogStore struct {
 	SearchGlobalCharactersFunc     func(ctx context.Context, term string) ([]catalog.Character, error)
 	GetActiveIDsFunc               func(ctx context.Context) ([]catalog.CharacterID, error)
 	MarkCharactersInactiveFunc     func(ctx context.Context, charIDs []catalog.CharacterID) error
-	GetCharacterHoldersInGuildFunc func(ctx context.Context, guildID guild.GuildID, charID catalog.CharacterID) ([]guild.MemberID, error)
+	GetCharacterHoldersInGuildFunc func(ctx context.Context, guildID guild.ID, charID catalog.CharacterID) ([]guild.MemberID, error)
 }
 
 var _ catalog.Store = (*MockCatalogStore)(nil)
@@ -55,7 +55,7 @@ func (m *MockCatalogStore) GetActiveIDs(ctx context.Context) ([]catalog.Characte
 }
 
 // GetCharacterHoldersInGuild lets the mock double as a guild.HolderQuerier.
-func (m *MockCatalogStore) GetCharacterHoldersInGuild(ctx context.Context, guildID guild.GuildID, charID catalog.CharacterID) ([]guild.MemberID, error) {
+func (m *MockCatalogStore) GetCharacterHoldersInGuild(ctx context.Context, guildID guild.ID, charID catalog.CharacterID) ([]guild.MemberID, error) {
 	if m.GetCharacterHoldersInGuildFunc != nil {
 		return m.GetCharacterHoldersInGuildFunc(ctx, guildID, charID)
 	}

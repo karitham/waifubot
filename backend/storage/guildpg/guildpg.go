@@ -19,26 +19,26 @@ func New(q guildstore.Querier) *Pg {
 	return &Pg{Q: q}
 }
 
-func (p *Pg) IsGuildIndexed(ctx context.Context, guildID guild.GuildID) (guild.GuildIndexStatus, error) {
+func (p *Pg) IsGuildIndexed(ctx context.Context, guildID guild.ID) (guild.IndexStatus, error) {
 	row, err := p.Q.IsGuildIndexed(ctx, uint64(guildID))
 	if err != nil {
-		return guild.GuildIndexStatus{}, err
+		return guild.IndexStatus{}, err
 	}
-	return guild.GuildIndexStatus{
+	return guild.IndexStatus{
 		Status:    guild.ConvertIndexingStatus(string(row.Status)),
 		UpdatedAt: row.UpdatedAt.Time,
 	}, nil
 }
 
-func (p *Pg) StartIndexingJob(ctx context.Context, guildID guild.GuildID) error {
+func (p *Pg) StartIndexingJob(ctx context.Context, guildID guild.ID) error {
 	return p.Q.StartIndexingJob(ctx, uint64(guildID))
 }
 
-func (p *Pg) CompleteIndexingJob(ctx context.Context, guildID guild.GuildID) error {
+func (p *Pg) CompleteIndexingJob(ctx context.Context, guildID guild.ID) error {
 	return p.Q.CompleteIndexingJob(ctx, uint64(guildID))
 }
 
-func (p *Pg) UpsertGuildMembers(ctx context.Context, guildID guild.GuildID, memberIDs []guild.MemberID, indexedAt time.Time) error {
+func (p *Pg) UpsertGuildMembers(ctx context.Context, guildID guild.ID, memberIDs []guild.MemberID, indexedAt time.Time) error {
 	ids := make([]int64, len(memberIDs))
 	for i, id := range memberIDs {
 		ids[i] = int64(id)
@@ -50,7 +50,7 @@ func (p *Pg) UpsertGuildMembers(ctx context.Context, guildID guild.GuildID, memb
 	})
 }
 
-func (p *Pg) DeleteGuildMembersNotIn(ctx context.Context, guildID guild.GuildID, memberIDs []guild.MemberID) error {
+func (p *Pg) DeleteGuildMembersNotIn(ctx context.Context, guildID guild.ID, memberIDs []guild.MemberID) error {
 	ids := make([]int64, len(memberIDs))
 	for i, id := range memberIDs {
 		ids[i] = int64(id)
@@ -61,7 +61,7 @@ func (p *Pg) DeleteGuildMembersNotIn(ctx context.Context, guildID guild.GuildID,
 	})
 }
 
-func (p *Pg) GetCharacterHoldersInGuild(ctx context.Context, guildID guild.GuildID, charID catalog.CharacterID) ([]guild.MemberID, error) {
+func (p *Pg) GetCharacterHoldersInGuild(ctx context.Context, guildID guild.ID, charID catalog.CharacterID) ([]guild.MemberID, error) {
 	holders, err := p.Q.UsersOwningCharInGuild(ctx, guildstore.UsersOwningCharInGuildParams{
 		CharacterID: int64(charID),
 		GuildID:     uint64(guildID),

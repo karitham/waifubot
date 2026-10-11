@@ -15,26 +15,26 @@ import (
 
 // mockQuerier implements guild.TxQuerier for testing.
 type mockQuerier struct {
-	status guild.GuildIndexStatus
+	status guild.IndexStatus
 	err    error
 }
 
-func (m *mockQuerier) IsGuildIndexed(ctx context.Context, guildID guild.GuildID) (guild.GuildIndexStatus, error) {
+func (m *mockQuerier) IsGuildIndexed(ctx context.Context, guildID guild.ID) (guild.IndexStatus, error) {
 	return m.status, m.err
 }
 
-func (m *mockQuerier) StartIndexingJob(ctx context.Context, guildID guild.GuildID) error { return nil }
+func (m *mockQuerier) StartIndexingJob(ctx context.Context, guildID guild.ID) error { return nil }
 
-func (m *mockQuerier) CompleteIndexingJob(ctx context.Context, guildID guild.GuildID) error {
+func (m *mockQuerier) CompleteIndexingJob(ctx context.Context, guildID guild.ID) error {
 	return nil
 }
 func (m *mockQuerier) Commit(ctx context.Context) error   { return nil }
 func (m *mockQuerier) Rollback(ctx context.Context) error { return nil }
-func (m *mockQuerier) UpsertGuildMembers(ctx context.Context, guildID guild.GuildID, memberIDs []guild.MemberID, indexedAt time.Time) error {
+func (m *mockQuerier) UpsertGuildMembers(ctx context.Context, guildID guild.ID, memberIDs []guild.MemberID, indexedAt time.Time) error {
 	return nil
 }
 
-func (m *mockQuerier) DeleteGuildMembersNotIn(ctx context.Context, guildID guild.GuildID, memberIDs []guild.MemberID) error {
+func (m *mockQuerier) DeleteGuildMembersNotIn(ctx context.Context, guildID guild.ID, memberIDs []guild.MemberID) error {
 	return nil
 }
 
@@ -70,7 +70,7 @@ func TestConvertIndexingStatus(t *testing.T) {
 
 func TestIndexGuildIfNeeded_AlreadyIndexed(t *testing.T) {
 	querier := &mockQuerier{
-		status: guild.GuildIndexStatus{
+		status: guild.IndexStatus{
 			Status:    guild.IndexingCompleted,
 			UpdatedAt: time.Now(),
 		},
@@ -84,7 +84,7 @@ func TestIndexGuildIfNeeded_AlreadyIndexed(t *testing.T) {
 
 func TestIndexGuildIfNeeded_ExpiredIndex(t *testing.T) {
 	querier := &mockQuerier{
-		status: guild.GuildIndexStatus{
+		status: guild.IndexStatus{
 			Status:    guild.IndexingCompleted,
 			UpdatedAt: time.Now().Add(-8 * 24 * time.Hour),
 		},
@@ -95,7 +95,7 @@ func TestIndexGuildIfNeeded_ExpiredIndex(t *testing.T) {
 	indexer := guild.NewIndexer(querier, fetcher)
 
 	txQuerier := &mockQuerier{
-		status: guild.GuildIndexStatus{
+		status: guild.IndexStatus{
 			Status:    guild.IndexingInProgress,
 			UpdatedAt: time.Now(),
 		},
@@ -110,7 +110,7 @@ func TestIndexGuildIfNeeded_ExpiredIndex(t *testing.T) {
 
 func TestCharacterHolders_GuildNotIndexed(t *testing.T) {
 	querier := &mockQuerier{
-		status: guild.GuildIndexStatus{
+		status: guild.IndexStatus{
 			Status: guild.IndexingPending,
 		},
 	}

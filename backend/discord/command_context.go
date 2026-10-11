@@ -13,7 +13,7 @@ import (
 type CommandContext interface {
 	UserID() collection.UserID
 	Username() string
-	GuildID() guild.GuildID
+	GuildID() guild.ID
 	ChannelID() collection.ChannelID
 	AvatarPNG() string
 	FirstResolvedUser() (corde.User, bool)
@@ -33,7 +33,7 @@ func newSlashCommandCtx(i *corde.Interaction[corde.SlashCommandInteractionData])
 
 func (c *slashCommandCtx) UserID() collection.UserID { return collection.UserID(c.i.Member.User.ID) }
 func (c *slashCommandCtx) Username() string          { return c.i.Member.User.Username }
-func (c *slashCommandCtx) GuildID() guild.GuildID    { return guild.GuildID(c.i.GuildID) }
+func (c *slashCommandCtx) GuildID() guild.ID         { return guild.ID(c.i.GuildID) }
 func (c *slashCommandCtx) ChannelID() collection.ChannelID {
 	return collection.ChannelID(c.i.ChannelID)
 }
@@ -66,7 +66,7 @@ func wrapCtx(
 type MockCommandContext struct {
 	UserIDVal            collection.UserID
 	UsernameVal          string
-	GuildIDVal           guild.GuildID
+	GuildIDVal           guild.ID
 	ChannelIDVal         collection.ChannelID
 	AvatarPNGVal         string
 	FirstResolvedUserVal corde.User
@@ -80,7 +80,7 @@ type MockCommandContext struct {
 
 func (m *MockCommandContext) UserID() collection.UserID { return m.UserIDVal }
 func (m *MockCommandContext) Username() string          { return m.UsernameVal }
-func (m *MockCommandContext) GuildID() guild.GuildID    { return m.GuildIDVal }
+func (m *MockCommandContext) GuildID() guild.ID         { return m.GuildIDVal }
 func (m *MockCommandContext) ChannelID() collection.ChannelID {
 	return m.ChannelIDVal
 }

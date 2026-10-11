@@ -1,5 +1,7 @@
 // Package tracker defines the records returned by a media tracker.
 // These are provider-shaped DTOs: stored characters use catalog.Character.
+// Character IDs are AniList IDs, which are also the catalog keys, so
+// Character.ID reuses catalog.CharacterID.
 package tracker
 
 import (

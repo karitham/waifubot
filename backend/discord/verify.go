@@ -33,9 +33,8 @@ func parseVerifyOptions(cmd CommandContext) verifyOptions {
 		opts.targetUserID = collection.UserID(user.ID)
 		opts.targetUsername = user.Username
 	}
-	if id, err := cmd.OptInt64("id"); err == nil {
-		opts.charID = catalog.CharacterID(id)
-	}
+	id, _ := cmd.OptInt64("id")
+	opts.charID = catalog.CharacterID(id)
 	return opts
 }
 

@@ -104,7 +104,7 @@ type Store interface {
 	UserRepository
 	CollectionRepository
 	DropRepository
-	guild.GuildQuerier
+	guild.Querier
 	catalog.Store
 
 	WithTx(ctx context.Context) (Store, error)

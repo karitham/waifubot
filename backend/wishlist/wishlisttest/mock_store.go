@@ -15,10 +15,10 @@ type MockStore struct {
 	RemoveCharactersFromWishlistFunc func(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) error
 	RemoveAllFromWishlistFunc        func(ctx context.Context, userID collection.UserID) error
 	GetUserCharacterWishlistFunc     func(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error)
-	GetWishlistHoldersFunc           func(ctx context.Context, characterIDs []catalog.CharacterID, userID collection.UserID, guildID guild.GuildID) ([]wishlist.UserCharacterSet, error)
-	GetWantedCharactersFunc          func(ctx context.Context, userID collection.UserID, guildID guild.GuildID) ([]wishlist.UserCharacterSet, error)
+	GetWishlistHoldersFunc           func(ctx context.Context, characterIDs []catalog.CharacterID, userID collection.UserID, guildID guild.ID) ([]wishlist.UserCharacterSet, error)
+	GetWantedCharactersFunc          func(ctx context.Context, userID collection.UserID, guildID guild.ID) ([]wishlist.UserCharacterSet, error)
 	CompareWithUserFunc              func(ctx context.Context, userID1, userID2 collection.UserID) (wishlist.WishlistComparison, error)
-	GetUsersWantingCharacterFunc     func(ctx context.Context, charID catalog.CharacterID, guildID guild.GuildID, excludeUserID collection.UserID) ([]guild.MemberID, error)
+	GetUsersWantingCharacterFunc     func(ctx context.Context, charID catalog.CharacterID, guildID guild.ID, excludeUserID collection.UserID) ([]guild.MemberID, error)
 }
 
 var _ wishlist.Store = (*MockStore)(nil)
@@ -51,14 +51,14 @@ func (m *MockStore) GetUserCharacterWishlist(ctx context.Context, userID collect
 	return nil, nil
 }
 
-func (m *MockStore) GetWishlistHolders(ctx context.Context, characterIDs []catalog.CharacterID, userID collection.UserID, guildID guild.GuildID) ([]wishlist.UserCharacterSet, error) {
+func (m *MockStore) GetWishlistHolders(ctx context.Context, characterIDs []catalog.CharacterID, userID collection.UserID, guildID guild.ID) ([]wishlist.UserCharacterSet, error) {
 	if m.GetWishlistHoldersFunc != nil {
 		return m.GetWishlistHoldersFunc(ctx, characterIDs, userID, guildID)
 	}
 	return nil, nil
 }
 
-func (m *MockStore) GetWantedCharacters(ctx context.Context, userID collection.UserID, guildID guild.GuildID) ([]wishlist.UserCharacterSet, error) {
+func (m *MockStore) GetWantedCharacters(ctx context.Context, userID collection.UserID, guildID guild.ID) ([]wishlist.UserCharacterSet, error) {
 	if m.GetWantedCharactersFunc != nil {
 		return m.GetWantedCharactersFunc(ctx, userID, guildID)
 	}
@@ -72,7 +72,7 @@ func (m *MockStore) CompareWithUser(ctx context.Context, userID1, userID2 collec
 	return wishlist.WishlistComparison{}, nil
 }
 
-func (m *MockStore) GetUsersWantingCharacter(ctx context.Context, charID catalog.CharacterID, guildID guild.GuildID, excludeUserID collection.UserID) ([]guild.MemberID, error) {
+func (m *MockStore) GetUsersWantingCharacter(ctx context.Context, charID catalog.CharacterID, guildID guild.ID, excludeUserID collection.UserID) ([]guild.MemberID, error) {
 	if m.GetUsersWantingCharacterFunc != nil {
 		return m.GetUsersWantingCharacterFunc(ctx, charID, guildID, excludeUserID)
 	}

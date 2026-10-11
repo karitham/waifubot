@@ -35,11 +35,11 @@ type MockStore struct {
 	GetDropForUpdateFunc func(ctx context.Context, channelID collection.ChannelID) (catalog.Drop, error)
 	DeleteDropFunc       func(ctx context.Context, channelID collection.ChannelID) error
 
-	IsGuildIndexedFunc          func(ctx context.Context, guildID guild.GuildID) (guild.GuildIndexStatus, error)
-	StartIndexingJobFunc        func(ctx context.Context, guildID guild.GuildID) error
-	CompleteIndexingJobFunc     func(ctx context.Context, guildID guild.GuildID) error
-	UpsertGuildMembersFunc      func(ctx context.Context, guildID guild.GuildID, memberIDs []guild.MemberID, indexedAt time.Time) error
-	DeleteGuildMembersNotInFunc func(ctx context.Context, guildID guild.GuildID, memberIDs []guild.MemberID) error
+	IsGuildIndexedFunc          func(ctx context.Context, guildID guild.ID) (guild.IndexStatus, error)
+	StartIndexingJobFunc        func(ctx context.Context, guildID guild.ID) error
+	CompleteIndexingJobFunc     func(ctx context.Context, guildID guild.ID) error
+	UpsertGuildMembersFunc      func(ctx context.Context, guildID guild.ID, memberIDs []guild.MemberID, indexedAt time.Time) error
+	DeleteGuildMembersNotInFunc func(ctx context.Context, guildID guild.ID, memberIDs []guild.MemberID) error
 
 	UpsertCharacterFunc        func(ctx context.Context, char catalog.Character) error
 	GetCharacterByIDFunc       func(ctx context.Context, charID catalog.CharacterID) (catalog.Character, error)
@@ -212,35 +212,35 @@ func (m *MockStore) DeleteDrop(ctx context.Context, channelID collection.Channel
 	return nil
 }
 
-func (m *MockStore) IsGuildIndexed(ctx context.Context, guildID guild.GuildID) (guild.GuildIndexStatus, error) {
+func (m *MockStore) IsGuildIndexed(ctx context.Context, guildID guild.ID) (guild.IndexStatus, error) {
 	if m.IsGuildIndexedFunc != nil {
 		return m.IsGuildIndexedFunc(ctx, guildID)
 	}
-	return guild.GuildIndexStatus{}, nil
+	return guild.IndexStatus{}, nil
 }
 
-func (m *MockStore) StartIndexingJob(ctx context.Context, guildID guild.GuildID) error {
+func (m *MockStore) StartIndexingJob(ctx context.Context, guildID guild.ID) error {
 	if m.StartIndexingJobFunc != nil {
 		return m.StartIndexingJobFunc(ctx, guildID)
 	}
 	return nil
 }
 
-func (m *MockStore) CompleteIndexingJob(ctx context.Context, guildID guild.GuildID) error {
+func (m *MockStore) CompleteIndexingJob(ctx context.Context, guildID guild.ID) error {
 	if m.CompleteIndexingJobFunc != nil {
 		return m.CompleteIndexingJobFunc(ctx, guildID)
 	}
 	return nil
 }
 
-func (m *MockStore) UpsertGuildMembers(ctx context.Context, guildID guild.GuildID, memberIDs []guild.MemberID, indexedAt time.Time) error {
+func (m *MockStore) UpsertGuildMembers(ctx context.Context, guildID guild.ID, memberIDs []guild.MemberID, indexedAt time.Time) error {
 	if m.UpsertGuildMembersFunc != nil {
 		return m.UpsertGuildMembersFunc(ctx, guildID, memberIDs, indexedAt)
 	}
 	return nil
 }
 
-func (m *MockStore) DeleteGuildMembersNotIn(ctx context.Context, guildID guild.GuildID, memberIDs []guild.MemberID) error {
+func (m *MockStore) DeleteGuildMembersNotIn(ctx context.Context, guildID guild.ID, memberIDs []guild.MemberID) error {
 	if m.DeleteGuildMembersNotInFunc != nil {
 		return m.DeleteGuildMembersNotInFunc(ctx, guildID, memberIDs)
 	}

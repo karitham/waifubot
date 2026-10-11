@@ -34,10 +34,10 @@ type Store interface {
 	GetUserCharacterWishlist(ctx context.Context, userID collection.UserID) ([]Entry, error)
 
 	// Discovery
-	GetWishlistHolders(ctx context.Context, characterIDs []catalog.CharacterID, userID collection.UserID, guildID guild.GuildID) ([]UserCharacterSet, error)
-	GetWantedCharacters(ctx context.Context, userID collection.UserID, guildID guild.GuildID) ([]UserCharacterSet, error)
+	GetWishlistHolders(ctx context.Context, characterIDs []catalog.CharacterID, userID collection.UserID, guildID guild.ID) ([]UserCharacterSet, error)
+	GetWantedCharacters(ctx context.Context, userID collection.UserID, guildID guild.ID) ([]UserCharacterSet, error)
 	CompareWithUser(ctx context.Context, userID1, userID2 collection.UserID) (WishlistComparison, error)
-	GetUsersWantingCharacter(ctx context.Context, charID catalog.CharacterID, guildID guild.GuildID, excludeUserID collection.UserID) ([]guild.MemberID, error)
+	GetUsersWantingCharacter(ctx context.Context, charID catalog.CharacterID, guildID guild.ID, excludeUserID collection.UserID) ([]guild.MemberID, error)
 }
 
 // MediaService defines the interface for media operations.

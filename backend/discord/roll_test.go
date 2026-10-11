@@ -87,7 +87,7 @@ func TestRollHandler_Roll(t *testing.T) {
 				CommitFunc:             func(ctx context.Context) error { return nil },
 			},
 			wishlist: &wishlisttest.MockStore{
-				GetUsersWantingCharacterFunc: func(ctx context.Context, charID catalog.CharacterID, guildID guild.GuildID, excludeUserID collection.UserID) ([]guild.MemberID, error) {
+				GetUsersWantingCharacterFunc: func(ctx context.Context, charID catalog.CharacterID, guildID guild.ID, excludeUserID collection.UserID) ([]guild.MemberID, error) {
 					return nil, nil
 				},
 			},
@@ -123,7 +123,7 @@ func TestRollHandler_Roll(t *testing.T) {
 				CommitFunc:             func(ctx context.Context) error { return nil },
 			},
 			wishlist: &wishlisttest.MockStore{
-				GetUsersWantingCharacterFunc: func(ctx context.Context, charID catalog.CharacterID, guildID guild.GuildID, excludeUserID collection.UserID) ([]guild.MemberID, error) {
+				GetUsersWantingCharacterFunc: func(ctx context.Context, charID catalog.CharacterID, guildID guild.ID, excludeUserID collection.UserID) ([]guild.MemberID, error) {
 					return []guild.MemberID{10, 20, 30}, nil
 				},
 			},

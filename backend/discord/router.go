@@ -69,7 +69,7 @@ type Router struct {
 	DropStore         dropstore.Store
 	InterStore        interactionstore.Store
 	GuildIndexer      *guild.Indexer
-	GuildOps          guild.GuildQuerier
+	GuildOps          guild.Querier
 	Holders           guild.HolderQuerier
 	guildTxFn         func(context.Context) (guild.TxQuerier, error)
 	AppID             corde.Snowflake

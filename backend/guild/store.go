@@ -7,12 +7,13 @@ import (
 	"github.com/karitham/waifubot/catalog"
 )
 
-// GuildID identifies a Discord guild.
-type GuildID uint64
+// ID identifies a Discord guild.
+type ID uint64
 
 // MemberID identifies a guild member (a user, in guild context).
 type MemberID uint64
 
+// IndexingStatus is the state of a guild's member index.
 type IndexingStatus int
 
 const (
@@ -21,7 +22,8 @@ const (
 	IndexingCompleted
 )
 
-type GuildIndexStatus struct {
+// IndexStatus reports the state and freshness of a guild's member index.
+type IndexStatus struct {
 	Status    IndexingStatus
 	UpdatedAt time.Time
 }
@@ -38,23 +40,23 @@ func ConvertIndexingStatus(s string) IndexingStatus {
 	}
 }
 
-// GuildQuerier provides guild indexing operations.
-type GuildQuerier interface {
-	IsGuildIndexed(ctx context.Context, guildID GuildID) (GuildIndexStatus, error)
-	StartIndexingJob(ctx context.Context, guildID GuildID) error
-	CompleteIndexingJob(ctx context.Context, guildID GuildID) error
-	UpsertGuildMembers(ctx context.Context, guildID GuildID, memberIDs []MemberID, indexedAt time.Time) error
-	DeleteGuildMembersNotIn(ctx context.Context, guildID GuildID, memberIDs []MemberID) error
+// Querier provides guild indexing operations.
+type Querier interface {
+	IsGuildIndexed(ctx context.Context, guildID ID) (IndexStatus, error)
+	StartIndexingJob(ctx context.Context, guildID ID) error
+	CompleteIndexingJob(ctx context.Context, guildID ID) error
+	UpsertGuildMembers(ctx context.Context, guildID ID, memberIDs []MemberID, indexedAt time.Time) error
+	DeleteGuildMembersNotIn(ctx context.Context, guildID ID, memberIDs []MemberID) error
 }
 
 // HolderQuerier looks up guild members owning a character.
 type HolderQuerier interface {
-	GetCharacterHoldersInGuild(ctx context.Context, guildID GuildID, charID catalog.CharacterID) ([]MemberID, error)
+	GetCharacterHoldersInGuild(ctx context.Context, guildID ID, charID catalog.CharacterID) ([]MemberID, error)
 }
 
-// TxQuerier is a GuildQuerier inside a transaction.
+// TxQuerier is a Querier inside a transaction.
 type TxQuerier interface {
-	GuildQuerier
+	Querier
 	Commit(ctx context.Context) error
 	Rollback(ctx context.Context) error
 }

@@ -105,9 +105,8 @@ func (h *WishlistHandler) CharacterAdd(ctx context.Context, w corde.ResponseWrit
 
 	opts, err := parseWishlistCharacterOptions(cmd)
 	if err != nil {
-		if id, err := cmd.OptInt64("character"); err == nil {
-			opts.charID = catalog.CharacterID(id)
-		}
+		id, _ := cmd.OptInt64("character")
+		opts.charID = catalog.CharacterID(id)
 	}
 
 	// Check if user already owns this character
@@ -138,9 +137,8 @@ func (h *WishlistHandler) CharacterRemove(ctx context.Context, w corde.ResponseW
 
 	opts, err := parseWishlistCharacterOptions(cmd)
 	if err != nil {
-		if id, err := cmd.OptInt64("character"); err == nil {
-			opts.charID = catalog.CharacterID(id)
-		}
+		id, _ := cmd.OptInt64("character")
+		opts.charID = catalog.CharacterID(id)
 	}
 
 	err = h.wishlist.RemoveCharactersFromWishlist(ctx, cmd.UserID(), []catalog.CharacterID{opts.charID})
@@ -209,9 +207,8 @@ func (h *WishlistHandler) MediaAdd(ctx context.Context, w corde.ResponseWriter, 
 
 	opts, err := parseWishlistMediaOptions(cmd)
 	if err != nil {
-		if id, err := cmd.OptInt64("media"); err == nil {
-			opts.mediaID = tracker.MediaID(id)
-		}
+		id, _ := cmd.OptInt64("media")
+		opts.mediaID = tracker.MediaID(id)
 	}
 
 	count, err := wishlist.AddMediaToWishlist(ctx, h.wishlist, h.animeService, h.store, cmd.UserID(), opts.mediaID)

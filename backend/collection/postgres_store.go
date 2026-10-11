@@ -25,7 +25,7 @@ type PostgresStore struct {
 	UserRepository
 	CollectionRepository
 	DropRepository
-	guild.GuildQuerier
+	guild.Querier
 	catalog.Store
 
 	db   pooler // connection pool (non-tx) or pgx.Tx (tx)
@@ -37,7 +37,7 @@ func NewPostgresStore(
 	user UserRepository,
 	coll CollectionRepository,
 	drop DropRepository,
-	guild guild.GuildQuerier,
+	guild guild.Querier,
 	cat catalog.Store,
 	db pooler,
 	txFn TxFn,
@@ -46,7 +46,7 @@ func NewPostgresStore(
 		UserRepository:       user,
 		CollectionRepository: coll,
 		DropRepository:       drop,
-		GuildQuerier:         guild,
+		Querier:              guild,
 		Store:                cat,
 		db:                   db,
 		txFn:                 txFn,

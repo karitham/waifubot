@@ -32,7 +32,7 @@ func indexMiddleware[T corde.InteractionDataConstraint](
 
 // HoldersHandler handles the /holders command and its autocomplete.
 type HoldersHandler struct {
-	guildOps     guild.GuildQuerier
+	guildOps     guild.Querier
 	catalog      catalog.Store
 	holders      guild.HolderQuerier
 	guildIndexer *guild.Indexer
