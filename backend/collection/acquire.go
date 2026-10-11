@@ -22,8 +22,9 @@ type acquisition struct {
 	// pick selects an unowned character, adding it to the catalog first
 	// when it comes from an external source.
 	pick func(ctx context.Context, store Store, userID UserID) (catalog.Character, error)
-	// charge records the cost of the acquisition inside the transaction:
-	// tokens for a paid roll, the next cooldown for a free one.
+	// charge applies the cost of the acquisition inside the transaction:
+	// tokens for a paid roll, the next cooldown for a free one. It is the
+	// authoritative gate under concurrency; check only narrows the window.
 	charge func(ctx context.Context, tx Store, now time.Time) error
 }
 
@@ -32,10 +33,9 @@ type acquisition struct {
 // transaction.
 //
 // The check runs twice on purpose: the first call fails fast before picking,
-// the second narrows the race window inside the transaction. The second call
-// is not a lock: token spends are serialized by the conditional update in
-// SpendTokens, and two concurrent free rolls can still both pass the
-// cooldown check.
+// the second narrows the race window inside the transaction. Neither call is
+// a lock; the charge is the authoritative gate, because both costs are
+// applied by conditional updates (SpendTokens, RecordRoll).
 func acquire(ctx context.Context, store Store, userID UserID, a acquisition) (catalog.Character, error) {
 	now := time.Now()
 

@@ -141,7 +141,7 @@ func TestIntegration_UserCRUD(t *testing.T) {
 	user, _ = store.GetUser(ctx, uid)
 	assert.Equal(t, "https://anilist.co/user/test", user.AnilistURL)
 
-	require.NoError(t, store.UpdateLastRoll(ctx, uid, time.Now()))
+	require.NoError(t, store.RecordRoll(ctx, uid, time.Now(), time.Hour))
 
 	user, err = store.AddTokens(ctx, uid, 10)
 	require.NoError(t, err)
@@ -405,4 +405,46 @@ func TestIntegration_RandomCharNotOwned_ExcludesInactive(t *testing.T) {
 		assert.NotContains(t, []catalog.CharacterID{3, 7, 9}, char.ID,
 			"inactive character %d was rolled", char.ID)
 	}
+}
+
+func TestIntegration_RollCooldownIsAtomic(t *testing.T) {
+	ctx := t.Context()
+	const uid collection.UserID = 900015
+	const cooldown = time.Hour
+
+	dbStore, err := storage.NewStore(ctx, testDBURL)
+	require.NoError(t, err)
+
+	tx1, err := dbStore.Tx(ctx)
+	require.NoError(t, err)
+	tx2, err := dbStore.Tx(ctx)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_ = tx1.Rollback(ctx)
+		_ = tx2.Rollback(ctx)
+	})
+
+	store1, store2 := buildStore(tx1), buildStore(tx2)
+
+	require.NoError(t, dbStore.UserStore().Create(ctx, uint64(uid)))
+
+	// Both transactions read the same pre-roll state, so both pass the
+	// cooldown check.
+	_, err = store1.GetUser(ctx, uid)
+	require.NoError(t, err)
+	_, err = store2.GetUser(ctx, uid)
+	require.NoError(t, err)
+
+	now := time.Now()
+	require.NoError(t, store1.RecordRoll(ctx, uid, now, cooldown))
+	require.NoError(t, tx1.Commit(ctx))
+
+	// The second roll loses: the conditional update sees the committed
+	// timestamp even though its read happened before the commit.
+	err = store2.RecordRoll(ctx, uid, now, cooldown)
+
+	var cooldownErr collection.ErrRollCooldown
+	require.ErrorAs(t, err, &cooldownErr)
+	assert.WithinDuration(t, now.Add(cooldown), cooldownErr.Until, time.Minute)
 }

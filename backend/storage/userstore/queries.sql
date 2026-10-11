@@ -69,12 +69,15 @@ SET
 WHERE
   user_id = $2;
 
--- name: UpdateDate :exec
+-- name: RecordRoll :execrows
+-- Records a roll only when the user's cooldown has elapsed. The
+-- conditional update is what serializes concurrent free rolls.
 UPDATE users
 SET
   date = $1
 WHERE
-  user_id = $2;
+  user_id = $2
+  AND date <= sqlc.arg(threshold);
 
 -- name: UpdateDiscordInfo :exec
 UPDATE users

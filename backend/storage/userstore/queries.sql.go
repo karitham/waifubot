@@ -105,6 +105,31 @@ func (q *Queries) GetByDiscordUsername(ctx context.Context, discordUsername stri
 	return i, err
 }
 
+const recordRoll = `-- name: RecordRoll :execrows
+UPDATE users
+SET
+  date = $1
+WHERE
+  user_id = $2
+  AND date <= $3
+`
+
+type RecordRollParams struct {
+	Date      pgtype.Timestamp
+	UserID    uint64
+	Threshold pgtype.Timestamp
+}
+
+// Records a roll only when the user's cooldown has elapsed. The
+// conditional update is what serializes concurrent free rolls.
+func (q *Queries) RecordRoll(ctx context.Context, arg RecordRollParams) (int64, error) {
+	result, err := q.db.Exec(ctx, recordRoll, arg.Date, arg.UserID, arg.Threshold)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const spendTokens = `-- name: SpendTokens :one
 UPDATE users
 SET
@@ -154,24 +179,6 @@ type UpdateAnilistURLParams struct {
 
 func (q *Queries) UpdateAnilistURL(ctx context.Context, arg UpdateAnilistURLParams) error {
 	_, err := q.db.Exec(ctx, updateAnilistURL, arg.AnilistUrl, arg.UserID)
-	return err
-}
-
-const updateDate = `-- name: UpdateDate :exec
-UPDATE users
-SET
-  date = $1
-WHERE
-  user_id = $2
-`
-
-type UpdateDateParams struct {
-	Date   pgtype.Timestamp
-	UserID uint64
-}
-
-func (q *Queries) UpdateDate(ctx context.Context, arg UpdateDateParams) error {
-	_, err := q.db.Exec(ctx, updateDate, arg.Date, arg.UserID)
 	return err
 }
 

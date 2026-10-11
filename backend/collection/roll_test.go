@@ -39,7 +39,7 @@ func TestRoll(t *testing.T) {
 					return nil
 				}
 				m.RemoveFromWishlistFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) error { return nil }
-				m.UpdateLastRollFunc = func(_ context.Context, _ collection.UserID, _ time.Time) error { return nil }
+				m.RecordRollFunc = func(_ context.Context, _ collection.UserID, _ time.Time, _ time.Duration) error { return nil }
 			},
 			userID:     123,
 			wantCharID: 3,
@@ -49,6 +49,25 @@ func TestRoll(t *testing.T) {
 			setup: func(m *collectiontest.MockStore) {
 				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID, Date: time.Now().Add(-30 * time.Minute), Tokens: 5}, nil
+				}
+			},
+			userID:    123,
+			wantErr:   true,
+			wantErrAs: &collection.ErrRollCooldown{},
+		},
+		{
+			name: "cooldown_lost_to_concurrent_roll",
+			setup: func(m *collectiontest.MockStore) {
+				m.RandomCharNotOwnedFunc = func(_ context.Context, _ collection.UserID, _ float64) (catalog.Character, error) {
+					return catalog.Character{ID: 6, Name: "Char6", Image: "img6"}, nil
+				}
+				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
+					return collection.User{UserID: userID, Date: time.Now().Add(-2 * time.Hour)}, nil
+				}
+				// The checks pass on the stale read; the atomic charge is
+				// what rejects the loser of the race.
+				m.RecordRollFunc = func(_ context.Context, _ collection.UserID, _ time.Time, _ time.Duration) error {
+					return collection.ErrRollCooldown{Until: time.Now().Add(time.Hour)}
 				}
 			},
 			userID:    123,
@@ -76,7 +95,7 @@ func TestRoll(t *testing.T) {
 					return nil
 				}
 				m.RemoveFromWishlistFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) error { return nil }
-				m.UpdateLastRollFunc = func(_ context.Context, _ collection.UserID, _ time.Time) error { return nil }
+				m.RecordRollFunc = func(_ context.Context, _ collection.UserID, _ time.Time, _ time.Duration) error { return nil }
 			},
 			userID:     456,
 			wantCharID: 4,
@@ -110,7 +129,7 @@ func TestRoll(t *testing.T) {
 				m.RemoveFromWishlistFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) error {
 					return errors.New("wishlist error")
 				}
-				m.UpdateLastRollFunc = func(_ context.Context, _ collection.UserID, _ time.Time) error { return nil }
+				m.RecordRollFunc = func(_ context.Context, _ collection.UserID, _ time.Time, _ time.Duration) error { return nil }
 			},
 			userID:  123,
 			wantErr: true,

@@ -64,7 +64,7 @@ func (s *RollService) Roll(ctx context.Context, userID UserID) (catalog.Characte
 			return char, err
 		},
 		charge: func(ctx context.Context, tx Store, now time.Time) error {
-			return tx.UpdateLastRoll(ctx, userID, now)
+			return tx.RecordRoll(ctx, userID, now, s.config.RollCooldown)
 		},
 	})
 }

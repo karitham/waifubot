@@ -58,11 +58,34 @@ func (p *Pg) GetUserByDiscordUsername(ctx context.Context, username string) (col
 	return toUser(u), nil
 }
 
-func (p *Pg) UpdateLastRoll(ctx context.Context, userID collection.UserID, when time.Time) error {
-	return p.Q.UpdateDate(ctx, userstore.UpdateDateParams{
-		Date:   pgtype.Timestamp{Time: when.UTC(), Valid: true},
-		UserID: uint64(userID),
+// RecordRoll atomically records a roll for the user, but only when the
+// cooldown has elapsed; the conditional update is what serializes
+// concurrent free rolls. When the cooldown is still active it returns
+// ErrRollCooldown with the time the user may roll again.
+func (p *Pg) RecordRoll(ctx context.Context, userID collection.UserID, now time.Time, cooldown time.Duration) error {
+	rows, err := p.Q.RecordRoll(ctx, userstore.RecordRollParams{
+		Date:      pgtype.Timestamp{Time: now.UTC(), Valid: true},
+		UserID:    uint64(userID),
+		Threshold: pgtype.Timestamp{Time: now.Add(-cooldown).UTC(), Valid: true},
 	})
+	if err != nil {
+		return err
+	}
+	if rows > 0 {
+		return nil
+	}
+
+	// The cooldown is still active. The user row exists (the acquisition
+	// ensures it inside the transaction), and this read sees the winner's
+	// committed timestamp.
+	u, err := p.Q.Get(ctx, uint64(userID))
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return collection.ErrNotFound
+		}
+		return err
+	}
+	return collection.ErrRollCooldown{Until: u.Date.Time.Add(cooldown)}
 }
 
 func (p *Pg) SpendTokens(ctx context.Context, userID collection.UserID, amount int32) (collection.User, error) {

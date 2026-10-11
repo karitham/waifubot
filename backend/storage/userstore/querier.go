@@ -13,9 +13,11 @@ type Querier interface {
 	Get(ctx context.Context, userID uint64) (User, error)
 	GetByAnilist(ctx context.Context, lower string) (User, error)
 	GetByDiscordUsername(ctx context.Context, discordUsername string) (User, error)
+	// Records a roll only when the user's cooldown has elapsed. The
+	// conditional update is what serializes concurrent free rolls.
+	RecordRoll(ctx context.Context, arg RecordRollParams) (int64, error)
 	SpendTokens(ctx context.Context, arg SpendTokensParams) (User, error)
 	UpdateAnilistURL(ctx context.Context, arg UpdateAnilistURLParams) error
-	UpdateDate(ctx context.Context, arg UpdateDateParams) error
 	UpdateDiscordInfo(ctx context.Context, arg UpdateDiscordInfoParams) error
 	UpdateFavorite(ctx context.Context, arg UpdateFavoriteParams) error
 	UpdateQuote(ctx context.Context, arg UpdateQuoteParams) error

@@ -14,7 +14,7 @@ type MockStore struct {
 	CreateUserFunc               func(ctx context.Context, userID collection.UserID) error
 	GetUserByAnilistFunc         func(ctx context.Context, anilistURL string) (collection.User, error)
 	GetUserByDiscordUsernameFunc func(ctx context.Context, username string) (collection.User, error)
-	UpdateLastRollFunc           func(ctx context.Context, userID collection.UserID, when time.Time) error
+	RecordRollFunc               func(ctx context.Context, userID collection.UserID, now time.Time, cooldown time.Duration) error
 	SpendTokensFunc              func(ctx context.Context, userID collection.UserID, amount int32) (collection.User, error)
 	AddTokensFunc                func(ctx context.Context, userID collection.UserID, amount int32) (collection.User, error)
 	UpdateFavoriteFunc           func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error
@@ -86,9 +86,9 @@ func (m *MockStore) GetUserByDiscordUsername(ctx context.Context, username strin
 	return collection.User{}, nil
 }
 
-func (m *MockStore) UpdateLastRoll(ctx context.Context, userID collection.UserID, when time.Time) error {
-	if m.UpdateLastRollFunc != nil {
-		return m.UpdateLastRollFunc(ctx, userID, when)
+func (m *MockStore) RecordRoll(ctx context.Context, userID collection.UserID, now time.Time, cooldown time.Duration) error {
+	if m.RecordRollFunc != nil {
+		return m.RecordRollFunc(ctx, userID, now, cooldown)
 	}
 	return nil
 }

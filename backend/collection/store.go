@@ -60,7 +60,11 @@ type UserRepository interface {
 	CreateUser(ctx context.Context, userID UserID) error
 	GetUserByAnilist(ctx context.Context, anilistURL string) (User, error)
 	GetUserByDiscordUsername(ctx context.Context, username string) (User, error)
-	UpdateLastRoll(ctx context.Context, userID UserID, when time.Time) error
+	// RecordRoll atomically records a roll for the user, but only when the
+	// cooldown has elapsed; it is the gate that serializes concurrent free
+	// rolls. When the cooldown is still active it returns ErrRollCooldown
+	// with the time the user may roll again.
+	RecordRoll(ctx context.Context, userID UserID, now time.Time, cooldown time.Duration) error
 	SpendTokens(ctx context.Context, userID UserID, amount int32) (User, error)
 	AddTokens(ctx context.Context, userID UserID, amount int32) (User, error)
 	UpdateFavorite(ctx context.Context, userID UserID, charID catalog.CharacterID) error

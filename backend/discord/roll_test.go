@@ -83,8 +83,10 @@ func TestRollHandler_Roll(t *testing.T) {
 					return nil
 				},
 				RemoveFromWishlistFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error { return nil },
-				UpdateLastRollFunc:     func(ctx context.Context, userID collection.UserID, when time.Time) error { return nil },
-				CommitFunc:             func(ctx context.Context) error { return nil },
+				RecordRollFunc: func(ctx context.Context, userID collection.UserID, now time.Time, cooldown time.Duration) error {
+					return nil
+				},
+				CommitFunc: func(ctx context.Context) error { return nil },
 			},
 			wishlist: &wishlisttest.MockStore{
 				GetUsersWantingCharacterFunc: func(ctx context.Context, charID catalog.CharacterID, guildID guild.ID, excludeUserID collection.UserID) ([]guild.MemberID, error) {
@@ -119,8 +121,10 @@ func TestRollHandler_Roll(t *testing.T) {
 					return nil
 				},
 				RemoveFromWishlistFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error { return nil },
-				UpdateLastRollFunc:     func(ctx context.Context, userID collection.UserID, when time.Time) error { return nil },
-				CommitFunc:             func(ctx context.Context) error { return nil },
+				RecordRollFunc: func(ctx context.Context, userID collection.UserID, now time.Time, cooldown time.Duration) error {
+					return nil
+				},
+				CommitFunc: func(ctx context.Context) error { return nil },
 			},
 			wishlist: &wishlisttest.MockStore{
 				GetUsersWantingCharacterFunc: func(ctx context.Context, charID catalog.CharacterID, guildID guild.ID, excludeUserID collection.UserID) ([]guild.MemberID, error) {

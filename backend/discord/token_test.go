@@ -361,7 +361,7 @@ func TestTokenHandler_Roll(t *testing.T) {
 				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID, source collection.Source, acquiredAt time.Time) error {
 					return nil
 				},
-				UpdateLastRollFunc: func(ctx context.Context, userID collection.UserID, when time.Time) error {
+				RecordRollFunc: func(ctx context.Context, userID collection.UserID, now time.Time, cooldown time.Duration) error {
 					return nil
 				},
 				SpendTokensFunc: func(ctx context.Context, userID collection.UserID, amount int32) (collection.User, error) {
