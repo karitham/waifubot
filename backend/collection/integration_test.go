@@ -146,14 +146,14 @@ func TestIntegration_CharacterAndCollection(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "TestChar", char.Name)
 
-	err = store.AddToCollection(ctx, uid, 1001, "ROLL", time.Now())
+	err = store.AddToCollection(ctx, uid, 1001, collection.SourceRoll, time.Now())
 	require.NoError(t, err, "first AddToCollection should succeed")
 
 	chars, err := store.GetCollection(ctx, uid)
 	require.NoError(t, err)
 	require.Len(t, chars, 1)
 	assert.Equal(t, int64(1001), chars[0].ID)
-	assert.Equal(t, "ROLL", chars[0].Source)
+	assert.Equal(t, collection.SourceRoll, chars[0].Source)
 
 	ids, _ := store.GetCollectionIDs(ctx, uid)
 	assert.Equal(t, []int64{1001}, ids)
@@ -177,9 +177,9 @@ func TestIntegration_CharacterAlreadyOwned(t *testing.T) {
 	ctx := t.Context()
 
 	require.NoError(t, store.UpsertCharacter(ctx, catalog.Character{ID: 1099, Name: "DupeChar", Image: "dupe.jpg"}))
-	require.NoError(t, store.AddToCollection(ctx, uid, 1099, "ROLL", time.Now()))
+	require.NoError(t, store.AddToCollection(ctx, uid, 1099, collection.SourceRoll, time.Now()))
 
-	err := store.AddToCollection(ctx, uid, 1099, "ROLL", time.Now())
+	err := store.AddToCollection(ctx, uid, 1099, collection.SourceRoll, time.Now())
 	require.ErrorIs(t, err, collection.ErrAlreadyOwned)
 }
 
@@ -189,11 +189,11 @@ func TestIntegration_GiveCharacter(t *testing.T) {
 	ctx := t.Context()
 
 	require.NoError(t, store.UpsertCharacter(ctx, catalog.Character{ID: 2001, Name: "GiveChar", Image: "give.jpg"}))
-	require.NoError(t, store.AddToCollection(ctx, u1, 2001, "ROLL", time.Now()))
+	require.NoError(t, store.AddToCollection(ctx, u1, 2001, collection.SourceRoll, time.Now()))
 
 	oc, err := store.GiveCharacter(ctx, u1, u2, 2001)
 	require.NoError(t, err)
-	assert.Equal(t, "TRADE", oc.Source)
+	assert.Equal(t, collection.SourceTrade, oc.Source)
 	assert.Equal(t, u2, oc.UserID)
 }
 
@@ -203,7 +203,7 @@ func TestIntegration_SearchCharacters(t *testing.T) {
 	ctx := t.Context()
 
 	require.NoError(t, store.UpsertCharacter(ctx, catalog.Character{ID: 3001, Name: "Searchable Char", Image: "s.jpg"}))
-	require.NoError(t, store.AddToCollection(ctx, uid, 3001, "ROLL", time.Now()))
+	require.NoError(t, store.AddToCollection(ctx, uid, 3001, collection.SourceRoll, time.Now()))
 
 	results, err := store.SearchCharacters(ctx, uid, "Search")
 	require.NoError(t, err)
@@ -351,7 +351,7 @@ func TestIntegration_GetCharacterHoldersInGuild(t *testing.T) {
 	require.NoError(t, store.CompleteIndexingJob(ctx, gid))
 
 	require.NoError(t, store.UpsertCharacter(ctx, catalog.Character{ID: 5001, Name: "GuildChar"}))
-	require.NoError(t, store.AddToCollection(ctx, u1, 5001, "ROLL", time.Now()))
+	require.NoError(t, store.AddToCollection(ctx, u1, 5001, collection.SourceRoll, time.Now()))
 
 	holders, err := store.GetCharacterHoldersInGuild(ctx, gid, 5001)
 	require.NoError(t, err)

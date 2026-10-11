@@ -48,7 +48,7 @@ func NewRollService(store Store, config RollConfig) *RollService {
 // Roll executes the free roll for a user, enforcing the cooldown constraint.
 func (s *RollService) Roll(ctx context.Context, userID UserID) (catalog.Character, error) {
 	return acquire(ctx, s.store, userID, acquisition{
-		source: "ROLL",
+		source: SourceRoll,
 		check: func(user User) error {
 			cooldownUntil := user.Date.Add(s.config.RollCooldown)
 			if time.Now().Before(cooldownUntil) {

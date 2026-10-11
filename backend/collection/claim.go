@@ -59,7 +59,7 @@ func Claim(ctx context.Context, store Store, userID, channelID uint64, charName 
 	}
 
 	now := time.Now()
-	err = tx.AddToCollection(ctx, userID, drop.ID, "CLAIM", now)
+	err = tx.AddToCollection(ctx, userID, drop.ID, SourceClaim, now)
 	if err != nil {
 		if errors.Is(err, ErrAlreadyOwned) {
 			return catalog.Character{}, ErrAlreadyOwned

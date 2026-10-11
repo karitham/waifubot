@@ -49,7 +49,7 @@ func Exchange(ctx context.Context, store Store, userID UserID, charID int64) (Ow
 	return OwnedCharacter{
 		Character: charInfo,
 		Date:      owned.Date,
-		Source:    "EXCHANGE",
+		Source:    SourceExchange,
 		UserID:    userID,
 	}, err
 }

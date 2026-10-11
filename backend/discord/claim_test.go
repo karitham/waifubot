@@ -79,7 +79,7 @@ func TestClaimHandler_Claim(t *testing.T) {
 				GetDropForUpdateFunc: func(ctx context.Context, channelID uint64) (catalog.Drop, error) {
 					return catalog.Drop{ID: 42, Name: "Sakura"}, nil
 				},
-				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, charID int64, source string, acquiredAt time.Time) error {
+				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, charID int64, source collection.Source, acquiredAt time.Time) error {
 					return collection.ErrAlreadyOwned
 				},
 			},
@@ -114,7 +114,7 @@ func TestClaimHandler_Claim(t *testing.T) {
 				GetDropForUpdateFunc: func(ctx context.Context, channelID uint64) (catalog.Drop, error) {
 					return catalog.Drop{ID: 42, Name: "Sakura", Image: "https://example.com/sakura.png", Favorites: 1000}, nil
 				},
-				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, charID int64, source string, acquiredAt time.Time) error {
+				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, charID int64, source collection.Source, acquiredAt time.Time) error {
 					return nil
 				},
 				DeleteDropFunc: func(ctx context.Context, channelID uint64) error {

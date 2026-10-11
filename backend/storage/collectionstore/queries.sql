@@ -94,7 +94,7 @@ RETURNING
 UPDATE collection col
 SET
   user_id = $1,
-  source = 'TRADE',
+  source = sqlc.arg(source),
   acquired_at = NOW()
 WHERE
   col.character_id = $2

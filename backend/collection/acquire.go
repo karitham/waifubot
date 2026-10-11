@@ -13,7 +13,7 @@ import (
 // cost is applied. Roll and SeriesRoll are the two implementations.
 type acquisition struct {
 	// source labels the collection entry (ROLL, SERIES_ROLL).
-	source string
+	source Source
 	// check reports why the user cannot acquire the character right now,
 	// e.g. an active cooldown or insufficient tokens. It runs once before
 	// picking and again inside the transaction.

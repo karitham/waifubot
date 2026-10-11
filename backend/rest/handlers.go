@@ -307,7 +307,7 @@ func (s *Server) GetWishlist(ctx context.Context, params api.GetWishlistParams) 
 }
 
 // mapCharacter builds an api.Character from common fields.
-func mapCharacter(id int64, name, image string, favorites int, source string, date time.Time) api.Character {
+func mapCharacter(id int64, name, image string, favorites int, source collection.Source, date time.Time) api.Character {
 	return api.Character{
 		ID:        id,
 		Name:      name,

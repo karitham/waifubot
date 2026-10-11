@@ -12,7 +12,7 @@ import (
 // SeriesRoll executes a paid, series-specific roll for a user, deducting tokens.
 func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID int64, seriesRollCost int32, anime AnimeService) (catalog.Character, error) {
 	return acquire(ctx, s.store, userID, acquisition{
-		source: "SERIES_ROLL",
+		source: SourceSeriesRoll,
 		check: func(user User) error {
 			if user.Tokens < seriesRollCost {
 				return ErrInsufficientTokens

@@ -35,7 +35,7 @@ func TestClaim(t *testing.T) {
 					return collection.User{UserID: userID}, nil
 				}
 				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ int64, _ string, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ int64, _ collection.Source, _ time.Time) error {
 					return nil
 				}
 				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error { return nil }
@@ -80,7 +80,7 @@ func TestClaim(t *testing.T) {
 					return collection.User{UserID: userID}, nil
 				}
 				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ int64, _ string, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ int64, _ collection.Source, _ time.Time) error {
 					return collection.ErrAlreadyOwned
 				}
 			},
@@ -100,7 +100,7 @@ func TestClaim(t *testing.T) {
 				}
 				m.CreateUserFunc = func(_ context.Context, _ uint64) error { return nil }
 				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ int64, _ string, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ int64, _ collection.Source, _ time.Time) error {
 					return nil
 				}
 				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error { return nil }
@@ -154,7 +154,7 @@ func TestExchange(t *testing.T) {
 					return collection.OwnedCharacter{
 						ID: 1, Name: "Char1",
 						Date:   time.Now(),
-						Source: "ROLL",
+						Source: collection.SourceRoll,
 						UserID: 123,
 					}, nil
 				}
@@ -214,7 +214,7 @@ func TestGive(t *testing.T) {
 		charID      int64
 		wantErr     bool
 		errContains string
-		wantSource  string
+		wantSource  collection.Source
 		wantUserID  uint64
 	}{
 		{
@@ -231,7 +231,7 @@ func TestGive(t *testing.T) {
 				m.GiveCharacterFunc = func(_ context.Context, _, _ uint64, _ int64) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{
 						ID: 1, Name: "Char1", Image: "img1",
-						Source: "TRADE",
+						Source: collection.SourceTrade,
 						UserID: 456,
 					}, nil
 				}
@@ -240,7 +240,7 @@ func TestGive(t *testing.T) {
 			from:       123,
 			to:         456,
 			charID:     1,
-			wantSource: "TRADE",
+			wantSource: collection.SourceTrade,
 			wantUserID: 456,
 		},
 		{
