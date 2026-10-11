@@ -89,24 +89,6 @@ func setupStore(t *testing.T) collection.Store {
 	return buildStore(txStore)
 }
 
-// setupStoreWithHolders returns a store plus the guild holder querier that
-// lives on the same transaction.
-func setupStoreWithHolders(t *testing.T) (collection.Store, guild.HolderQuerier) {
-	t.Helper()
-
-	dbStore, err := storage.NewStore(t.Context(), testDBURL)
-	require.NoError(t, err)
-
-	txStore, err := dbStore.Tx(t.Context())
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		_ = txStore.Rollback(t.Context())
-	})
-
-	return buildStore(txStore), guildpg.New(txStore.GuildStore())
-}
-
 func setupStoreWithSeed(t *testing.T, userIDs ...collection.UserID) collection.Store {
 	t.Helper()
 	store := setupStore(t)
@@ -363,7 +345,7 @@ func TestIntegration_GetUserByDiscordUsername(t *testing.T) {
 func TestIntegration_GetCharacterHoldersInGuild(t *testing.T) {
 	const u1, u2 collection.UserID = 900012, 900013
 	const gid guild.ID = 900014
-	store, holdersStore := setupStoreWithHolders(t)
+	store := setupStore(t)
 	ctx := t.Context()
 
 	require.NoError(t, store.CreateUser(ctx, u1))
@@ -376,11 +358,11 @@ func TestIntegration_GetCharacterHoldersInGuild(t *testing.T) {
 	require.NoError(t, store.UpsertCharacter(ctx, catalog.Character{ID: 5001, Name: "GuildChar"}))
 	require.NoError(t, store.AddToCollection(ctx, u1, catalog.CharacterID(5001), collection.SourceRoll, time.Now()))
 
-	holders, err := holdersStore.GetCharacterHoldersInGuild(ctx, gid, 5001)
+	holders, err := store.GetCharacterHoldersInGuild(ctx, gid, 5001)
 	require.NoError(t, err)
 	assert.Equal(t, []guild.MemberID{guild.MemberID(u1)}, holders)
 
-	holders, _ = holdersStore.GetCharacterHoldersInGuild(ctx, gid, 9999)
+	holders, _ = store.GetCharacterHoldersInGuild(ctx, gid, 9999)
 	assert.Empty(t, holders)
 }
 

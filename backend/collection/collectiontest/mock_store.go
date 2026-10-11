@@ -35,11 +35,12 @@ type MockStore struct {
 	GetDropForUpdateFunc func(ctx context.Context, channelID collection.ChannelID) (catalog.Drop, error)
 	DeleteDropFunc       func(ctx context.Context, channelID collection.ChannelID) error
 
-	IsGuildIndexedFunc          func(ctx context.Context, guildID guild.ID) (guild.IndexStatus, error)
-	StartIndexingJobFunc        func(ctx context.Context, guildID guild.ID) error
-	CompleteIndexingJobFunc     func(ctx context.Context, guildID guild.ID) error
-	UpsertGuildMembersFunc      func(ctx context.Context, guildID guild.ID, memberIDs []guild.MemberID, indexedAt time.Time) error
-	DeleteGuildMembersNotInFunc func(ctx context.Context, guildID guild.ID, memberIDs []guild.MemberID) error
+	IsGuildIndexedFunc             func(ctx context.Context, guildID guild.ID) (guild.IndexStatus, error)
+	StartIndexingJobFunc           func(ctx context.Context, guildID guild.ID) error
+	CompleteIndexingJobFunc        func(ctx context.Context, guildID guild.ID) error
+	UpsertGuildMembersFunc         func(ctx context.Context, guildID guild.ID, memberIDs []guild.MemberID, indexedAt time.Time) error
+	DeleteGuildMembersNotInFunc    func(ctx context.Context, guildID guild.ID, memberIDs []guild.MemberID) error
+	GetCharacterHoldersInGuildFunc func(ctx context.Context, guildID guild.ID, charID catalog.CharacterID) ([]guild.MemberID, error)
 
 	UpsertCharacterFunc        func(ctx context.Context, char catalog.Character) error
 	GetCharacterByIDFunc       func(ctx context.Context, charID catalog.CharacterID) (catalog.Character, error)
@@ -245,6 +246,13 @@ func (m *MockStore) DeleteGuildMembersNotIn(ctx context.Context, guildID guild.I
 		return m.DeleteGuildMembersNotInFunc(ctx, guildID, memberIDs)
 	}
 	return nil
+}
+
+func (m *MockStore) GetCharacterHoldersInGuild(ctx context.Context, guildID guild.ID, charID catalog.CharacterID) ([]guild.MemberID, error) {
+	if m.GetCharacterHoldersInGuildFunc != nil {
+		return m.GetCharacterHoldersInGuildFunc(ctx, guildID, charID)
+	}
+	return nil, nil
 }
 
 func (m *MockStore) UpsertCharacter(ctx context.Context, char catalog.Character) error {

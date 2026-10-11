@@ -40,17 +40,13 @@ func ConvertIndexingStatus(s string) IndexingStatus {
 	}
 }
 
-// Querier provides guild indexing operations.
+// Querier provides guild indexing and holder lookups.
 type Querier interface {
 	IsGuildIndexed(ctx context.Context, guildID ID) (IndexStatus, error)
 	StartIndexingJob(ctx context.Context, guildID ID) error
 	CompleteIndexingJob(ctx context.Context, guildID ID) error
 	UpsertGuildMembers(ctx context.Context, guildID ID, memberIDs []MemberID, indexedAt time.Time) error
 	DeleteGuildMembersNotIn(ctx context.Context, guildID ID, memberIDs []MemberID) error
-}
-
-// HolderQuerier looks up guild members owning a character.
-type HolderQuerier interface {
 	GetCharacterHoldersInGuild(ctx context.Context, guildID ID, charID catalog.CharacterID) ([]MemberID, error)
 }
 

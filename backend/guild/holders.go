@@ -8,7 +8,7 @@ import (
 )
 
 // CharacterHolders retrieves users in a guild who own a specific character.
-func CharacterHolders(ctx context.Context, store Querier, charStore catalog.Store, holders HolderQuerier, guildID ID, charID catalog.CharacterID) (string, []MemberID, error) {
+func CharacterHolders(ctx context.Context, store Querier, charStore catalog.Store, guildID ID, charID catalog.CharacterID) (string, []MemberID, error) {
 	if guildID == 0 {
 		return "", nil, fmt.Errorf("this command can only be used in servers")
 	}
@@ -23,7 +23,7 @@ func CharacterHolders(ctx context.Context, store Querier, charStore catalog.Stor
 		return "", nil, fmt.Errorf("no one in this server has %d", charID)
 	}
 
-	holderIDs, err := holders.GetCharacterHoldersInGuild(ctx, guildID, charID)
+	holderIDs, err := store.GetCharacterHoldersInGuild(ctx, guildID, charID)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to fetch character holders: %w", err)
 	}

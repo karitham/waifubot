@@ -70,7 +70,6 @@ type Router struct {
 	InterStore        interactionstore.Store
 	GuildIndexer      *guild.Indexer
 	GuildOps          guild.Querier
-	Holders           guild.HolderQuerier
 	guildTxFn         func(context.Context) (guild.TxQuerier, error)
 	AppID             corde.Snowflake
 	GuildID           *corde.Snowflake
@@ -119,7 +118,7 @@ func (r *Router) Register() *corde.Mux {
 		guildIndexer:  r.GuildIndexer,
 		guildTxFn:     r.guildTxFn,
 	}
-	holdersHandler := &HoldersHandler{guildOps: r.GuildOps, catalog: r.Catalog, holders: r.Holders, guildIndexer: r.GuildIndexer, guildTxFn: r.guildTxFn}
+	holdersHandler := &HoldersHandler{guildOps: r.GuildOps, catalog: r.Catalog, guildIndexer: r.GuildIndexer, guildTxFn: r.guildTxFn}
 	rollHandler := &RollHandler{
 		rollService: collection.NewRollService(r.Store, collection.RollConfig{RollCooldown: r.RollCooldown}),
 		wishlist:    r.WishlistStore,

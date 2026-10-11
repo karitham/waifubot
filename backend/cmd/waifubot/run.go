@@ -24,7 +24,6 @@ import (
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/commandpg"
 	"github.com/karitham/waifubot/storage/dropstore"
-	"github.com/karitham/waifubot/storage/guildpg"
 	"github.com/karitham/waifubot/storage/interactionstore"
 	"github.com/karitham/waifubot/sync"
 	"github.com/karitham/waifubot/wishlist"
@@ -111,7 +110,6 @@ var RunCommand = &cli.Command{
 			InterStore:        interStore,
 			GuildIndexer:      guild.NewIndexer(collStore, guild.NewDiscordFetcher(c.String(botTokenFlag.Name))),
 			GuildOps:          collStore,
-			Holders:           guildpg.New(store.GuildStore()),
 			AppID:             corde.Snowflake(c.Uint64("app-id")),
 			GuildID:           guildID,
 			BotToken:          c.String(botTokenFlag.Name),

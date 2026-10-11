@@ -34,7 +34,6 @@ func indexMiddleware[T corde.InteractionDataConstraint](
 type HoldersHandler struct {
 	guildOps     guild.Querier
 	catalog      catalog.Store
-	holders      guild.HolderQuerier
 	guildIndexer *guild.Indexer
 	guildTxFn    func(context.Context) (guild.TxQuerier, error)
 }
@@ -70,7 +69,7 @@ func (h *HoldersHandler) Holders(ctx context.Context, w corde.ResponseWriter, cm
 		return
 	}
 
-	charName, holderIDs, err := guild.CharacterHolders(ctx, h.guildOps, h.catalog, h.holders, cmd.GuildID(), opts.charID)
+	charName, holderIDs, err := guild.CharacterHolders(ctx, h.guildOps, h.catalog, cmd.GuildID(), opts.charID)
 	if err != nil {
 		w.Respond(Privf("Failed to check holders"))
 		return

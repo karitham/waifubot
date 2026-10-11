@@ -10,6 +10,7 @@ import (
 
 	"github.com/Karitham/corde"
 
+	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/guild"
 )
 
@@ -36,6 +37,10 @@ func (m *mockQuerier) UpsertGuildMembers(ctx context.Context, guildID guild.ID, 
 
 func (m *mockQuerier) DeleteGuildMembersNotIn(ctx context.Context, guildID guild.ID, memberIDs []guild.MemberID) error {
 	return nil
+}
+
+func (m *mockQuerier) GetCharacterHoldersInGuild(ctx context.Context, guildID guild.ID, charID catalog.CharacterID) ([]guild.MemberID, error) {
+	return nil, nil
 }
 
 // mockFetcher implements guild.MemberFetcher for testing.
@@ -115,13 +120,13 @@ func TestCharacterHolders_GuildNotIndexed(t *testing.T) {
 		},
 	}
 
-	_, _, err := guild.CharacterHolders(t.Context(), querier, nil, nil, 123, 456)
+	_, _, err := guild.CharacterHolders(t.Context(), querier, nil, 123, 456)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "not indexed")
 }
 
 func TestCharacterHolders_GuildIDZero(t *testing.T) {
-	_, _, err := guild.CharacterHolders(t.Context(), nil, nil, nil, 0, 456)
+	_, _, err := guild.CharacterHolders(t.Context(), nil, nil, 0, 456)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "only be used in servers")
 }

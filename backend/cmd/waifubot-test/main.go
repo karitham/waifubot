@@ -232,7 +232,6 @@ func runTestHarness(c *cli.Context) error {
 		InterStore:        interStore,
 		GuildIndexer:      guild.NewIndexer(collStore, guild.NewDiscordFetcher(botToken)),
 		GuildOps:          collStore,
-		Holders:           guildpg.New(store.GuildStore()),
 		AppID:             corde.Snowflake(appID),
 		GuildID:           nil,
 		BotToken:          botToken,
