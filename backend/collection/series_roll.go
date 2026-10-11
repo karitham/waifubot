@@ -2,7 +2,6 @@ package collection
 
 import (
 	"context"
-	"errors"
 	"math/rand/v2"
 	"time"
 
@@ -12,26 +11,28 @@ import (
 
 // SeriesRoll executes a paid, series-specific roll for a user, deducting tokens.
 func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID int64, seriesRollCost int32, anime AnimeService) (catalog.Character, error) {
-	// --- GATHER ---
-	user, err := s.store.GetUser(ctx, userID)
-	if err != nil {
-		if !errors.Is(err, ErrNotFound) {
-			return catalog.Character{}, err
-		}
-		if err := s.store.CreateUser(ctx, userID); err != nil {
-			return catalog.Character{}, err
-		}
-		user, err = s.store.GetUser(ctx, userID)
-		if err != nil {
-			return catalog.Character{}, err
-		}
-	}
+	return acquire(ctx, s.store, userID, acquisition{
+		source: "SERIES_ROLL",
+		check: func(user User) error {
+			if user.Tokens < seriesRollCost {
+				return ErrInsufficientTokens
+			}
+			return nil
+		},
+		pick: func(ctx context.Context, store Store, userID UserID) (catalog.Character, error) {
+			return pickSeriesCharacter(ctx, store, userID, mediaID, anime)
+		},
+		charge: func(ctx context.Context, tx Store, now time.Time) error {
+			_, err := tx.SpendTokens(ctx, userID, seriesRollCost)
+			return err
+		},
+	})
+}
 
-	if user.Tokens < seriesRollCost {
-		return catalog.Character{}, ErrInsufficientTokens
-	}
-
-	ownedIDs, err := s.store.GetCollectionIDs(ctx, userID)
+// pickSeriesCharacter selects a random unowned character from a series,
+// upserting it into the catalog.
+func pickSeriesCharacter(ctx context.Context, store Store, userID UserID, mediaID int64, anime AnimeService) (catalog.Character, error) {
+	ownedIDs, err := store.GetCollectionIDs(ctx, userID)
 	if err != nil {
 		return catalog.Character{}, err
 	}
@@ -45,7 +46,6 @@ func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID int
 		return catalog.Character{}, ErrMediaNotFound
 	}
 
-	// --- PROCESS ---
 	owned := make(map[int64]struct{}, len(ownedIDs))
 	for _, id := range ownedIDs {
 		owned[id] = struct{}{}
@@ -64,37 +64,9 @@ func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID int
 
 	char := unowned[rand.IntN(len(unowned))].ToCatalog()
 
-	if err := s.store.UpsertCharacter(ctx, char); err != nil {
+	if err := store.UpsertCharacter(ctx, char); err != nil {
 		return catalog.Character{}, err
 	}
 
-	// --- COMMIT ---
-	now := time.Now()
-	err = withTx(ctx, s.store, func(tx Store) error {
-		// Re-fetch user and re-check tokens to prevent double-spend
-		user, err := tx.GetUser(ctx, userID)
-		if err != nil {
-			return err
-		}
-		if user.Tokens < seriesRollCost {
-			return ErrInsufficientTokens
-		}
-
-		if err := tx.AddToCollection(ctx, userID, char, "SERIES_ROLL", now); err != nil {
-			return err
-		}
-
-		if err := tx.RemoveFromWishlist(ctx, userID, char.ID); err != nil {
-			return err
-		}
-
-		if _, err := tx.SpendTokens(ctx, userID, seriesRollCost); err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return catalog.Character{}, err
-	}
 	return char, nil
 }

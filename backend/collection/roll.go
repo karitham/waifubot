@@ -47,63 +47,24 @@ func NewRollService(store Store, config RollConfig) *RollService {
 
 // Roll executes the free roll for a user, enforcing the cooldown constraint.
 func (s *RollService) Roll(ctx context.Context, userID UserID) (catalog.Character, error) {
-	// --- GATHER ---
-	user, err := s.store.GetUser(ctx, userID)
-	if err != nil {
-		if !errors.Is(err, ErrNotFound) {
-			return catalog.Character{}, err
-		}
-		// User is new — skip cooldown check
-	} else {
-		now := time.Now()
-		cooldownUntil := user.Date.Add(s.config.RollCooldown)
-		if now.Before(cooldownUntil) {
-			return catalog.Character{}, ErrRollCooldown{Until: cooldownUntil}
-		}
-	}
-
-	// --- PROCESS ---
-	char, err := s.store.RandomCharNotOwned(ctx, userID, RollWeightExponent)
-	if err != nil {
-		if errors.Is(err, ErrNotFound) {
-			return catalog.Character{}, ErrNoUnownedCharacters
-		}
-		return catalog.Character{}, err
-	}
-
-	// --- COMMIT ---
-	now := time.Now()
-	err = withTx(ctx, s.store, func(tx Store) error {
-		user, err := tx.GetUser(ctx, userID)
-		if err != nil {
-			if errors.Is(err, ErrNotFound) {
-				if err = tx.CreateUser(ctx, userID); err != nil {
-					return err
-				}
-			} else {
-				return err
-			}
-		} else {
-			// Re-check cooldown inside the transaction — a concurrent request
-			// may have already updated last_roll since our earlier check.
+	return acquire(ctx, s.store, userID, acquisition{
+		source: "ROLL",
+		check: func(user User) error {
 			cooldownUntil := user.Date.Add(s.config.RollCooldown)
-			if now.Before(cooldownUntil) {
+			if time.Now().Before(cooldownUntil) {
 				return ErrRollCooldown{Until: cooldownUntil}
 			}
-		}
-
-		if err := tx.AddToCollection(ctx, userID, char, "ROLL", now); err != nil {
-			return err
-		}
-
-		if err := tx.RemoveFromWishlist(ctx, userID, char.ID); err != nil {
-			return err
-		}
-
-		return tx.UpdateLastRoll(ctx, userID, now)
+			return nil
+		},
+		pick: func(ctx context.Context, store Store, userID UserID) (catalog.Character, error) {
+			char, err := store.RandomCharNotOwned(ctx, userID, RollWeightExponent)
+			if errors.Is(err, ErrNotFound) {
+				return catalog.Character{}, ErrNoUnownedCharacters
+			}
+			return char, err
+		},
+		charge: func(ctx context.Context, tx Store, now time.Time) error {
+			return tx.UpdateLastRoll(ctx, userID, now)
+		},
 	})
-	if err != nil {
-		return catalog.Character{}, err
-	}
-	return char, nil
 }

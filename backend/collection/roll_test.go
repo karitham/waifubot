@@ -61,10 +61,17 @@ func TestRoll(t *testing.T) {
 				m.RandomCharNotOwnedFunc = func(_ context.Context, _ uint64, _ float64) (catalog.Character, error) {
 					return catalog.Character{ID: 4, Name: "Char4", Image: "img4"}, nil
 				}
+				created := false
 				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
-					return collection.User{}, collection.ErrNotFound
+					if !created {
+						return collection.User{}, collection.ErrNotFound
+					}
+					return collection.User{UserID: userID}, nil
 				}
-				m.CreateUserFunc = func(_ context.Context, _ uint64) error { return nil }
+				m.CreateUserFunc = func(_ context.Context, _ uint64) error {
+					created = true
+					return nil
+				}
 				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ catalog.Character, _ string, _ time.Time) error {
 					return nil
 				}
