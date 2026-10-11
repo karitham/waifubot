@@ -61,10 +61,10 @@ func (p *Pg) GetOwnedCharacter(ctx context.Context, userID collection.UserID, ch
 	}, nil
 }
 
-func (p *Pg) AddToCollection(ctx context.Context, userID collection.UserID, char catalog.Character, source string, acquiredAt time.Time) error {
+func (p *Pg) AddToCollection(ctx context.Context, userID collection.UserID, charID int64, source string, acquiredAt time.Time) error {
 	_, err := p.C.Insert(ctx, collectionstore.InsertParams{
 		UserID:      userID,
-		CharacterID: char.ID,
+		CharacterID: charID,
 		Source:      source,
 		AcquiredAt:  pgtype.Timestamp{Time: acquiredAt.UTC(), Valid: true},
 	})

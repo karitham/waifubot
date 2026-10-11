@@ -35,7 +35,7 @@ func TestRoll(t *testing.T) {
 				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
 					return collection.User{UserID: userID, Date: time.Now().Add(-2 * time.Hour), Tokens: 5}, nil
 				}
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ catalog.Character, _ string, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ int64, _ string, _ time.Time) error {
 					return nil
 				}
 				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error { return nil }
@@ -72,7 +72,7 @@ func TestRoll(t *testing.T) {
 					created = true
 					return nil
 				}
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ catalog.Character, _ string, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ int64, _ string, _ time.Time) error {
 					return nil
 				}
 				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error { return nil }
@@ -104,7 +104,7 @@ func TestRoll(t *testing.T) {
 				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
 					return collection.User{UserID: userID, Date: time.Now().Add(-2 * time.Hour), Tokens: 5}, nil
 				}
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ catalog.Character, _ string, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ int64, _ string, _ time.Time) error {
 					return nil
 				}
 				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error {

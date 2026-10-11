@@ -63,7 +63,7 @@ func acquire(ctx context.Context, store Store, userID UserID, a acquisition) (ca
 			return err
 		}
 
-		if err := tx.AddToCollection(ctx, userID, char, a.source, now); err != nil {
+		if err := tx.AddToCollection(ctx, userID, char.ID, a.source, now); err != nil {
 			return err
 		}
 

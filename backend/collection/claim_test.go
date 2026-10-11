@@ -35,7 +35,7 @@ func TestClaim(t *testing.T) {
 					return collection.User{UserID: userID}, nil
 				}
 				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ catalog.Character, _ string, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ int64, _ string, _ time.Time) error {
 					return nil
 				}
 				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error { return nil }
@@ -80,7 +80,7 @@ func TestClaim(t *testing.T) {
 					return collection.User{UserID: userID}, nil
 				}
 				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ catalog.Character, _ string, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ int64, _ string, _ time.Time) error {
 					return collection.ErrAlreadyOwned
 				}
 			},
@@ -100,7 +100,7 @@ func TestClaim(t *testing.T) {
 				}
 				m.CreateUserFunc = func(_ context.Context, _ uint64) error { return nil }
 				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ catalog.Character, _ string, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ int64, _ string, _ time.Time) error {
 					return nil
 				}
 				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error { return nil }

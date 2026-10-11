@@ -358,7 +358,7 @@ func TestTokenHandler_Roll(t *testing.T) {
 				UpsertCharacterFunc: func(ctx context.Context, char catalog.Character) error {
 					return nil
 				},
-				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, char catalog.Character, source string, acquiredAt time.Time) error {
+				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, charID int64, source string, acquiredAt time.Time) error {
 					return nil
 				},
 				UpdateLastRollFunc: func(ctx context.Context, userID collection.UserID, when time.Time) error {

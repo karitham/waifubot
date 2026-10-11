@@ -82,7 +82,7 @@ type CollectionRepository interface {
 	GetCollection(ctx context.Context, userID UserID) ([]OwnedCharacter, error)
 	GetCollectionIDs(ctx context.Context, userID UserID) ([]int64, error)
 	GetOwnedCharacter(ctx context.Context, userID UserID, charID int64) (OwnedCharacter, error)
-	AddToCollection(ctx context.Context, userID UserID, char catalog.Character, source string, acquiredAt time.Time) error
+	AddToCollection(ctx context.Context, userID UserID, charID int64, source string, acquiredAt time.Time) error
 	RemoveFromCollection(ctx context.Context, userID UserID, charID int64) error
 	GiveCharacter(ctx context.Context, from, to UserID, charID int64) (OwnedCharacter, error)
 	CountCollection(ctx context.Context, userID UserID) (int64, error)

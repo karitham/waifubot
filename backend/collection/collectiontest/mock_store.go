@@ -24,7 +24,7 @@ type MockStore struct {
 	GetCollectionFunc        func(ctx context.Context, userID collection.UserID) ([]collection.OwnedCharacter, error)
 	GetCollectionIDsFunc     func(ctx context.Context, userID collection.UserID) ([]int64, error)
 	GetOwnedCharacterFunc    func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error)
-	AddToCollectionFunc      func(ctx context.Context, userID collection.UserID, char catalog.Character, source string, acquiredAt time.Time) error
+	AddToCollectionFunc      func(ctx context.Context, userID collection.UserID, charID int64, source string, acquiredAt time.Time) error
 	RemoveFromCollectionFunc func(ctx context.Context, userID collection.UserID, charID int64) error
 	GiveCharacterFunc        func(ctx context.Context, from, to collection.UserID, charID int64) (collection.OwnedCharacter, error)
 	CountCollectionFunc      func(ctx context.Context, userID collection.UserID) (int64, error)
@@ -156,9 +156,9 @@ func (m *MockStore) GetOwnedCharacter(ctx context.Context, userID collection.Use
 	return collection.OwnedCharacter{}, nil
 }
 
-func (m *MockStore) AddToCollection(ctx context.Context, userID collection.UserID, char catalog.Character, source string, acquiredAt time.Time) error {
+func (m *MockStore) AddToCollection(ctx context.Context, userID collection.UserID, charID int64, source string, acquiredAt time.Time) error {
 	if m.AddToCollectionFunc != nil {
-		return m.AddToCollectionFunc(ctx, userID, char, source, acquiredAt)
+		return m.AddToCollectionFunc(ctx, userID, charID, source, acquiredAt)
 	}
 	return nil
 }
