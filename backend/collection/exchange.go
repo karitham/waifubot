@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
+	"github.com/karitham/waifubot/catalog"
 )
 
 // Exchange sells a character for 1 token.
-func Exchange(ctx context.Context, store Store, userID UserID, charID int64) (OwnedCharacter, error) {
+func Exchange(ctx context.Context, store Store, userID UserID, charID catalog.CharacterID) (OwnedCharacter, error) {
 	tx, err := store.WithTx(ctx)
 	if err != nil {
 		return OwnedCharacter{}, err

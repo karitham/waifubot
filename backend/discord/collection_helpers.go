@@ -7,16 +7,17 @@ import (
 
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/guild"
 )
 
-func collectionCheckOwnership(ctx context.Context, store collection.Store, userID uint64, charID int64) (bool, catalog.Character, error) {
+func collectionCheckOwnership(ctx context.Context, store collection.Store, userID collection.UserID, charID catalog.CharacterID) (bool, catalog.Character, error) {
 	return collection.CheckOwnership(ctx, store, userID, charID)
 }
 
-func formatUsersWantingCharacter(userIDs []uint64, excludeUserID uint64) string {
-	var filtered []uint64
-	for _, id := range userIDs {
-		if id != excludeUserID {
+func formatUsersWantingCharacter(memberIDs []guild.MemberID, excludeUserID collection.UserID) string {
+	var filtered []guild.MemberID
+	for _, id := range memberIDs {
+		if id != guild.MemberID(excludeUserID) {
 			filtered = append(filtered, id)
 		}
 	}
@@ -46,6 +47,6 @@ func formatUsersWantingCharacter(userIDs []uint64, excludeUserID uint64) string 
 	return "\n\n🤝 " + sb.String() + " is looking to trade!"
 }
 
-func formatUserMention(userID uint64) string {
-	return fmt.Sprintf("<@%d>", userID)
+func formatUserMention(memberID guild.MemberID) string {
+	return fmt.Sprintf("<@%d>", memberID)
 }

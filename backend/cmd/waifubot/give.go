@@ -8,6 +8,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
+	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage"
 )
@@ -49,7 +50,7 @@ var GiveCommand = &cli.Command{
 			return fmt.Errorf("invalid to user ID: %s", toStr)
 		}
 
-		char, err := collection.Give(ctx, newCollectionStore(store), from, to, charID)
+		char, err := collection.Give(ctx, newCollectionStore(store), collection.UserID(from), collection.UserID(to), catalog.CharacterID(charID))
 		if err != nil {
 			return fmt.Errorf("error giving: %w", err)
 		}

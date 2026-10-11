@@ -10,7 +10,7 @@ import (
 )
 
 // SeriesRoll executes a paid, series-specific roll for a user, deducting tokens.
-func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID int64, seriesRollCost int32, anime AnimeService) (catalog.Character, error) {
+func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID tracker.MediaID, seriesRollCost int32, anime AnimeService) (catalog.Character, error) {
 	return acquire(ctx, s.store, userID, acquisition{
 		source: SourceSeriesRoll,
 		check: func(user User) error {
@@ -31,7 +31,7 @@ func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID int
 
 // pickSeriesCharacter selects a random unowned character from a series,
 // upserting it into the catalog.
-func pickSeriesCharacter(ctx context.Context, store Store, userID UserID, mediaID int64, anime AnimeService) (catalog.Character, error) {
+func pickSeriesCharacter(ctx context.Context, store Store, userID UserID, mediaID tracker.MediaID, anime AnimeService) (catalog.Character, error) {
 	ownedIDs, err := store.GetCollectionIDs(ctx, userID)
 	if err != nil {
 		return catalog.Character{}, err
@@ -46,7 +46,7 @@ func pickSeriesCharacter(ctx context.Context, store Store, userID UserID, mediaI
 		return catalog.Character{}, ErrMediaNotFound
 	}
 
-	owned := make(map[int64]struct{}, len(ownedIDs))
+	owned := make(map[catalog.CharacterID]struct{}, len(ownedIDs))
 	for _, id := range ownedIDs {
 		owned[id] = struct{}{}
 	}

@@ -40,7 +40,7 @@ var RollCommand = &cli.Command{
 			RollCooldown: rollCooldown,
 		}
 		svc := collection.NewRollService(newCollectionStore(store), config)
-		char, err := svc.Roll(ctx, userID)
+		char, err := svc.Roll(ctx, collection.UserID(userID))
 		if err != nil {
 			return fmt.Errorf("error rolling: %w", err)
 		}

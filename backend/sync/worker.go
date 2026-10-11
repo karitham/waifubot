@@ -91,17 +91,17 @@ func (s *Service) buildDiscoveryPool(ctx context.Context) []int64 {
 	tailStart := max(maxID-discoveryWindow, 1)
 
 	// Deduplicate: active IDs and discovery window may overlap.
-	seen := make(map[int64]struct{}, len(activeIDs)+discoveryWindow)
+	seen := make(map[catalog.CharacterID]struct{}, len(activeIDs)+discoveryWindow)
 	for _, id := range activeIDs {
 		seen[id] = struct{}{}
 	}
 	for id := tailStart; id <= maxID; id++ {
-		seen[id] = struct{}{}
+		seen[catalog.CharacterID(id)] = struct{}{}
 	}
 
 	pool := make([]int64, 0, len(seen))
 	for id := range seen {
-		pool = append(pool, id)
+		pool = append(pool, int64(id))
 	}
 	return pool
 }
@@ -140,16 +140,17 @@ func (s *Service) processBatch(ctx context.Context, ids []int64) error {
 
 // missingIDs returns IDs from requested that are not present in found.
 // Pure function: no I/O, no side effects.
-func missingIDs(requested []int64, found []tracker.Character) []int64 {
-	foundIDs := make(map[int64]struct{}, len(found))
+func missingIDs(requested []int64, found []tracker.Character) []catalog.CharacterID {
+	foundIDs := make(map[catalog.CharacterID]struct{}, len(found))
 	for _, c := range found {
 		foundIDs[c.ID] = struct{}{}
 	}
 
-	missing := make([]int64, 0, len(requested))
+	missing := make([]catalog.CharacterID, 0, len(requested))
 	for _, id := range requested {
-		if _, ok := foundIDs[id]; !ok {
-			missing = append(missing, id)
+		charID := catalog.CharacterID(id)
+		if _, ok := foundIDs[charID]; !ok {
+			missing = append(missing, charID)
 		}
 	}
 	return missing

@@ -5,8 +5,6 @@ import (
 	"time"
 
 	"github.com/Karitham/corde"
-
-	"github.com/karitham/waifubot/collection"
 )
 
 // MemberFetcher abstracts Discord guild member fetching.
@@ -33,12 +31,13 @@ func NewIndexer(store GuildQuerier, fetcher MemberFetcher) *Indexer {
 
 // IndexGuildIfNeeded checks if a guild needs indexing and runs it if necessary.
 func (i *Indexer) IndexGuildIfNeeded(ctx context.Context, guildID corde.Snowflake, txFactory func(context.Context) (TxQuerier, error)) error {
-	status, err := i.store.IsGuildIndexed(ctx, uint64(guildID))
-	if err == nil && status.Status == collection.IndexingCompleted && time.Since(status.UpdatedAt) <= maxAge {
+	id := GuildID(guildID)
+	status, err := i.store.IsGuildIndexed(ctx, id)
+	if err == nil && status.Status == IndexingCompleted && time.Since(status.UpdatedAt) <= maxAge {
 		return nil
 	}
 
-	if err := StartIndexingJobIfNeeded(ctx, i.store, uint64(guildID), txFactory); err != nil {
+	if err := StartIndexingJobIfNeeded(ctx, i.store, id, txFactory); err != nil {
 		return err
 	}
 
@@ -52,27 +51,27 @@ func (i *Indexer) IndexGuild(ctx context.Context, guildID corde.Snowflake) error
 		return err
 	}
 
-	userIDs := make([]uint64, len(memberIDs))
+	ids := make([]MemberID, len(memberIDs))
 	for idx, id := range memberIDs {
-		userIDs[idx] = uint64(id)
+		ids[idx] = MemberID(id)
 	}
 
-	if err := i.store.DeleteGuildMembersNotIn(ctx, uint64(guildID), userIDs); err != nil {
+	if err := i.store.DeleteGuildMembersNotIn(ctx, GuildID(guildID), ids); err != nil {
 		return err
 	}
 
-	if len(userIDs) > 0 {
-		if err := i.store.UpsertGuildMembers(ctx, uint64(guildID), userIDs, time.Now()); err != nil {
+	if len(ids) > 0 {
+		if err := i.store.UpsertGuildMembers(ctx, GuildID(guildID), ids, time.Now()); err != nil {
 			return err
 		}
 	}
 
-	return i.store.CompleteIndexingJob(ctx, uint64(guildID))
+	return i.store.CompleteIndexingJob(ctx, GuildID(guildID))
 }
 
 // StartIndexingJobIfNeeded acquires a transaction lock and starts an indexing job
 // if no other indexer is currently active.
-func StartIndexingJobIfNeeded(ctx context.Context, store GuildQuerier, guildID uint64, txFactory func(context.Context) (TxQuerier, error)) error {
+func StartIndexingJobIfNeeded(ctx context.Context, store GuildQuerier, guildID GuildID, txFactory func(context.Context) (TxQuerier, error)) error {
 	tx, err := txFactory(ctx)
 	if err != nil {
 		return err
@@ -80,7 +79,7 @@ func StartIndexingJobIfNeeded(ctx context.Context, store GuildQuerier, guildID u
 
 	// Re-check inside transaction to prevent duplicate indexing
 	status, err := tx.IsGuildIndexed(ctx, guildID)
-	if err == nil && status.Status == collection.IndexingInProgress && time.Since(status.UpdatedAt) < 10*time.Minute {
+	if err == nil && status.Status == IndexingInProgress && time.Since(status.UpdatedAt) < 10*time.Minute {
 		_ = tx.Rollback(ctx)
 		return nil
 	}

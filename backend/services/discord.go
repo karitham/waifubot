@@ -30,12 +30,12 @@ func (ds *DiscordService) UpdateUserInfo(ctx context.Context, store collection.S
 		return fmt.Errorf("failed to fetch Discord user: %w", err)
 	}
 
-	return store.UpdateDiscordInfo(ctx, uint64(userID), discordUser.Username, discordUser.Avatar, time.Now())
+	return store.UpdateDiscordInfo(ctx, collection.UserID(userID), discordUser.Username, discordUser.Avatar, time.Now())
 }
 
 // ShouldUpdateInfo checks if Discord info should be updated (older than 24 hours).
 func ShouldUpdateInfo(ctx context.Context, store collection.Store, userID corde.Snowflake) (bool, error) {
-	u, err := store.GetUser(ctx, uint64(userID))
+	u, err := store.GetUser(ctx, collection.UserID(userID))
 	if err != nil {
 		return false, err
 	}

@@ -27,7 +27,7 @@ func newStoreFromStorage(s storage.Store) *collection.PostgresStore {
 			collectionpg.New(catQ, s.WishlistStore()),
 			droppg.New(s.DropStore()),
 			guildpg.New(s.GuildStore()),
-			catalogpg.New(catQ, s.GuildStore()),
+			catalogpg.New(catQ),
 			tx,
 			nil,
 		)
@@ -38,7 +38,7 @@ func newStoreFromStorage(s storage.Store) *collection.PostgresStore {
 		collectionpg.New(catQ, s.WishlistStore()),
 		droppg.New(s.DropStore()),
 		guildpg.New(s.GuildStore()),
-		catalogpg.New(catQ, s.GuildStore()),
+		catalogpg.New(catQ),
 		s.DB(),
 		txFn,
 	)
@@ -46,5 +46,5 @@ func newStoreFromStorage(s storage.Store) *collection.PostgresStore {
 
 // newCatalogStore creates a catalog.Store from the underlying storage.
 func newCatalogStore(s storage.Store) catalog.Store {
-	return catalogpg.New(s.CollectionStore(), s.GuildStore())
+	return catalogpg.New(s.CollectionStore())
 }

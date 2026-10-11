@@ -19,7 +19,7 @@ func (r *Router) drop(ctx context.Context, channelID corde.Snowflake) {
 		return
 	}
 
-	if err := r.DropStore.Set(ctx, channelID, char); err != nil {
+	if err := r.DropStore.Set(ctx, collection.ChannelID(channelID), char); err != nil {
 		logger.Error("failed to set channel character", "error", err, "character_id", char.ID, "character_name", char.Name)
 		return
 	}

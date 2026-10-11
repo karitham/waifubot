@@ -8,6 +8,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
+	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage"
 )
@@ -36,7 +37,7 @@ var ExchangeCommand = &cli.Command{
 			return fmt.Errorf("invalid user ID: %s", userIDStr)
 		}
 
-		char, err := collection.Exchange(ctx, newCollectionStore(store), userID, charID)
+		char, err := collection.Exchange(ctx, newCollectionStore(store), collection.UserID(userID), catalog.CharacterID(charID))
 		if err != nil {
 			return fmt.Errorf("error exchanging: %w", err)
 		}

@@ -20,26 +20,26 @@ func TestRoll(t *testing.T) {
 	tests := []struct {
 		name       string
 		setup      func(m *collectiontest.MockStore)
-		userID     uint64
+		userID     collection.UserID
 		wantErr    bool
 		wantErrIs  error // sentinel error to match with errors.Is
 		wantErrAs  any   // error type to match with errors.As
-		wantCharID int64
+		wantCharID catalog.CharacterID
 	}{
 		{
 			name: "free_roll_success",
 			setup: func(m *collectiontest.MockStore) {
-				m.RandomCharNotOwnedFunc = func(_ context.Context, _ uint64, _ float64) (catalog.Character, error) {
+				m.RandomCharNotOwnedFunc = func(_ context.Context, _ collection.UserID, _ float64) (catalog.Character, error) {
 					return catalog.Character{ID: 3, Name: "Char3", Image: "img3"}, nil
 				}
-				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
+				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID, Date: time.Now().Add(-2 * time.Hour), Tokens: 5}, nil
 				}
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ int64, _ collection.Source, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID, _ collection.Source, _ time.Time) error {
 					return nil
 				}
-				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error { return nil }
-				m.UpdateLastRollFunc = func(_ context.Context, _ uint64, _ time.Time) error { return nil }
+				m.RemoveFromWishlistFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) error { return nil }
+				m.UpdateLastRollFunc = func(_ context.Context, _ collection.UserID, _ time.Time) error { return nil }
 			},
 			userID:     123,
 			wantCharID: 3,
@@ -47,7 +47,7 @@ func TestRoll(t *testing.T) {
 		{
 			name: "cooldown",
 			setup: func(m *collectiontest.MockStore) {
-				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
+				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID, Date: time.Now().Add(-30 * time.Minute), Tokens: 5}, nil
 				}
 			},
@@ -58,25 +58,25 @@ func TestRoll(t *testing.T) {
 		{
 			name: "new_user",
 			setup: func(m *collectiontest.MockStore) {
-				m.RandomCharNotOwnedFunc = func(_ context.Context, _ uint64, _ float64) (catalog.Character, error) {
+				m.RandomCharNotOwnedFunc = func(_ context.Context, _ collection.UserID, _ float64) (catalog.Character, error) {
 					return catalog.Character{ID: 4, Name: "Char4", Image: "img4"}, nil
 				}
 				created := false
-				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
+				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					if !created {
 						return collection.User{}, collection.ErrNotFound
 					}
 					return collection.User{UserID: userID}, nil
 				}
-				m.CreateUserFunc = func(_ context.Context, _ uint64) error {
+				m.CreateUserFunc = func(_ context.Context, _ collection.UserID) error {
 					created = true
 					return nil
 				}
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ int64, _ collection.Source, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID, _ collection.Source, _ time.Time) error {
 					return nil
 				}
-				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error { return nil }
-				m.UpdateLastRollFunc = func(_ context.Context, _ uint64, _ time.Time) error { return nil }
+				m.RemoveFromWishlistFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) error { return nil }
+				m.UpdateLastRollFunc = func(_ context.Context, _ collection.UserID, _ time.Time) error { return nil }
 			},
 			userID:     456,
 			wantCharID: 4,
@@ -84,10 +84,10 @@ func TestRoll(t *testing.T) {
 		{
 			name: "no_unowned_characters",
 			setup: func(m *collectiontest.MockStore) {
-				m.RandomCharNotOwnedFunc = func(_ context.Context, _ uint64, _ float64) (catalog.Character, error) {
+				m.RandomCharNotOwnedFunc = func(_ context.Context, _ collection.UserID, _ float64) (catalog.Character, error) {
 					return catalog.Character{}, collection.ErrNotFound
 				}
-				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
+				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID, Date: time.Now().Add(-2 * time.Hour), Tokens: 5}, nil
 				}
 			},
@@ -98,19 +98,19 @@ func TestRoll(t *testing.T) {
 		{
 			name: "remove_from_wishlist_fails_roll",
 			setup: func(m *collectiontest.MockStore) {
-				m.RandomCharNotOwnedFunc = func(_ context.Context, _ uint64, _ float64) (catalog.Character, error) {
+				m.RandomCharNotOwnedFunc = func(_ context.Context, _ collection.UserID, _ float64) (catalog.Character, error) {
 					return catalog.Character{ID: 5, Name: "Char5", Image: "img5"}, nil
 				}
-				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
+				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID, Date: time.Now().Add(-2 * time.Hour), Tokens: 5}, nil
 				}
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ int64, _ collection.Source, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID, _ collection.Source, _ time.Time) error {
 					return nil
 				}
-				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error {
+				m.RemoveFromWishlistFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) error {
 					return errors.New("wishlist error")
 				}
-				m.UpdateLastRollFunc = func(_ context.Context, _ uint64, _ time.Time) error { return nil }
+				m.UpdateLastRollFunc = func(_ context.Context, _ collection.UserID, _ time.Time) error { return nil }
 			},
 			userID:  123,
 			wantErr: true,

@@ -8,6 +8,8 @@ import (
 	"github.com/Karitham/corde"
 	"github.com/urfave/cli/v2"
 
+	"github.com/karitham/waifubot/catalog"
+	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/wishlist"
 )
@@ -40,7 +42,7 @@ var WishlistCommand = &cli.Command{
 				}
 
 				wishlistStore := wishlist.New(store.WishlistStore())
-				err = wishlistStore.AddCharactersToWishlist(ctx, uint64(userID), []int64{charID})
+				err = wishlistStore.AddCharactersToWishlist(ctx, collection.UserID(userID), []catalog.CharacterID{catalog.CharacterID(charID)})
 				if err != nil {
 					return fmt.Errorf("error adding character to wishlist: %w", err)
 				}
@@ -78,7 +80,7 @@ var WishlistCommand = &cli.Command{
 				}
 
 				wishlistStore := wishlist.New(store.WishlistStore())
-				err = wishlistStore.RemoveCharactersFromWishlist(ctx, uint64(userID), []int64{charID})
+				err = wishlistStore.RemoveCharactersFromWishlist(ctx, collection.UserID(userID), []catalog.CharacterID{catalog.CharacterID(charID)})
 				if err != nil {
 					return fmt.Errorf("error removing character from wishlist: %w", err)
 				}
@@ -114,7 +116,7 @@ var WishlistCommand = &cli.Command{
 				}
 
 				wishlistStore := wishlist.New(store.WishlistStore())
-				chars, err := wishlistStore.GetUserCharacterWishlist(ctx, uint64(userID))
+				chars, err := wishlistStore.GetUserCharacterWishlist(ctx, collection.UserID(userID))
 				if err != nil {
 					return fmt.Errorf("error getting user wishlist: %w", err)
 				}
@@ -150,17 +152,17 @@ var WishlistCommand = &cli.Command{
 				}
 
 				wishlistStore := wishlist.New(store.WishlistStore())
-				wishlist, err := wishlistStore.GetUserCharacterWishlist(ctx, uint64(userID))
+				wishlist, err := wishlistStore.GetUserCharacterWishlist(ctx, collection.UserID(userID))
 				if err != nil {
 					return fmt.Errorf("error getting wishlist: %w", err)
 				}
 
-				characterIDs := make([]int64, len(wishlist))
+				characterIDs := make([]catalog.CharacterID, len(wishlist))
 				for i, c := range wishlist {
 					characterIDs[i] = c.ID
 				}
 
-				holders, err := wishlistStore.GetWishlistHolders(ctx, characterIDs, uint64(userID), 0)
+				holders, err := wishlistStore.GetWishlistHolders(ctx, characterIDs, collection.UserID(userID), 0)
 				if err != nil {
 					return fmt.Errorf("error getting wishlist holders: %w", err)
 				}
@@ -195,7 +197,7 @@ var WishlistCommand = &cli.Command{
 				}
 
 				wishlistStore := wishlist.New(store.WishlistStore())
-				wanted, err := wishlistStore.GetWantedCharacters(ctx, uint64(userID), 0)
+				wanted, err := wishlistStore.GetWantedCharacters(ctx, collection.UserID(userID), 0)
 				if err != nil {
 					return fmt.Errorf("error getting wanted characters: %w", err)
 				}
@@ -230,7 +232,7 @@ var WishlistCommand = &cli.Command{
 				}
 
 				wishlistStore := wishlist.New(store.WishlistStore())
-				err = wishlistStore.RemoveAllFromWishlist(ctx, uint64(userID))
+				err = wishlistStore.RemoveAllFromWishlist(ctx, collection.UserID(userID))
 				if err != nil {
 					return fmt.Errorf("error removing all from wishlist: %w", err)
 				}

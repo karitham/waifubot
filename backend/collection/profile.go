@@ -11,7 +11,7 @@ import (
 
 // AnimeService defines the interface for anime operations.
 type AnimeService interface {
-	GetMediaCharacters(ctx context.Context, mediaId int64) ([]tracker.Character, error)
+	GetMediaCharacters(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error)
 	Anime(ctx context.Context, name string) ([]tracker.Media, error)
 	Manga(ctx context.Context, name string) ([]tracker.Media, error)
 	User(ctx context.Context, name string) ([]tracker.User, error)

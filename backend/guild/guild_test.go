@@ -5,32 +5,36 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/Karitham/corde"
 
-	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/guild"
 )
 
 // mockQuerier implements guild.TxQuerier for testing.
 type mockQuerier struct {
-	status collection.GuildIndexStatus
+	status guild.GuildIndexStatus
 	err    error
 }
 
-func (m *mockQuerier) IsGuildIndexed(ctx context.Context, guildID uint64) (collection.GuildIndexStatus, error) {
+func (m *mockQuerier) IsGuildIndexed(ctx context.Context, guildID guild.GuildID) (guild.GuildIndexStatus, error) {
 	return m.status, m.err
 }
-func (m *mockQuerier) StartIndexingJob(ctx context.Context, guildID uint64) error    { return nil }
-func (m *mockQuerier) CompleteIndexingJob(ctx context.Context, guildID uint64) error { return nil }
-func (m *mockQuerier) Commit(ctx context.Context) error                              { return nil }
-func (m *mockQuerier) Rollback(ctx context.Context) error                            { return nil }
-func (m *mockQuerier) UpsertGuildMembers(ctx context.Context, guildID uint64, memberIDs []uint64, indexedAt time.Time) error {
+
+func (m *mockQuerier) StartIndexingJob(ctx context.Context, guildID guild.GuildID) error { return nil }
+
+func (m *mockQuerier) CompleteIndexingJob(ctx context.Context, guildID guild.GuildID) error {
+	return nil
+}
+func (m *mockQuerier) Commit(ctx context.Context) error   { return nil }
+func (m *mockQuerier) Rollback(ctx context.Context) error { return nil }
+func (m *mockQuerier) UpsertGuildMembers(ctx context.Context, guildID guild.GuildID, memberIDs []guild.MemberID, indexedAt time.Time) error {
 	return nil
 }
 
-func (m *mockQuerier) DeleteGuildMembersNotIn(ctx context.Context, guildID uint64, memberIDs []uint64) error {
+func (m *mockQuerier) DeleteGuildMembersNotIn(ctx context.Context, guildID guild.GuildID, memberIDs []guild.MemberID) error {
 	return nil
 }
 
@@ -44,10 +48,30 @@ func (m *mockFetcher) FetchMemberIDs(ctx context.Context, guildID corde.Snowflak
 	return m.ids, m.err
 }
 
+func TestConvertIndexingStatus(t *testing.T) {
+	tests := []struct {
+		input string
+		want  guild.IndexingStatus
+	}{
+		{"completed", guild.IndexingCompleted},
+		{"in_progress", guild.IndexingInProgress},
+		{"pending", guild.IndexingPending},
+		{"", guild.IndexingPending},
+		{"unknown_status", guild.IndexingPending},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			got := guild.ConvertIndexingStatus(tt.input)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestIndexGuildIfNeeded_AlreadyIndexed(t *testing.T) {
 	querier := &mockQuerier{
-		status: collection.GuildIndexStatus{
-			Status:    collection.IndexingCompleted,
+		status: guild.GuildIndexStatus{
+			Status:    guild.IndexingCompleted,
 			UpdatedAt: time.Now(),
 		},
 	}
@@ -60,8 +84,8 @@ func TestIndexGuildIfNeeded_AlreadyIndexed(t *testing.T) {
 
 func TestIndexGuildIfNeeded_ExpiredIndex(t *testing.T) {
 	querier := &mockQuerier{
-		status: collection.GuildIndexStatus{
-			Status:    collection.IndexingCompleted,
+		status: guild.GuildIndexStatus{
+			Status:    guild.IndexingCompleted,
 			UpdatedAt: time.Now().Add(-8 * 24 * time.Hour),
 		},
 	}
@@ -71,8 +95,8 @@ func TestIndexGuildIfNeeded_ExpiredIndex(t *testing.T) {
 	indexer := guild.NewIndexer(querier, fetcher)
 
 	txQuerier := &mockQuerier{
-		status: collection.GuildIndexStatus{
-			Status:    collection.IndexingInProgress,
+		status: guild.GuildIndexStatus{
+			Status:    guild.IndexingInProgress,
 			UpdatedAt: time.Now(),
 		},
 	}
@@ -86,18 +110,18 @@ func TestIndexGuildIfNeeded_ExpiredIndex(t *testing.T) {
 
 func TestCharacterHolders_GuildNotIndexed(t *testing.T) {
 	querier := &mockQuerier{
-		status: collection.GuildIndexStatus{
-			Status: collection.IndexingPending,
+		status: guild.GuildIndexStatus{
+			Status: guild.IndexingPending,
 		},
 	}
 
-	_, _, err := guild.CharacterHolders(t.Context(), querier, nil, 123, 456)
+	_, _, err := guild.CharacterHolders(t.Context(), querier, nil, nil, 123, 456)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "not indexed")
 }
 
 func TestCharacterHolders_GuildIDZero(t *testing.T) {
-	_, _, err := guild.CharacterHolders(t.Context(), nil, nil, 0, 456)
+	_, _, err := guild.CharacterHolders(t.Context(), nil, nil, nil, 0, 456)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "only be used in servers")
 }

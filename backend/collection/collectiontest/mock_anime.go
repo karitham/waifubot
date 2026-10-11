@@ -8,7 +8,7 @@ import (
 )
 
 type MockAnimeService struct {
-	GetMediaCharactersFunc func(ctx context.Context, mediaId int64) ([]tracker.Character, error)
+	GetMediaCharactersFunc func(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error)
 	AnimeFunc              func(ctx context.Context, name string) ([]tracker.Media, error)
 	MangaFunc              func(ctx context.Context, name string) ([]tracker.Media, error)
 	UserFunc               func(ctx context.Context, name string) ([]tracker.User, error)
@@ -16,9 +16,9 @@ type MockAnimeService struct {
 	SearchMediaFunc        func(ctx context.Context, search string) ([]tracker.Media, error)
 }
 
-func (m *MockAnimeService) GetMediaCharacters(ctx context.Context, mediaId int64) ([]tracker.Character, error) {
+func (m *MockAnimeService) GetMediaCharacters(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error) {
 	if m.GetMediaCharactersFunc != nil {
-		return m.GetMediaCharactersFunc(ctx, mediaId)
+		return m.GetMediaCharactersFunc(ctx, mediaID)
 	}
 	return nil, nil
 }

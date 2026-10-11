@@ -12,6 +12,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/urfave/cli/v2"
 
+	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/dropstore"
 	"github.com/karitham/waifubot/tracker"
@@ -156,7 +157,7 @@ func (m *Migrator) migrateDrop(ctx context.Context, key string) error {
 	}
 
 	sf := corde.SnowflakeFromString(idStr)
-	err = m.DropStore.Set(ctx, sf, data.ToCatalog())
+	err = m.DropStore.Set(ctx, collection.ChannelID(sf), data.ToCatalog())
 	if err != nil {
 		return fmt.Errorf("failed to migrate drop for channel %s: %w", sf, err)
 	}

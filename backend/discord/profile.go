@@ -34,7 +34,7 @@ func (h *ProfileHandler) Register(m *corde.Mux) {
 
 // profileViewOptions holds the parsed options for the profile view command.
 type profileViewOptions struct {
-	targetUserID   uint64
+	targetUserID   collection.UserID
 	targetUsername string
 }
 
@@ -44,7 +44,7 @@ func parseProfileViewOptions(cmd CommandContext) profileViewOptions {
 		targetUsername: cmd.Username(),
 	}
 	if user, ok := cmd.FirstResolvedUser(); ok {
-		opts.targetUserID = uint64(user.ID)
+		opts.targetUserID = collection.UserID(user.ID)
 		opts.targetUsername = user.Username
 	}
 	return opts
@@ -95,7 +95,7 @@ func (h *ProfileHandler) EditFavorite(ctx context.Context, w corde.ResponseWrite
 	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
 
 	optID, _ := cmd.OptInt64("id")
-	if err := h.store.UpdateFavorite(ctx, cmd.UserID(), optID); err != nil {
+	if err := h.store.UpdateFavorite(ctx, cmd.UserID(), catalog.CharacterID(optID)); err != nil {
 		logger.Error("error setting favorite character", "error", err, "character_id", optID)
 		w.Respond(corde.NewResp().Content("An error occurred setting this character").Ephemeral())
 		return
@@ -150,6 +150,6 @@ func (h *ProfileHandler) EditAnilistURL(ctx context.Context, w corde.ResponseWri
 // Autocomplete provides character suggestions for the profile edit favorite command.
 func (h *ProfileHandler) Autocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
 	autocomplete(ctx, w, i, "id", func(ctx context.Context, input string) ([]catalog.Character, error) {
-		return h.store.SearchCharacters(ctx, uint64(i.Member.User.ID), input)
+		return h.store.SearchCharacters(ctx, collection.UserID(i.Member.User.ID), input)
 	}, formatCharacterChoice)
 }

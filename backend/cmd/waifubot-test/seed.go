@@ -6,6 +6,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/karitham/waifubot/catalog"
+	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/guildstore"
 	"github.com/karitham/waifubot/wishlist"
@@ -37,7 +39,7 @@ func seedWishlistUsers(ctx context.Context, store *storage.DBStore, userIDs []ui
 	// Then add characters to their wishlists
 	wishStore := wishlist.New(store.WishlistStore())
 	for _, userID := range userIDs {
-		if err := wishStore.AddCharactersToWishlist(ctx, userID, []int64{charID}); err != nil {
+		if err := wishStore.AddCharactersToWishlist(ctx, collection.UserID(userID), []catalog.CharacterID{catalog.CharacterID(charID)}); err != nil {
 			return err
 		}
 	}

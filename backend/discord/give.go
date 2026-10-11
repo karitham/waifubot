@@ -19,9 +19,9 @@ type GiveHandler struct {
 
 // giveOptions holds the parsed options for the give command.
 type giveOptions struct {
-	recipientID uint64
+	recipientID collection.UserID
 	recipient   corde.User
-	charID      int64
+	charID      catalog.CharacterID
 }
 
 func parseGiveOptions(cmd CommandContext) (giveOptions, error) {
@@ -34,9 +34,9 @@ func parseGiveOptions(cmd CommandContext) (giveOptions, error) {
 		return giveOptions{}, fmt.Errorf("select a character to give: %w", err)
 	}
 	return giveOptions{
-		recipientID: uint64(user.ID),
+		recipientID: collection.UserID(user.ID),
 		recipient:   user,
-		charID:      charID,
+		charID:      catalog.CharacterID(charID),
 	}, nil
 }
 
@@ -78,6 +78,6 @@ func (h *GiveHandler) Give(ctx context.Context, w corde.ResponseWriter, cmd Comm
 // Autocomplete provides character suggestions for the give command.
 func (h *GiveHandler) Autocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
 	autocomplete(ctx, w, i, "id", func(ctx context.Context, input string) ([]catalog.Character, error) {
-		return h.store.SearchCharacters(ctx, uint64(i.Member.User.ID), input)
+		return h.store.SearchCharacters(ctx, collection.UserID(i.Member.User.ID), input)
 	}, formatCharacterChoice)
 }

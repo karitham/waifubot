@@ -40,7 +40,7 @@ var UpdateCharacterCommand = &cli.Command{
 		if _, err := s.CollectionStore().UpdateImageName(c.Context, collectionstore.UpdateImageNameParams{
 			Image: char[0].ImageURL,
 			Name:  strings.Join(strings.Fields(char[0].Name), " "),
-			ID:    char[0].ID,
+			ID:    int64(char[0].ID),
 		}); err != nil {
 			return fmt.Errorf("error updating db %v", err)
 		}

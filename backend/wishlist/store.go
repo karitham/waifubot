@@ -3,6 +3,9 @@ package wishlist
 import (
 	"context"
 
+	"github.com/karitham/waifubot/catalog"
+	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/storage/wishliststore"
 )
 
@@ -14,26 +17,34 @@ func New(q wishliststore.Querier) Store {
 	return &store{q: q}
 }
 
-func (s *store) AddCharactersToWishlist(ctx context.Context, userID uint64, characterIDs []int64) error {
+func characterIDs(ids []catalog.CharacterID) []int64 {
+	out := make([]int64, len(ids))
+	for i, id := range ids {
+		out[i] = int64(id)
+	}
+	return out
+}
+
+func (s *store) AddCharactersToWishlist(ctx context.Context, userID collection.UserID, ids []catalog.CharacterID) error {
 	return s.q.AddCharactersToWishlist(ctx, wishliststore.AddCharactersToWishlistParams{
-		UserID:  userID,
-		Column2: characterIDs,
+		UserID:  uint64(userID),
+		Column2: characterIDs(ids),
 	})
 }
 
-func (s *store) RemoveCharactersFromWishlist(ctx context.Context, userID uint64, characterIDs []int64) error {
+func (s *store) RemoveCharactersFromWishlist(ctx context.Context, userID collection.UserID, ids []catalog.CharacterID) error {
 	return s.q.RemoveCharactersFromWishlist(ctx, wishliststore.RemoveCharactersFromWishlistParams{
-		UserID:  userID,
-		Column2: characterIDs,
+		UserID:  uint64(userID),
+		Column2: characterIDs(ids),
 	})
 }
 
-func (s *store) RemoveAllFromWishlist(ctx context.Context, userID uint64) error {
-	return s.q.RemoveAllFromWishlist(ctx, userID)
+func (s *store) RemoveAllFromWishlist(ctx context.Context, userID collection.UserID) error {
+	return s.q.RemoveAllFromWishlist(ctx, uint64(userID))
 }
 
-func (s *store) GetUserCharacterWishlist(ctx context.Context, userID uint64) ([]Entry, error) {
-	rows, err := s.q.GetUserCharacterWishlist(ctx, userID)
+func (s *store) GetUserCharacterWishlist(ctx context.Context, userID collection.UserID) ([]Entry, error) {
+	rows, err := s.q.GetUserCharacterWishlist(ctx, uint64(userID))
 	if err != nil {
 		return nil, err
 	}
@@ -41,26 +52,28 @@ func (s *store) GetUserCharacterWishlist(ctx context.Context, userID uint64) ([]
 	entries := make([]Entry, len(rows))
 	for i, row := range rows {
 		entries[i] = Entry{
-			ID:        row.ID,
-			Name:      row.Name,
-			Image:     row.Image,
-			Favorites: int(row.Favorites),
-			AddedAt:   row.Date.Time,
+			Character: catalog.Character{
+				ID:        catalog.CharacterID(row.ID),
+				Name:      row.Name,
+				Image:     row.Image,
+				Favorites: int(row.Favorites),
+			},
+			AddedAt: row.Date.Time,
 		}
 	}
 
 	return entries, nil
 }
 
-func (s *store) GetWishlistHolders(ctx context.Context, characterIDs []int64, userID, guildID uint64) ([]UserCharacterSet, error) {
-	if len(characterIDs) == 0 {
+func (s *store) GetWishlistHolders(ctx context.Context, ids []catalog.CharacterID, userID collection.UserID, guildID guild.GuildID) ([]UserCharacterSet, error) {
+	if len(ids) == 0 {
 		return []UserCharacterSet{}, nil
 	}
 
 	rows, err := s.q.GetWishlistHolders(ctx, wishliststore.GetWishlistHoldersParams{
-		Column1: characterIDs,
-		UserID:  userID,
-		GuildID: guildID,
+		Column1: characterIDs(ids),
+		UserID:  uint64(userID),
+		GuildID: uint64(guildID),
 	})
 	if err != nil {
 		return nil, err
@@ -69,10 +82,10 @@ func (s *store) GetWishlistHolders(ctx context.Context, characterIDs []int64, us
 	return groupByUser(rows), nil
 }
 
-func (s *store) GetWantedCharacters(ctx context.Context, userID, guildID uint64) ([]UserCharacterSet, error) {
+func (s *store) GetWantedCharacters(ctx context.Context, userID collection.UserID, guildID guild.GuildID) ([]UserCharacterSet, error) {
 	rows, err := s.q.GetWantedCharacters(ctx, wishliststore.GetWantedCharactersParams{
-		UserID:  userID,
-		GuildID: guildID,
+		UserID:  uint64(userID),
+		GuildID: uint64(guildID),
 	})
 	if err != nil {
 		return nil, err
@@ -82,17 +95,17 @@ func (s *store) GetWantedCharacters(ctx context.Context, userID, guildID uint64)
 }
 
 func groupByUser(rows []wishliststore.GetWishlistHoldersRow) []UserCharacterSet {
-	m := make(map[uint64]*UserCharacterSet)
+	m := make(map[collection.UserID]*UserCharacterSet)
 	for _, r := range rows {
-		id := uint64(r.UserID)
+		id := collection.UserID(r.UserID)
 		if _, ok := m[id]; !ok {
 			m[id] = &UserCharacterSet{UserID: id}
 		}
-		m[id].Characters = append(m[id].Characters, Entry{
-			ID:    r.CharacterID,
+		m[id].Characters = append(m[id].Characters, Entry{Character: catalog.Character{
+			ID:    catalog.CharacterID(r.CharacterID),
 			Name:  r.CharacterName,
 			Image: r.CharacterImage,
-		})
+		}})
 	}
 	result := make([]UserCharacterSet, 0, len(m))
 	for _, v := range m {
@@ -102,17 +115,17 @@ func groupByUser(rows []wishliststore.GetWishlistHoldersRow) []UserCharacterSet 
 }
 
 func groupByUserWanted(rows []wishliststore.GetWantedCharactersRow) []UserCharacterSet {
-	m := make(map[uint64]*UserCharacterSet)
+	m := make(map[collection.UserID]*UserCharacterSet)
 	for _, r := range rows {
-		id := uint64(r.UserID)
+		id := collection.UserID(r.UserID)
 		if _, ok := m[id]; !ok {
 			m[id] = &UserCharacterSet{UserID: id}
 		}
-		m[id].Characters = append(m[id].Characters, Entry{
-			ID:    r.CharacterID,
+		m[id].Characters = append(m[id].Characters, Entry{Character: catalog.Character{
+			ID:    catalog.CharacterID(r.CharacterID),
 			Name:  r.CharacterName,
 			Image: r.CharacterImage,
-		})
+		}})
 	}
 	result := make([]UserCharacterSet, 0, len(m))
 	for _, v := range m {
@@ -121,34 +134,36 @@ func groupByUserWanted(rows []wishliststore.GetWantedCharactersRow) []UserCharac
 	return result
 }
 
-func (s *store) CompareWithUser(ctx context.Context, userID1, userID2 uint64) (WishlistComparison, error) {
+func (s *store) CompareWithUser(ctx context.Context, userID1, userID2 collection.UserID) (WishlistComparison, error) {
 	rows, err := s.q.CompareWithUser(ctx, wishliststore.CompareWithUserParams{
-		UserID:   userID1,
-		UserID_2: userID2,
+		UserID:   uint64(userID1),
+		UserID_2: uint64(userID2),
 	})
 	if err != nil {
 		return WishlistComparison{}, err
 	}
 
 	var userHas, userWants []Entry
-	hasIDs := make(map[int64]bool)
-	wantsIDs := make(map[int64]bool)
+	hasIDs := make(map[catalog.CharacterID]bool)
+	wantsIDs := make(map[catalog.CharacterID]bool)
 
 	for _, row := range rows {
 		entry := Entry{
-			ID:      row.ID,
-			Name:    row.Name,
-			Image:   row.Image,
+			Character: catalog.Character{
+				ID:    catalog.CharacterID(row.ID),
+				Name:  row.Name,
+				Image: row.Image,
+			},
 			AddedAt: row.Date.Time,
 		}
 
 		switch row.Type {
 		case "has":
 			userHas = append(userHas, entry)
-			hasIDs[row.ID] = true
+			hasIDs[entry.ID] = true
 		case "wants":
 			userWants = append(userWants, entry)
-			wantsIDs[row.ID] = true
+			wantsIDs[entry.ID] = true
 		}
 	}
 
@@ -166,10 +181,19 @@ func (s *store) CompareWithUser(ctx context.Context, userID1, userID2 uint64) (W
 	}, nil
 }
 
-func (s *store) GetUsersWantingCharacter(ctx context.Context, charID int64, guildID, excludeUserID uint64) ([]uint64, error) {
-	return s.q.GetUsersWantingCharacter(ctx, wishliststore.GetUsersWantingCharacterParams{
-		CharacterID: charID,
-		GuildID:     guildID,
-		UserID:      excludeUserID,
+func (s *store) GetUsersWantingCharacter(ctx context.Context, charID catalog.CharacterID, guildID guild.GuildID, excludeUserID collection.UserID) ([]guild.MemberID, error) {
+	ids, err := s.q.GetUsersWantingCharacter(ctx, wishliststore.GetUsersWantingCharacterParams{
+		CharacterID: int64(charID),
+		GuildID:     uint64(guildID),
+		UserID:      uint64(excludeUserID),
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	memberIDs := make([]guild.MemberID, len(ids))
+	for i, id := range ids {
+		memberIDs[i] = guild.MemberID(id)
+	}
+	return memberIDs, nil
 }

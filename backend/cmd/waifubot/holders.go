@@ -7,8 +7,10 @@ import (
 
 	"github.com/urfave/cli/v2"
 
+	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/storage"
+	"github.com/karitham/waifubot/storage/guildpg"
 )
 
 var HoldersCommand = &cli.Command{
@@ -35,7 +37,7 @@ var HoldersCommand = &cli.Command{
 		}
 
 		collStore := newCollectionStore(store)
-		charName, holderIDs, err := guild.CharacterHolders(ctx, collStore, collStore, guildID, charID)
+		charName, holderIDs, err := guild.CharacterHolders(ctx, collStore, collStore, guildpg.New(store.GuildStore()), guild.GuildID(guildID), catalog.CharacterID(charID))
 		if err != nil {
 			return fmt.Errorf("failed to get character holders: %w", err)
 		}

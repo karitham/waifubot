@@ -30,7 +30,7 @@ func TestVerifyHandler_Verify(t *testing.T) {
 				ErrVal:      errors.New("option not found"),
 			},
 			store: &collectiontest.MockStore{
-				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
+				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{}, collection.ErrNotFound
 				},
 			},
@@ -45,7 +45,7 @@ func TestVerifyHandler_Verify(t *testing.T) {
 				OptInt64Vals: map[string]int64{"id": 42},
 			},
 			store: &collectiontest.MockStore{
-				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
+				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{
 						ID:   42,
 						Name: "Sakura",
@@ -63,7 +63,7 @@ func TestVerifyHandler_Verify(t *testing.T) {
 				OptInt64Vals: map[string]int64{"id": 42},
 			},
 			store: &collectiontest.MockStore{
-				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
+				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{}, collection.ErrNotFound
 				},
 			},
@@ -78,7 +78,7 @@ func TestVerifyHandler_Verify(t *testing.T) {
 				OptInt64Vals: map[string]int64{"id": 42},
 			},
 			store: &collectiontest.MockStore{
-				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
+				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{}, errors.New("database on fire")
 				},
 			},
@@ -98,7 +98,7 @@ func TestVerifyHandler_Verify(t *testing.T) {
 				},
 			},
 			store: &collectiontest.MockStore{
-				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
+				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{
 						ID:   42,
 						Name: "Naruto",

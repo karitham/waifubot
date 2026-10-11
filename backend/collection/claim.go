@@ -17,7 +17,7 @@ var ErrNoDropInChannel = errors.New("no drop in this channel")
 var ErrWrongCharacterName = errors.New("wrong character name")
 
 // Claim claims a dropped character for a user.
-func Claim(ctx context.Context, store Store, userID, channelID uint64, charName string) (catalog.Character, error) {
+func Claim(ctx context.Context, store Store, userID UserID, channelID ChannelID, charName string) (catalog.Character, error) {
 	tx, err := store.WithTx(ctx)
 	if err != nil {
 		return catalog.Character{}, fmt.Errorf("failed to begin transaction: %w", err)

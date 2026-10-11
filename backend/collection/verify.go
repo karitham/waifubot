@@ -8,7 +8,7 @@ import (
 )
 
 // CheckOwnership checks if a user owns a specific character.
-func CheckOwnership(ctx context.Context, store Store, userID UserID, charID int64) (bool, catalog.Character, error) {
+func CheckOwnership(ctx context.Context, store Store, userID UserID, charID catalog.CharacterID) (bool, catalog.Character, error) {
 	char, err := store.GetOwnedCharacter(ctx, userID, charID)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {

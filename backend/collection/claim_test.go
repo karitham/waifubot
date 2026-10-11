@@ -17,29 +17,29 @@ func TestClaim(t *testing.T) {
 	tests := []struct {
 		name       string
 		setup      func(m *collectiontest.MockStore)
-		userID     uint64
-		channelID  uint64
+		userID     collection.UserID
+		channelID  collection.ChannelID
 		charName   string
 		wantErr    error
-		wantCharID int64
+		wantCharID catalog.CharacterID
 		wantSource string
-		wantUserID uint64
+		wantUserID collection.UserID
 	}{
 		{
 			name: "success",
 			setup: func(m *collectiontest.MockStore) {
-				m.GetDropForUpdateFunc = func(_ context.Context, _ uint64) (catalog.Drop, error) {
+				m.GetDropForUpdateFunc = func(_ context.Context, _ collection.ChannelID) (catalog.Drop, error) {
 					return catalog.Drop{ID: 1, Name: "Test Character", Image: "test.jpg", MediaTitle: "Test Anime"}, nil
 				}
-				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
+				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID}, nil
 				}
 				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ int64, _ collection.Source, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID, _ collection.Source, _ time.Time) error {
 					return nil
 				}
-				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error { return nil }
-				m.DeleteDropFunc = func(_ context.Context, _ uint64) error { return nil }
+				m.RemoveFromWishlistFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) error { return nil }
+				m.DeleteDropFunc = func(_ context.Context, _ collection.ChannelID) error { return nil }
 			},
 			userID:     123,
 			channelID:  456,
@@ -49,7 +49,7 @@ func TestClaim(t *testing.T) {
 		{
 			name: "no_drop_in_channel",
 			setup: func(m *collectiontest.MockStore) {
-				m.GetDropForUpdateFunc = func(_ context.Context, _ uint64) (catalog.Drop, error) {
+				m.GetDropForUpdateFunc = func(_ context.Context, _ collection.ChannelID) (catalog.Drop, error) {
 					return catalog.Drop{}, collection.ErrNotFound
 				}
 			},
@@ -61,7 +61,7 @@ func TestClaim(t *testing.T) {
 		{
 			name: "wrong_name",
 			setup: func(m *collectiontest.MockStore) {
-				m.GetDropForUpdateFunc = func(_ context.Context, _ uint64) (catalog.Drop, error) {
+				m.GetDropForUpdateFunc = func(_ context.Context, _ collection.ChannelID) (catalog.Drop, error) {
 					return catalog.Drop{ID: 1, Name: "Test Character"}, nil
 				}
 			},
@@ -73,14 +73,14 @@ func TestClaim(t *testing.T) {
 		{
 			name: "already_owned",
 			setup: func(m *collectiontest.MockStore) {
-				m.GetDropForUpdateFunc = func(_ context.Context, _ uint64) (catalog.Drop, error) {
+				m.GetDropForUpdateFunc = func(_ context.Context, _ collection.ChannelID) (catalog.Drop, error) {
 					return catalog.Drop{ID: 1, Name: "Test Character"}, nil
 				}
-				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
+				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID}, nil
 				}
 				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ int64, _ collection.Source, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID, _ collection.Source, _ time.Time) error {
 					return collection.ErrAlreadyOwned
 				}
 			},
@@ -92,19 +92,19 @@ func TestClaim(t *testing.T) {
 		{
 			name: "new_user",
 			setup: func(m *collectiontest.MockStore) {
-				m.GetDropForUpdateFunc = func(_ context.Context, _ uint64) (catalog.Drop, error) {
+				m.GetDropForUpdateFunc = func(_ context.Context, _ collection.ChannelID) (catalog.Drop, error) {
 					return catalog.Drop{ID: 1, Name: "Test Character", Image: "test.jpg"}, nil
 				}
-				m.GetUserFunc = func(_ context.Context, _ uint64) (collection.User, error) {
+				m.GetUserFunc = func(_ context.Context, _ collection.UserID) (collection.User, error) {
 					return collection.User{}, collection.ErrNotFound
 				}
-				m.CreateUserFunc = func(_ context.Context, _ uint64) error { return nil }
+				m.CreateUserFunc = func(_ context.Context, _ collection.UserID) error { return nil }
 				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ int64, _ collection.Source, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID, _ collection.Source, _ time.Time) error {
 					return nil
 				}
-				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error { return nil }
-				m.DeleteDropFunc = func(_ context.Context, _ uint64) error { return nil }
+				m.RemoveFromWishlistFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) error { return nil }
+				m.DeleteDropFunc = func(_ context.Context, _ collection.ChannelID) error { return nil }
 			},
 			userID:     123,
 			channelID:  456,
@@ -139,18 +139,18 @@ func TestExchange(t *testing.T) {
 	tests := []struct {
 		name       string
 		setup      func(m *collectiontest.MockStore)
-		userID     uint64
-		charID     int64
+		userID     collection.UserID
+		charID     catalog.CharacterID
 		wantErr    error
-		wantCharID int64
+		wantCharID catalog.CharacterID
 	}{
 		{
 			name: "success",
 			setup: func(m *collectiontest.MockStore) {
-				m.GetCharacterByIDFunc = func(_ context.Context, _ int64) (catalog.Character, error) {
+				m.GetCharacterByIDFunc = func(_ context.Context, _ catalog.CharacterID) (catalog.Character, error) {
 					return catalog.Character{ID: 1, Name: "Char1", Image: "img1"}, nil
 				}
-				m.GetOwnedCharacterFunc = func(_ context.Context, _ uint64, _ int64) (collection.OwnedCharacter, error) {
+				m.GetOwnedCharacterFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{
 						ID: 1, Name: "Char1",
 						Date:   time.Now(),
@@ -158,8 +158,8 @@ func TestExchange(t *testing.T) {
 						UserID: 123,
 					}, nil
 				}
-				m.RemoveFromCollectionFunc = func(_ context.Context, _ uint64, _ int64) error { return nil }
-				m.AddTokensFunc = func(_ context.Context, _ uint64, _ int32) (collection.User, error) {
+				m.RemoveFromCollectionFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) error { return nil }
+				m.AddTokensFunc = func(_ context.Context, _ collection.UserID, _ int32) (collection.User, error) {
 					return collection.User{UserID: 123, Tokens: 6}, nil
 				}
 			},
@@ -170,10 +170,10 @@ func TestExchange(t *testing.T) {
 		{
 			name: "not_owned",
 			setup: func(m *collectiontest.MockStore) {
-				m.GetCharacterByIDFunc = func(_ context.Context, _ int64) (catalog.Character, error) {
+				m.GetCharacterByIDFunc = func(_ context.Context, _ catalog.CharacterID) (catalog.Character, error) {
 					return catalog.Character{ID: 1}, nil
 				}
-				m.GetOwnedCharacterFunc = func(_ context.Context, _ uint64, _ int64) (collection.OwnedCharacter, error) {
+				m.GetOwnedCharacterFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{}, collection.ErrNotFound
 				}
 			},
@@ -209,18 +209,18 @@ func TestGive(t *testing.T) {
 	tests := []struct {
 		name        string
 		setup       func(m *collectiontest.MockStore)
-		from        uint64
-		to          uint64
-		charID      int64
+		from        collection.UserID
+		to          collection.UserID
+		charID      catalog.CharacterID
 		wantErr     bool
 		errContains string
 		wantSource  collection.Source
-		wantUserID  uint64
+		wantUserID  collection.UserID
 	}{
 		{
 			name: "success",
 			setup: func(m *collectiontest.MockStore) {
-				m.GetOwnedCharacterFunc = func(_ context.Context, userID uint64, _ int64) (collection.OwnedCharacter, error) {
+				m.GetOwnedCharacterFunc = func(_ context.Context, userID collection.UserID, _ catalog.CharacterID) (collection.OwnedCharacter, error) {
 					if userID == 123 {
 						return collection.OwnedCharacter{
 							ID: 1, Name: "Char1", Image: "img1",
@@ -228,14 +228,14 @@ func TestGive(t *testing.T) {
 					}
 					return collection.OwnedCharacter{}, collection.ErrNotFound
 				}
-				m.GiveCharacterFunc = func(_ context.Context, _, _ uint64, _ int64) (collection.OwnedCharacter, error) {
+				m.GiveCharacterFunc = func(_ context.Context, _, _ collection.UserID, _ catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{
 						ID: 1, Name: "Char1", Image: "img1",
 						Source: collection.SourceTrade,
 						UserID: 456,
 					}, nil
 				}
-				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error { return nil }
+				m.RemoveFromWishlistFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) error { return nil }
 			},
 			from:       123,
 			to:         456,
@@ -246,7 +246,7 @@ func TestGive(t *testing.T) {
 		{
 			name: "not_owned",
 			setup: func(m *collectiontest.MockStore) {
-				m.GetOwnedCharacterFunc = func(_ context.Context, _ uint64, _ int64) (collection.OwnedCharacter, error) {
+				m.GetOwnedCharacterFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{}, collection.ErrNotFound
 				}
 			},
@@ -259,7 +259,7 @@ func TestGive(t *testing.T) {
 		{
 			name: "target_already_owns",
 			setup: func(m *collectiontest.MockStore) {
-				m.GetOwnedCharacterFunc = func(_ context.Context, _ uint64, _ int64) (collection.OwnedCharacter, error) {
+				m.GetOwnedCharacterFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{
 						ID: 1, Name: "Char1",
 					}, nil
@@ -301,18 +301,18 @@ func TestTransferTokens(t *testing.T) {
 	tests := []struct {
 		name    string
 		setup   func(m *collectiontest.MockStore)
-		from    uint64
-		to      uint64
+		from    collection.UserID
+		to      collection.UserID
 		amount  int32
 		wantErr error
 	}{
 		{
 			name: "success",
 			setup: func(m *collectiontest.MockStore) {
-				m.SpendTokensFunc = func(_ context.Context, _ uint64, _ int32) (collection.User, error) {
+				m.SpendTokensFunc = func(_ context.Context, _ collection.UserID, _ int32) (collection.User, error) {
 					return collection.User{UserID: 1, Tokens: 50}, nil
 				}
-				m.AddTokensFunc = func(_ context.Context, _ uint64, _ int32) (collection.User, error) {
+				m.AddTokensFunc = func(_ context.Context, _ collection.UserID, _ int32) (collection.User, error) {
 					return collection.User{UserID: 2, Tokens: 50}, nil
 				}
 			},
@@ -323,7 +323,7 @@ func TestTransferTokens(t *testing.T) {
 		{
 			name: "insufficient_funds",
 			setup: func(m *collectiontest.MockStore) {
-				m.SpendTokensFunc = func(_ context.Context, _ uint64, _ int32) (collection.User, error) {
+				m.SpendTokensFunc = func(_ context.Context, _ collection.UserID, _ int32) (collection.User, error) {
 					return collection.User{}, collection.ErrInsufficientTokens
 				}
 			},

@@ -12,6 +12,7 @@ import (
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/collection/collectiontest"
 	"github.com/karitham/waifubot/discord/cordetest"
+	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/wishlist/wishlisttest"
 )
 
@@ -78,15 +79,15 @@ func TestRollHandler_Roll(t *testing.T) {
 					}, nil
 				},
 				UpsertCharacterFunc: func(ctx context.Context, char catalog.Character) error { return nil },
-				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, charID int64, source collection.Source, acquiredAt time.Time) error {
+				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID, source collection.Source, acquiredAt time.Time) error {
 					return nil
 				},
-				RemoveFromWishlistFunc: func(ctx context.Context, userID collection.UserID, charID int64) error { return nil },
+				RemoveFromWishlistFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error { return nil },
 				UpdateLastRollFunc:     func(ctx context.Context, userID collection.UserID, when time.Time) error { return nil },
 				CommitFunc:             func(ctx context.Context) error { return nil },
 			},
 			wishlist: &wishlisttest.MockStore{
-				GetUsersWantingCharacterFunc: func(ctx context.Context, charID int64, guildID, excludeUserID uint64) ([]uint64, error) {
+				GetUsersWantingCharacterFunc: func(ctx context.Context, charID catalog.CharacterID, guildID guild.GuildID, excludeUserID collection.UserID) ([]guild.MemberID, error) {
 					return nil, nil
 				},
 			},
@@ -114,16 +115,16 @@ func TestRollHandler_Roll(t *testing.T) {
 					}, nil
 				},
 				UpsertCharacterFunc: func(ctx context.Context, char catalog.Character) error { return nil },
-				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, charID int64, source collection.Source, acquiredAt time.Time) error {
+				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID, source collection.Source, acquiredAt time.Time) error {
 					return nil
 				},
-				RemoveFromWishlistFunc: func(ctx context.Context, userID collection.UserID, charID int64) error { return nil },
+				RemoveFromWishlistFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error { return nil },
 				UpdateLastRollFunc:     func(ctx context.Context, userID collection.UserID, when time.Time) error { return nil },
 				CommitFunc:             func(ctx context.Context) error { return nil },
 			},
 			wishlist: &wishlisttest.MockStore{
-				GetUsersWantingCharacterFunc: func(ctx context.Context, charID int64, guildID, excludeUserID uint64) ([]uint64, error) {
-					return []uint64{10, 20, 30}, nil
+				GetUsersWantingCharacterFunc: func(ctx context.Context, charID catalog.CharacterID, guildID guild.GuildID, excludeUserID collection.UserID) ([]guild.MemberID, error) {
+					return []guild.MemberID{10, 20, 30}, nil
 				},
 			},
 			cmd: &MockCommandContext{

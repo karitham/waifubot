@@ -25,14 +25,14 @@ func New(c collectionstore.Querier, w wishliststore.Querier) *Pg {
 }
 
 func (p *Pg) GetCollection(ctx context.Context, userID collection.UserID) ([]collection.OwnedCharacter, error) {
-	rows, err := p.C.List(ctx, userID)
+	rows, err := p.C.List(ctx, uint64(userID))
 	if err != nil {
 		return nil, err
 	}
 	chars := make([]collection.OwnedCharacter, len(rows))
 	for i, r := range rows {
 		chars[i] = collection.OwnedCharacter{
-			ID: r.ID, Name: r.Name, Image: r.Image, MediaTitle: r.MediaTitle, Favorites: int(r.Favorites),
+			ID: catalog.CharacterID(r.ID), Name: r.Name, Image: r.Image, MediaTitle: r.MediaTitle, Favorites: int(r.Favorites),
 			Date:   r.Date.Time,
 			Source: collection.Source(r.Source),
 			UserID: userID,
@@ -41,12 +41,21 @@ func (p *Pg) GetCollection(ctx context.Context, userID collection.UserID) ([]col
 	return chars, nil
 }
 
-func (p *Pg) GetCollectionIDs(ctx context.Context, userID collection.UserID) ([]int64, error) {
-	return p.C.ListIDs(ctx, userID)
+func (p *Pg) GetCollectionIDs(ctx context.Context, userID collection.UserID) ([]catalog.CharacterID, error) {
+	ids, err := p.C.ListIDs(ctx, uint64(userID))
+	if err != nil {
+		return nil, err
+	}
+
+	charIDs := make([]catalog.CharacterID, len(ids))
+	for i, id := range ids {
+		charIDs[i] = catalog.CharacterID(id)
+	}
+	return charIDs, nil
 }
 
-func (p *Pg) GetOwnedCharacter(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
-	row, err := p.C.Get(ctx, collectionstore.GetParams{ID: charID, UserID: userID})
+func (p *Pg) GetOwnedCharacter(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
+	row, err := p.C.Get(ctx, collectionstore.GetParams{ID: int64(charID), UserID: uint64(userID)})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return collection.OwnedCharacter{}, collection.ErrNotFound
@@ -54,17 +63,17 @@ func (p *Pg) GetOwnedCharacter(ctx context.Context, userID collection.UserID, ch
 		return collection.OwnedCharacter{}, err
 	}
 	return collection.OwnedCharacter{
-		ID: row.ID, Name: row.Name, Image: row.Image, MediaTitle: row.MediaTitle, Favorites: int(row.Favorites),
+		ID: catalog.CharacterID(row.ID), Name: row.Name, Image: row.Image, MediaTitle: row.MediaTitle, Favorites: int(row.Favorites),
 		Date:   row.Date.Time,
 		Source: collection.Source(row.Source),
 		UserID: userID,
 	}, nil
 }
 
-func (p *Pg) AddToCollection(ctx context.Context, userID collection.UserID, charID int64, source collection.Source, acquiredAt time.Time) error {
+func (p *Pg) AddToCollection(ctx context.Context, userID collection.UserID, charID catalog.CharacterID, source collection.Source, acquiredAt time.Time) error {
 	_, err := p.C.Insert(ctx, collectionstore.InsertParams{
-		UserID:      userID,
-		CharacterID: charID,
+		UserID:      uint64(userID),
+		CharacterID: int64(charID),
 		Source:      string(source),
 		AcquiredAt:  pgtype.Timestamp{Time: acquiredAt.UTC(), Valid: true},
 	})
@@ -78,8 +87,8 @@ func (p *Pg) AddToCollection(ctx context.Context, userID collection.UserID, char
 	return nil
 }
 
-func (p *Pg) RemoveFromCollection(ctx context.Context, userID collection.UserID, charID int64) error {
-	_, err := p.C.Delete(ctx, collectionstore.DeleteParams{UserID: userID, CharacterID: charID})
+func (p *Pg) RemoveFromCollection(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
+	_, err := p.C.Delete(ctx, collectionstore.DeleteParams{UserID: uint64(userID), CharacterID: int64(charID)})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return collection.ErrNotFound
@@ -89,24 +98,24 @@ func (p *Pg) RemoveFromCollection(ctx context.Context, userID collection.UserID,
 	return nil
 }
 
-func (p *Pg) GiveCharacter(ctx context.Context, from, to collection.UserID, charID int64) (collection.OwnedCharacter, error) {
+func (p *Pg) GiveCharacter(ctx context.Context, from, to collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 	col, err := p.C.Give(ctx, collectionstore.GiveParams{
-		UserID:      to,
-		CharacterID: charID,
-		UserID_2:    from,
+		UserID:      uint64(to),
+		CharacterID: int64(charID),
+		UserID_2:    uint64(from),
 		Source:      string(collection.SourceTrade),
 	})
 	if err != nil {
 		return collection.OwnedCharacter{}, err
 	}
 
-	charRow, err := p.C.GetByID(ctx, charID)
+	charRow, err := p.C.GetByID(ctx, int64(charID))
 	if err != nil {
-		return collection.OwnedCharacter{}, nil
+		return collection.OwnedCharacter{}, err
 	}
 
 	return collection.OwnedCharacter{
-		ID: charRow.ID, Name: charRow.Name, Image: charRow.Image, MediaTitle: charRow.MediaTitle, Favorites: int(charRow.Favorites),
+		ID: catalog.CharacterID(charRow.ID), Name: charRow.Name, Image: charRow.Image, MediaTitle: charRow.MediaTitle, Favorites: int(charRow.Favorites),
 		Date:   col.AcquiredAt.Time,
 		Source: collection.Source(col.Source),
 		UserID: to,
@@ -114,20 +123,43 @@ func (p *Pg) GiveCharacter(ctx context.Context, from, to collection.UserID, char
 }
 
 func (p *Pg) CountCollection(ctx context.Context, userID collection.UserID) (int64, error) {
-	return p.C.Count(ctx, userID)
+	return p.C.Count(ctx, uint64(userID))
 }
 
-func (p *Pg) RemoveFromWishlist(ctx context.Context, userID collection.UserID, charID int64) error {
+func (p *Pg) SearchCharacters(ctx context.Context, userID collection.UserID, term string) ([]catalog.Character, error) {
+	rows, err := p.C.SearchCharacters(ctx, collectionstore.SearchCharactersParams{
+		UserID: uint64(userID),
+		Term:   term,
+		Lim:    25,
+		Off:    0,
+	})
+	if err != nil {
+		return nil, err
+	}
+	chars := make([]catalog.Character, len(rows))
+	for i, r := range rows {
+		chars[i] = catalog.Character{
+			ID:         catalog.CharacterID(r.ID),
+			Name:       r.Name,
+			Image:      r.Image,
+			MediaTitle: r.MediaTitle,
+			Favorites:  int(r.Favorites),
+		}
+	}
+	return chars, nil
+}
+
+func (p *Pg) RemoveFromWishlist(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
 	_ = p.W.RemoveCharactersFromWishlist(ctx, wishliststore.RemoveCharactersFromWishlistParams{
-		UserID:  userID,
-		Column2: []int64{charID},
+		UserID:  uint64(userID),
+		Column2: []int64{int64(charID)},
 	})
 	return nil
 }
 
 func (p *Pg) RandomCharNotOwned(ctx context.Context, userID collection.UserID, weightExponent float64) (catalog.Character, error) {
 	c, err := p.C.RandomCharNotOwned(ctx, collectionstore.RandomCharNotOwnedParams{
-		UserID:         userID,
+		UserID:         uint64(userID),
 		WeightExponent: weightExponent,
 	})
 	if err != nil {
@@ -136,7 +168,13 @@ func (p *Pg) RandomCharNotOwned(ctx context.Context, userID collection.UserID, w
 		}
 		return catalog.Character{}, err
 	}
-	return catalog.Character{ID: c.ID, Name: c.Name, Image: c.Image, MediaTitle: c.MediaTitle, Favorites: int(c.Favorites)}, nil
+	return catalog.Character{
+		ID:         catalog.CharacterID(c.ID),
+		Name:       c.Name,
+		Image:      c.Image,
+		MediaTitle: c.MediaTitle,
+		Favorites:  int(c.Favorites),
+	}, nil
 }
 
 func (p *Pg) RandomActiveChar(ctx context.Context, weightExponent float64) (catalog.Character, error) {
@@ -147,5 +185,13 @@ func (p *Pg) RandomActiveChar(ctx context.Context, weightExponent float64) (cata
 		}
 		return catalog.Character{}, err
 	}
-	return catalog.Character{ID: c.ID, Name: c.Name, Image: c.Image, MediaTitle: c.MediaTitle, Favorites: int(c.Favorites), UpdatedAt: c.UpdatedAt.Time, IsActive: c.IsActive}, nil
+	return catalog.Character{
+		ID:         catalog.CharacterID(c.ID),
+		Name:       c.Name,
+		Image:      c.Image,
+		MediaTitle: c.MediaTitle,
+		Favorites:  int(c.Favorites),
+		UpdatedAt:  c.UpdatedAt.Time,
+		IsActive:   c.IsActive,
+	}, nil
 }

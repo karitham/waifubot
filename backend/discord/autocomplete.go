@@ -62,9 +62,9 @@ func autocomplete[T any](
 }
 
 func formatCharacterChoice(c catalog.Character) (string, int64) {
-	return fmt.Sprintf("%s (%d)", c.Name, c.ID), c.ID
+	return fmt.Sprintf("%s (%d)", c.Name, c.ID), int64(c.ID)
 }
 
 func formatMediaChoice(m tracker.Media) (string, int64) {
-	return fmt.Sprintf("%s (%s)", m.Title, strings.ToTitle(strings.ToLower(m.Type))), m.ID
+	return fmt.Sprintf("%s (%s)", m.Title, strings.ToTitle(strings.ToLower(m.Type))), int64(m.ID)
 }

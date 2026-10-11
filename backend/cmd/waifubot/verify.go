@@ -8,6 +8,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
+	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage"
 )
@@ -36,7 +37,7 @@ var VerifyCommand = &cli.Command{
 			return fmt.Errorf("invalid user ID: %s", userIDStr)
 		}
 
-		has, char, err := collection.CheckOwnership(ctx, newCollectionStore(store), userID, charID)
+		has, char, err := collection.CheckOwnership(ctx, newCollectionStore(store), collection.UserID(userID), catalog.CharacterID(charID))
 		if err != nil {
 			return fmt.Errorf("error checking ownership: %w", err)
 		}

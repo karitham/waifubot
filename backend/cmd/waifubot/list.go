@@ -34,7 +34,7 @@ var ListCommand = &cli.Command{
 			return fmt.Errorf("invalid user ID: %s", userIDStr)
 		}
 
-		characters, err := collection.Characters(ctx, newCollectionStore(store), userID)
+		characters, err := collection.Characters(ctx, newCollectionStore(store), collection.UserID(userID))
 		if err != nil {
 			return fmt.Errorf("error listing characters: %w", err)
 		}

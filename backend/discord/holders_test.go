@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/karitham/waifubot/catalog"
-	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/discord/cordetest"
+	"github.com/karitham/waifubot/guild"
 )
 
 func TestHoldersHandler_Holders(t *testing.T) {
@@ -39,15 +39,15 @@ func TestHoldersHandler_Holders(t *testing.T) {
 				OptIntVals: map[string]int{"id": 42},
 			},
 			guildOps: &mockGuildQuerier{
-				IsGuildIndexedFunc: func(ctx context.Context, guildID uint64) (collection.GuildIndexStatus, error) {
-					return collection.GuildIndexStatus{Status: collection.IndexingCompleted}, nil
+				IsGuildIndexedFunc: func(ctx context.Context, guildID guild.GuildID) (guild.GuildIndexStatus, error) {
+					return guild.GuildIndexStatus{Status: guild.IndexingCompleted}, nil
 				},
 			},
 			catalog: &cordetest.MockCatalogStore{
-				GetCharacterByIDFunc: func(ctx context.Context, charID int64) (catalog.Character, error) {
+				GetCharacterByIDFunc: func(ctx context.Context, charID catalog.CharacterID) (catalog.Character, error) {
 					return catalog.Character{ID: 42, Name: "Sakura"}, nil
 				},
-				GetCharacterHoldersInGuildFunc: func(ctx context.Context, guildID uint64, charID int64) ([]uint64, error) {
+				GetCharacterHoldersInGuildFunc: func(ctx context.Context, guildID guild.GuildID, charID catalog.CharacterID) ([]guild.MemberID, error) {
 					return nil, nil
 				},
 			},
@@ -60,16 +60,16 @@ func TestHoldersHandler_Holders(t *testing.T) {
 				OptIntVals: map[string]int{"id": 42},
 			},
 			guildOps: &mockGuildQuerier{
-				IsGuildIndexedFunc: func(ctx context.Context, guildID uint64) (collection.GuildIndexStatus, error) {
-					return collection.GuildIndexStatus{Status: collection.IndexingCompleted}, nil
+				IsGuildIndexedFunc: func(ctx context.Context, guildID guild.GuildID) (guild.GuildIndexStatus, error) {
+					return guild.GuildIndexStatus{Status: guild.IndexingCompleted}, nil
 				},
 			},
 			catalog: &cordetest.MockCatalogStore{
-				GetCharacterByIDFunc: func(ctx context.Context, charID int64) (catalog.Character, error) {
+				GetCharacterByIDFunc: func(ctx context.Context, charID catalog.CharacterID) (catalog.Character, error) {
 					return catalog.Character{ID: 42, Name: "Sakura"}, nil
 				},
-				GetCharacterHoldersInGuildFunc: func(ctx context.Context, guildID uint64, charID int64) ([]uint64, error) {
-					return []uint64{123, 456}, nil
+				GetCharacterHoldersInGuildFunc: func(ctx context.Context, guildID guild.GuildID, charID catalog.CharacterID) ([]guild.MemberID, error) {
+					return []guild.MemberID{123, 456}, nil
 				},
 			},
 			wantContent: "<@123>",
@@ -81,8 +81,8 @@ func TestHoldersHandler_Holders(t *testing.T) {
 				OptIntVals: map[string]int{"id": 42},
 			},
 			guildOps: &mockGuildQuerier{
-				IsGuildIndexedFunc: func(ctx context.Context, guildID uint64) (collection.GuildIndexStatus, error) {
-					return collection.GuildIndexStatus{}, errors.New("db error")
+				IsGuildIndexedFunc: func(ctx context.Context, guildID guild.GuildID) (guild.GuildIndexStatus, error) {
+					return guild.GuildIndexStatus{}, errors.New("db error")
 				},
 			},
 			wantContent: "Failed to check holders",
@@ -95,6 +95,7 @@ func TestHoldersHandler_Holders(t *testing.T) {
 			h := &HoldersHandler{
 				guildOps: tt.guildOps,
 				catalog:  tt.catalog,
+				holders:  tt.catalog,
 			}
 
 			h.Holders(t.Context(), w, tt.cmd)
@@ -175,25 +176,25 @@ func TestHoldersHandler_Autocomplete(t *testing.T) {
 
 // mockGuildQuerier implements guild.GuildQuerier for testing.
 type mockGuildQuerier struct {
-	IsGuildIndexedFunc func(ctx context.Context, guildID uint64) (collection.GuildIndexStatus, error)
+	IsGuildIndexedFunc func(ctx context.Context, guildID guild.GuildID) (guild.GuildIndexStatus, error)
 }
 
-func (m *mockGuildQuerier) IsGuildIndexed(ctx context.Context, guildID uint64) (collection.GuildIndexStatus, error) {
+func (m *mockGuildQuerier) IsGuildIndexed(ctx context.Context, guildID guild.GuildID) (guild.GuildIndexStatus, error) {
 	return m.IsGuildIndexedFunc(ctx, guildID)
 }
 
-func (m *mockGuildQuerier) StartIndexingJob(ctx context.Context, guildID uint64) error {
+func (m *mockGuildQuerier) StartIndexingJob(ctx context.Context, guildID guild.GuildID) error {
 	return nil
 }
 
-func (m *mockGuildQuerier) CompleteIndexingJob(ctx context.Context, guildID uint64) error {
+func (m *mockGuildQuerier) CompleteIndexingJob(ctx context.Context, guildID guild.GuildID) error {
 	return nil
 }
 
-func (m *mockGuildQuerier) UpsertGuildMembers(ctx context.Context, guildID uint64, memberIDs []uint64, indexedAt time.Time) error {
+func (m *mockGuildQuerier) UpsertGuildMembers(ctx context.Context, guildID guild.GuildID, memberIDs []guild.MemberID, indexedAt time.Time) error {
 	return nil
 }
 
-func (m *mockGuildQuerier) DeleteGuildMembersNotIn(ctx context.Context, guildID uint64, memberIDs []uint64) error {
+func (m *mockGuildQuerier) DeleteGuildMembersNotIn(ctx context.Context, guildID guild.GuildID, memberIDs []guild.MemberID) error {
 	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/karitham/waifubot/catalog"
+	"github.com/karitham/waifubot/guild"
 )
 
 // TxFn creates a transactional Store from a pgx transaction.
@@ -24,7 +25,7 @@ type PostgresStore struct {
 	UserRepository
 	CollectionRepository
 	DropRepository
-	GuildQuerier
+	guild.GuildQuerier
 	catalog.Store
 
 	db   pooler // connection pool (non-tx) or pgx.Tx (tx)
@@ -36,7 +37,7 @@ func NewPostgresStore(
 	user UserRepository,
 	coll CollectionRepository,
 	drop DropRepository,
-	guild GuildQuerier,
+	guild guild.GuildQuerier,
 	cat catalog.Store,
 	db pooler,
 	txFn TxFn,

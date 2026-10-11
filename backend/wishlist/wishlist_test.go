@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/storage/wishliststore"
 	"github.com/karitham/waifubot/storage/wishlisttest"
 	"github.com/karitham/waifubot/wishlist"
@@ -38,7 +39,7 @@ func TestWishlist(t *testing.T) {
 				chars, err := s.GetUserCharacterWishlist(t.Context(), 123)
 				require.NoError(t, err)
 				assert.Len(t, chars, 1)
-				assert.Equal(t, int64(456), chars[0].ID)
+				assert.Equal(t, catalog.CharacterID(456), chars[0].ID)
 				assert.Equal(t, "Test Character", chars[0].Name)
 			},
 		},
@@ -52,7 +53,7 @@ func TestWishlist(t *testing.T) {
 				}
 			},
 			run: func(t *testing.T, s wishlist.Store) {
-				err := s.AddCharactersToWishlist(t.Context(), 123, []int64{456, 789})
+				err := s.AddCharactersToWishlist(t.Context(), 123, []catalog.CharacterID{456, 789})
 				require.NoError(t, err)
 			},
 		},

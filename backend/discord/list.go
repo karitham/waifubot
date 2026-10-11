@@ -16,7 +16,7 @@ type ListHandler struct {
 
 // listOptions holds the parsed options for the list command.
 type listOptions struct {
-	targetUserID   uint64
+	targetUserID   collection.UserID
 	targetUsername string
 	targetAvatar   string
 }
@@ -24,7 +24,7 @@ type listOptions struct {
 func parseListOptions(cmd CommandContext) listOptions {
 	if user, ok := cmd.FirstResolvedUser(); ok {
 		return listOptions{
-			targetUserID:   uint64(user.ID),
+			targetUserID:   collection.UserID(user.ID),
 			targetUsername: user.Username,
 			targetAvatar:   user.AvatarPNG(),
 		}

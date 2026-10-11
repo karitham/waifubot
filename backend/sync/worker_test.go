@@ -63,15 +63,15 @@ func TestSync(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var upserted int
-			var markedInactive []int64
+			var markedInactive []catalog.CharacterID
 
 			store := &collectiontest.MockStore{
 				UpsertCharacterFunc: func(_ context.Context, _ catalog.Character) error {
 					upserted++
 					return nil
 				},
-				MarkCharactersInactiveFunc: func(_ context.Context, ids []int64) error {
-					markedInactive = append(markedInactive, ids...)
+				MarkCharactersInactiveFunc: func(_ context.Context, charIDs []catalog.CharacterID) error {
+					markedInactive = append(markedInactive, charIDs...)
 					return nil
 				},
 			}
@@ -85,7 +85,7 @@ func TestSync(t *testing.T) {
 					// are guaranteed to intersect with requested IDs.
 					chars := make([]tracker.Character, tt.numReturned)
 					for i := range chars {
-						chars[i] = tracker.Character{ID: ids[i], Name: "Char"}
+						chars[i] = tracker.Character{ID: catalog.CharacterID(ids[i]), Name: "Char"}
 					}
 					return chars, nil
 				},
@@ -110,7 +110,7 @@ func TestSync(t *testing.T) {
 func TestBuildDiscoveryPool(t *testing.T) {
 	tests := []struct {
 		name      string
-		activeIDs []int64
+		activeIDs []catalog.CharacterID
 		maxID     int64
 		storeErr  error
 		wantNil   bool
@@ -118,7 +118,7 @@ func TestBuildDiscoveryPool(t *testing.T) {
 	}{
 		{
 			name:      "deduplicates overlapping active and discovery IDs",
-			activeIDs: []int64{1, 50, 100, 150, 200},
+			activeIDs: []catalog.CharacterID{1, 50, 100, 150, 200},
 			maxID:     200,
 			wantNil:   false,
 			wantIDs:   []int64{1, 50, 100, 150, 200},
@@ -134,7 +134,7 @@ func TestBuildDiscoveryPool(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store := &collectiontest.MockStore{
-				GetActiveIDsFunc: func(_ context.Context) ([]int64, error) {
+				GetActiveIDsFunc: func(_ context.Context) ([]catalog.CharacterID, error) {
 					if tt.storeErr != nil {
 						return nil, tt.storeErr
 					}
@@ -179,13 +179,13 @@ func TestRun(t *testing.T) {
 	tests := []struct {
 		name      string
 		maxID     int64
-		activeIDs []int64
+		activeIDs []catalog.CharacterID
 		wantMin   int // minimum number of upserted characters
 	}{
 		{
 			name:      "processes batches until cancelled",
 			maxID:     200,
-			activeIDs: []int64{1, 50, 100, 150, 200},
+			activeIDs: []catalog.CharacterID{1, 50, 100, 150, 200},
 			wantMin:   1,
 		},
 	}
@@ -195,14 +195,14 @@ func TestRun(t *testing.T) {
 			var upserted atomic.Int64
 
 			store := &collectiontest.MockStore{
-				GetActiveIDsFunc: func(_ context.Context) ([]int64, error) {
+				GetActiveIDsFunc: func(_ context.Context) ([]catalog.CharacterID, error) {
 					return tt.activeIDs, nil
 				},
 				UpsertCharacterFunc: func(_ context.Context, _ catalog.Character) error {
 					upserted.Add(1)
 					return nil
 				},
-				MarkCharactersInactiveFunc: func(_ context.Context, _ []int64) error {
+				MarkCharactersInactiveFunc: func(_ context.Context, _ []catalog.CharacterID) error {
 					return nil
 				},
 			}
@@ -211,7 +211,7 @@ func TestRun(t *testing.T) {
 				CharactersByIDsFunc: func(_ context.Context, ids []int64) ([]tracker.Character, error) {
 					chars := make([]tracker.Character, len(ids))
 					for i, id := range ids {
-						chars[i] = tracker.Character{ID: id, Name: "Char"}
+						chars[i] = tracker.Character{ID: catalog.CharacterID(id), Name: "Char"}
 					}
 					return chars, nil
 				},

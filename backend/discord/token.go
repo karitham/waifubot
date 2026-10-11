@@ -10,6 +10,7 @@ import (
 
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/tracker"
 )
 
 // TokenHandler handles the /token command and its subcommands.
@@ -52,7 +53,7 @@ func (h *TokenHandler) Balance(ctx context.Context, w corde.ResponseWriter, cmd 
 
 // tokenGiveOptions holds the parsed options for the token give command.
 type tokenGiveOptions struct {
-	recipientID uint64
+	recipientID collection.UserID
 	recipient   corde.User
 	amount      int32
 }
@@ -67,7 +68,7 @@ func parseTokenGiveOptions(cmd CommandContext) (tokenGiveOptions, error) {
 		return tokenGiveOptions{}, fmt.Errorf("specify a valid amount of tokens: %w", err)
 	}
 	return tokenGiveOptions{
-		recipientID: uint64(user.ID),
+		recipientID: collection.UserID(user.ID),
 		recipient:   user,
 		amount:      int32(amount),
 	}, nil
@@ -109,7 +110,7 @@ func (h *TokenHandler) Give(ctx context.Context, w corde.ResponseWriter, cmd Com
 
 // tokenSellOptions holds the parsed options for the token sell command.
 type tokenSellOptions struct {
-	charID int
+	charID catalog.CharacterID
 }
 
 func parseTokenSellOptions(cmd CommandContext) (tokenSellOptions, error) {
@@ -120,7 +121,7 @@ func parseTokenSellOptions(cmd CommandContext) (tokenSellOptions, error) {
 	if charID == 0 {
 		return tokenSellOptions{}, fmt.Errorf("invalid character ID")
 	}
-	return tokenSellOptions{charID: charID}, nil
+	return tokenSellOptions{charID: catalog.CharacterID(charID)}, nil
 }
 
 // Sell sells a character for tokens.
@@ -134,7 +135,7 @@ func (h *TokenHandler) Sell(ctx context.Context, w corde.ResponseWriter, cmd Com
 		return
 	}
 
-	char, err := collection.Exchange(ctx, h.store, cmd.UserID(), int64(opts.charID))
+	char, err := collection.Exchange(ctx, h.store, cmd.UserID(), opts.charID)
 	if err != nil {
 		if errors.Is(err, collection.ErrUserDoesNotOwnCharacter) {
 			w.Respond(rspErr("You don't own that character"))
@@ -149,7 +150,7 @@ func (h *TokenHandler) Sell(ctx context.Context, w corde.ResponseWriter, cmd Com
 
 // tokenRollOptions holds the parsed options for the token roll command.
 type tokenRollOptions struct {
-	mediaID int64
+	mediaID tracker.MediaID
 }
 
 func parseTokenRollOptions(cmd CommandContext) (tokenRollOptions, error) {
@@ -157,7 +158,7 @@ func parseTokenRollOptions(cmd CommandContext) (tokenRollOptions, error) {
 	if err != nil {
 		return tokenRollOptions{}, fmt.Errorf("select a series to roll from: %w", err)
 	}
-	return tokenRollOptions{mediaID: mediaID}, nil
+	return tokenRollOptions{mediaID: tracker.MediaID(mediaID)}, nil
 }
 
 // Roll performs a series roll using tokens.
@@ -201,6 +202,6 @@ func (h *TokenHandler) SeriesAutocomplete(ctx context.Context, w corde.ResponseW
 // userCollectionAutocomplete provides character suggestions for the token sell command.
 func (h *TokenHandler) userCollectionAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
 	autocomplete(ctx, w, i, "id", func(ctx context.Context, input string) ([]catalog.Character, error) {
-		return h.store.SearchCharacters(ctx, uint64(i.Member.User.ID), input)
+		return h.store.SearchCharacters(ctx, collection.UserID(i.Member.User.ID), input)
 	}, formatCharacterChoice)
 }

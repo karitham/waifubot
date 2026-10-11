@@ -52,7 +52,7 @@ func TestGiveHandler_Give(t *testing.T) {
 				OptInt64Vals: map[string]int64{"id": 42},
 			},
 			store: &collectiontest.MockStore{
-				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
+				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{}, collection.ErrNotFound
 				},
 			},
@@ -68,13 +68,13 @@ func TestGiveHandler_Give(t *testing.T) {
 				OptInt64Vals: map[string]int64{"id": 42},
 			},
 			store: &collectiontest.MockStore{
-				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
+				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 					if userID == 1 {
 						return collection.OwnedCharacter{}, nil
 					}
 					return collection.OwnedCharacter{}, collection.ErrNotFound
 				},
-				GiveCharacterFunc: func(ctx context.Context, from, to collection.UserID, charID int64) (collection.OwnedCharacter, error) {
+				GiveCharacterFunc: func(ctx context.Context, from, to collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{}, errors.New("database on fire")
 				},
 			},
@@ -90,16 +90,16 @@ func TestGiveHandler_Give(t *testing.T) {
 				OptInt64Vals: map[string]int64{"id": 42},
 			},
 			store: &collectiontest.MockStore{
-				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
+				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 					if userID == 1 {
 						return collection.OwnedCharacter{ID: 42, Name: "Sakura"}, nil
 					}
 					return collection.OwnedCharacter{}, collection.ErrNotFound
 				},
-				GiveCharacterFunc: func(ctx context.Context, from, to collection.UserID, charID int64) (collection.OwnedCharacter, error) {
+				GiveCharacterFunc: func(ctx context.Context, from, to collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{ID: 42, Name: "Sakura"}, nil
 				},
-				RemoveFromWishlistFunc: func(ctx context.Context, userID collection.UserID, charID int64) error {
+				RemoveFromWishlistFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
 					return nil
 				},
 			},
@@ -123,16 +123,16 @@ func TestGiveHandler_Give(t *testing.T) {
 func TestGiveHandler_Give_RecipientUsername(t *testing.T) {
 	w := &cordetest.MockResponseWriter{}
 	store := &collectiontest.MockStore{
-		GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
+		GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 			if userID == 1 {
 				return collection.OwnedCharacter{ID: 42, Name: "Sakura"}, nil
 			}
 			return collection.OwnedCharacter{}, collection.ErrNotFound
 		},
-		GiveCharacterFunc: func(ctx context.Context, from, to collection.UserID, charID int64) (collection.OwnedCharacter, error) {
+		GiveCharacterFunc: func(ctx context.Context, from, to collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 			return collection.OwnedCharacter{ID: 42, Name: "Sakura"}, nil
 		},
-		RemoveFromWishlistFunc: func(ctx context.Context, userID collection.UserID, charID int64) error {
+		RemoveFromWishlistFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
 			return nil
 		},
 	}
@@ -166,7 +166,7 @@ func TestGiveHandler_Autocomplete(t *testing.T) {
 				corde.OptionsInteractions{"id": corde.JsonRaw(`"sak"`)},
 			),
 			store: &collectiontest.MockStore{
-				SearchCharactersFunc: func(ctx context.Context, userID uint64, term string) ([]catalog.Character, error) {
+				SearchCharactersFunc: func(ctx context.Context, userID collection.UserID, term string) ([]catalog.Character, error) {
 					return []catalog.Character{
 						{ID: 10, Name: "Sakura"},
 						{ID: 20, Name: "Sakura Haruno"},
@@ -183,7 +183,7 @@ func TestGiveHandler_Autocomplete(t *testing.T) {
 				corde.OptionsInteractions{"id": corde.JsonRaw(`"nonexistent"`)},
 			),
 			store: &collectiontest.MockStore{
-				SearchCharactersFunc: func(ctx context.Context, userID uint64, term string) ([]catalog.Character, error) {
+				SearchCharactersFunc: func(ctx context.Context, userID collection.UserID, term string) ([]catalog.Character, error) {
 					return nil, nil
 				},
 			},
@@ -197,7 +197,7 @@ func TestGiveHandler_Autocomplete(t *testing.T) {
 				corde.OptionsInteractions{"id": corde.JsonRaw(`"sak"`)},
 			),
 			store: &collectiontest.MockStore{
-				SearchCharactersFunc: func(ctx context.Context, userID uint64, term string) ([]catalog.Character, error) {
+				SearchCharactersFunc: func(ctx context.Context, userID collection.UserID, term string) ([]catalog.Character, error) {
 					return nil, errors.New("db error")
 				},
 			},

@@ -40,7 +40,7 @@ func TestProfileHandler_View(t *testing.T) {
 						Date:       time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC),
 					}, nil
 				},
-				GetCharacterByIDFunc: func(ctx context.Context, charID int64) (catalog.Character, error) {
+				GetCharacterByIDFunc: func(ctx context.Context, charID catalog.CharacterID) (catalog.Character, error) {
 					return catalog.Character{ID: 10, Name: "Sakura", Image: "https://example.com/sakura.png"}, nil
 				},
 				CountCollectionFunc: func(ctx context.Context, userID collection.UserID) (int64, error) {
@@ -125,7 +125,7 @@ func TestProfileHandler_EditFavorite(t *testing.T) {
 				OptInt64Vals: map[string]int64{"id": 42},
 			},
 			store: &collectiontest.MockStore{
-				UpdateFavoriteFunc: func(ctx context.Context, userID collection.UserID, charID int64) error {
+				UpdateFavoriteFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
 					return nil
 				},
 			},
@@ -139,7 +139,7 @@ func TestProfileHandler_EditFavorite(t *testing.T) {
 				OptInt64Vals: map[string]int64{"id": 42},
 			},
 			store: &collectiontest.MockStore{
-				UpdateFavoriteFunc: func(ctx context.Context, userID collection.UserID, charID int64) error {
+				UpdateFavoriteFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
 					return errors.New("db error")
 				},
 			},
@@ -305,7 +305,7 @@ func TestProfileHandler_Autocomplete(t *testing.T) {
 				corde.OptionsInteractions{"id": corde.JsonRaw(`"sak"`)},
 			),
 			store: &collectiontest.MockStore{
-				SearchCharactersFunc: func(ctx context.Context, userID uint64, term string) ([]catalog.Character, error) {
+				SearchCharactersFunc: func(ctx context.Context, userID collection.UserID, term string) ([]catalog.Character, error) {
 					return []catalog.Character{
 						{ID: 10, Name: "Sakura"},
 						{ID: 20, Name: "Sakura Haruno"},
@@ -322,7 +322,7 @@ func TestProfileHandler_Autocomplete(t *testing.T) {
 				corde.OptionsInteractions{"id": corde.JsonRaw(`"nonexistent"`)},
 			),
 			store: &collectiontest.MockStore{
-				SearchCharactersFunc: func(ctx context.Context, userID uint64, term string) ([]catalog.Character, error) {
+				SearchCharactersFunc: func(ctx context.Context, userID collection.UserID, term string) ([]catalog.Character, error) {
 					return nil, nil
 				},
 			},
@@ -336,7 +336,7 @@ func TestProfileHandler_Autocomplete(t *testing.T) {
 				corde.OptionsInteractions{"id": corde.JsonRaw(`"sak"`)},
 			),
 			store: &collectiontest.MockStore{
-				SearchCharactersFunc: func(ctx context.Context, userID uint64, term string) ([]catalog.Character, error) {
+				SearchCharactersFunc: func(ctx context.Context, userID collection.UserID, term string) ([]catalog.Character, error) {
 					return nil, errors.New("db error")
 				},
 			},

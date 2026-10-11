@@ -4,17 +4,17 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Karitham/corde"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/karitham/waifubot/catalog"
+	"github.com/karitham/waifubot/collection"
 )
 
 // Store persists the character currently dropped in a channel.
 type Store interface {
-	Delete(ctx context.Context, id corde.Snowflake) error
-	Get(ctx context.Context, id corde.Snowflake) (*catalog.Character, error)
-	Set(ctx context.Context, id corde.Snowflake, data catalog.Character) error
+	Delete(ctx context.Context, id collection.ChannelID) error
+	Get(ctx context.Context, id collection.ChannelID) (*catalog.Character, error)
+	Set(ctx context.Context, id collection.ChannelID, data catalog.Character) error
 }
 
 type PostgresStore struct {
@@ -27,9 +27,9 @@ func NewPostgresStore(q Querier) *PostgresStore {
 	}
 }
 
-func (p *PostgresStore) Set(ctx context.Context, id corde.Snowflake, data catalog.Character) error {
+func (p *PostgresStore) Set(ctx context.Context, id collection.ChannelID, data catalog.Character) error {
 	err := p.q.UpsertCharacter(ctx, UpsertCharacterParams{
-		ID:         data.ID,
+		ID:         int64(data.ID),
 		Name:       data.Name,
 		Image:      data.Image,
 		MediaTitle: data.MediaTitle,
@@ -41,11 +41,11 @@ func (p *PostgresStore) Set(ctx context.Context, id corde.Snowflake, data catalo
 
 	return p.q.SetDrop(ctx, SetDropParams{
 		ChannelID:   uint64(id),
-		CharacterID: data.ID,
+		CharacterID: int64(data.ID),
 	})
 }
 
-func (p *PostgresStore) Get(ctx context.Context, id corde.Snowflake) (*catalog.Character, error) {
+func (p *PostgresStore) Get(ctx context.Context, id collection.ChannelID) (*catalog.Character, error) {
 	row, err := p.q.GetDrop(ctx, uint64(id))
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -55,7 +55,7 @@ func (p *PostgresStore) Get(ctx context.Context, id corde.Snowflake) (*catalog.C
 	}
 
 	return &catalog.Character{
-		ID:         row.ID,
+		ID:         catalog.CharacterID(row.ID),
 		Name:       row.Name,
 		Image:      row.Image,
 		MediaTitle: row.MediaTitle,
@@ -63,6 +63,6 @@ func (p *PostgresStore) Get(ctx context.Context, id corde.Snowflake) (*catalog.C
 	}, nil
 }
 
-func (p *PostgresStore) Delete(ctx context.Context, id corde.Snowflake) error {
+func (p *PostgresStore) Delete(ctx context.Context, id collection.ChannelID) error {
 	return p.q.DeleteDrop(ctx, uint64(id))
 }

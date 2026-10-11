@@ -189,7 +189,7 @@ func TestTokenHandler_Sell(t *testing.T) {
 				OptIntVals: map[string]int{"id": 42},
 			},
 			store: &collectiontest.MockStore{
-				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
+				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{}, collection.ErrNotFound
 				},
 			},
@@ -202,10 +202,10 @@ func TestTokenHandler_Sell(t *testing.T) {
 				OptIntVals: map[string]int{"id": 42},
 			},
 			store: &collectiontest.MockStore{
-				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
+				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{}, nil
 				},
-				RemoveFromCollectionFunc: func(ctx context.Context, userID collection.UserID, charID int64) error {
+				RemoveFromCollectionFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
 					return errors.New("database on fire")
 				},
 			},
@@ -218,13 +218,13 @@ func TestTokenHandler_Sell(t *testing.T) {
 				OptIntVals: map[string]int{"id": 42},
 			},
 			store: &collectiontest.MockStore{
-				GetCharacterByIDFunc: func(ctx context.Context, charID int64) (catalog.Character, error) {
+				GetCharacterByIDFunc: func(ctx context.Context, charID catalog.CharacterID) (catalog.Character, error) {
 					return catalog.Character{ID: 42, Name: "Sakura"}, nil
 				},
-				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
+				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{ID: 42, Name: "Sakura"}, nil
 				},
-				RemoveFromCollectionFunc: func(ctx context.Context, userID collection.UserID, charID int64) error {
+				RemoveFromCollectionFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
 					return nil
 				},
 				AddTokensFunc: func(ctx context.Context, userID collection.UserID, amount int32) (collection.User, error) {
@@ -291,12 +291,12 @@ func TestTokenHandler_Roll(t *testing.T) {
 				GetUserFunc: func(ctx context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID, Tokens: 10}, nil
 				},
-				GetCollectionIDsFunc: func(ctx context.Context, userID collection.UserID) ([]int64, error) {
-					return []int64{1, 2, 3}, nil
+				GetCollectionIDsFunc: func(ctx context.Context, userID collection.UserID) ([]catalog.CharacterID, error) {
+					return []catalog.CharacterID{1, 2, 3}, nil
 				},
 			},
 			animeService: &collectiontest.MockAnimeService{
-				GetMediaCharactersFunc: func(ctx context.Context, mediaId int64) ([]tracker.Character, error) {
+				GetMediaCharactersFunc: func(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error) {
 					return []tracker.Character{
 						{ID: 1, Name: "Char1"},
 						{ID: 2, Name: "Char2"},
@@ -318,7 +318,7 @@ func TestTokenHandler_Roll(t *testing.T) {
 				},
 			},
 			animeService: &collectiontest.MockAnimeService{
-				GetMediaCharactersFunc: func(ctx context.Context, mediaId int64) ([]tracker.Character, error) {
+				GetMediaCharactersFunc: func(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error) {
 					return nil, nil
 				},
 			},
@@ -336,7 +336,7 @@ func TestTokenHandler_Roll(t *testing.T) {
 				},
 			},
 			animeService: &collectiontest.MockAnimeService{
-				GetMediaCharactersFunc: func(ctx context.Context, mediaId int64) ([]tracker.Character, error) {
+				GetMediaCharactersFunc: func(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error) {
 					return nil, errors.New("database on fire")
 				},
 			},
@@ -352,13 +352,13 @@ func TestTokenHandler_Roll(t *testing.T) {
 				GetUserFunc: func(ctx context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID, Tokens: 10}, nil
 				},
-				GetCollectionIDsFunc: func(ctx context.Context, userID collection.UserID) ([]int64, error) {
+				GetCollectionIDsFunc: func(ctx context.Context, userID collection.UserID) ([]catalog.CharacterID, error) {
 					return nil, nil
 				},
 				UpsertCharacterFunc: func(ctx context.Context, char catalog.Character) error {
 					return nil
 				},
-				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, charID int64, source collection.Source, acquiredAt time.Time) error {
+				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID, source collection.Source, acquiredAt time.Time) error {
 					return nil
 				},
 				UpdateLastRollFunc: func(ctx context.Context, userID collection.UserID, when time.Time) error {
@@ -369,7 +369,7 @@ func TestTokenHandler_Roll(t *testing.T) {
 				},
 			},
 			animeService: &collectiontest.MockAnimeService{
-				GetMediaCharactersFunc: func(ctx context.Context, mediaId int64) ([]tracker.Character, error) {
+				GetMediaCharactersFunc: func(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error) {
 					return []tracker.Character{
 						{ID: 10, Name: "Sakura", MediaTitle: "Naruto", Favorites: 5000},
 					}, nil
@@ -477,7 +477,7 @@ func TestTokenHandler_UserCollectionAutocomplete(t *testing.T) {
 				corde.OptionsInteractions{"id": corde.JsonRaw(`"sak"`)},
 			),
 			store: &collectiontest.MockStore{
-				SearchCharactersFunc: func(ctx context.Context, userID uint64, term string) ([]catalog.Character, error) {
+				SearchCharactersFunc: func(ctx context.Context, userID collection.UserID, term string) ([]catalog.Character, error) {
 					return []catalog.Character{
 						{ID: 10, Name: "Sakura"},
 						{ID: 20, Name: "Sakura Haruno"},
@@ -493,7 +493,7 @@ func TestTokenHandler_UserCollectionAutocomplete(t *testing.T) {
 				corde.OptionsInteractions{"id": corde.JsonRaw(`"sak"`)},
 			),
 			store: &collectiontest.MockStore{
-				SearchCharactersFunc: func(ctx context.Context, userID uint64, term string) ([]catalog.Character, error) {
+				SearchCharactersFunc: func(ctx context.Context, userID collection.UserID, term string) ([]catalog.Character, error) {
 					return nil, errors.New("db error")
 				},
 			},

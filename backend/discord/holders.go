@@ -34,6 +34,7 @@ func indexMiddleware[T corde.InteractionDataConstraint](
 type HoldersHandler struct {
 	guildOps     guild.GuildQuerier
 	catalog      catalog.Store
+	holders      guild.HolderQuerier
 	guildIndexer *guild.Indexer
 	guildTxFn    func(context.Context) (guild.TxQuerier, error)
 }
@@ -50,7 +51,7 @@ func (h *HoldersHandler) Register(m *corde.Mux) {
 
 // holdersOptions holds the parsed options for the holders command.
 type holdersOptions struct {
-	charID int64
+	charID catalog.CharacterID
 }
 
 func parseHoldersOptions(cmd CommandContext) (holdersOptions, error) {
@@ -58,7 +59,7 @@ func parseHoldersOptions(cmd CommandContext) (holdersOptions, error) {
 	if err != nil {
 		return holdersOptions{}, fmt.Errorf("select a character to check: %w", err)
 	}
-	return holdersOptions{charID: int64(charID)}, nil
+	return holdersOptions{charID: catalog.CharacterID(charID)}, nil
 }
 
 // Holders shows which guild members own a character.
@@ -69,7 +70,7 @@ func (h *HoldersHandler) Holders(ctx context.Context, w corde.ResponseWriter, cm
 		return
 	}
 
-	charName, holderIDs, err := guild.CharacterHolders(ctx, h.guildOps, h.catalog, cmd.GuildID(), opts.charID)
+	charName, holderIDs, err := guild.CharacterHolders(ctx, h.guildOps, h.catalog, h.holders, cmd.GuildID(), opts.charID)
 	if err != nil {
 		w.Respond(Privf("Failed to check holders"))
 		return

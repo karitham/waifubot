@@ -5,6 +5,7 @@ import (
 
 	"github.com/Karitham/corde"
 
+	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/guild"
 )
@@ -18,9 +19,9 @@ type VerifyHandler struct {
 
 // verifyOptions holds the parsed options for the verify command.
 type verifyOptions struct {
-	targetUserID   uint64
+	targetUserID   collection.UserID
 	targetUsername string
-	charID         int64
+	charID         catalog.CharacterID
 }
 
 func parseVerifyOptions(cmd CommandContext) verifyOptions {
@@ -29,10 +30,12 @@ func parseVerifyOptions(cmd CommandContext) verifyOptions {
 		targetUsername: cmd.Username(),
 	}
 	if user, ok := cmd.FirstResolvedUser(); ok {
-		opts.targetUserID = uint64(user.ID)
+		opts.targetUserID = collection.UserID(user.ID)
 		opts.targetUsername = user.Username
 	}
-	opts.charID, _ = cmd.OptInt64("id")
+	if id, err := cmd.OptInt64("id"); err == nil {
+		opts.charID = catalog.CharacterID(id)
+	}
 	return opts
 }
 

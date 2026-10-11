@@ -6,10 +6,11 @@ import (
 	"time"
 
 	"github.com/karitham/waifubot/catalog"
+	"github.com/karitham/waifubot/guild"
 )
 
 var (
-	ErrNotFound                = errors.New("not found")
+	ErrNotFound                = catalog.ErrNotFound
 	ErrAlreadyOwned            = errors.New("character already in collection")
 	ErrUserDoesNotOwnCharacter = errors.New("user does not own character")
 )
@@ -27,7 +28,11 @@ const DropWeightExponent = 2.0
 // RollWeightExponent controls the favorites bias for standard rolls (1.0 = linear).
 const RollWeightExponent = 1.0
 
-type UserID = uint64
+// UserID identifies a collection user.
+type UserID uint64
+
+// ChannelID identifies a channel that can hold a drop.
+type ChannelID uint64
 
 // User holds user profile data.
 type User struct {
@@ -35,24 +40,11 @@ type User struct {
 	Date            time.Time
 	Tokens          int32
 	Quote           string
-	Favorite        int64
+	Favorite        catalog.CharacterID
 	AnilistURL      string
 	DiscordUsername string
 	DiscordAvatar   string
 	LastUpdated     time.Time
-}
-
-type IndexingStatus int
-
-const (
-	IndexingPending IndexingStatus = iota
-	IndexingInProgress
-	IndexingCompleted
-)
-
-type GuildIndexStatus struct {
-	Status    IndexingStatus
-	UpdatedAt time.Time
 }
 
 type OwnedCharacter struct {
@@ -71,7 +63,7 @@ type UserRepository interface {
 	UpdateLastRoll(ctx context.Context, userID UserID, when time.Time) error
 	SpendTokens(ctx context.Context, userID UserID, amount int32) (User, error)
 	AddTokens(ctx context.Context, userID UserID, amount int32) (User, error)
-	UpdateFavorite(ctx context.Context, userID UserID, charID int64) error
+	UpdateFavorite(ctx context.Context, userID UserID, charID catalog.CharacterID) error
 	UpdateQuote(ctx context.Context, userID UserID, quote string) error
 	UpdateAnilistURL(ctx context.Context, userID UserID, url string) error
 	UpdateDiscordInfo(ctx context.Context, userID UserID, username, avatar string, lastUpdated time.Time) error
@@ -80,14 +72,16 @@ type UserRepository interface {
 // CollectionRepository handles owned character operations.
 type CollectionRepository interface {
 	GetCollection(ctx context.Context, userID UserID) ([]OwnedCharacter, error)
-	GetCollectionIDs(ctx context.Context, userID UserID) ([]int64, error)
-	GetOwnedCharacter(ctx context.Context, userID UserID, charID int64) (OwnedCharacter, error)
-	AddToCollection(ctx context.Context, userID UserID, charID int64, source Source, acquiredAt time.Time) error
-	RemoveFromCollection(ctx context.Context, userID UserID, charID int64) error
-	GiveCharacter(ctx context.Context, from, to UserID, charID int64) (OwnedCharacter, error)
+	GetCollectionIDs(ctx context.Context, userID UserID) ([]catalog.CharacterID, error)
+	GetOwnedCharacter(ctx context.Context, userID UserID, charID catalog.CharacterID) (OwnedCharacter, error)
+	AddToCollection(ctx context.Context, userID UserID, charID catalog.CharacterID, source Source, acquiredAt time.Time) error
+	RemoveFromCollection(ctx context.Context, userID UserID, charID catalog.CharacterID) error
+	GiveCharacter(ctx context.Context, from, to UserID, charID catalog.CharacterID) (OwnedCharacter, error)
 	CountCollection(ctx context.Context, userID UserID) (int64, error)
+	// SearchCharacters searches the user's collection by name or ID.
+	SearchCharacters(ctx context.Context, userID UserID, term string) ([]catalog.Character, error)
 	// RemoveFromWishlist is called inside roll/claim/give transactions.
-	RemoveFromWishlist(ctx context.Context, userID UserID, charID int64) error
+	RemoveFromWishlist(ctx context.Context, userID UserID, charID catalog.CharacterID) error
 	// RandomCharNotOwned returns a random active character not owned by the user,
 	// weighted by favorites^weightExponent. Does NOT filter the default AniList image
 	// (rolls/direct rolls use this path and the image isn't publicly embedded).
@@ -100,29 +94,8 @@ type CollectionRepository interface {
 
 // DropRepository handles channel drop operations for the claim flow.
 type DropRepository interface {
-	GetDropForUpdate(ctx context.Context, channelID uint64) (catalog.Drop, error)
-	DeleteDrop(ctx context.Context, channelID uint64) error
-}
-
-// GuildQuerier provides guild indexing operations.
-type GuildQuerier interface {
-	IsGuildIndexed(ctx context.Context, guildID uint64) (GuildIndexStatus, error)
-	StartIndexingJob(ctx context.Context, guildID uint64) error
-	CompleteIndexingJob(ctx context.Context, guildID uint64) error
-	UpsertGuildMembers(ctx context.Context, guildID uint64, memberIDs []uint64, indexedAt time.Time) error
-	DeleteGuildMembersNotIn(ctx context.Context, guildID uint64, memberIDs []uint64) error
-}
-
-// ConvertIndexingStatus maps a database indexing-status string to the domain type.
-func ConvertIndexingStatus(s string) IndexingStatus {
-	switch s {
-	case "completed":
-		return IndexingCompleted
-	case "in_progress":
-		return IndexingInProgress
-	default:
-		return IndexingPending
-	}
+	GetDropForUpdate(ctx context.Context, channelID ChannelID) (catalog.Drop, error)
+	DeleteDrop(ctx context.Context, channelID ChannelID) error
 }
 
 // Store is the transactional composition of all repositories.
@@ -131,7 +104,7 @@ type Store interface {
 	UserRepository
 	CollectionRepository
 	DropRepository
-	GuildQuerier
+	guild.GuildQuerier
 	catalog.Store
 
 	WithTx(ctx context.Context) (Store, error)

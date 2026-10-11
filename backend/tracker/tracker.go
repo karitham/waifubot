@@ -2,11 +2,16 @@
 // These are provider-shaped DTOs: stored characters use catalog.Character.
 package tracker
 
-import "github.com/karitham/waifubot/catalog"
+import (
+	"github.com/karitham/waifubot/catalog"
+)
+
+// MediaID identifies an anime or manga on the tracker.
+type MediaID int64
 
 // Character is a character record from a tracker.
 type Character struct {
-	ID          int64
+	ID          catalog.CharacterID
 	Name        string
 	ImageURL    string
 	URL         string
@@ -28,7 +33,7 @@ func (c Character) ToCatalog() catalog.Character {
 
 // Media is an anime or manga record.
 type Media struct {
-	ID              int64
+	ID              MediaID
 	Title           string
 	URL             string
 	CoverImageURL   string

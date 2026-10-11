@@ -6,6 +6,7 @@ import (
 
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/tracker"
 )
 
@@ -16,8 +17,8 @@ type Entry struct {
 }
 
 type UserCharacterSet struct {
-	UserID     uint64  `json:"user_id"`
-	Characters []Entry `json:"characters"`
+	UserID     collection.UserID `json:"user_id"`
+	Characters []Entry           `json:"characters"`
 }
 
 type WishlistComparison struct {
@@ -27,26 +28,26 @@ type WishlistComparison struct {
 }
 
 type Store interface {
-	AddCharactersToWishlist(ctx context.Context, userID uint64, characterIDs []int64) error
-	RemoveCharactersFromWishlist(ctx context.Context, userID uint64, characterIDs []int64) error
-	RemoveAllFromWishlist(ctx context.Context, userID uint64) error
-	GetUserCharacterWishlist(ctx context.Context, userID uint64) ([]Entry, error)
+	AddCharactersToWishlist(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) error
+	RemoveCharactersFromWishlist(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) error
+	RemoveAllFromWishlist(ctx context.Context, userID collection.UserID) error
+	GetUserCharacterWishlist(ctx context.Context, userID collection.UserID) ([]Entry, error)
 
 	// Discovery
-	GetWishlistHolders(ctx context.Context, characterIDs []int64, userID, guildID uint64) ([]UserCharacterSet, error)
-	GetWantedCharacters(ctx context.Context, userID, guildID uint64) ([]UserCharacterSet, error)
-	CompareWithUser(ctx context.Context, userID1, userID2 uint64) (WishlistComparison, error)
-	GetUsersWantingCharacter(ctx context.Context, charID int64, guildID, excludeUserID uint64) ([]uint64, error)
+	GetWishlistHolders(ctx context.Context, characterIDs []catalog.CharacterID, userID collection.UserID, guildID guild.GuildID) ([]UserCharacterSet, error)
+	GetWantedCharacters(ctx context.Context, userID collection.UserID, guildID guild.GuildID) ([]UserCharacterSet, error)
+	CompareWithUser(ctx context.Context, userID1, userID2 collection.UserID) (WishlistComparison, error)
+	GetUsersWantingCharacter(ctx context.Context, charID catalog.CharacterID, guildID guild.GuildID, excludeUserID collection.UserID) ([]guild.MemberID, error)
 }
 
 // MediaService defines the interface for media operations.
 type MediaService interface {
 	SearchMedia(ctx context.Context, search string) ([]tracker.Media, error)
-	GetMediaCharacters(ctx context.Context, mediaId int64) ([]tracker.Character, error)
+	GetMediaCharacters(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error)
 }
 
 // AddMediaToWishlist adds all characters from a media to the user's wishlist, filtering out owned characters.
-func AddMediaToWishlist(ctx context.Context, wishlistStore Store, mediaService MediaService, store collection.Store, userID uint64, mediaID int64) (int, error) {
+func AddMediaToWishlist(ctx context.Context, wishlistStore Store, mediaService MediaService, store collection.Store, userID collection.UserID, mediaID tracker.MediaID) (int, error) {
 	characters, err := mediaService.GetMediaCharacters(ctx, mediaID)
 	if err != nil {
 		return 0, err
@@ -65,12 +66,12 @@ func AddMediaToWishlist(ctx context.Context, wishlistStore Store, mediaService M
 		return 0, err
 	}
 
-	ownedSet := make(map[int64]bool, len(ownedIDs))
+	ownedSet := make(map[catalog.CharacterID]bool, len(ownedIDs))
 	for _, id := range ownedIDs {
 		ownedSet[id] = true
 	}
 
-	var characterIDs []int64
+	var characterIDs []catalog.CharacterID
 	for _, char := range characters {
 		if !ownedSet[char.ID] {
 			characterIDs = append(characterIDs, char.ID)

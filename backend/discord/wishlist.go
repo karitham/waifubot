@@ -11,11 +11,12 @@ import (
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/guild"
+	"github.com/karitham/waifubot/tracker"
 	"github.com/karitham/waifubot/wishlist"
 )
 
 // formatCharacter formats a character as "Name (ID)"
-func formatCharacter(name string, id int64) string {
+func formatCharacter(name string, id catalog.CharacterID) string {
 	return fmt.Sprintf("%s (%d)", name, id)
 }
 
@@ -49,7 +50,7 @@ func truncateString(s string, maxLen int) string {
 }
 
 // formatUser formats a user ID as a Discord mention
-func formatUser(userID uint64) string {
+func formatUser(userID collection.UserID) string {
 	return fmt.Sprintf("<@%d>", userID)
 }
 
@@ -90,12 +91,12 @@ func (h *WishlistHandler) Register(m *corde.Mux) {
 
 // wishlistCharacterOptions holds the parsed options for wishlist character add/remove commands.
 type wishlistCharacterOptions struct {
-	charID int64
+	charID catalog.CharacterID
 }
 
 func parseWishlistCharacterOptions(cmd CommandContext) (wishlistCharacterOptions, error) {
 	charID, _ := cmd.OptInt64("character")
-	return wishlistCharacterOptions{charID: charID}, nil
+	return wishlistCharacterOptions{charID: catalog.CharacterID(charID)}, nil
 }
 
 // CharacterAdd adds a character to the user's wishlist.
@@ -104,7 +105,9 @@ func (h *WishlistHandler) CharacterAdd(ctx context.Context, w corde.ResponseWrit
 
 	opts, err := parseWishlistCharacterOptions(cmd)
 	if err != nil {
-		opts.charID, _ = cmd.OptInt64("character")
+		if id, err := cmd.OptInt64("character"); err == nil {
+			opts.charID = catalog.CharacterID(id)
+		}
 	}
 
 	// Check if user already owns this character
@@ -119,7 +122,7 @@ func (h *WishlistHandler) CharacterAdd(ctx context.Context, w corde.ResponseWrit
 		return
 	}
 
-	err = h.wishlist.AddCharactersToWishlist(ctx, cmd.UserID(), []int64{opts.charID})
+	err = h.wishlist.AddCharactersToWishlist(ctx, cmd.UserID(), []catalog.CharacterID{opts.charID})
 	if err != nil {
 		logger.Error("error adding character to wishlist", "error", err, "character_id", opts.charID)
 		w.Respond(rspErr("Unable to add character to wishlist. Please try again."))
@@ -135,10 +138,12 @@ func (h *WishlistHandler) CharacterRemove(ctx context.Context, w corde.ResponseW
 
 	opts, err := parseWishlistCharacterOptions(cmd)
 	if err != nil {
-		opts.charID, _ = cmd.OptInt64("character")
+		if id, err := cmd.OptInt64("character"); err == nil {
+			opts.charID = catalog.CharacterID(id)
+		}
 	}
 
-	err = h.wishlist.RemoveCharactersFromWishlist(ctx, cmd.UserID(), []int64{opts.charID})
+	err = h.wishlist.RemoveCharactersFromWishlist(ctx, cmd.UserID(), []catalog.CharacterID{opts.charID})
 	if err != nil {
 		logger.Error("error removing character from wishlist", "error", err, "character_id", opts.charID)
 		w.Respond(rspErr("Unable to remove character from wishlist. Please try again."))
@@ -190,12 +195,12 @@ func (h *WishlistHandler) CharacterRemoveAll(ctx context.Context, w corde.Respon
 
 // wishlistMediaOptions holds the parsed options for wishlist media add command.
 type wishlistMediaOptions struct {
-	mediaID int64
+	mediaID tracker.MediaID
 }
 
 func parseWishlistMediaOptions(cmd CommandContext) (wishlistMediaOptions, error) {
 	mediaID, _ := cmd.OptInt64("media")
-	return wishlistMediaOptions{mediaID: mediaID}, nil
+	return wishlistMediaOptions{mediaID: tracker.MediaID(mediaID)}, nil
 }
 
 // MediaAdd adds all characters from a media to the user's wishlist.
@@ -204,7 +209,9 @@ func (h *WishlistHandler) MediaAdd(ctx context.Context, w corde.ResponseWriter, 
 
 	opts, err := parseWishlistMediaOptions(cmd)
 	if err != nil {
-		opts.mediaID, _ = cmd.OptInt64("media")
+		if id, err := cmd.OptInt64("media"); err == nil {
+			opts.mediaID = tracker.MediaID(id)
+		}
 	}
 
 	count, err := wishlist.AddMediaToWishlist(ctx, h.wishlist, h.animeService, h.store, cmd.UserID(), opts.mediaID)
@@ -238,7 +245,7 @@ func (h *WishlistHandler) Holders(ctx context.Context, w corde.ResponseWriter, c
 		return
 	}
 
-	characterIDs := make([]int64, len(wl))
+	characterIDs := make([]catalog.CharacterID, len(wl))
 	for j, c := range wl {
 		characterIDs[j] = c.ID
 	}
@@ -306,14 +313,14 @@ func (h *WishlistHandler) Wanted(ctx context.Context, w corde.ResponseWriter, cm
 
 // wishlistCompareOptions holds the parsed options for the wishlist compare command.
 type wishlistCompareOptions struct {
-	targetUserID   uint64
+	targetUserID   collection.UserID
 	targetUsername string
 }
 
 func parseWishlistCompareOptions(cmd CommandContext) (wishlistCompareOptions, error) {
 	if user, ok := cmd.FirstResolvedUser(); ok {
 		return wishlistCompareOptions{
-			targetUserID:   uint64(user.ID),
+			targetUserID:   collection.UserID(user.ID),
 			targetUsername: user.Username,
 		}, nil
 	}
@@ -377,9 +384,9 @@ func (h *WishlistHandler) WishlistAutocomplete(ctx context.Context, w corde.Resp
 		}
 	}
 
-	chars, err := h.wishlist.GetUserCharacterWishlist(ctx, uint64(i.Member.User.ID))
+	chars, err := h.wishlist.GetUserCharacterWishlist(ctx, collection.UserID(i.Member.User.ID))
 	if err != nil {
-		slog.Error("Error getting user's wishlist", "error", err, "user", uint64(i.Member.User.ID))
+		slog.Error("Error getting user's wishlist", "error", err, "user", collection.UserID(i.Member.User.ID))
 		return
 	}
 

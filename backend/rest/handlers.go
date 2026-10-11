@@ -13,6 +13,7 @@ import (
 
 	"github.com/Karitham/corde"
 
+	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/discord"
 	"github.com/karitham/waifubot/services"
@@ -35,12 +36,12 @@ func New(db collection.Store, ws wishlist.Store, discordService *services.Discor
 	}
 }
 
-func parseUserID(userID string) (uint64, error) {
+func parseUserID(userID string) (collection.UserID, error) {
 	id, err := strconv.ParseUint(userID, 10, 64)
 	if err != nil || id == 0 {
 		return 0, fmt.Errorf("invalid user id")
 	}
-	return id, nil
+	return collection.UserID(id), nil
 }
 
 func (s *Server) GetUser(ctx context.Context, params api.GetUserParams) (api.GetUserRes, error) {
@@ -110,7 +111,7 @@ func (s *Server) GetProfileV1(ctx context.Context, params api.GetProfileV1Params
 		favChar, err := s.db.GetCharacterByID(ctx, u.Favorite)
 		if err == nil {
 			fav = api.NewOptCharacter(api.Character{
-				ID:        favChar.ID,
+				ID:        int64(favChar.ID),
 				Name:      favChar.Name,
 				Image:     favChar.Image,
 				Favorites: favChar.Favorites,
@@ -125,7 +126,7 @@ func (s *Server) GetProfileV1(ctx context.Context, params api.GetProfileV1Params
 		Tokens:          u.Tokens,
 		AnilistURL:      api.NewOptString(u.AnilistURL),
 		DiscordUsername: u.DiscordUsername,
-		DiscordAvatar:   api.NewOptString(discord.DiscordAvatarURL(u.UserID, u.DiscordAvatar)),
+		DiscordAvatar:   api.NewOptString(discord.DiscordAvatarURL(uint64(u.UserID), u.DiscordAvatar)),
 		Favorite:        fav,
 	}, nil
 }
@@ -160,7 +161,7 @@ func (s *Server) GetCollectionV1(ctx context.Context, params api.GetCollectionV1
 	}, nil
 }
 
-func (s *Server) getUserProfile(ctx context.Context, id uint64) (api.GetUserRes, error) {
+func (s *Server) getUserProfile(ctx context.Context, id collection.UserID) (api.GetUserRes, error) {
 	profile, err := s.getUserProfileData(ctx, id)
 	if err != nil {
 		return &api.GetUserNotFound{
@@ -172,7 +173,7 @@ func (s *Server) getUserProfile(ctx context.Context, id uint64) (api.GetUserRes,
 	return profile, nil
 }
 
-func (s *Server) getUserProfileData(ctx context.Context, id uint64) (*api.Profile, error) {
+func (s *Server) getUserProfileData(ctx context.Context, id collection.UserID) (*api.Profile, error) {
 	if s.discordService != nil {
 		ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
@@ -280,7 +281,7 @@ func (s *Server) GetWishlist(ctx context.Context, params api.GetWishlistParams) 
 		}, nil
 	}
 
-	chars, err := s.wishlistStore.GetUserCharacterWishlist(ctx, id)
+	chars, err := s.wishlistStore.GetUserCharacterWishlist(ctx, collection.UserID(id))
 	if err != nil {
 		return &api.GetWishlistNotFound{
 			Message:    "user not found",
@@ -295,7 +296,7 @@ func (s *Server) GetWishlist(ctx context.Context, params api.GetWishlistParams) 
 			Date:      api.NewOptNilDateTime(c.AddedAt),
 			Name:      c.Name,
 			Image:     c.Image,
-			ID:        c.ID,
+			ID:        int64(c.ID),
 			Favorites: c.Favorites,
 		}
 	}
@@ -307,9 +308,9 @@ func (s *Server) GetWishlist(ctx context.Context, params api.GetWishlistParams) 
 }
 
 // mapCharacter builds an api.Character from common fields.
-func mapCharacter(id int64, name, image string, favorites int, source collection.Source, date time.Time) api.Character {
+func mapCharacter(id catalog.CharacterID, name, image string, favorites int, source collection.Source, date time.Time) api.Character {
 	return api.Character{
-		ID:        id,
+		ID:        int64(id),
 		Name:      name,
 		Image:     image,
 		Favorites: favorites,
@@ -338,7 +339,7 @@ func (s *Server) mapUser(u collection.User, list []collection.OwnedCharacter) *a
 		Favorite:        fav,
 		AnilistURL:      api.NewOptString(u.AnilistURL),
 		DiscordUsername: u.DiscordUsername,
-		DiscordAvatar:   api.NewOptString(discord.DiscordAvatarURL(u.UserID, u.DiscordAvatar)),
+		DiscordAvatar:   api.NewOptString(discord.DiscordAvatarURL(uint64(u.UserID), u.DiscordAvatar)),
 		Waifus:          waifus,
 	}
 }

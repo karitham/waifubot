@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
+	"github.com/karitham/waifubot/catalog"
 )
 
 // Give executes the give logic from one user to another.
-func Give(ctx context.Context, store Store, from, to UserID, charID int64) (OwnedCharacter, error) {
+func Give(ctx context.Context, store Store, from, to UserID, charID catalog.CharacterID) (OwnedCharacter, error) {
 	tx, err := store.WithTx(ctx)
 	if err != nil {
 		return OwnedCharacter{}, err

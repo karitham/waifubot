@@ -42,7 +42,7 @@ func (f *FakeTrackingService) SearchMedia(ctx context.Context, search string) ([
 }
 
 // GetMediaCharacters returns empty results for testing.
-func (f *FakeTrackingService) GetMediaCharacters(ctx context.Context, mediaId int64) ([]tracker.Character, error) {
+func (f *FakeTrackingService) GetMediaCharacters(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error) {
 	return nil, nil
 }
 

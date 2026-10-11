@@ -6,26 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestConvertIndexingStatus(t *testing.T) {
-	tests := []struct {
-		input string
-		want  IndexingStatus
-	}{
-		{"completed", IndexingCompleted},
-		{"in_progress", IndexingInProgress},
-		{"pending", IndexingPending},
-		{"", IndexingPending},
-		{"unknown_status", IndexingPending},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			got := ConvertIndexingStatus(tt.input)
-			assert.Equal(t, tt.want, got)
-		})
-	}
-}
-
 func TestSanitizeName(t *testing.T) {
 	tests := []struct {
 		name  string

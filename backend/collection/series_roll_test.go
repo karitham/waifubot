@@ -21,31 +21,31 @@ func TestSeriesRoll(t *testing.T) {
 	tests := []struct {
 		name       string
 		setup      func(m *collectiontest.MockStore, anime *collectiontest.MockAnimeService)
-		userID     uint64
-		mediaID    int64
+		userID     collection.UserID
+		mediaID    tracker.MediaID
 		wantErr    bool
 		errAs      error
-		wantCharID int64
+		wantCharID catalog.CharacterID
 	}{
 		{
 			name: "success",
 			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockAnimeService) {
-				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
+				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID, Tokens: 50}, nil
 				}
-				m.GetCollectionIDsFunc = func(_ context.Context, _ uint64) ([]int64, error) { return nil, nil }
-				anime.GetMediaCharactersFunc = func(_ context.Context, _ int64) ([]tracker.Character, error) {
+				m.GetCollectionIDsFunc = func(_ context.Context, _ collection.UserID) ([]catalog.CharacterID, error) { return nil, nil }
+				anime.GetMediaCharactersFunc = func(_ context.Context, _ tracker.MediaID) ([]tracker.Character, error) {
 					return []tracker.Character{
 						{ID: 10, Name: "Char10", ImageURL: "img10"},
 						{ID: 20, Name: "Char20", ImageURL: "img20"},
 					}, nil
 				}
 				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ int64, _ collection.Source, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID, _ collection.Source, _ time.Time) error {
 					return nil
 				}
-				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error { return nil }
-				m.SpendTokensFunc = func(_ context.Context, _ uint64, _ int32) (collection.User, error) {
+				m.RemoveFromWishlistFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) error { return nil }
+				m.SpendTokensFunc = func(_ context.Context, _ collection.UserID, _ int32) (collection.User, error) {
 					return collection.User{}, nil
 				}
 			},
@@ -55,7 +55,7 @@ func TestSeriesRoll(t *testing.T) {
 		{
 			name: "insufficient_tokens",
 			setup: func(m *collectiontest.MockStore, _ *collectiontest.MockAnimeService) {
-				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
+				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID, Tokens: 5}, nil
 				}
 			},
@@ -67,11 +67,11 @@ func TestSeriesRoll(t *testing.T) {
 		{
 			name: "media_not_found",
 			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockAnimeService) {
-				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
+				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID, Tokens: 50}, nil
 				}
-				m.GetCollectionIDsFunc = func(_ context.Context, _ uint64) ([]int64, error) { return nil, nil }
-				anime.GetMediaCharactersFunc = func(_ context.Context, _ int64) ([]tracker.Character, error) {
+				m.GetCollectionIDsFunc = func(_ context.Context, _ collection.UserID) ([]catalog.CharacterID, error) { return nil, nil }
+				anime.GetMediaCharactersFunc = func(_ context.Context, _ tracker.MediaID) ([]tracker.Character, error) {
 					return nil, nil
 				}
 			},
@@ -83,13 +83,13 @@ func TestSeriesRoll(t *testing.T) {
 		{
 			name: "all_owned",
 			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockAnimeService) {
-				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
+				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID, Tokens: 50}, nil
 				}
-				m.GetCollectionIDsFunc = func(_ context.Context, _ uint64) ([]int64, error) {
-					return []int64{10, 20}, nil
+				m.GetCollectionIDsFunc = func(_ context.Context, _ collection.UserID) ([]catalog.CharacterID, error) {
+					return []catalog.CharacterID{10, 20}, nil
 				}
-				anime.GetMediaCharactersFunc = func(_ context.Context, _ int64) ([]tracker.Character, error) {
+				anime.GetMediaCharactersFunc = func(_ context.Context, _ tracker.MediaID) ([]tracker.Character, error) {
 					return []tracker.Character{
 						{ID: 10, Name: "Char10", ImageURL: "img10"},
 						{ID: 20, Name: "Char20", ImageURL: "img20"},
@@ -104,13 +104,13 @@ func TestSeriesRoll(t *testing.T) {
 		{
 			name: "partial_owned",
 			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockAnimeService) {
-				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
+				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID, Tokens: 50}, nil
 				}
-				m.GetCollectionIDsFunc = func(_ context.Context, _ uint64) ([]int64, error) {
-					return []int64{10}, nil
+				m.GetCollectionIDsFunc = func(_ context.Context, _ collection.UserID) ([]catalog.CharacterID, error) {
+					return []catalog.CharacterID{10}, nil
 				}
-				anime.GetMediaCharactersFunc = func(_ context.Context, _ int64) ([]tracker.Character, error) {
+				anime.GetMediaCharactersFunc = func(_ context.Context, _ tracker.MediaID) ([]tracker.Character, error) {
 					return []tracker.Character{
 						{ID: 10, Name: "Char10", ImageURL: "img10"},
 						{ID: 20, Name: "Char20", ImageURL: "img20"},
@@ -118,11 +118,11 @@ func TestSeriesRoll(t *testing.T) {
 					}, nil
 				}
 				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ int64, _ collection.Source, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID, _ collection.Source, _ time.Time) error {
 					return nil
 				}
-				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error { return nil }
-				m.SpendTokensFunc = func(_ context.Context, _ uint64, _ int32) (collection.User, error) {
+				m.RemoveFromWishlistFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) error { return nil }
+				m.SpendTokensFunc = func(_ context.Context, _ collection.UserID, _ int32) (collection.User, error) {
 					return collection.User{}, nil
 				}
 			},
@@ -132,12 +132,12 @@ func TestSeriesRoll(t *testing.T) {
 		{
 			name: "new_user_insufficient_tokens",
 			setup: func(m *collectiontest.MockStore, _ *collectiontest.MockAnimeService) {
-				m.GetUserFunc = func(_ context.Context, _ uint64) (collection.User, error) {
+				m.GetUserFunc = func(_ context.Context, _ collection.UserID) (collection.User, error) {
 					return collection.User{}, collection.ErrNotFound
 				}
 				// A failed acquisition must not create the account: if it
 				// did, this error would replace ErrInsufficientTokens.
-				m.CreateUserFunc = func(_ context.Context, _ uint64) error {
+				m.CreateUserFunc = func(_ context.Context, _ collection.UserID) error {
 					return assert.AnError
 				}
 			},
@@ -149,23 +149,23 @@ func TestSeriesRoll(t *testing.T) {
 		{
 			name: "remove_from_wishlist_fails_roll",
 			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockAnimeService) {
-				m.GetUserFunc = func(_ context.Context, userID uint64) (collection.User, error) {
+				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID, Tokens: 50}, nil
 				}
-				m.GetCollectionIDsFunc = func(_ context.Context, _ uint64) ([]int64, error) { return nil, nil }
-				anime.GetMediaCharactersFunc = func(_ context.Context, _ int64) ([]tracker.Character, error) {
+				m.GetCollectionIDsFunc = func(_ context.Context, _ collection.UserID) ([]catalog.CharacterID, error) { return nil, nil }
+				anime.GetMediaCharactersFunc = func(_ context.Context, _ tracker.MediaID) ([]tracker.Character, error) {
 					return []tracker.Character{
 						{ID: 10, Name: "Char10", ImageURL: "img10"},
 					}, nil
 				}
 				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ int64, _ collection.Source, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID, _ collection.Source, _ time.Time) error {
 					return nil
 				}
-				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error {
+				m.RemoveFromWishlistFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) error {
 					return assert.AnError
 				}
-				m.SpendTokensFunc = func(_ context.Context, _ uint64, _ int32) (collection.User, error) {
+				m.SpendTokensFunc = func(_ context.Context, _ collection.UserID, _ int32) (collection.User, error) {
 					return collection.User{}, nil
 				}
 			},

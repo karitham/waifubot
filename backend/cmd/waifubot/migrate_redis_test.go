@@ -5,13 +5,13 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/Karitham/corde"
 	"github.com/fxamacker/cbor/v2"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/karitham/waifubot/catalog"
+	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage/dropstore"
 	"github.com/karitham/waifubot/tracker"
 )
@@ -40,10 +40,10 @@ func (m *mockDB) Exec(ctx context.Context, sql string, args ...any) (pgconn.Comm
 
 type mockDropStore struct {
 	dropstore.Store
-	setFunc func(ctx context.Context, id corde.Snowflake, data catalog.Character) error
+	setFunc func(ctx context.Context, id collection.ChannelID, data catalog.Character) error
 }
 
-func (m *mockDropStore) Set(ctx context.Context, id corde.Snowflake, data catalog.Character) error {
+func (m *mockDropStore) Set(ctx context.Context, id collection.ChannelID, data catalog.Character) error {
 	return m.setFunc(ctx, id, data)
 }
 
@@ -124,7 +124,7 @@ func TestMigrateDrops(t *testing.T) {
 
 	var capturedDrop catalog.Character
 	ds := &mockDropStore{
-		setFunc: func(ctx context.Context, id corde.Snowflake, data catalog.Character) error {
+		setFunc: func(ctx context.Context, id collection.ChannelID, data catalog.Character) error {
 			capturedDrop = data
 			return nil
 		},

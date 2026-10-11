@@ -16,6 +16,7 @@ import (
 
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/catalogpg"
 	"github.com/karitham/waifubot/storage/collectionpg"
@@ -66,7 +67,7 @@ func buildStore(s storage.Store) collection.Store {
 		collectionpg.New(s.CollectionStore(), s.WishlistStore()),
 		droppg.New(s.DropStore()),
 		guildpg.New(s.GuildStore()),
-		catalogpg.New(s.CollectionStore(), s.GuildStore()),
+		catalogpg.New(s.CollectionStore()),
 		s.DB(),
 		nil,
 	)
@@ -88,12 +89,30 @@ func setupStore(t *testing.T) collection.Store {
 	return buildStore(txStore)
 }
 
-func setupStoreWithSeed(t *testing.T, userIDs ...uint64) collection.Store {
+// setupStoreWithHolders returns a store plus the guild holder querier that
+// lives on the same transaction.
+func setupStoreWithHolders(t *testing.T) (collection.Store, guild.HolderQuerier) {
+	t.Helper()
+
+	dbStore, err := storage.NewStore(t.Context(), testDBURL)
+	require.NoError(t, err)
+
+	txStore, err := dbStore.Tx(t.Context())
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_ = txStore.Rollback(t.Context())
+	})
+
+	return buildStore(txStore), guildpg.New(txStore.GuildStore())
+}
+
+func setupStoreWithSeed(t *testing.T, userIDs ...collection.UserID) collection.Store {
 	t.Helper()
 	store := setupStore(t)
 	ctx := t.Context()
 	for _, uid := range userIDs {
-		require.NoError(t, store.CreateUser(ctx, uid))
+		require.NoError(t, store.CreateUser(ctx, collection.UserID(uid)))
 	}
 	return store
 }
@@ -101,9 +120,9 @@ func setupStoreWithSeed(t *testing.T, userIDs ...uint64) collection.Store {
 func TestIntegration_UserCRUD(t *testing.T) {
 	store := setupStore(t)
 	ctx := t.Context()
-	const uid uint64 = 900001
+	const uid collection.UserID = 900001
 
-	require.NoError(t, store.CreateUser(ctx, uid))
+	require.NoError(t, store.CreateUser(ctx, collection.UserID(uid)))
 
 	user, err := store.GetUser(ctx, uid)
 	require.NoError(t, err)
@@ -116,7 +135,7 @@ func TestIntegration_UserCRUD(t *testing.T) {
 
 	require.NoError(t, store.UpdateFavorite(ctx, uid, 42))
 	user, _ = store.GetUser(ctx, uid)
-	assert.Equal(t, int64(42), user.Favorite)
+	assert.Equal(t, catalog.CharacterID(42), user.Favorite)
 
 	require.NoError(t, store.UpdateAnilistURL(ctx, uid, "https://anilist.co/user/test"))
 	user, _ = store.GetUser(ctx, uid)
@@ -137,7 +156,7 @@ func TestIntegration_UserCRUD(t *testing.T) {
 }
 
 func TestIntegration_CharacterAndCollection(t *testing.T) {
-	const uid uint64 = 900002
+	const uid collection.UserID = 900002
 	store := setupStoreWithSeed(t, uid)
 	ctx := t.Context()
 
@@ -146,7 +165,7 @@ func TestIntegration_CharacterAndCollection(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "TestChar", char.Name)
 
-	err = store.AddToCollection(ctx, uid, 1001, collection.SourceRoll, time.Now())
+	err = store.AddToCollection(ctx, collection.UserID(uid), catalog.CharacterID(1001), collection.SourceRoll, time.Now())
 	require.NoError(t, err, "first AddToCollection should succeed")
 
 	chars, err := store.GetCollection(ctx, uid)
@@ -156,10 +175,10 @@ func TestIntegration_CharacterAndCollection(t *testing.T) {
 	assert.Equal(t, collection.SourceRoll, chars[0].Source)
 
 	ids, _ := store.GetCollectionIDs(ctx, uid)
-	assert.Equal(t, []int64{1001}, ids)
+	assert.Equal(t, []catalog.CharacterID{1001}, ids)
 
 	oc, _ := store.GetOwnedCharacter(ctx, uid, 1001)
-	assert.Equal(t, int64(1001), oc.ID)
+	assert.Equal(t, catalog.CharacterID(1001), oc.ID)
 	_, err = store.GetOwnedCharacter(ctx, uid, 9999)
 	require.ErrorIs(t, err, collection.ErrNotFound)
 
@@ -172,24 +191,24 @@ func TestIntegration_CharacterAndCollection(t *testing.T) {
 }
 
 func TestIntegration_CharacterAlreadyOwned(t *testing.T) {
-	const uid uint64 = 900099
+	const uid collection.UserID = 900099
 	store := setupStoreWithSeed(t, uid)
 	ctx := t.Context()
 
 	require.NoError(t, store.UpsertCharacter(ctx, catalog.Character{ID: 1099, Name: "DupeChar", Image: "dupe.jpg"}))
-	require.NoError(t, store.AddToCollection(ctx, uid, 1099, collection.SourceRoll, time.Now()))
+	require.NoError(t, store.AddToCollection(ctx, collection.UserID(uid), catalog.CharacterID(1099), collection.SourceRoll, time.Now()))
 
-	err := store.AddToCollection(ctx, uid, 1099, collection.SourceRoll, time.Now())
+	err := store.AddToCollection(ctx, collection.UserID(uid), catalog.CharacterID(1099), collection.SourceRoll, time.Now())
 	require.ErrorIs(t, err, collection.ErrAlreadyOwned)
 }
 
 func TestIntegration_GiveCharacter(t *testing.T) {
-	const u1, u2 uint64 = 900003, 900004
+	const u1, u2 collection.UserID = 900003, 900004
 	store := setupStoreWithSeed(t, u1, u2)
 	ctx := t.Context()
 
 	require.NoError(t, store.UpsertCharacter(ctx, catalog.Character{ID: 2001, Name: "GiveChar", Image: "give.jpg"}))
-	require.NoError(t, store.AddToCollection(ctx, u1, 2001, collection.SourceRoll, time.Now()))
+	require.NoError(t, store.AddToCollection(ctx, collection.UserID(u1), catalog.CharacterID(2001), collection.SourceRoll, time.Now()))
 
 	oc, err := store.GiveCharacter(ctx, u1, u2, 2001)
 	require.NoError(t, err)
@@ -198,17 +217,17 @@ func TestIntegration_GiveCharacter(t *testing.T) {
 }
 
 func TestIntegration_SearchCharacters(t *testing.T) {
-	const uid uint64 = 900005
+	const uid collection.UserID = 900005
 	store := setupStoreWithSeed(t, uid)
 	ctx := t.Context()
 
 	require.NoError(t, store.UpsertCharacter(ctx, catalog.Character{ID: 3001, Name: "Searchable Char", Image: "s.jpg"}))
-	require.NoError(t, store.AddToCollection(ctx, uid, 3001, collection.SourceRoll, time.Now()))
+	require.NoError(t, store.AddToCollection(ctx, collection.UserID(uid), catalog.CharacterID(3001), collection.SourceRoll, time.Now()))
 
 	results, err := store.SearchCharacters(ctx, uid, "Search")
 	require.NoError(t, err)
 	require.Len(t, results, 1)
-	assert.Equal(t, int64(3001), results[0].ID)
+	assert.Equal(t, catalog.CharacterID(3001), results[0].ID)
 
 	results, err = store.SearchGlobalCharacters(ctx, "Searchable")
 	require.NoError(t, err)
@@ -224,23 +243,23 @@ func TestIntegration_SearchCharacters(t *testing.T) {
 }
 
 func TestIntegration_Transaction(t *testing.T) {
-	const uid uint64 = 900006
+	const uid collection.UserID = 900006
 
 	dbStore, err := storage.NewStore(t.Context(), testDBURL)
 	require.NoError(t, err)
 	ctx := t.Context()
 
-	require.NoError(t, dbStore.UserStore().Create(ctx, uid))
+	require.NoError(t, dbStore.UserStore().Create(ctx, uint64(uid)))
 
 	txStore, err := dbStore.Tx(ctx)
 	require.NoError(t, err)
 	require.NoError(t, txStore.UserStore().UpdateQuote(ctx, userstore.UpdateQuoteParams{
 		Quote:  "committed",
-		UserID: uid,
+		UserID: uint64(uid),
 	}))
 	require.NoError(t, txStore.Commit(ctx))
 
-	user, err := dbStore.UserStore().Get(ctx, uid)
+	user, err := dbStore.UserStore().Get(ctx, uint64(uid))
 	require.NoError(t, err)
 	assert.Equal(t, "committed", user.Quote)
 
@@ -248,11 +267,11 @@ func TestIntegration_Transaction(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, txStore.UserStore().UpdateQuote(ctx, userstore.UpdateQuoteParams{
 		Quote:  "rolled back",
-		UserID: uid,
+		UserID: uint64(uid),
 	}))
 	require.NoError(t, txStore.Rollback(ctx))
 
-	user, err = dbStore.UserStore().Get(ctx, uid)
+	user, err = dbStore.UserStore().Get(ctx, uint64(uid))
 	require.NoError(t, err)
 	assert.Equal(t, "committed", user.Quote)
 }
@@ -260,28 +279,28 @@ func TestIntegration_Transaction(t *testing.T) {
 func TestIntegration_GuildOperations(t *testing.T) {
 	store := setupStore(t)
 	ctx := t.Context()
-	const gid uint64 = 900007
+	const gid guild.GuildID = 900007
 
 	require.NoError(t, store.StartIndexingJob(ctx, gid))
 	status, _ := store.IsGuildIndexed(ctx, gid)
-	assert.Equal(t, collection.IndexingInProgress, status.Status)
+	assert.Equal(t, guild.IndexingInProgress, status.Status)
 
-	require.NoError(t, store.UpsertGuildMembers(ctx, gid, []uint64{100, 200, 300}, time.Now()))
+	require.NoError(t, store.UpsertGuildMembers(ctx, gid, []guild.MemberID{100, 200, 300}, time.Now()))
 	require.NoError(t, store.CompleteIndexingJob(ctx, gid))
 
 	status, _ = store.IsGuildIndexed(ctx, gid)
-	assert.Equal(t, collection.IndexingCompleted, status.Status)
+	assert.Equal(t, guild.IndexingCompleted, status.Status)
 
-	require.NoError(t, store.DeleteGuildMembersNotIn(ctx, gid, []uint64{100, 200}))
-	require.NoError(t, store.UpsertGuildMembers(ctx, gid, []uint64{100, 200}, time.Now()))
+	require.NoError(t, store.DeleteGuildMembersNotIn(ctx, gid, []guild.MemberID{100, 200}))
+	require.NoError(t, store.UpsertGuildMembers(ctx, gid, []guild.MemberID{100, 200}, time.Now()))
 }
 
 func TestIntegration_TokenConsistency(t *testing.T) {
-	const uid uint64 = 900008
+	const uid collection.UserID = 900008
 	store := setupStore(t)
 	ctx := t.Context()
 
-	require.NoError(t, store.CreateUser(ctx, uid))
+	require.NoError(t, store.CreateUser(ctx, collection.UserID(uid)))
 	user, err := store.AddTokens(ctx, uid, 100)
 	require.NoError(t, err)
 	assert.Equal(t, int32(100), user.Tokens)
@@ -297,7 +316,7 @@ func TestIntegration_TokenConsistency(t *testing.T) {
 }
 
 func TestIntegration_WishlistBridge(t *testing.T) {
-	const uid uint64 = 900009
+	const uid collection.UserID = 900009
 	store := setupStoreWithSeed(t, uid)
 	ctx := t.Context()
 
@@ -314,11 +333,11 @@ func TestIntegration_DropOperations(t *testing.T) {
 }
 
 func TestIntegration_GetUserByAnilist(t *testing.T) {
-	const uid uint64 = 900010
+	const uid collection.UserID = 900010
 	store := setupStore(t)
 	ctx := t.Context()
 
-	require.NoError(t, store.CreateUser(ctx, uid))
+	require.NoError(t, store.CreateUser(ctx, collection.UserID(uid)))
 	const url = "https://anilist.co/user/test900010"
 	require.NoError(t, store.UpdateAnilistURL(ctx, uid, url))
 
@@ -328,11 +347,11 @@ func TestIntegration_GetUserByAnilist(t *testing.T) {
 }
 
 func TestIntegration_GetUserByDiscordUsername(t *testing.T) {
-	const uid uint64 = 900011
+	const uid collection.UserID = 900011
 	store := setupStore(t)
 	ctx := t.Context()
 
-	require.NoError(t, store.CreateUser(ctx, uid))
+	require.NoError(t, store.CreateUser(ctx, collection.UserID(uid)))
 	const username = "testuser900011"
 	require.NoError(t, store.UpdateDiscordInfo(ctx, uid, username, "avatar_hash", time.Now()))
 
@@ -342,22 +361,26 @@ func TestIntegration_GetUserByDiscordUsername(t *testing.T) {
 }
 
 func TestIntegration_GetCharacterHoldersInGuild(t *testing.T) {
-	const u1, u2, gid uint64 = 900012, 900013, 900014
-	store := setupStoreWithSeed(t, u1, u2)
+	const u1, u2 collection.UserID = 900012, 900013
+	const gid guild.GuildID = 900014
+	store, holdersStore := setupStoreWithHolders(t)
 	ctx := t.Context()
 
+	require.NoError(t, store.CreateUser(ctx, u1))
+	require.NoError(t, store.CreateUser(ctx, u2))
+
 	require.NoError(t, store.StartIndexingJob(ctx, gid))
-	require.NoError(t, store.UpsertGuildMembers(ctx, gid, []uint64{u1, u2}, time.Now()))
+	require.NoError(t, store.UpsertGuildMembers(ctx, gid, []guild.MemberID{guild.MemberID(u1), guild.MemberID(u2)}, time.Now()))
 	require.NoError(t, store.CompleteIndexingJob(ctx, gid))
 
 	require.NoError(t, store.UpsertCharacter(ctx, catalog.Character{ID: 5001, Name: "GuildChar"}))
-	require.NoError(t, store.AddToCollection(ctx, u1, 5001, collection.SourceRoll, time.Now()))
+	require.NoError(t, store.AddToCollection(ctx, u1, catalog.CharacterID(5001), collection.SourceRoll, time.Now()))
 
-	holders, err := store.GetCharacterHoldersInGuild(ctx, gid, 5001)
+	holders, err := holdersStore.GetCharacterHoldersInGuild(ctx, gid, 5001)
 	require.NoError(t, err)
-	assert.Equal(t, []uint64{u1}, holders)
+	assert.Equal(t, []guild.MemberID{guild.MemberID(u1)}, holders)
 
-	holders, _ = store.GetCharacterHoldersInGuild(ctx, gid, 9999)
+	holders, _ = holdersStore.GetCharacterHoldersInGuild(ctx, gid, 9999)
 	assert.Empty(t, holders)
 }
 
@@ -368,18 +391,18 @@ func TestIntegration_RandomCharNotOwned_ExcludesInactive(t *testing.T) {
 	// Insert active characters.
 	for i := int64(1); i <= 10; i++ {
 		require.NoError(t, store.UpsertCharacter(ctx, catalog.Character{
-			ID: i, Name: fmt.Sprintf("Char%d", i), Image: "img", Favorites: 100,
+			ID: catalog.CharacterID(i), Name: fmt.Sprintf("Char%d", i), Image: "img", Favorites: 100,
 		}))
 	}
 
 	// Mark some as inactive.
-	require.NoError(t, store.MarkCharactersInactive(ctx, []int64{3, 7, 9}))
+	require.NoError(t, store.MarkCharactersInactive(ctx, []catalog.CharacterID{3, 7, 9}))
 
 	// Roll 50 times and ensure we never get 3, 7, or 9.
 	for range 50 {
 		char, err := store.RandomCharNotOwned(ctx, 999, collection.RollWeightExponent) // 999 = user with no collection
 		require.NoError(t, err)
-		assert.NotContains(t, []int64{3, 7, 9}, char.ID,
+		assert.NotContains(t, []catalog.CharacterID{3, 7, 9}, char.ID,
 			"inactive character %d was rolled", char.ID)
 	}
 }

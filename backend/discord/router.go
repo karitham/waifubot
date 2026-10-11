@@ -48,7 +48,7 @@ type TrackingService interface {
 	User(ctx context.Context, name string) ([]tracker.User, error)
 	Character(ctx context.Context, name string) ([]tracker.Character, error)
 	SearchMedia(ctx context.Context, search string) ([]tracker.Media, error)
-	GetMediaCharacters(ctx context.Context, mediaId int64) ([]tracker.Character, error)
+	GetMediaCharacters(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error)
 }
 
 // CommandStore handles discord command hash persistence.
@@ -70,6 +70,7 @@ type Router struct {
 	InterStore        interactionstore.Store
 	GuildIndexer      *guild.Indexer
 	GuildOps          guild.GuildQuerier
+	Holders           guild.HolderQuerier
 	guildTxFn         func(context.Context) (guild.TxQuerier, error)
 	AppID             corde.Snowflake
 	GuildID           *corde.Snowflake
@@ -118,7 +119,7 @@ func (r *Router) Register() *corde.Mux {
 		guildIndexer:  r.GuildIndexer,
 		guildTxFn:     r.guildTxFn,
 	}
-	holdersHandler := &HoldersHandler{guildOps: r.GuildOps, catalog: r.Catalog, guildIndexer: r.GuildIndexer, guildTxFn: r.guildTxFn}
+	holdersHandler := &HoldersHandler{guildOps: r.GuildOps, catalog: r.Catalog, holders: r.Holders, guildIndexer: r.GuildIndexer, guildTxFn: r.guildTxFn}
 	rollHandler := &RollHandler{
 		rollService: collection.NewRollService(r.Store, collection.RollConfig{RollCooldown: r.RollCooldown}),
 		wishlist:    r.WishlistStore,

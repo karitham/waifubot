@@ -11,6 +11,7 @@ import (
 
 	"github.com/Khan/genqlient/graphql"
 
+	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/discord"
 	"github.com/karitham/waifubot/tracker"
 )
@@ -97,7 +98,7 @@ func (a *Anilist) media(ctx context.Context, title string, t MediaType) ([]track
 	resp := make([]tracker.Media, len(media.Page.Media))
 	for i, m := range media.Page.Media {
 		resp[i] = tracker.Media{
-			ID:              m.Id,
+			ID:              tracker.MediaID(m.Id),
 			CoverImageURL:   m.CoverImage.Large,
 			BannerImageURL:  m.BannerImage,
 			CoverImageColor: ColorUint(m.CoverImage.Color),
@@ -141,7 +142,7 @@ func (a *Anilist) Character(ctx context.Context, name string) ([]tracker.Charact
 	resp := make([]tracker.Character, len(char.Page.Characters))
 	for i, c := range char.Page.Characters {
 		resp[i] = tracker.Character{
-			ID:          c.Id,
+			ID:          catalog.CharacterID(c.Id),
 			Name:        c.Name.Full,
 			ImageURL:    c.Image.Large,
 			URL:         c.SiteUrl,
@@ -177,7 +178,7 @@ func (a *Anilist) CharactersByIDs(ctx context.Context, ids []int64) ([]tracker.C
 		}
 
 		result = append(result, tracker.Character{
-			ID:         c.Id,
+			ID:         catalog.CharacterID(c.Id),
 			Name:       c.Name.Full,
 			ImageURL:   c.Image.Large,
 			Favorites:  int(c.Favourites),
@@ -217,7 +218,7 @@ func (a *Anilist) SearchMedia(ctx context.Context, search string) ([]tracker.Med
 	media := make([]tracker.Media, len(resp.Page.Media))
 	for i, m := range resp.Page.Media {
 		media[i] = tracker.Media{
-			ID:            m.Id,
+			ID:            tracker.MediaID(m.Id),
 			CoverImageURL: m.CoverImage.Large,
 			Title:         getSearchTitle(m.Title),
 			Type:          string(m.Type),
@@ -227,19 +228,19 @@ func (a *Anilist) SearchMedia(ctx context.Context, search string) ([]tracker.Med
 }
 
 // GetMediaCharacters returns up to 100 characters from a media, paginating as needed
-func (a *Anilist) GetMediaCharacters(ctx context.Context, mediaId int64) ([]tracker.Character, error) {
+func (a *Anilist) GetMediaCharacters(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error) {
 	var allCharacters []tracker.Character
 	page := int64(1)
 	maxPages := int64(4) // 25 * 4 = 100 characters max
 
 	for page <= maxPages {
-		resp, err := getMediaCharacters(ctx, a.c, mediaId, page)
+		resp, err := getMediaCharacters(ctx, a.c, int64(mediaID), page)
 		if err != nil {
 			return nil, err
 		}
 
 		if resp.Media.Id == 0 {
-			return nil, fmt.Errorf("media not found: %d", mediaId)
+			return nil, fmt.Errorf("media not found: %d", mediaID)
 		}
 
 		// Get media title from first page
@@ -250,7 +251,7 @@ func (a *Anilist) GetMediaCharacters(ctx context.Context, mediaId int64) ([]trac
 
 		for _, edge := range resp.Media.Characters.Edges {
 			allCharacters = append(allCharacters, tracker.Character{
-				ID:         edge.Node.Id,
+				ID:         catalog.CharacterID(edge.Node.Id),
 				Name:       edge.Node.Name.Full,
 				ImageURL:   edge.Node.Image.Large,
 				Favorites:  int(edge.Node.Favourites),

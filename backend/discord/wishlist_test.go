@@ -12,6 +12,7 @@ import (
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/collection/collectiontest"
 	"github.com/karitham/waifubot/discord/cordetest"
+	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/tracker"
 	"github.com/karitham/waifubot/wishlist"
 	"github.com/karitham/waifubot/wishlist/wishlisttest"
@@ -34,7 +35,7 @@ func TestWishlistHandler_CharacterAdd(t *testing.T) {
 				OptInt64Vals: map[string]int64{"character": 42},
 			},
 			collStore: &collectiontest.MockStore{
-				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
+				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{}, collection.ErrNotFound
 				},
 			},
@@ -50,7 +51,7 @@ func TestWishlistHandler_CharacterAdd(t *testing.T) {
 				OptInt64Vals: map[string]int64{"character": 42},
 			},
 			collStore: &collectiontest.MockStore{
-				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
+				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{ID: 42, Name: "TestChar"}, nil
 				},
 			},
@@ -65,7 +66,7 @@ func TestWishlistHandler_CharacterAdd(t *testing.T) {
 				OptInt64Vals: map[string]int64{"character": 42},
 			},
 			collStore: &collectiontest.MockStore{
-				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
+				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{}, errors.New("db error")
 				},
 			},
@@ -80,12 +81,12 @@ func TestWishlistHandler_CharacterAdd(t *testing.T) {
 				OptInt64Vals: map[string]int64{"character": 42},
 			},
 			collStore: &collectiontest.MockStore{
-				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
+				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{}, collection.ErrNotFound
 				},
 			},
 			wlStore: &wishlisttest.MockStore{
-				AddCharactersToWishlistFunc: func(ctx context.Context, userID uint64, characterIDs []int64) error {
+				AddCharactersToWishlistFunc: func(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) error {
 					return errors.New("db error")
 				},
 			},
@@ -140,7 +141,7 @@ func TestWishlistHandler_CharacterRemove(t *testing.T) {
 				OptInt64Vals: map[string]int64{"character": 42},
 			},
 			wlStore: &wishlisttest.MockStore{
-				RemoveCharactersFromWishlistFunc: func(ctx context.Context, userID uint64, characterIDs []int64) error {
+				RemoveCharactersFromWishlistFunc: func(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) error {
 					return errors.New("db error")
 				},
 			},
@@ -182,7 +183,7 @@ func TestWishlistHandler_CharacterList(t *testing.T) {
 				GuildIDVal:  1,
 			},
 			wlStore: &wishlisttest.MockStore{
-				GetUserCharacterWishlistFunc: func(ctx context.Context, userID uint64) ([]wishlist.Entry, error) {
+				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error) {
 					return []wishlist.Entry{
 						{ID: 1, Name: "Sakura"},
 						{ID: 2, Name: "Naruto"},
@@ -199,7 +200,7 @@ func TestWishlistHandler_CharacterList(t *testing.T) {
 				GuildIDVal:  1,
 			},
 			wlStore: &wishlisttest.MockStore{
-				GetUserCharacterWishlistFunc: func(ctx context.Context, userID uint64) ([]wishlist.Entry, error) {
+				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error) {
 					return []wishlist.Entry{}, nil
 				},
 			},
@@ -213,7 +214,7 @@ func TestWishlistHandler_CharacterList(t *testing.T) {
 				GuildIDVal:  1,
 			},
 			wlStore: &wishlisttest.MockStore{
-				GetUserCharacterWishlistFunc: func(ctx context.Context, userID uint64) ([]wishlist.Entry, error) {
+				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error) {
 					return nil, errors.New("db error")
 				},
 			},
@@ -264,7 +265,7 @@ func TestWishlistHandler_CharacterRemoveAll(t *testing.T) {
 				GuildIDVal:  1,
 			},
 			wlStore: &wishlisttest.MockStore{
-				RemoveAllFromWishlistFunc: func(ctx context.Context, userID uint64) error {
+				RemoveAllFromWishlistFunc: func(ctx context.Context, userID collection.UserID) error {
 					return errors.New("db error")
 				},
 			},
@@ -309,12 +310,12 @@ func TestWishlistHandler_MediaAdd(t *testing.T) {
 				OptInt64Vals: map[string]int64{"media": 10},
 			},
 			collStore: &collectiontest.MockStore{
-				GetCollectionIDsFunc: func(ctx context.Context, userID collection.UserID) ([]int64, error) {
+				GetCollectionIDsFunc: func(ctx context.Context, userID collection.UserID) ([]catalog.CharacterID, error) {
 					return nil, nil
 				},
 			},
 			animeService: &collectiontest.MockAnimeService{
-				GetMediaCharactersFunc: func(ctx context.Context, mediaId int64) ([]tracker.Character, error) {
+				GetMediaCharactersFunc: func(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error) {
 					return []tracker.Character{
 						{ID: 1, Name: "Char1", ImageURL: "http://img1", MediaTitle: "Anime1"},
 						{ID: 2, Name: "Char2", ImageURL: "http://img2", MediaTitle: "Anime1"},
@@ -333,12 +334,12 @@ func TestWishlistHandler_MediaAdd(t *testing.T) {
 				OptInt64Vals: map[string]int64{"media": 10},
 			},
 			collStore: &collectiontest.MockStore{
-				GetCollectionIDsFunc: func(ctx context.Context, userID collection.UserID) ([]int64, error) {
+				GetCollectionIDsFunc: func(ctx context.Context, userID collection.UserID) ([]catalog.CharacterID, error) {
 					return nil, nil
 				},
 			},
 			animeService: &collectiontest.MockAnimeService{
-				GetMediaCharactersFunc: func(ctx context.Context, mediaId int64) ([]tracker.Character, error) {
+				GetMediaCharactersFunc: func(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error) {
 					return nil, nil
 				},
 			},
@@ -381,10 +382,10 @@ func TestWishlistHandler_Holders(t *testing.T) {
 				GuildIDVal:  1,
 			},
 			wlStore: &wishlisttest.MockStore{
-				GetUserCharacterWishlistFunc: func(ctx context.Context, userID uint64) ([]wishlist.Entry, error) {
+				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error) {
 					return []wishlist.Entry{{ID: 1, Name: "Sakura"}}, nil
 				},
-				GetWishlistHoldersFunc: func(ctx context.Context, characterIDs []int64, userID, guildID uint64) ([]wishlist.UserCharacterSet, error) {
+				GetWishlistHoldersFunc: func(ctx context.Context, characterIDs []catalog.CharacterID, userID collection.UserID, guildID guild.GuildID) ([]wishlist.UserCharacterSet, error) {
 					return []wishlist.UserCharacterSet{
 						{UserID: 100, Characters: []wishlist.Entry{{ID: 1, Name: "Sakura"}}},
 					}, nil
@@ -400,7 +401,7 @@ func TestWishlistHandler_Holders(t *testing.T) {
 				GuildIDVal:  1,
 			},
 			wlStore: &wishlisttest.MockStore{
-				GetUserCharacterWishlistFunc: func(ctx context.Context, userID uint64) ([]wishlist.Entry, error) {
+				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error) {
 					return []wishlist.Entry{}, nil
 				},
 			},
@@ -414,10 +415,10 @@ func TestWishlistHandler_Holders(t *testing.T) {
 				GuildIDVal:  1,
 			},
 			wlStore: &wishlisttest.MockStore{
-				GetUserCharacterWishlistFunc: func(ctx context.Context, userID uint64) ([]wishlist.Entry, error) {
+				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error) {
 					return []wishlist.Entry{{ID: 1, Name: "Sakura"}}, nil
 				},
-				GetWishlistHoldersFunc: func(ctx context.Context, characterIDs []int64, userID, guildID uint64) ([]wishlist.UserCharacterSet, error) {
+				GetWishlistHoldersFunc: func(ctx context.Context, characterIDs []catalog.CharacterID, userID collection.UserID, guildID guild.GuildID) ([]wishlist.UserCharacterSet, error) {
 					return []wishlist.UserCharacterSet{}, nil
 				},
 			},
@@ -431,7 +432,7 @@ func TestWishlistHandler_Holders(t *testing.T) {
 				GuildIDVal:  1,
 			},
 			wlStore: &wishlisttest.MockStore{
-				GetUserCharacterWishlistFunc: func(ctx context.Context, userID uint64) ([]wishlist.Entry, error) {
+				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error) {
 					return nil, errors.New("db error")
 				},
 			},
@@ -472,7 +473,7 @@ func TestWishlistHandler_Wanted(t *testing.T) {
 				GuildIDVal:  1,
 			},
 			wlStore: &wishlisttest.MockStore{
-				GetWantedCharactersFunc: func(ctx context.Context, userID, guildID uint64) ([]wishlist.UserCharacterSet, error) {
+				GetWantedCharactersFunc: func(ctx context.Context, userID collection.UserID, guildID guild.GuildID) ([]wishlist.UserCharacterSet, error) {
 					return []wishlist.UserCharacterSet{
 						{UserID: 100, Characters: []wishlist.Entry{{ID: 1, Name: "Sakura"}}},
 					}, nil
@@ -488,7 +489,7 @@ func TestWishlistHandler_Wanted(t *testing.T) {
 				GuildIDVal:  1,
 			},
 			wlStore: &wishlisttest.MockStore{
-				GetWantedCharactersFunc: func(ctx context.Context, userID, guildID uint64) ([]wishlist.UserCharacterSet, error) {
+				GetWantedCharactersFunc: func(ctx context.Context, userID collection.UserID, guildID guild.GuildID) ([]wishlist.UserCharacterSet, error) {
 					return []wishlist.UserCharacterSet{}, nil
 				},
 			},
@@ -502,7 +503,7 @@ func TestWishlistHandler_Wanted(t *testing.T) {
 				GuildIDVal:  1,
 			},
 			wlStore: &wishlisttest.MockStore{
-				GetWantedCharactersFunc: func(ctx context.Context, userID, guildID uint64) ([]wishlist.UserCharacterSet, error) {
+				GetWantedCharactersFunc: func(ctx context.Context, userID collection.UserID, guildID guild.GuildID) ([]wishlist.UserCharacterSet, error) {
 					return nil, errors.New("db error")
 				},
 			},
@@ -548,7 +549,7 @@ func TestWishlistHandler_Compare(t *testing.T) {
 				HasResolvedUser: true,
 			},
 			wlStore: &wishlisttest.MockStore{
-				CompareWithUserFunc: func(ctx context.Context, userID1, userID2 uint64) (wishlist.WishlistComparison, error) {
+				CompareWithUserFunc: func(ctx context.Context, userID1, userID2 collection.UserID) (wishlist.WishlistComparison, error) {
 					return wishlist.WishlistComparison{
 						UserHasCharacters: []wishlist.Entry{{ID: 1, Name: "Sakura"}},
 					}, nil
@@ -579,7 +580,7 @@ func TestWishlistHandler_Compare(t *testing.T) {
 				HasResolvedUser: true,
 			},
 			wlStore: &wishlisttest.MockStore{
-				CompareWithUserFunc: func(ctx context.Context, userID1, userID2 uint64) (wishlist.WishlistComparison, error) {
+				CompareWithUserFunc: func(ctx context.Context, userID1, userID2 collection.UserID) (wishlist.WishlistComparison, error) {
 					return wishlist.WishlistComparison{}, errors.New("db error")
 				},
 			},
@@ -776,7 +777,7 @@ func TestWishlistHandler_WishlistAutocomplete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			wlStore := &wishlisttest.MockStore{
-				GetUserCharacterWishlistFunc: func(ctx context.Context, userID uint64) ([]wishlist.Entry, error) {
+				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error) {
 					return tt.wishlistChars, tt.wishlistErr
 				},
 			}
