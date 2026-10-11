@@ -120,8 +120,7 @@ type RecordRollParams struct {
 	Threshold pgtype.Timestamp
 }
 
-// Records a roll only when the user's cooldown has elapsed. The
-// conditional update is what serializes concurrent free rolls.
+// Zero rows affected means the cooldown is still active.
 func (q *Queries) RecordRoll(ctx context.Context, arg RecordRollParams) (int64, error) {
 	result, err := q.db.Exec(ctx, recordRoll, arg.Date, arg.UserID, arg.Threshold)
 	if err != nil {

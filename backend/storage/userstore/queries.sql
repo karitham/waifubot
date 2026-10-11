@@ -70,8 +70,7 @@ WHERE
   user_id = $2;
 
 -- name: RecordRoll :execrows
--- Records a roll only when the user's cooldown has elapsed. The
--- conditional update is what serializes concurrent free rolls.
+-- Zero rows affected means the cooldown is still active.
 UPDATE users
 SET
   date = $1

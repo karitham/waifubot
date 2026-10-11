@@ -58,10 +58,6 @@ func (p *Pg) GetUserByDiscordUsername(ctx context.Context, username string) (col
 	return toUser(u), nil
 }
 
-// RecordRoll atomically records a roll for the user, but only when the
-// cooldown has elapsed; the conditional update is what serializes
-// concurrent free rolls. When the cooldown is still active it returns
-// ErrRollCooldown with the time the user may roll again.
 func (p *Pg) RecordRoll(ctx context.Context, userID collection.UserID, now time.Time, cooldown time.Duration) error {
 	rows, err := p.Q.RecordRoll(ctx, userstore.RecordRollParams{
 		Date:      pgtype.Timestamp{Time: now.UTC(), Valid: true},
