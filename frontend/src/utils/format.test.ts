@@ -10,7 +10,7 @@ describe("mapCharType", () => {
 
   it("lowercases anything it has no special case for", () => {
     expect(mapCharType("ROLL")).toBe("roll");
-    expect(mapCharType("GIVE")).toBe("give");
+    expect(mapCharType("CLAIM")).toBe("claim");
   });
 
   it("falls back for empty input", () => {

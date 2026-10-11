@@ -218,7 +218,6 @@ export function getWishlist(userId: string, opts?: Oazapfts.RequestOpts) {
 export enum Type {
     Roll = "ROLL",
     Claim = "CLAIM",
-    Give = "GIVE",
     Old = "OLD",
     SeriesRoll = "SERIES_ROLL",
     Trade = "TRADE"

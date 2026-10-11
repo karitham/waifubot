@@ -214,8 +214,6 @@ func (s *CharacterType) Decode(d *jx.Decoder) error {
 		*s = CharacterTypeROLL
 	case CharacterTypeCLAIM:
 		*s = CharacterTypeCLAIM
-	case CharacterTypeGIVE:
-		*s = CharacterTypeGIVE
 	case CharacterTypeOLD:
 		*s = CharacterTypeOLD
 	case CharacterTypeSERIESROLL:

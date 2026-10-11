@@ -384,7 +384,6 @@ components:
           enum:
             - ROLL
             - CLAIM
-            - GIVE
             - OLD
             - SERIES_ROLL
             - TRADE

@@ -96,9 +96,6 @@ export default (props: { char: CardCharacter; class?: string }) => {
                   <Match when={props.char.type === "SERIES_ROLL"}>
                     <span class="i-ph-target text-subtextA" />
                   </Match>
-                  <Match when={props.char.type === "GIVE"}>
-                    <span class="i-ph-gift text-subtextA" />
-                  </Match>
                   <Match when={props.char.type === "TRADE"}>
                     <span class="i-ph-arrows-left-right text-subtextA" />
                   </Match>

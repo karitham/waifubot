@@ -91,7 +91,6 @@ type CharacterType string
 const (
 	CharacterTypeROLL       CharacterType = "ROLL"
 	CharacterTypeCLAIM      CharacterType = "CLAIM"
-	CharacterTypeGIVE       CharacterType = "GIVE"
 	CharacterTypeOLD        CharacterType = "OLD"
 	CharacterTypeSERIESROLL CharacterType = "SERIES_ROLL"
 	CharacterTypeTRADE      CharacterType = "TRADE"
@@ -102,7 +101,6 @@ func (CharacterType) AllValues() []CharacterType {
 	return []CharacterType{
 		CharacterTypeROLL,
 		CharacterTypeCLAIM,
-		CharacterTypeGIVE,
 		CharacterTypeOLD,
 		CharacterTypeSERIESROLL,
 		CharacterTypeTRADE,
@@ -115,8 +113,6 @@ func (s CharacterType) MarshalText() ([]byte, error) {
 	case CharacterTypeROLL:
 		return []byte(s), nil
 	case CharacterTypeCLAIM:
-		return []byte(s), nil
-	case CharacterTypeGIVE:
 		return []byte(s), nil
 	case CharacterTypeOLD:
 		return []byte(s), nil
@@ -137,9 +133,6 @@ func (s *CharacterType) UnmarshalText(data []byte) error {
 		return nil
 	case CharacterTypeCLAIM:
 		*s = CharacterTypeCLAIM
-		return nil
-	case CharacterTypeGIVE:
-		*s = CharacterTypeGIVE
 		return nil
 	case CharacterTypeOLD:
 		*s = CharacterTypeOLD
@@ -373,6 +366,11 @@ func (o *OptNilCharacterType) SetToNull() {
 	o.Value = v
 }
 
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilCharacterType) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
 // Get returns value and boolean that denotes whether value was set.
 func (o OptNilCharacterType) Get() (v CharacterType, ok bool) {
 	if o.Null {
@@ -434,6 +432,11 @@ func (o *OptNilDateTime) SetToNull() {
 	o.Null = true
 	var v time.Time
 	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilDateTime) IsEmpty() bool {
+	return !o.Set && !o.Null
 }
 
 // Get returns value and boolean that denotes whether value was set.

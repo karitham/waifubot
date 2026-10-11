@@ -45,8 +45,6 @@ func (s CharacterType) Validate() error {
 		return nil
 	case "CLAIM":
 		return nil
-	case "GIVE":
-		return nil
 	case "OLD":
 		return nil
 	case "SERIES_ROLL":

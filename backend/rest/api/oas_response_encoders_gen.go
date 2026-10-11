@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-faster/errors"
 	"github.com/go-faster/jx"
-	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -16,7 +15,6 @@ func encodeFindUserResponse(response FindUserRes, w http.ResponseWriter, span tr
 	case *UserIdResponse:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(200)
-		span.SetStatus(codes.Ok, http.StatusText(200))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -29,7 +27,6 @@ func encodeFindUserResponse(response FindUserRes, w http.ResponseWriter, span tr
 	case *FindUserBadRequest:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
-		span.SetStatus(codes.Error, http.StatusText(400))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -42,7 +39,6 @@ func encodeFindUserResponse(response FindUserRes, w http.ResponseWriter, span tr
 	case *FindUserNotFound:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(404)
-		span.SetStatus(codes.Error, http.StatusText(404))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -62,7 +58,6 @@ func encodeFindUserV1Response(response FindUserV1Res, w http.ResponseWriter, spa
 	case *UserIdResponse:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(200)
-		span.SetStatus(codes.Ok, http.StatusText(200))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -75,7 +70,6 @@ func encodeFindUserV1Response(response FindUserV1Res, w http.ResponseWriter, spa
 	case *FindUserV1BadRequest:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
-		span.SetStatus(codes.Error, http.StatusText(400))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -88,7 +82,6 @@ func encodeFindUserV1Response(response FindUserV1Res, w http.ResponseWriter, spa
 	case *FindUserV1NotFound:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(404)
-		span.SetStatus(codes.Error, http.StatusText(404))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -108,7 +101,6 @@ func encodeGetCollectionV1Response(response GetCollectionV1Res, w http.ResponseW
 	case *CollectionResponse:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(200)
-		span.SetStatus(codes.Ok, http.StatusText(200))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -121,7 +113,6 @@ func encodeGetCollectionV1Response(response GetCollectionV1Res, w http.ResponseW
 	case *GetCollectionV1BadRequest:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
-		span.SetStatus(codes.Error, http.StatusText(400))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -134,7 +125,6 @@ func encodeGetCollectionV1Response(response GetCollectionV1Res, w http.ResponseW
 	case *GetCollectionV1NotFound:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(404)
-		span.SetStatus(codes.Error, http.StatusText(404))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -154,7 +144,6 @@ func encodeGetProfileV1Response(response GetProfileV1Res, w http.ResponseWriter,
 	case *UserProfile:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(200)
-		span.SetStatus(codes.Ok, http.StatusText(200))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -167,7 +156,6 @@ func encodeGetProfileV1Response(response GetProfileV1Res, w http.ResponseWriter,
 	case *GetProfileV1BadRequest:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
-		span.SetStatus(codes.Error, http.StatusText(400))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -180,7 +168,6 @@ func encodeGetProfileV1Response(response GetProfileV1Res, w http.ResponseWriter,
 	case *GetProfileV1NotFound:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(404)
-		span.SetStatus(codes.Error, http.StatusText(404))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -200,7 +187,6 @@ func encodeGetUserResponse(response GetUserRes, w http.ResponseWriter, span trac
 	case *Profile:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(200)
-		span.SetStatus(codes.Ok, http.StatusText(200))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -213,7 +199,6 @@ func encodeGetUserResponse(response GetUserRes, w http.ResponseWriter, span trac
 	case *GetUserBadRequest:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
-		span.SetStatus(codes.Error, http.StatusText(400))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -226,7 +211,6 @@ func encodeGetUserResponse(response GetUserRes, w http.ResponseWriter, span trac
 	case *GetUserNotFound:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(404)
-		span.SetStatus(codes.Error, http.StatusText(404))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -246,7 +230,6 @@ func encodeGetUserV1Response(response GetUserV1Res, w http.ResponseWriter, span 
 	case *Profile:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(200)
-		span.SetStatus(codes.Ok, http.StatusText(200))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -259,7 +242,6 @@ func encodeGetUserV1Response(response GetUserV1Res, w http.ResponseWriter, span 
 	case *GetUserV1BadRequest:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
-		span.SetStatus(codes.Error, http.StatusText(400))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -272,7 +254,6 @@ func encodeGetUserV1Response(response GetUserV1Res, w http.ResponseWriter, span 
 	case *GetUserV1NotFound:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(404)
-		span.SetStatus(codes.Error, http.StatusText(404))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -292,7 +273,6 @@ func encodeGetWishlistResponse(response GetWishlistRes, w http.ResponseWriter, s
 	case *WishlistResponse:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(200)
-		span.SetStatus(codes.Ok, http.StatusText(200))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -305,7 +285,6 @@ func encodeGetWishlistResponse(response GetWishlistRes, w http.ResponseWriter, s
 	case *GetWishlistBadRequest:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
-		span.SetStatus(codes.Error, http.StatusText(400))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -318,7 +297,6 @@ func encodeGetWishlistResponse(response GetWishlistRes, w http.ResponseWriter, s
 	case *GetWishlistNotFound:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(404)
-		span.SetStatus(codes.Error, http.StatusText(404))
 
 		e := new(jx.Encoder)
 		response.Encode(e)
