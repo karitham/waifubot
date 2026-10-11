@@ -29,12 +29,6 @@ const RollWeightExponent = 1.0
 
 type UserID = uint64
 
-// Re-export catalog types so callers don't need a separate import.
-type (
-	Character = catalog.Character
-	Drop      = catalog.Drop
-)
-
 // User holds user profile data.
 type User struct {
 	UserID          UserID
@@ -62,7 +56,7 @@ type GuildIndexStatus struct {
 }
 
 type OwnedCharacter struct {
-	Character
+	catalog.Character
 	Date   time.Time
 	Source string
 	UserID UserID
@@ -88,7 +82,7 @@ type CollectionRepository interface {
 	GetCollection(ctx context.Context, userID UserID) ([]OwnedCharacter, error)
 	GetCollectionIDs(ctx context.Context, userID UserID) ([]int64, error)
 	GetOwnedCharacter(ctx context.Context, userID UserID, charID int64) (OwnedCharacter, error)
-	AddToCollection(ctx context.Context, userID UserID, char Character, source string, acquiredAt time.Time) error
+	AddToCollection(ctx context.Context, userID UserID, char catalog.Character, source string, acquiredAt time.Time) error
 	RemoveFromCollection(ctx context.Context, userID UserID, charID int64) error
 	GiveCharacter(ctx context.Context, from, to UserID, charID int64) (OwnedCharacter, error)
 	CountCollection(ctx context.Context, userID UserID) (int64, error)
@@ -106,7 +100,7 @@ type CollectionRepository interface {
 
 // DropRepository handles channel drop operations for the claim flow.
 type DropRepository interface {
-	GetDropForUpdate(ctx context.Context, channelID uint64) (Drop, error)
+	GetDropForUpdate(ctx context.Context, channelID uint64) (catalog.Drop, error)
 	DeleteDrop(ctx context.Context, channelID uint64) error
 }
 

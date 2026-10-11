@@ -12,9 +12,9 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/urfave/cli/v2"
 
-	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/dropstore"
+	"github.com/karitham/waifubot/tracker"
 )
 
 type InteractionDB interface {
@@ -150,18 +150,13 @@ func (m *Migrator) migrateDrop(ctx context.Context, key string) error {
 		return fmt.Errorf("failed to get drop for key %s: %w", key, err)
 	}
 
-	var data collection.MediaCharacter
+	var data tracker.Character
 	if err := cbor.Unmarshal([]byte(s), &data); err != nil {
 		return fmt.Errorf("failed to unmarshal cbor drop for key %s: %w", key, err)
 	}
 
 	sf := corde.SnowflakeFromString(idStr)
-	err = m.DropStore.Set(ctx, sf, dropstore.Drop{
-		ID:         data.ID,
-		Name:       data.Name,
-		ImageURL:   data.ImageURL,
-		MediaTitle: data.MediaTitle,
-	})
+	err = m.DropStore.Set(ctx, sf, data.ToCatalog())
 	if err != nil {
 		return fmt.Errorf("failed to migrate drop for channel %s: %w", sf, err)
 	}

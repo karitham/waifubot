@@ -46,11 +46,9 @@ func TestListHandler_List(t *testing.T) {
 				GetCollectionFunc: func(ctx context.Context, userID collection.UserID) ([]collection.OwnedCharacter, error) {
 					return []collection.OwnedCharacter{
 						{
-							Character: collection.Character{
-								ID:    42,
-								Name:  "Sakura",
-								Image: "https://example.com/sakura.png",
-							},
+							ID:     42,
+							Name:   "Sakura",
+							Image:  "https://example.com/sakura.png",
 							Date:   time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC),
 							Source: "drop",
 						},

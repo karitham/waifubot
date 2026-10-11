@@ -11,6 +11,7 @@ import (
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/collection/collectiontest"
+	"github.com/karitham/waifubot/tracker"
 )
 
 func TestSeriesRoll(t *testing.T) {
@@ -33,14 +34,14 @@ func TestSeriesRoll(t *testing.T) {
 					return collection.User{UserID: userID, Tokens: 50}, nil
 				}
 				m.GetCollectionIDsFunc = func(_ context.Context, _ uint64) ([]int64, error) { return nil, nil }
-				anime.GetMediaCharactersFunc = func(_ context.Context, _ int64) ([]collection.MediaCharacter, error) {
-					return []collection.MediaCharacter{
+				anime.GetMediaCharactersFunc = func(_ context.Context, _ int64) ([]tracker.Character, error) {
+					return []tracker.Character{
 						{ID: 10, Name: "Char10", ImageURL: "img10"},
 						{ID: 20, Name: "Char20", ImageURL: "img20"},
 					}, nil
 				}
 				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ collection.Character, _ string, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ catalog.Character, _ string, _ time.Time) error {
 					return nil
 				}
 				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error { return nil }
@@ -70,7 +71,7 @@ func TestSeriesRoll(t *testing.T) {
 					return collection.User{UserID: userID, Tokens: 50}, nil
 				}
 				m.GetCollectionIDsFunc = func(_ context.Context, _ uint64) ([]int64, error) { return nil, nil }
-				anime.GetMediaCharactersFunc = func(_ context.Context, _ int64) ([]collection.MediaCharacter, error) {
+				anime.GetMediaCharactersFunc = func(_ context.Context, _ int64) ([]tracker.Character, error) {
 					return nil, nil
 				}
 			},
@@ -88,8 +89,8 @@ func TestSeriesRoll(t *testing.T) {
 				m.GetCollectionIDsFunc = func(_ context.Context, _ uint64) ([]int64, error) {
 					return []int64{10, 20}, nil
 				}
-				anime.GetMediaCharactersFunc = func(_ context.Context, _ int64) ([]collection.MediaCharacter, error) {
-					return []collection.MediaCharacter{
+				anime.GetMediaCharactersFunc = func(_ context.Context, _ int64) ([]tracker.Character, error) {
+					return []tracker.Character{
 						{ID: 10, Name: "Char10", ImageURL: "img10"},
 						{ID: 20, Name: "Char20", ImageURL: "img20"},
 					}, nil
@@ -109,15 +110,15 @@ func TestSeriesRoll(t *testing.T) {
 				m.GetCollectionIDsFunc = func(_ context.Context, _ uint64) ([]int64, error) {
 					return []int64{10}, nil
 				}
-				anime.GetMediaCharactersFunc = func(_ context.Context, _ int64) ([]collection.MediaCharacter, error) {
-					return []collection.MediaCharacter{
+				anime.GetMediaCharactersFunc = func(_ context.Context, _ int64) ([]tracker.Character, error) {
+					return []tracker.Character{
 						{ID: 10, Name: "Char10", ImageURL: "img10"},
 						{ID: 20, Name: "Char20", ImageURL: "img20"},
 						{ID: 30, Name: "Char30", ImageURL: "img30"},
 					}, nil
 				}
 				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ collection.Character, _ string, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ catalog.Character, _ string, _ time.Time) error {
 					return nil
 				}
 				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error { return nil }
@@ -141,13 +142,13 @@ func TestSeriesRoll(t *testing.T) {
 				}
 				m.CreateUserFunc = func(_ context.Context, _ uint64) error { return nil }
 				m.GetCollectionIDsFunc = func(_ context.Context, _ uint64) ([]int64, error) { return nil, nil }
-				anime.GetMediaCharactersFunc = func(_ context.Context, _ int64) ([]collection.MediaCharacter, error) {
-					return []collection.MediaCharacter{
+				anime.GetMediaCharactersFunc = func(_ context.Context, _ int64) ([]tracker.Character, error) {
+					return []tracker.Character{
 						{ID: 10, Name: "Char10", ImageURL: "img10"},
 					}, nil
 				}
 				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ collection.Character, _ string, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ catalog.Character, _ string, _ time.Time) error {
 					return nil
 				}
 				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error { return nil }
@@ -165,13 +166,13 @@ func TestSeriesRoll(t *testing.T) {
 					return collection.User{UserID: userID, Tokens: 50}, nil
 				}
 				m.GetCollectionIDsFunc = func(_ context.Context, _ uint64) ([]int64, error) { return nil, nil }
-				anime.GetMediaCharactersFunc = func(_ context.Context, _ int64) ([]collection.MediaCharacter, error) {
-					return []collection.MediaCharacter{
+				anime.GetMediaCharactersFunc = func(_ context.Context, _ int64) ([]tracker.Character, error) {
+					return []tracker.Character{
 						{ID: 10, Name: "Char10", ImageURL: "img10"},
 					}, nil
 				}
 				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
-				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ collection.Character, _ string, _ time.Time) error {
+				m.AddToCollectionFunc = func(_ context.Context, _ uint64, _ catalog.Character, _ string, _ time.Time) error {
 					return nil
 				}
 				m.RemoveFromWishlistFunc = func(_ context.Context, _ uint64, _ int64) error {

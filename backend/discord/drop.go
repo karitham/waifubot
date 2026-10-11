@@ -8,41 +8,25 @@ import (
 	"github.com/Karitham/corde"
 
 	"github.com/karitham/waifubot/collection"
-	"github.com/karitham/waifubot/storage/dropstore"
 )
 
 func (r *Router) drop(ctx context.Context, channelID corde.Snowflake) {
 	logger := slog.With("channel_id", uint64(channelID))
 
-	catChar, err := r.Store.RandomActiveChar(ctx, collection.DropWeightExponent)
+	char, err := r.Store.RandomActiveChar(ctx, collection.DropWeightExponent)
 	if err != nil {
 		logger.Error("failed to get random character for drop", "error", err)
 		return
 	}
 
-	char := collection.MediaCharacter{
-		ID:         catChar.ID,
-		Name:       catChar.Name,
-		ImageURL:   catChar.Image,
-		MediaTitle: catChar.MediaTitle,
-		Favorites:  catChar.Favorites,
-	}
-
-	err = r.DropStore.Set(ctx, channelID, dropstore.Drop{
-		ID:         char.ID,
-		Name:       char.Name,
-		ImageURL:   char.ImageURL,
-		MediaTitle: char.MediaTitle,
-		Favorites:  char.Favorites,
-	})
-	if err != nil {
+	if err := r.DropStore.Set(ctx, channelID, char); err != nil {
 		logger.Error("failed to set channel character", "error", err, "character_id", char.ID, "character_name", char.Name)
 		return
 	}
 
 	logger.Debug("dropped character", "character_id", char.ID, "character_name", char.Name)
 
-	img, err := httpImageFetcher{doer: http.DefaultClient}.Fetch(ctx, char.ImageURL)
+	img, err := httpImageFetcher{doer: http.DefaultClient}.Fetch(ctx, char.Image)
 	if err != nil {
 		logger.Error("failed to fetch image for drop embed", "error", err)
 		return

@@ -32,10 +32,10 @@ func (p *Pg) GetCollection(ctx context.Context, userID collection.UserID) ([]col
 	chars := make([]collection.OwnedCharacter, len(rows))
 	for i, r := range rows {
 		chars[i] = collection.OwnedCharacter{
-			Character: collection.Character{ID: r.ID, Name: r.Name, Image: r.Image, MediaTitle: r.MediaTitle, Favorites: int(r.Favorites)},
-			Date:      r.Date.Time,
-			Source:    r.Source,
-			UserID:    userID,
+			ID: r.ID, Name: r.Name, Image: r.Image, MediaTitle: r.MediaTitle, Favorites: int(r.Favorites),
+			Date:   r.Date.Time,
+			Source: r.Source,
+			UserID: userID,
 		}
 	}
 	return chars, nil
@@ -54,14 +54,14 @@ func (p *Pg) GetOwnedCharacter(ctx context.Context, userID collection.UserID, ch
 		return collection.OwnedCharacter{}, err
 	}
 	return collection.OwnedCharacter{
-		Character: collection.Character{ID: row.ID, Name: row.Name, Image: row.Image, MediaTitle: row.MediaTitle, Favorites: int(row.Favorites)},
-		Date:      row.Date.Time,
-		Source:    row.Source,
-		UserID:    userID,
+		ID: row.ID, Name: row.Name, Image: row.Image, MediaTitle: row.MediaTitle, Favorites: int(row.Favorites),
+		Date:   row.Date.Time,
+		Source: row.Source,
+		UserID: userID,
 	}, nil
 }
 
-func (p *Pg) AddToCollection(ctx context.Context, userID collection.UserID, char collection.Character, source string, acquiredAt time.Time) error {
+func (p *Pg) AddToCollection(ctx context.Context, userID collection.UserID, char catalog.Character, source string, acquiredAt time.Time) error {
 	_, err := p.C.Insert(ctx, collectionstore.InsertParams{
 		UserID:      userID,
 		CharacterID: char.ID,
@@ -101,10 +101,10 @@ func (p *Pg) GiveCharacter(ctx context.Context, from, to collection.UserID, char
 	}
 
 	return collection.OwnedCharacter{
-		Character: collection.Character{ID: charRow.ID, Name: charRow.Name, Image: charRow.Image, MediaTitle: charRow.MediaTitle, Favorites: int(charRow.Favorites)},
-		Date:      col.AcquiredAt.Time,
-		Source:    col.Source,
-		UserID:    to,
+		ID: charRow.ID, Name: charRow.Name, Image: charRow.Image, MediaTitle: charRow.MediaTitle, Favorites: int(charRow.Favorites),
+		Date:   col.AcquiredAt.Time,
+		Source: col.Source,
+		UserID: to,
 	}, nil
 }
 

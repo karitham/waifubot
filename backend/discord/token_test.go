@@ -13,6 +13,7 @@ import (
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/collection/collectiontest"
 	"github.com/karitham/waifubot/discord/cordetest"
+	"github.com/karitham/waifubot/tracker"
 )
 
 var tokenConfig = collection.Config{
@@ -221,7 +222,7 @@ func TestTokenHandler_Sell(t *testing.T) {
 					return catalog.Character{ID: 42, Name: "Sakura"}, nil
 				},
 				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
-					return collection.OwnedCharacter{Character: collection.Character{ID: 42, Name: "Sakura"}}, nil
+					return collection.OwnedCharacter{ID: 42, Name: "Sakura"}, nil
 				},
 				RemoveFromCollectionFunc: func(ctx context.Context, userID collection.UserID, charID int64) error {
 					return nil
@@ -295,8 +296,8 @@ func TestTokenHandler_Roll(t *testing.T) {
 				},
 			},
 			animeService: &collectiontest.MockAnimeService{
-				GetMediaCharactersFunc: func(ctx context.Context, mediaId int64) ([]collection.MediaCharacter, error) {
-					return []collection.MediaCharacter{
+				GetMediaCharactersFunc: func(ctx context.Context, mediaId int64) ([]tracker.Character, error) {
+					return []tracker.Character{
 						{ID: 1, Name: "Char1"},
 						{ID: 2, Name: "Char2"},
 						{ID: 3, Name: "Char3"},
@@ -317,7 +318,7 @@ func TestTokenHandler_Roll(t *testing.T) {
 				},
 			},
 			animeService: &collectiontest.MockAnimeService{
-				GetMediaCharactersFunc: func(ctx context.Context, mediaId int64) ([]collection.MediaCharacter, error) {
+				GetMediaCharactersFunc: func(ctx context.Context, mediaId int64) ([]tracker.Character, error) {
 					return nil, nil
 				},
 			},
@@ -335,7 +336,7 @@ func TestTokenHandler_Roll(t *testing.T) {
 				},
 			},
 			animeService: &collectiontest.MockAnimeService{
-				GetMediaCharactersFunc: func(ctx context.Context, mediaId int64) ([]collection.MediaCharacter, error) {
+				GetMediaCharactersFunc: func(ctx context.Context, mediaId int64) ([]tracker.Character, error) {
 					return nil, errors.New("database on fire")
 				},
 			},
@@ -357,7 +358,7 @@ func TestTokenHandler_Roll(t *testing.T) {
 				UpsertCharacterFunc: func(ctx context.Context, char catalog.Character) error {
 					return nil
 				},
-				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, char collection.Character, source string, acquiredAt time.Time) error {
+				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, char catalog.Character, source string, acquiredAt time.Time) error {
 					return nil
 				},
 				UpdateLastRollFunc: func(ctx context.Context, userID collection.UserID, when time.Time) error {
@@ -368,8 +369,8 @@ func TestTokenHandler_Roll(t *testing.T) {
 				},
 			},
 			animeService: &collectiontest.MockAnimeService{
-				GetMediaCharactersFunc: func(ctx context.Context, mediaId int64) ([]collection.MediaCharacter, error) {
-					return []collection.MediaCharacter{
+				GetMediaCharactersFunc: func(ctx context.Context, mediaId int64) ([]tracker.Character, error) {
+					return []tracker.Character{
 						{ID: 10, Name: "Sakura", MediaTitle: "Naruto", Favorites: 5000},
 					}, nil
 				},
@@ -411,8 +412,8 @@ func TestTokenHandler_SeriesAutocomplete(t *testing.T) {
 				corde.OptionsInteractions{"series": corde.JsonRaw(`"nar"`)},
 			),
 			animeService: &collectiontest.MockAnimeService{
-				SearchMediaFunc: func(ctx context.Context, search string) ([]collection.Media, error) {
-					return []collection.Media{
+				SearchMediaFunc: func(ctx context.Context, search string) ([]tracker.Media, error) {
+					return []tracker.Media{
 						{ID: 10, Title: "Naruto", Type: "ANIME"},
 						{ID: 20, Title: "Naruto Shippuden", Type: "ANIME"},
 					}, nil
@@ -438,7 +439,7 @@ func TestTokenHandler_SeriesAutocomplete(t *testing.T) {
 				corde.OptionsInteractions{"series": corde.JsonRaw(`"nar"`)},
 			),
 			animeService: &collectiontest.MockAnimeService{
-				SearchMediaFunc: func(ctx context.Context, search string) ([]collection.Media, error) {
+				SearchMediaFunc: func(ctx context.Context, search string) ([]tracker.Media, error) {
 					return nil, errors.New("api error")
 				},
 			},

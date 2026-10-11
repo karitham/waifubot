@@ -11,7 +11,7 @@ type MockStore struct {
 	AddCharactersToWishlistFunc      func(ctx context.Context, userID uint64, characterIDs []int64) error
 	RemoveCharactersFromWishlistFunc func(ctx context.Context, userID uint64, characterIDs []int64) error
 	RemoveAllFromWishlistFunc        func(ctx context.Context, userID uint64) error
-	GetUserCharacterWishlistFunc     func(ctx context.Context, userID uint64) ([]wishlist.Character, error)
+	GetUserCharacterWishlistFunc     func(ctx context.Context, userID uint64) ([]wishlist.Entry, error)
 	GetWishlistHoldersFunc           func(ctx context.Context, characterIDs []int64, userID, guildID uint64) ([]wishlist.UserCharacterSet, error)
 	GetWantedCharactersFunc          func(ctx context.Context, userID, guildID uint64) ([]wishlist.UserCharacterSet, error)
 	CompareWithUserFunc              func(ctx context.Context, userID1, userID2 uint64) (wishlist.WishlistComparison, error)
@@ -41,7 +41,7 @@ func (m *MockStore) RemoveAllFromWishlist(ctx context.Context, userID uint64) er
 	return nil
 }
 
-func (m *MockStore) GetUserCharacterWishlist(ctx context.Context, userID uint64) ([]wishlist.Character, error) {
+func (m *MockStore) GetUserCharacterWishlist(ctx context.Context, userID uint64) ([]wishlist.Entry, error) {
 	if m.GetUserCharacterWishlistFunc != nil {
 		return m.GetUserCharacterWishlistFunc(ctx, userID)
 	}

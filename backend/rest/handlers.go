@@ -291,9 +291,8 @@ func (s *Server) GetWishlist(ctx context.Context, params api.GetWishlistParams) 
 
 	characters := make([]api.Character, len(chars))
 	for i, c := range chars {
-		t, _ := time.Parse(time.RFC3339, c.Date)
 		characters[i] = api.Character{
-			Date:      api.NewOptNilDateTime(t),
+			Date:      api.NewOptNilDateTime(c.AddedAt),
 			Name:      c.Name,
 			Image:     c.Image,
 			ID:        c.ID,

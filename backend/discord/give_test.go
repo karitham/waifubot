@@ -92,12 +92,12 @@ func TestGiveHandler_Give(t *testing.T) {
 			store: &collectiontest.MockStore{
 				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
 					if userID == 1 {
-						return collection.OwnedCharacter{Character: collection.Character{ID: 42, Name: "Sakura"}}, nil
+						return collection.OwnedCharacter{ID: 42, Name: "Sakura"}, nil
 					}
 					return collection.OwnedCharacter{}, collection.ErrNotFound
 				},
 				GiveCharacterFunc: func(ctx context.Context, from, to collection.UserID, charID int64) (collection.OwnedCharacter, error) {
-					return collection.OwnedCharacter{Character: collection.Character{ID: 42, Name: "Sakura"}}, nil
+					return collection.OwnedCharacter{ID: 42, Name: "Sakura"}, nil
 				},
 				RemoveFromWishlistFunc: func(ctx context.Context, userID collection.UserID, charID int64) error {
 					return nil
@@ -125,12 +125,12 @@ func TestGiveHandler_Give_RecipientUsername(t *testing.T) {
 	store := &collectiontest.MockStore{
 		GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
 			if userID == 1 {
-				return collection.OwnedCharacter{Character: collection.Character{ID: 42, Name: "Sakura"}}, nil
+				return collection.OwnedCharacter{ID: 42, Name: "Sakura"}, nil
 			}
 			return collection.OwnedCharacter{}, collection.ErrNotFound
 		},
 		GiveCharacterFunc: func(ctx context.Context, from, to collection.UserID, charID int64) (collection.OwnedCharacter, error) {
-			return collection.OwnedCharacter{Character: collection.Character{ID: 42, Name: "Sakura"}}, nil
+			return collection.OwnedCharacter{ID: 42, Name: "Sakura"}, nil
 		},
 		RemoveFromWishlistFunc: func(ctx context.Context, userID collection.UserID, charID int64) error {
 			return nil

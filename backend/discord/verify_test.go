@@ -47,10 +47,8 @@ func TestVerifyHandler_Verify(t *testing.T) {
 			store: &collectiontest.MockStore{
 				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{
-						Character: collection.Character{
-							ID:   42,
-							Name: "Sakura",
-						},
+						ID:   42,
+						Name: "Sakura",
 					}, nil
 				},
 			},
@@ -102,10 +100,8 @@ func TestVerifyHandler_Verify(t *testing.T) {
 			store: &collectiontest.MockStore{
 				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID int64) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{
-						Character: collection.Character{
-							ID:   42,
-							Name: "Naruto",
-						},
+						ID:   42,
+						Name: "Naruto",
 					}, nil
 				},
 			},

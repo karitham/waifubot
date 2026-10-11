@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 )
 
-func collectionCheckOwnership(ctx context.Context, store collection.Store, userID uint64, charID int64) (bool, collection.Character, error) {
+func collectionCheckOwnership(ctx context.Context, store collection.Store, userID uint64, charID int64) (bool, catalog.Character, error) {
 	return collection.CheckOwnership(ctx, store, userID, charID)
 }
 

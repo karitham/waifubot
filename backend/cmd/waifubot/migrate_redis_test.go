@@ -11,8 +11,9 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/storage/dropstore"
+	"github.com/karitham/waifubot/tracker"
 )
 
 type mockRedis struct {
@@ -39,10 +40,10 @@ func (m *mockDB) Exec(ctx context.Context, sql string, args ...any) (pgconn.Comm
 
 type mockDropStore struct {
 	dropstore.Store
-	setFunc func(ctx context.Context, id corde.Snowflake, data dropstore.Drop) error
+	setFunc func(ctx context.Context, id corde.Snowflake, data catalog.Character) error
 }
 
-func (m *mockDropStore) Set(ctx context.Context, id corde.Snowflake, data dropstore.Drop) error {
+func (m *mockDropStore) Set(ctx context.Context, id corde.Snowflake, data catalog.Character) error {
 	return m.setFunc(ctx, id, data)
 }
 
@@ -99,7 +100,7 @@ func TestMigrateInteractions(t *testing.T) {
 func TestMigrateDrops(t *testing.T) {
 	ctx := t.Context()
 	keys := []string{"channel:123:char"}
-	char := collection.MediaCharacter{
+	char := tracker.Character{
 		ID:          1,
 		Name:        "Test Char",
 		ImageURL:    "http://example.com/img.png",
@@ -121,9 +122,9 @@ func TestMigrateDrops(t *testing.T) {
 		},
 	}
 
-	var capturedDrop dropstore.Drop
+	var capturedDrop catalog.Character
 	ds := &mockDropStore{
-		setFunc: func(ctx context.Context, id corde.Snowflake, data dropstore.Drop) error {
+		setFunc: func(ctx context.Context, id corde.Snowflake, data catalog.Character) error {
 			capturedDrop = data
 			return nil
 		},

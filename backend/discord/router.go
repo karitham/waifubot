@@ -12,6 +12,7 @@ import (
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/storage/dropstore"
 	"github.com/karitham/waifubot/storage/interactionstore"
+	"github.com/karitham/waifubot/tracker"
 	"github.com/karitham/waifubot/wishlist"
 
 	"github.com/karitham/waifubot/catalog"
@@ -42,12 +43,12 @@ var (
 
 // TrackingService is the interface for the anilist service.
 type TrackingService interface {
-	Anime(ctx context.Context, name string) ([]collection.Media, error)
-	Manga(ctx context.Context, name string) ([]collection.Media, error)
-	User(ctx context.Context, name string) ([]collection.TrackerUser, error)
-	Character(ctx context.Context, name string) ([]collection.MediaCharacter, error)
-	SearchMedia(ctx context.Context, search string) ([]collection.Media, error)
-	GetMediaCharacters(ctx context.Context, mediaId int64) ([]collection.MediaCharacter, error)
+	Anime(ctx context.Context, name string) ([]tracker.Media, error)
+	Manga(ctx context.Context, name string) ([]tracker.Media, error)
+	User(ctx context.Context, name string) ([]tracker.User, error)
+	Character(ctx context.Context, name string) ([]tracker.Character, error)
+	SearchMedia(ctx context.Context, search string) ([]tracker.Media, error)
+	GetMediaCharacters(ctx context.Context, mediaId int64) ([]tracker.Character, error)
 }
 
 // CommandStore handles discord command hash persistence.

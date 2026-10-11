@@ -3,6 +3,7 @@ package discord
 import (
 	"context"
 	"log/slog"
+	"slices"
 
 	"github.com/Karitham/corde"
 	"github.com/karitham/waifubot/storage/interactionstore"
@@ -38,8 +39,8 @@ func wrap[T corde.InteractionDataConstraint](
 	next func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]),
 	fns ...func(func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T])) func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]),
 ) func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]) {
-	for i := len(fns) - 1; i >= 0; i-- {
-		next = fns[i](next)
+	for _, fn := range slices.Backward(fns) {
+		next = fn(next)
 	}
 	return next
 }

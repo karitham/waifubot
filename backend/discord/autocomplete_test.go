@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/karitham/waifubot/catalog"
-	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/discord/cordetest"
+	"github.com/karitham/waifubot/tracker"
 )
 
 func TestExtractAutocompleteInput(t *testing.T) {
@@ -204,31 +204,31 @@ func TestFormatCharacterChoice(t *testing.T) {
 func TestFormatMediaChoice(t *testing.T) {
 	tests := []struct {
 		name      string
-		media     collection.Media
+		media     tracker.Media
 		wantLabel string
 		wantValue int64
 	}{
 		{
 			name:      "ANIME type uppercase preserved",
-			media:     collection.Media{ID: 1, Title: "Naruto", Type: "ANIME"},
+			media:     tracker.Media{ID: 1, Title: "Naruto", Type: "ANIME"},
 			wantLabel: "Naruto (ANIME)",
 			wantValue: 1,
 		},
 		{
 			name:      "manga type lowercased then uppercased",
-			media:     collection.Media{ID: 2, Title: "One Piece", Type: "manga"},
+			media:     tracker.Media{ID: 2, Title: "One Piece", Type: "manga"},
 			wantLabel: "One Piece (MANGA)",
 			wantValue: 2,
 		},
 		{
 			name:      "mixed case properly uppercased",
-			media:     collection.Media{ID: 3, Title: "Bleach", Type: "AnImE"},
+			media:     tracker.Media{ID: 3, Title: "Bleach", Type: "AnImE"},
 			wantLabel: "Bleach (ANIME)",
 			wantValue: 3,
 		},
 		{
 			name:      "OVA type uppercased",
-			media:     collection.Media{ID: 4, Title: "Hellsing Ultimate", Type: "ova"},
+			media:     tracker.Media{ID: 4, Title: "Hellsing Ultimate", Type: "ova"},
 			wantLabel: "Hellsing Ultimate (OVA)",
 			wantValue: 4,
 		},

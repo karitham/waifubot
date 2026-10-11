@@ -7,9 +7,9 @@ import (
 
 	"github.com/Karitham/corde"
 
-	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/storage/interactionstore"
+	"github.com/karitham/waifubot/tracker"
 )
 
 // SearchHandler handles the /search command and its subcommands.
@@ -109,7 +109,7 @@ func (h *SearchHandler) SearchChar(ctx context.Context, w corde.ResponseWriter, 
 	w.Respond(charEmbed(characters[0]))
 }
 
-func mediaEmbed(m collection.Media) *corde.EmbedB {
+func mediaEmbed(m tracker.Media) *corde.EmbedB {
 	return applyEmbedOpt(corde.NewEmbed().
 		Title(m.Title).
 		URL(m.URL).
@@ -122,7 +122,7 @@ func mediaEmbed(m collection.Media) *corde.EmbedB {
 	)
 }
 
-func userEmbed(u collection.TrackerUser) *corde.EmbedB {
+func userEmbed(u tracker.User) *corde.EmbedB {
 	return applyEmbedOpt(corde.NewEmbed().
 		Title(u.Name).
 		URL(u.URL).
@@ -134,7 +134,7 @@ func userEmbed(u collection.TrackerUser) *corde.EmbedB {
 	)
 }
 
-func charEmbed(c collection.MediaCharacter) *corde.EmbedB {
+func charEmbed(c tracker.Character) *corde.EmbedB {
 	return applyEmbedOpt(corde.NewEmbed().
 		Title(c.Name).
 		Color(AnilistColor).

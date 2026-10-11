@@ -4,15 +4,18 @@ import (
 	"context"
 	"errors"
 	"time"
+
+	"github.com/karitham/waifubot/catalog"
+	"github.com/karitham/waifubot/tracker"
 )
 
 // AnimeService defines the interface for anime operations.
 type AnimeService interface {
-	GetMediaCharacters(ctx context.Context, mediaId int64) ([]MediaCharacter, error)
-	Anime(ctx context.Context, name string) ([]Media, error)
-	Manga(ctx context.Context, name string) ([]Media, error)
-	User(ctx context.Context, name string) ([]TrackerUser, error)
-	Character(ctx context.Context, name string) ([]MediaCharacter, error)
+	GetMediaCharacters(ctx context.Context, mediaId int64) ([]tracker.Character, error)
+	Anime(ctx context.Context, name string) ([]tracker.Media, error)
+	Manga(ctx context.Context, name string) ([]tracker.Media, error)
+	User(ctx context.Context, name string) ([]tracker.User, error)
+	Character(ctx context.Context, name string) ([]tracker.Character, error)
 }
 
 // Config holds configuration values.
@@ -26,42 +29,11 @@ type RollConfig struct {
 	RollCooldown time.Duration
 }
 
-// MediaCharacter represents a character from the anime service.
-type MediaCharacter struct {
-	ID          int64
-	Name        string
-	ImageURL    string
-	URL         string
-	Description string
-	MediaTitle  string
-	Favorites   int
-}
-
-// Media represents an anime or manga.
-type Media struct {
-	ID              int64
-	Title           string
-	URL             string
-	CoverImageURL   string
-	BannerImageURL  string
-	CoverImageColor uint32
-	Description     string
-	Type            string
-}
-
-// TrackerUser represents an anime tracker user.
-type TrackerUser struct {
-	Name     string
-	URL      string
-	ImageURL string
-	About    string
-}
-
 // Profile represents a complete user profile with character count and favorite.
 type Profile struct {
 	User
 	CharacterCount int
-	Favorite       Character
+	Favorite       catalog.Character
 }
 
 // UserProfile retrieves a user's profile.
@@ -81,7 +53,7 @@ func UserProfile(ctx context.Context, store Store, userID UserID) (Profile, erro
 		}
 	}
 
-	var favorite Character
+	var favorite catalog.Character
 	if u.Favorite != 0 {
 		fav, err := store.GetCharacterByID(ctx, u.Favorite)
 		if err == nil {

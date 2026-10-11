@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/karitham/waifubot/catalog"
 )
 
 // ErrRollCooldown is returned when a user is on roll cooldown.
@@ -44,37 +46,29 @@ func NewRollService(store Store, config RollConfig) *RollService {
 }
 
 // Roll executes the free roll for a user, enforcing the cooldown constraint.
-func (s *RollService) Roll(ctx context.Context, userID UserID) (MediaCharacter, error) {
+func (s *RollService) Roll(ctx context.Context, userID UserID) (catalog.Character, error) {
 	// --- GATHER ---
 	user, err := s.store.GetUser(ctx, userID)
 	if err != nil {
 		if !errors.Is(err, ErrNotFound) {
-			return MediaCharacter{}, err
+			return catalog.Character{}, err
 		}
 		// User is new — skip cooldown check
 	} else {
 		now := time.Now()
 		cooldownUntil := user.Date.Add(s.config.RollCooldown)
 		if now.Before(cooldownUntil) {
-			return MediaCharacter{}, ErrRollCooldown{Until: cooldownUntil}
+			return catalog.Character{}, ErrRollCooldown{Until: cooldownUntil}
 		}
 	}
 
 	// --- PROCESS ---
-	catChar, err := s.store.RandomCharNotOwned(ctx, userID, RollWeightExponent)
+	char, err := s.store.RandomCharNotOwned(ctx, userID, RollWeightExponent)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
-			return MediaCharacter{}, ErrNoUnownedCharacters
+			return catalog.Character{}, ErrNoUnownedCharacters
 		}
-		return MediaCharacter{}, err
-	}
-
-	char := MediaCharacter{
-		ID:         catChar.ID,
-		Name:       catChar.Name,
-		ImageURL:   catChar.Image,
-		MediaTitle: catChar.MediaTitle,
-		Favorites:  catChar.Favorites,
+		return catalog.Character{}, err
 	}
 
 	// --- COMMIT ---
@@ -98,12 +92,7 @@ func (s *RollService) Roll(ctx context.Context, userID UserID) (MediaCharacter, 
 			}
 		}
 
-		if err := tx.AddToCollection(ctx, userID, Character{
-			ID:         char.ID,
-			Name:       char.Name,
-			Image:      char.ImageURL,
-			MediaTitle: char.MediaTitle,
-		}, "ROLL", now); err != nil {
+		if err := tx.AddToCollection(ctx, userID, char, "ROLL", now); err != nil {
 			return err
 		}
 
@@ -114,7 +103,7 @@ func (s *RollService) Roll(ctx context.Context, userID UserID) (MediaCharacter, 
 		return tx.UpdateLastRoll(ctx, userID, now)
 	})
 	if err != nil {
-		return MediaCharacter{}, err
+		return catalog.Character{}, err
 	}
 	return char, nil
 }

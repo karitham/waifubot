@@ -11,15 +11,15 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/karitham/waifubot/catalog"
-	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/collection/collectiontest"
+	"github.com/karitham/waifubot/tracker"
 )
 
 type mockFetcher struct {
-	CharactersByIDsFunc func(ctx context.Context, ids []int64) ([]collection.MediaCharacter, error)
+	CharactersByIDsFunc func(ctx context.Context, ids []int64) ([]tracker.Character, error)
 }
 
-func (m *mockFetcher) CharactersByIDs(ctx context.Context, ids []int64) ([]collection.MediaCharacter, error) {
+func (m *mockFetcher) CharactersByIDs(ctx context.Context, ids []int64) ([]tracker.Character, error) {
 	if m.CharactersByIDsFunc != nil {
 		return m.CharactersByIDsFunc(ctx, ids)
 	}
@@ -77,15 +77,15 @@ func TestSync(t *testing.T) {
 			}
 
 			fetcher := &mockFetcher{
-				CharactersByIDsFunc: func(_ context.Context, ids []int64) ([]collection.MediaCharacter, error) {
+				CharactersByIDsFunc: func(_ context.Context, ids []int64) ([]tracker.Character, error) {
 					if tt.fetchErr != nil {
 						return nil, tt.fetchErr
 					}
 					// Return the first numReturned IDs from the batch so they
 					// are guaranteed to intersect with requested IDs.
-					chars := make([]collection.MediaCharacter, tt.numReturned)
+					chars := make([]tracker.Character, tt.numReturned)
 					for i := range chars {
-						chars[i] = collection.MediaCharacter{ID: ids[i], Name: "Char"}
+						chars[i] = tracker.Character{ID: ids[i], Name: "Char"}
 					}
 					return chars, nil
 				},
@@ -208,10 +208,10 @@ func TestRun(t *testing.T) {
 			}
 
 			fetcher := &mockFetcher{
-				CharactersByIDsFunc: func(_ context.Context, ids []int64) ([]collection.MediaCharacter, error) {
-					chars := make([]collection.MediaCharacter, len(ids))
+				CharactersByIDsFunc: func(_ context.Context, ids []int64) ([]tracker.Character, error) {
+					chars := make([]tracker.Character, len(ids))
 					for i, id := range ids {
-						chars[i] = collection.MediaCharacter{ID: id, Name: "Char"}
+						chars[i] = tracker.Character{ID: id, Name: "Char"}
 					}
 					return chars, nil
 				},

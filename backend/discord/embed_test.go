@@ -12,23 +12,23 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 )
 
 func TestRollEmbed(t *testing.T) {
 	for _, tt := range []struct {
 		name         string
-		char         collection.MediaCharacter
+		char         catalog.Character
 		rarity       string
 		usersWanting string
 	}{
 		{
 			name: "basic roll",
-			char: collection.MediaCharacter{
+			char: catalog.Character{
 				ID:         123,
 				Name:       "Test Character",
-				ImageURL:   "https://example.com/image.png",
-				URL:        "https://anilist.co/character/123",
+				Image:      "https://example.com/image.png",
 				MediaTitle: "Test Anime",
 				Favorites:  150,
 			},
@@ -37,11 +37,10 @@ func TestRollEmbed(t *testing.T) {
 		},
 		{
 			name: "with users wanting",
-			char: collection.MediaCharacter{
+			char: catalog.Character{
 				ID:         456,
 				Name:       "Popular Character",
-				ImageURL:   "https://example.com/popular.png",
-				URL:        "https://anilist.co/character/456",
+				Image:      "https://example.com/popular.png",
 				MediaTitle: "Popular Anime",
 				Favorites:  2500,
 			},
@@ -53,7 +52,7 @@ func TestRollEmbed(t *testing.T) {
 			embed := rollEmbed(tt.char, tt.usersWanting)
 
 			assert.Equal(t, tt.char.Name, embed.Title)
-			assert.Equal(t, tt.char.URL, embed.URL)
+			assert.Equal(t, "https://anilist.co/character/"+strconv.FormatInt(tt.char.ID, 10), embed.URL)
 			assert.Equal(t, collection.GradientColor(tt.char.Favorites), embed.Color)
 			assert.Contains(t, embed.Description, tt.char.Name)
 			assert.Contains(t, embed.Description, tt.char.MediaTitle)
@@ -69,16 +68,15 @@ func TestRollEmbed(t *testing.T) {
 func TestSeriesRollEmbed(t *testing.T) {
 	for _, tt := range []struct {
 		name string
-		char collection.MediaCharacter
+		char catalog.Character
 		cost int32
 	}{
 		{
 			name: "series roll",
-			char: collection.MediaCharacter{
+			char: catalog.Character{
 				ID:         789,
 				Name:       "Series Character",
-				ImageURL:   "https://example.com/series.png",
-				URL:        "https://anilist.co/character/789",
+				Image:      "https://example.com/series.png",
 				MediaTitle: "Series Anime",
 				Favorites:  500,
 			},
@@ -89,7 +87,7 @@ func TestSeriesRollEmbed(t *testing.T) {
 			embed := seriesRollEmbed(tt.char, tt.cost)
 
 			assert.Equal(t, tt.char.Name, embed.Title)
-			assert.Equal(t, tt.char.URL, embed.URL)
+			assert.Equal(t, "https://anilist.co/character/"+strconv.FormatInt(tt.char.ID, 10), embed.URL)
 			assert.Equal(t, collection.GradientColor(tt.char.Favorites), embed.Color)
 			assert.Contains(t, embed.Description, tt.char.Name)
 			assert.Contains(t, embed.Description, tt.char.MediaTitle)
@@ -104,12 +102,12 @@ func TestSeriesRollEmbed(t *testing.T) {
 func TestClaimEmbed(t *testing.T) {
 	for _, tt := range []struct {
 		name   string
-		char   collection.Character
+		char   catalog.Character
 		rarity string
 	}{
 		{
 			name: "basic claim",
-			char: collection.Character{
+			char: catalog.Character{
 				ID:         999,
 				Name:       "Claimed Character",
 				Image:      "https://example.com/claimed.png",
@@ -120,7 +118,7 @@ func TestClaimEmbed(t *testing.T) {
 		},
 		{
 			name: "legendary claim",
-			char: collection.Character{
+			char: catalog.Character{
 				ID:         999,
 				Name:       "Legend Claimed",
 				Image:      "https://example.com/legend.png",
@@ -170,18 +168,17 @@ func (e *errorImageFetcher) Fetch(ctx context.Context, url string) (io.ReadClose
 func TestBuildDropMessage(t *testing.T) {
 	for _, tt := range []struct {
 		name      string
-		char      collection.MediaCharacter
+		char      catalog.Character
 		image     io.Reader
 		wantTitle string
 		wantImage bool
 	}{
 		{
 			name: "without hint but with image",
-			char: collection.MediaCharacter{
+			char: catalog.Character{
 				ID:         222,
 				Name:       "Character With Name",
-				ImageURL:   "https://example.com/nohint.png",
-				URL:        "https://anilist.co/character/222",
+				Image:      "https://example.com/nohint.png",
 				MediaTitle: "No Hint Anime",
 				Favorites:  1200,
 			},
@@ -191,11 +188,10 @@ func TestBuildDropMessage(t *testing.T) {
 		},
 		{
 			name: "without image (nil)",
-			char: collection.MediaCharacter{
+			char: catalog.Character{
 				ID:         333,
 				Name:       "Character With Name",
-				ImageURL:   "https://example.com/noimage.png",
-				URL:        "https://anilist.co/character/333",
+				Image:      "https://example.com/noimage.png",
 				MediaTitle: "No Image Anime",
 				Favorites:  450,
 			},
@@ -218,7 +214,7 @@ func TestBuildDropMessage(t *testing.T) {
 
 			assert.Contains(t, embed.Description, "C.W.N")
 
-			assert.Contains(t, embed.Description, tt.char.Rarity().String())
+			assert.Contains(t, embed.Description, collection.RarityFromFavorites(tt.char.Favorites).String())
 			assert.Equal(t, AnilistIconURL, embed.Footer.IconURL)
 			assert.Equal(t, "View on Anilist", embed.Footer.Text)
 

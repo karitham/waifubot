@@ -9,7 +9,7 @@ import (
 	"github.com/Karitham/corde"
 
 	"github.com/karitham/waifubot/catalog"
-	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/tracker"
 )
 
 // extractAutocompleteInput extracts the user's input from an autocomplete option.
@@ -65,6 +65,6 @@ func formatCharacterChoice(c catalog.Character) (string, int64) {
 	return fmt.Sprintf("%s (%d)", c.Name, c.ID), c.ID
 }
 
-func formatMediaChoice(m collection.Media) (string, int64) {
+func formatMediaChoice(m tracker.Media) (string, int64) {
 	return fmt.Sprintf("%s (%s)", m.Title, strings.ToTitle(strings.ToLower(m.Type))), m.ID
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/collection/collectiontest"
 	"github.com/karitham/waifubot/discord/cordetest"
@@ -43,8 +44,8 @@ func TestClaimHandler_Claim(t *testing.T) {
 				OptStringVals: map[string]string{"name": "Sakura"},
 			},
 			store: &collectiontest.MockStore{
-				GetDropForUpdateFunc: func(ctx context.Context, channelID uint64) (collection.Drop, error) {
-					return collection.Drop{}, collection.ErrNotFound
+				GetDropForUpdateFunc: func(ctx context.Context, channelID uint64) (catalog.Drop, error) {
+					return catalog.Drop{}, collection.ErrNotFound
 				},
 			},
 			wantContent:       "No character to claim in this channel",
@@ -59,8 +60,8 @@ func TestClaimHandler_Claim(t *testing.T) {
 				OptStringVals: map[string]string{"name": "Sakura"},
 			},
 			store: &collectiontest.MockStore{
-				GetDropForUpdateFunc: func(ctx context.Context, channelID uint64) (collection.Drop, error) {
-					return collection.Drop{ID: 42, Name: "Naruto"}, nil
+				GetDropForUpdateFunc: func(ctx context.Context, channelID uint64) (catalog.Drop, error) {
+					return catalog.Drop{ID: 42, Name: "Naruto"}, nil
 				},
 			},
 			wantContent:       "Wrong name! Check the hint",
@@ -75,10 +76,10 @@ func TestClaimHandler_Claim(t *testing.T) {
 				OptStringVals: map[string]string{"name": "Sakura"},
 			},
 			store: &collectiontest.MockStore{
-				GetDropForUpdateFunc: func(ctx context.Context, channelID uint64) (collection.Drop, error) {
-					return collection.Drop{ID: 42, Name: "Sakura"}, nil
+				GetDropForUpdateFunc: func(ctx context.Context, channelID uint64) (catalog.Drop, error) {
+					return catalog.Drop{ID: 42, Name: "Sakura"}, nil
 				},
-				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, char collection.Character, source string, acquiredAt time.Time) error {
+				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, char catalog.Character, source string, acquiredAt time.Time) error {
 					return collection.ErrAlreadyOwned
 				},
 			},
@@ -94,8 +95,8 @@ func TestClaimHandler_Claim(t *testing.T) {
 				OptStringVals: map[string]string{"name": "Sakura"},
 			},
 			store: &collectiontest.MockStore{
-				GetDropForUpdateFunc: func(ctx context.Context, channelID uint64) (collection.Drop, error) {
-					return collection.Drop{}, errors.New("database on fire")
+				GetDropForUpdateFunc: func(ctx context.Context, channelID uint64) (catalog.Drop, error) {
+					return catalog.Drop{}, errors.New("database on fire")
 				},
 			},
 			wantContent:       "Failed to claim character",
@@ -110,10 +111,10 @@ func TestClaimHandler_Claim(t *testing.T) {
 				OptStringVals: map[string]string{"name": "Sakura"},
 			},
 			store: &collectiontest.MockStore{
-				GetDropForUpdateFunc: func(ctx context.Context, channelID uint64) (collection.Drop, error) {
-					return collection.Drop{ID: 42, Name: "Sakura", Image: "https://example.com/sakura.png", Favorites: 1000}, nil
+				GetDropForUpdateFunc: func(ctx context.Context, channelID uint64) (catalog.Drop, error) {
+					return catalog.Drop{ID: 42, Name: "Sakura", Image: "https://example.com/sakura.png", Favorites: 1000}, nil
 				},
-				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, char collection.Character, source string, acquiredAt time.Time) error {
+				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, char catalog.Character, source string, acquiredAt time.Time) error {
 					return nil
 				},
 				DeleteDropFunc: func(ctx context.Context, channelID uint64) error {

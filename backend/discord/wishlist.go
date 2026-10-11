@@ -20,7 +20,7 @@ func formatCharacter(name string, id int64) string {
 }
 
 // buildCharacterList builds a comma-separated list of characters, limited to maxItems
-func buildCharacterList(chars []wishlist.Character, maxItems int) string {
+func buildCharacterList(chars []wishlist.Entry, maxItems int) string {
 	var b strings.Builder
 	for i, c := range chars {
 		if i > 0 {

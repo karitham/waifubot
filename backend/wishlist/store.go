@@ -2,7 +2,6 @@ package wishlist
 
 import (
 	"context"
-	"time"
 
 	"github.com/karitham/waifubot/storage/wishliststore"
 )
@@ -33,24 +32,24 @@ func (s *store) RemoveAllFromWishlist(ctx context.Context, userID uint64) error 
 	return s.q.RemoveAllFromWishlist(ctx, userID)
 }
 
-func (s *store) GetUserCharacterWishlist(ctx context.Context, userID uint64) ([]Character, error) {
+func (s *store) GetUserCharacterWishlist(ctx context.Context, userID uint64) ([]Entry, error) {
 	rows, err := s.q.GetUserCharacterWishlist(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	characters := make([]Character, len(rows))
+	entries := make([]Entry, len(rows))
 	for i, row := range rows {
-		characters[i] = Character{
+		entries[i] = Entry{
 			ID:        row.ID,
 			Name:      row.Name,
 			Image:     row.Image,
-			Date:      row.Date.Time.Format(time.RFC3339),
 			Favorites: int(row.Favorites),
+			AddedAt:   row.Date.Time,
 		}
 	}
 
-	return characters, nil
+	return entries, nil
 }
 
 func (s *store) GetWishlistHolders(ctx context.Context, characterIDs []int64, userID, guildID uint64) ([]UserCharacterSet, error) {
@@ -89,7 +88,7 @@ func groupByUser(rows []wishliststore.GetWishlistHoldersRow) []UserCharacterSet 
 		if _, ok := m[id]; !ok {
 			m[id] = &UserCharacterSet{UserID: id}
 		}
-		m[id].Characters = append(m[id].Characters, Character{
+		m[id].Characters = append(m[id].Characters, Entry{
 			ID:    r.CharacterID,
 			Name:  r.CharacterName,
 			Image: r.CharacterImage,
@@ -109,7 +108,7 @@ func groupByUserWanted(rows []wishliststore.GetWantedCharactersRow) []UserCharac
 		if _, ok := m[id]; !ok {
 			m[id] = &UserCharacterSet{UserID: id}
 		}
-		m[id].Characters = append(m[id].Characters, Character{
+		m[id].Characters = append(m[id].Characters, Entry{
 			ID:    r.CharacterID,
 			Name:  r.CharacterName,
 			Image: r.CharacterImage,
@@ -131,24 +130,24 @@ func (s *store) CompareWithUser(ctx context.Context, userID1, userID2 uint64) (W
 		return WishlistComparison{}, err
 	}
 
-	var userHas, userWants []Character
+	var userHas, userWants []Entry
 	hasIDs := make(map[int64]bool)
 	wantsIDs := make(map[int64]bool)
 
 	for _, row := range rows {
-		char := Character{
-			ID:    row.ID,
-			Name:  row.Name,
-			Image: row.Image,
-			Date:  row.Date.Time.Format(time.RFC3339),
+		entry := Entry{
+			ID:      row.ID,
+			Name:    row.Name,
+			Image:   row.Image,
+			AddedAt: row.Date.Time,
 		}
 
 		switch row.Type {
 		case "has":
-			userHas = append(userHas, char)
+			userHas = append(userHas, entry)
 			hasIDs[row.ID] = true
 		case "wants":
-			userWants = append(userWants, char)
+			userWants = append(userWants, entry)
 			wantsIDs[row.ID] = true
 		}
 	}

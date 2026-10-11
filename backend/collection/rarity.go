@@ -57,11 +57,6 @@ func GradientColor(favorites int) uint32 {
 	return uint32(parsed)
 }
 
-// Rarity returns the rarity tier for this character.
-func (c MediaCharacter) Rarity() RarityTier {
-	return RarityFromFavorites(c.Favorites)
-}
-
 // RGB represents a color with red, green, and blue components.
 type RGB struct {
 	R, G, B float64

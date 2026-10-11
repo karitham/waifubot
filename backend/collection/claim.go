@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/karitham/waifubot/catalog"
 )
 
 // ErrNoDropInChannel is returned when there is no drop in the channel.
@@ -15,10 +17,10 @@ var ErrNoDropInChannel = errors.New("no drop in this channel")
 var ErrWrongCharacterName = errors.New("wrong character name")
 
 // Claim claims a dropped character for a user.
-func Claim(ctx context.Context, store Store, userID, channelID uint64, charName string) (Character, error) {
+func Claim(ctx context.Context, store Store, userID, channelID uint64, charName string) (catalog.Character, error) {
 	tx, err := store.WithTx(ctx)
 	if err != nil {
-		return Character{}, fmt.Errorf("failed to begin transaction: %w", err)
+		return catalog.Character{}, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	committed := false
 	defer func() {
@@ -30,13 +32,13 @@ func Claim(ctx context.Context, store Store, userID, channelID uint64, charName 
 	drop, err := tx.GetDropForUpdate(ctx, channelID)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
-			return Character{}, ErrNoDropInChannel
+			return catalog.Character{}, ErrNoDropInChannel
 		}
-		return Character{}, fmt.Errorf("failed to get drop: %w", err)
+		return catalog.Character{}, fmt.Errorf("failed to get drop: %w", err)
 	}
 
 	if !strings.EqualFold(SanitizeName(drop.Name), charName) {
-		return Character{}, ErrWrongCharacterName
+		return catalog.Character{}, ErrWrongCharacterName
 	}
 
 	// Ensure user exists
@@ -44,47 +46,41 @@ func Claim(ctx context.Context, store Store, userID, channelID uint64, charName 
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			if err = tx.CreateUser(ctx, userID); err != nil {
-				return Character{}, fmt.Errorf("failed to create user: %w", err)
+				return catalog.Character{}, fmt.Errorf("failed to create user: %w", err)
 			}
 		} else {
-			return Character{}, fmt.Errorf("failed to get user: %w", err)
+			return catalog.Character{}, fmt.Errorf("failed to get user: %w", err)
 		}
 	}
 
-	err = tx.UpsertCharacter(ctx, Character{
-		ID:         drop.ID,
-		Name:       drop.Name,
-		Image:      drop.Image,
-		MediaTitle: drop.MediaTitle,
-		Favorites:  drop.Favorites,
-	})
+	err = tx.UpsertCharacter(ctx, drop)
 	if err != nil {
-		return Character{}, fmt.Errorf("failed to upsert character: %w", err)
+		return catalog.Character{}, fmt.Errorf("failed to upsert character: %w", err)
 	}
 
 	now := time.Now()
-	err = tx.AddToCollection(ctx, userID, Character(drop), "CLAIM", now)
+	err = tx.AddToCollection(ctx, userID, drop, "CLAIM", now)
 	if err != nil {
 		if errors.Is(err, ErrAlreadyOwned) {
-			return Character{}, ErrAlreadyOwned
+			return catalog.Character{}, ErrAlreadyOwned
 		}
-		return Character{}, fmt.Errorf("failed to insert character into collection: %w", err)
+		return catalog.Character{}, fmt.Errorf("failed to insert character into collection: %w", err)
 	}
 
 	_ = tx.RemoveFromWishlist(ctx, userID, drop.ID)
 
 	err = tx.DeleteDrop(ctx, channelID)
 	if err != nil {
-		return Character{}, fmt.Errorf("failed to delete drop: %w", err)
+		return catalog.Character{}, fmt.Errorf("failed to delete drop: %w", err)
 	}
 
 	err = tx.Commit(ctx)
 	committed = err == nil
 	if err != nil {
-		return Character{}, fmt.Errorf("failed to commit transaction: %w", err)
+		return catalog.Character{}, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	return Character(drop), nil
+	return drop, nil
 }
 
 // SanitizeName collapses whitespace in a character name to a single space.

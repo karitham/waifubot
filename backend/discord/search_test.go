@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/collection/collectiontest"
 	"github.com/karitham/waifubot/discord/cordetest"
+	"github.com/karitham/waifubot/tracker"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,7 +15,7 @@ func TestSearchHandler_SearchAnime(t *testing.T) {
 	tests := []struct {
 		name        string
 		cmd         CommandContext
-		animeFunc   func(ctx context.Context, name string) ([]collection.Media, error)
+		animeFunc   func(ctx context.Context, name string) ([]tracker.Media, error)
 		wantContent string
 		wantTitle   string
 	}{
@@ -31,7 +31,7 @@ func TestSearchHandler_SearchAnime(t *testing.T) {
 			cmd: &MockCommandContext{
 				OptStringVals: map[string]string{"name": "nonexistent"},
 			},
-			animeFunc: func(ctx context.Context, name string) ([]collection.Media, error) {
+			animeFunc: func(ctx context.Context, name string) ([]tracker.Media, error) {
 				return nil, nil
 			},
 			wantContent: "No anime found with that name",
@@ -41,7 +41,7 @@ func TestSearchHandler_SearchAnime(t *testing.T) {
 			cmd: &MockCommandContext{
 				OptStringVals: map[string]string{"name": "naruto"},
 			},
-			animeFunc: func(ctx context.Context, name string) ([]collection.Media, error) {
+			animeFunc: func(ctx context.Context, name string) ([]tracker.Media, error) {
 				return nil, errors.New("service error")
 			},
 			wantContent: "Error searching for this anime",
@@ -51,8 +51,8 @@ func TestSearchHandler_SearchAnime(t *testing.T) {
 			cmd: &MockCommandContext{
 				OptStringVals: map[string]string{"name": "naruto"},
 			},
-			animeFunc: func(ctx context.Context, name string) ([]collection.Media, error) {
-				return []collection.Media{
+			animeFunc: func(ctx context.Context, name string) ([]tracker.Media, error) {
+				return []tracker.Media{
 					{ID: 1, Title: "Naruto", URL: "https://anilist.co/anime/20", CoverImageURL: "https://example.com/cover.png"},
 				}, nil
 			},
@@ -87,7 +87,7 @@ func TestSearchHandler_SearchManga(t *testing.T) {
 	tests := []struct {
 		name        string
 		cmd         CommandContext
-		mangaFunc   func(ctx context.Context, name string) ([]collection.Media, error)
+		mangaFunc   func(ctx context.Context, name string) ([]tracker.Media, error)
 		wantContent string
 		wantTitle   string
 	}{
@@ -103,7 +103,7 @@ func TestSearchHandler_SearchManga(t *testing.T) {
 			cmd: &MockCommandContext{
 				OptStringVals: map[string]string{"name": "nonexistent"},
 			},
-			mangaFunc: func(ctx context.Context, name string) ([]collection.Media, error) {
+			mangaFunc: func(ctx context.Context, name string) ([]tracker.Media, error) {
 				return nil, nil
 			},
 			wantContent: "No manga found with that name",
@@ -113,7 +113,7 @@ func TestSearchHandler_SearchManga(t *testing.T) {
 			cmd: &MockCommandContext{
 				OptStringVals: map[string]string{"name": "one piece"},
 			},
-			mangaFunc: func(ctx context.Context, name string) ([]collection.Media, error) {
+			mangaFunc: func(ctx context.Context, name string) ([]tracker.Media, error) {
 				return nil, errors.New("service error")
 			},
 			wantContent: "Error searching for this manga",
@@ -123,8 +123,8 @@ func TestSearchHandler_SearchManga(t *testing.T) {
 			cmd: &MockCommandContext{
 				OptStringVals: map[string]string{"name": "one piece"},
 			},
-			mangaFunc: func(ctx context.Context, name string) ([]collection.Media, error) {
-				return []collection.Media{
+			mangaFunc: func(ctx context.Context, name string) ([]tracker.Media, error) {
+				return []tracker.Media{
 					{ID: 2, Title: "One Piece", URL: "https://anilist.co/manga/30", CoverImageURL: "https://example.com/cover.png"},
 				}, nil
 			},
@@ -159,7 +159,7 @@ func TestSearchHandler_SearchUser(t *testing.T) {
 	tests := []struct {
 		name        string
 		cmd         CommandContext
-		userFunc    func(ctx context.Context, name string) ([]collection.TrackerUser, error)
+		userFunc    func(ctx context.Context, name string) ([]tracker.User, error)
 		wantContent string
 		wantTitle   string
 	}{
@@ -175,7 +175,7 @@ func TestSearchHandler_SearchUser(t *testing.T) {
 			cmd: &MockCommandContext{
 				OptStringVals: map[string]string{"name": "nonexistent"},
 			},
-			userFunc: func(ctx context.Context, name string) ([]collection.TrackerUser, error) {
+			userFunc: func(ctx context.Context, name string) ([]tracker.User, error) {
 				return nil, nil
 			},
 			wantContent: "No user found with that name",
@@ -185,7 +185,7 @@ func TestSearchHandler_SearchUser(t *testing.T) {
 			cmd: &MockCommandContext{
 				OptStringVals: map[string]string{"name": "testuser"},
 			},
-			userFunc: func(ctx context.Context, name string) ([]collection.TrackerUser, error) {
+			userFunc: func(ctx context.Context, name string) ([]tracker.User, error) {
 				return nil, errors.New("service error")
 			},
 			wantContent: "Error searching for this user",
@@ -195,8 +195,8 @@ func TestSearchHandler_SearchUser(t *testing.T) {
 			cmd: &MockCommandContext{
 				OptStringVals: map[string]string{"name": "testuser"},
 			},
-			userFunc: func(ctx context.Context, name string) ([]collection.TrackerUser, error) {
-				return []collection.TrackerUser{
+			userFunc: func(ctx context.Context, name string) ([]tracker.User, error) {
+				return []tracker.User{
 					{Name: "TestUser", URL: "https://anilist.co/user/testuser", About: "Hello"},
 				}, nil
 			},
@@ -231,7 +231,7 @@ func TestSearchHandler_SearchChar(t *testing.T) {
 	tests := []struct {
 		name        string
 		cmd         CommandContext
-		charFunc    func(ctx context.Context, name string) ([]collection.MediaCharacter, error)
+		charFunc    func(ctx context.Context, name string) ([]tracker.Character, error)
 		wantContent string
 		wantTitle   string
 	}{
@@ -247,7 +247,7 @@ func TestSearchHandler_SearchChar(t *testing.T) {
 			cmd: &MockCommandContext{
 				OptStringVals: map[string]string{"name": "nonexistent"},
 			},
-			charFunc: func(ctx context.Context, name string) ([]collection.MediaCharacter, error) {
+			charFunc: func(ctx context.Context, name string) ([]tracker.Character, error) {
 				return nil, nil
 			},
 			wantContent: "No character found with that name",
@@ -257,7 +257,7 @@ func TestSearchHandler_SearchChar(t *testing.T) {
 			cmd: &MockCommandContext{
 				OptStringVals: map[string]string{"name": "sakura"},
 			},
-			charFunc: func(ctx context.Context, name string) ([]collection.MediaCharacter, error) {
+			charFunc: func(ctx context.Context, name string) ([]tracker.Character, error) {
 				return nil, errors.New("service error")
 			},
 			wantContent: "Error searching for this character",
@@ -267,8 +267,8 @@ func TestSearchHandler_SearchChar(t *testing.T) {
 			cmd: &MockCommandContext{
 				OptStringVals: map[string]string{"name": "sakura"},
 			},
-			charFunc: func(ctx context.Context, name string) ([]collection.MediaCharacter, error) {
-				return []collection.MediaCharacter{
+			charFunc: func(ctx context.Context, name string) ([]tracker.Character, error) {
+				return []tracker.Character{
 					{ID: 10, Name: "Sakura", URL: "https://anilist.co/character/10", ImageURL: "https://example.com/sakura.png"},
 				}, nil
 			},

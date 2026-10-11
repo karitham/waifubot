@@ -11,8 +11,8 @@ import (
 
 	"github.com/Khan/genqlient/graphql"
 
-	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/discord"
+	"github.com/karitham/waifubot/tracker"
 )
 
 // getTitle returns the best title to display, preferring romaji over english.
@@ -41,7 +41,7 @@ type Anilist struct {
 
 // CharacterFetcher fetches character data from AniList by ID.
 type CharacterFetcher interface {
-	CharactersByIDs(ctx context.Context, ids []int64) ([]collection.MediaCharacter, error)
+	CharactersByIDs(ctx context.Context, ids []int64) ([]tracker.Character, error)
 }
 
 // Check that anilist actually implements the interfaces
@@ -85,18 +85,18 @@ func (t *userAgentTransport) RoundTrip(r *http.Request) (*http.Response, error) 
 }
 
 // Anime returns an anime by title
-func (a *Anilist) Anime(ctx context.Context, title string) ([]collection.Media, error) {
+func (a *Anilist) Anime(ctx context.Context, title string) ([]tracker.Media, error) {
 	return a.media(ctx, title, MediaTypeAnime)
 }
 
-func (a *Anilist) media(ctx context.Context, title string, t MediaType) ([]collection.Media, error) {
+func (a *Anilist) media(ctx context.Context, title string, t MediaType) ([]tracker.Media, error) {
 	media, err := media(ctx, a.c, title, t)
 	if err != nil {
 		return nil, err
 	}
-	resp := make([]collection.Media, len(media.Page.Media))
+	resp := make([]tracker.Media, len(media.Page.Media))
 	for i, m := range media.Page.Media {
-		resp[i] = collection.Media{
+		resp[i] = tracker.Media{
 			ID:              m.Id,
 			CoverImageURL:   m.CoverImage.Large,
 			BannerImageURL:  m.BannerImage,
@@ -112,15 +112,15 @@ func (a *Anilist) media(ctx context.Context, title string, t MediaType) ([]colle
 }
 
 // User returns a user by name
-func (a *Anilist) User(ctx context.Context, name string) ([]collection.TrackerUser, error) {
+func (a *Anilist) User(ctx context.Context, name string) ([]tracker.User, error) {
 	users, err := user(ctx, a.c, name)
 	if err != nil {
 		return nil, err
 	}
 
-	resp := make([]collection.TrackerUser, len(users.Page.Users))
+	resp := make([]tracker.User, len(users.Page.Users))
 	for i, u := range users.Page.Users {
-		resp[i] = collection.TrackerUser{
+		resp[i] = tracker.User{
 			URL:      u.SiteUrl,
 			Name:     u.Name,
 			ImageURL: fmt.Sprintf("https://img.anili.st/user/%d", u.Id),
@@ -132,15 +132,15 @@ func (a *Anilist) User(ctx context.Context, name string) ([]collection.TrackerUs
 }
 
 // Character returns a character by name
-func (a *Anilist) Character(ctx context.Context, name string) ([]collection.MediaCharacter, error) {
+func (a *Anilist) Character(ctx context.Context, name string) ([]tracker.Character, error) {
 	char, err := character(ctx, a.c, name)
 	if err != nil {
 		return nil, err
 	}
 
-	resp := make([]collection.MediaCharacter, len(char.Page.Characters))
+	resp := make([]tracker.Character, len(char.Page.Characters))
 	for i, c := range char.Page.Characters {
-		resp[i] = collection.MediaCharacter{
+		resp[i] = tracker.Character{
 			ID:          c.Id,
 			Name:        c.Name.Full,
 			ImageURL:    c.Image.Large,
@@ -154,7 +154,7 @@ func (a *Anilist) Character(ctx context.Context, name string) ([]collection.Medi
 }
 
 // CharactersByIDs fetches multiple characters by their AniList IDs
-func (a *Anilist) CharactersByIDs(ctx context.Context, ids []int64) ([]collection.MediaCharacter, error) {
+func (a *Anilist) CharactersByIDs(ctx context.Context, ids []int64) ([]tracker.Character, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
@@ -169,14 +169,14 @@ func (a *Anilist) CharactersByIDs(ctx context.Context, ids []int64) ([]collectio
 		return nil, err
 	}
 
-	result := make([]collection.MediaCharacter, 0, len(resp.Page.Characters))
+	result := make([]tracker.Character, 0, len(resp.Page.Characters))
 	for _, c := range resp.Page.Characters {
 		mediaTitle := ""
 		if len(c.Media.Nodes) > 0 {
 			mediaTitle = c.Media.Nodes[0].Title.Romaji
 		}
 
-		result = append(result, collection.MediaCharacter{
+		result = append(result, tracker.Character{
 			ID:         c.Id,
 			Name:       c.Name.Full,
 			ImageURL:   c.Image.Large,
@@ -204,19 +204,19 @@ func (a *Anilist) MaxCharacterID(ctx context.Context) (int64, error) {
 }
 
 // Manga returns a manga by title
-func (a *Anilist) Manga(ctx context.Context, title string) ([]collection.Media, error) {
+func (a *Anilist) Manga(ctx context.Context, title string) ([]tracker.Media, error) {
 	return a.media(ctx, title, MediaTypeManga)
 }
 
 // SearchMedia returns media (anime and manga) by search term
-func (a *Anilist) SearchMedia(ctx context.Context, search string) ([]collection.Media, error) {
+func (a *Anilist) SearchMedia(ctx context.Context, search string) ([]tracker.Media, error) {
 	resp, err := searchMedia(ctx, a.c, search)
 	if err != nil {
 		return nil, err
 	}
-	media := make([]collection.Media, len(resp.Page.Media))
+	media := make([]tracker.Media, len(resp.Page.Media))
 	for i, m := range resp.Page.Media {
-		media[i] = collection.Media{
+		media[i] = tracker.Media{
 			ID:            m.Id,
 			CoverImageURL: m.CoverImage.Large,
 			Title:         getSearchTitle(m.Title),
@@ -227,8 +227,8 @@ func (a *Anilist) SearchMedia(ctx context.Context, search string) ([]collection.
 }
 
 // GetMediaCharacters returns up to 100 characters from a media, paginating as needed
-func (a *Anilist) GetMediaCharacters(ctx context.Context, mediaId int64) ([]collection.MediaCharacter, error) {
-	var allCharacters []collection.MediaCharacter
+func (a *Anilist) GetMediaCharacters(ctx context.Context, mediaId int64) ([]tracker.Character, error) {
+	var allCharacters []tracker.Character
 	page := int64(1)
 	maxPages := int64(4) // 25 * 4 = 100 characters max
 
@@ -249,7 +249,7 @@ func (a *Anilist) GetMediaCharacters(ctx context.Context, mediaId int64) ([]coll
 		}
 
 		for _, edge := range resp.Media.Characters.Edges {
-			allCharacters = append(allCharacters, collection.MediaCharacter{
+			allCharacters = append(allCharacters, tracker.Character{
 				ID:         edge.Node.Id,
 				Name:       edge.Node.Name.Full,
 				ImageURL:   edge.Node.Image.Large,

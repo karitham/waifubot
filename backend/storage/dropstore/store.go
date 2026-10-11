@@ -6,20 +6,15 @@ import (
 
 	"github.com/Karitham/corde"
 	"github.com/jackc/pgx/v5"
+
+	"github.com/karitham/waifubot/catalog"
 )
 
-type Drop struct {
-	ID         int64
-	Name       string
-	ImageURL   string
-	MediaTitle string
-	Favorites  int
-}
-
+// Store persists the character currently dropped in a channel.
 type Store interface {
 	Delete(ctx context.Context, id corde.Snowflake) error
-	Get(ctx context.Context, id corde.Snowflake) (*Drop, error)
-	Set(ctx context.Context, id corde.Snowflake, data Drop) error
+	Get(ctx context.Context, id corde.Snowflake) (*catalog.Character, error)
+	Set(ctx context.Context, id corde.Snowflake, data catalog.Character) error
 }
 
 type PostgresStore struct {
@@ -32,11 +27,11 @@ func NewPostgresStore(q Querier) *PostgresStore {
 	}
 }
 
-func (p *PostgresStore) Set(ctx context.Context, id corde.Snowflake, data Drop) error {
+func (p *PostgresStore) Set(ctx context.Context, id corde.Snowflake, data catalog.Character) error {
 	err := p.q.UpsertCharacter(ctx, UpsertCharacterParams{
 		ID:         data.ID,
 		Name:       data.Name,
-		Image:      data.ImageURL,
+		Image:      data.Image,
 		MediaTitle: data.MediaTitle,
 		Favorites:  int32(data.Favorites),
 	})
@@ -50,7 +45,7 @@ func (p *PostgresStore) Set(ctx context.Context, id corde.Snowflake, data Drop) 
 	})
 }
 
-func (p *PostgresStore) Get(ctx context.Context, id corde.Snowflake) (*Drop, error) {
+func (p *PostgresStore) Get(ctx context.Context, id corde.Snowflake) (*catalog.Character, error) {
 	row, err := p.q.GetDrop(ctx, uint64(id))
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -59,10 +54,10 @@ func (p *PostgresStore) Get(ctx context.Context, id corde.Snowflake) (*Drop, err
 		return nil, fmt.Errorf("failed to get channel char: %w", err)
 	}
 
-	return &Drop{
+	return &catalog.Character{
 		ID:         row.ID,
 		Name:       row.Name,
-		ImageURL:   row.Image,
+		Image:      row.Image,
 		MediaTitle: row.MediaTitle,
 		Favorites:  int(row.Favorites),
 	}, nil

@@ -5,41 +5,44 @@ import (
 	"errors"
 	"math/rand/v2"
 	"time"
+
+	"github.com/karitham/waifubot/catalog"
+	"github.com/karitham/waifubot/tracker"
 )
 
 // SeriesRoll executes a paid, series-specific roll for a user, deducting tokens.
-func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID int64, seriesRollCost int32, anime AnimeService) (MediaCharacter, error) {
+func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID int64, seriesRollCost int32, anime AnimeService) (catalog.Character, error) {
 	// --- GATHER ---
 	user, err := s.store.GetUser(ctx, userID)
 	if err != nil {
 		if !errors.Is(err, ErrNotFound) {
-			return MediaCharacter{}, err
+			return catalog.Character{}, err
 		}
 		if err := s.store.CreateUser(ctx, userID); err != nil {
-			return MediaCharacter{}, err
+			return catalog.Character{}, err
 		}
 		user, err = s.store.GetUser(ctx, userID)
 		if err != nil {
-			return MediaCharacter{}, err
+			return catalog.Character{}, err
 		}
 	}
 
 	if user.Tokens < seriesRollCost {
-		return MediaCharacter{}, ErrInsufficientTokens
+		return catalog.Character{}, ErrInsufficientTokens
 	}
 
 	ownedIDs, err := s.store.GetCollectionIDs(ctx, userID)
 	if err != nil {
-		return MediaCharacter{}, err
+		return catalog.Character{}, err
 	}
 
 	allChars, err := anime.GetMediaCharacters(ctx, mediaID)
 	if err != nil {
-		return MediaCharacter{}, err
+		return catalog.Character{}, err
 	}
 
 	if len(allChars) == 0 {
-		return MediaCharacter{}, ErrMediaNotFound
+		return catalog.Character{}, ErrMediaNotFound
 	}
 
 	// --- PROCESS ---
@@ -48,7 +51,7 @@ func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID int
 		owned[id] = struct{}{}
 	}
 
-	var unowned []MediaCharacter
+	var unowned []tracker.Character
 	for _, c := range allChars {
 		if _, ok := owned[c.ID]; !ok {
 			unowned = append(unowned, c)
@@ -56,19 +59,13 @@ func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID int
 	}
 
 	if len(unowned) == 0 {
-		return MediaCharacter{}, ErrNoUnownedCharacters
+		return catalog.Character{}, ErrNoUnownedCharacters
 	}
 
-	char := unowned[rand.IntN(len(unowned))]
+	char := unowned[rand.IntN(len(unowned))].ToCatalog()
 
-	if err := s.store.UpsertCharacter(ctx, Character{
-		ID:         char.ID,
-		Name:       char.Name,
-		Image:      char.ImageURL,
-		MediaTitle: char.MediaTitle,
-		Favorites:  char.Favorites,
-	}); err != nil {
-		return MediaCharacter{}, err
+	if err := s.store.UpsertCharacter(ctx, char); err != nil {
+		return catalog.Character{}, err
 	}
 
 	// --- COMMIT ---
@@ -83,12 +80,7 @@ func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID int
 			return ErrInsufficientTokens
 		}
 
-		if err := tx.AddToCollection(ctx, userID, Character{
-			ID:         char.ID,
-			Name:       char.Name,
-			Image:      char.ImageURL,
-			MediaTitle: char.MediaTitle,
-		}, "SERIES_ROLL", now); err != nil {
+		if err := tx.AddToCollection(ctx, userID, char, "SERIES_ROLL", now); err != nil {
 			return err
 		}
 
@@ -102,7 +94,7 @@ func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID int
 		return nil
 	})
 	if err != nil {
-		return MediaCharacter{}, err
+		return catalog.Character{}, err
 	}
 	return char, nil
 }

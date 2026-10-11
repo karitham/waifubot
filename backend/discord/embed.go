@@ -7,27 +7,28 @@ import (
 
 	"github.com/Karitham/corde"
 
+	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 )
 
-func rollEmbed(char collection.MediaCharacter, usersWanting string) corde.Embed {
+func rollEmbed(char catalog.Character, usersWanting string) corde.Embed {
 	return newCharEmbed(char, fmt.Sprintf(
 		"You got %s (%s)\n⭐ Rarity: %s | ❤️ %d favorites%s\n\n🎲 Standard Roll\nID: %d",
 		char.Name,
 		char.MediaTitle,
-		char.Rarity(),
+		collection.RarityFromFavorites(char.Favorites),
 		char.Favorites,
 		usersWanting,
 		char.ID,
 	))
 }
 
-func seriesRollEmbed(char collection.MediaCharacter, cost int32) corde.Embed {
+func seriesRollEmbed(char catalog.Character, cost int32) corde.Embed {
 	return newCharEmbed(char, fmt.Sprintf(
 		"You got %s (%s)\n⭐ Rarity: %s | ❤️ %d favorites\n\n🎯 Series Roll | Cost: %d tokens\nID: %d",
 		char.Name,
 		char.MediaTitle,
-		char.Rarity(),
+		collection.RarityFromFavorites(char.Favorites),
 		char.Favorites,
 		cost,
 		char.ID,
@@ -36,7 +37,7 @@ func seriesRollEmbed(char collection.MediaCharacter, cost int32) corde.Embed {
 
 // dropMessage creates a drop message with the character embed and optional image attachment.
 // If image is nil, the message is built without an image attachment.
-func dropMessage(char collection.MediaCharacter, image io.Reader) corde.Message {
+func dropMessage(char catalog.Character, image io.Reader) corde.Message {
 	parts := strings.Fields(char.Name)
 	initials := strings.Builder{}
 	for i, part := range parts {
@@ -53,7 +54,7 @@ func dropMessage(char collection.MediaCharacter, image io.Reader) corde.Message 
 			Description: fmt.Sprintf(
 				"A character has appeared! Use `/claim <name>` to add them to your collection.\n\n**Hint:** %s\n\n⭐ Rarity: %s",
 				initials.String(),
-				char.Rarity(),
+				collection.RarityFromFavorites(char.Favorites),
 			),
 			Footer: corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"},
 			Color:  collection.GradientColor(char.Favorites),
@@ -71,7 +72,7 @@ func dropMessage(char collection.MediaCharacter, image io.Reader) corde.Message 
 	return msg
 }
 
-func claimEmbed(char collection.Character, rarity string) corde.Embed {
+func claimEmbed(char catalog.Character, rarity string) corde.Embed {
 	return corde.NewEmbed().
 		Title(char.Name).
 		URL(fmt.Sprintf("https://anilist.co/character/%d", char.ID)).
@@ -89,13 +90,13 @@ func claimEmbed(char collection.Character, rarity string) corde.Embed {
 		Embed()
 }
 
-func newCharEmbed(char collection.MediaCharacter, description string) corde.Embed {
+func newCharEmbed(char catalog.Character, description string) corde.Embed {
 	return corde.NewEmbed().
 		Title(char.Name).
 		URL(fmt.Sprintf("https://anilist.co/character/%d", char.ID)).
 		Color(collection.GradientColor(char.Favorites)).
 		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"}).
-		Thumbnail(corde.Image{URL: char.ImageURL}).
+		Thumbnail(corde.Image{URL: char.Image}).
 		Description(description).
 		Embed()
 }

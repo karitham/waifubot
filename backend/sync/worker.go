@@ -14,8 +14,8 @@ import (
 
 	"github.com/karitham/waifubot/anilist"
 	"github.com/karitham/waifubot/catalog"
-	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/sync/idprovider"
+	"github.com/karitham/waifubot/tracker"
 )
 
 // MaxIDProvider optionally provides the maximum character ID.
@@ -29,22 +29,22 @@ type Service struct {
 	store         catalog.Store
 	anilist       anilist.CharacterFetcher
 	maxIDProvider MaxIDProvider // nil → use default bound
-	executor      failsafe.Executor[[]collection.MediaCharacter]
+	executor      failsafe.Executor[[]tracker.Character]
 	maxID         atomic.Int64
 }
 
 // NewService creates a sync Service with rate-limiting (5 req/min) and retry
 // policies (3 retries, exponential backoff) for AniList calls.
 func NewService(store catalog.Store, fetcher anilist.CharacterFetcher, maxIDProvider MaxIDProvider) *Service {
-	rl := ratelimiter.NewSmoothBuilder[[]collection.MediaCharacter](5, time.Minute).
+	rl := ratelimiter.NewSmoothBuilder[[]tracker.Character](5, time.Minute).
 		WithMaxWaitTime(2 * time.Minute).
 		Build()
-	cb := circuitbreaker.NewBuilder[[]collection.MediaCharacter]().
+	cb := circuitbreaker.NewBuilder[[]tracker.Character]().
 		WithFailureThreshold(5).
 		WithSuccessThreshold(2).
 		WithDelay(30 * time.Second).
 		Build()
-	rp := retrypolicy.NewBuilder[[]collection.MediaCharacter]().
+	rp := retrypolicy.NewBuilder[[]tracker.Character]().
 		WithMaxRetries(3).
 		WithBackoff(2*time.Second, 10*time.Second).
 		WithJitter(500 * time.Millisecond).
@@ -116,13 +116,7 @@ func (s *Service) processBatch(ctx context.Context, ids []int64) error {
 
 	var upsertFails int
 	for _, c := range chars {
-		if err := s.store.UpsertCharacter(ctx, catalog.Character{
-			ID:         c.ID,
-			Name:       c.Name,
-			Image:      c.ImageURL,
-			MediaTitle: c.MediaTitle,
-			Favorites:  c.Favorites,
-		}); err != nil {
+		if err := s.store.UpsertCharacter(ctx, c.ToCatalog()); err != nil {
 			slog.Error("failed to upsert character", "character_id", c.ID, "error", err)
 			upsertFails++
 		}
@@ -146,7 +140,7 @@ func (s *Service) processBatch(ctx context.Context, ids []int64) error {
 
 // missingIDs returns IDs from requested that are not present in found.
 // Pure function: no I/O, no side effects.
-func missingIDs(requested []int64, found []collection.MediaCharacter) []int64 {
+func missingIDs(requested []int64, found []tracker.Character) []int64 {
 	foundIDs := make(map[int64]struct{}, len(found))
 	for _, c := range found {
 		foundIDs[c.ID] = struct{}{}
@@ -163,7 +157,7 @@ func missingIDs(requested []int64, found []collection.MediaCharacter) []int64 {
 
 // markMissingInactive marks characters that were requested but not returned by
 // AniList as inactive. This detects deletions.
-func (s *Service) markMissingInactive(ctx context.Context, requested []int64, found []collection.MediaCharacter) error {
+func (s *Service) markMissingInactive(ctx context.Context, requested []int64, found []tracker.Character) error {
 	missing := missingIDs(requested, found)
 	if len(missing) == 0 {
 		return nil
@@ -173,9 +167,9 @@ func (s *Service) markMissingInactive(ctx context.Context, requested []int64, fo
 
 // fetchCharacters fetches characters via the Executor (rate-limited + retry) when available,
 // falling back to a direct call when Executor is nil (e.g. in tests).
-func (s *Service) fetchCharacters(ctx context.Context, ids []int64) ([]collection.MediaCharacter, error) {
+func (s *Service) fetchCharacters(ctx context.Context, ids []int64) ([]tracker.Character, error) {
 	if s.executor != nil {
-		return s.executor.WithContext(ctx).Get(func() ([]collection.MediaCharacter, error) {
+		return s.executor.WithContext(ctx).Get(func() ([]tracker.Character, error) {
 			return s.anilist.CharactersByIDs(ctx, ids)
 		})
 	}
