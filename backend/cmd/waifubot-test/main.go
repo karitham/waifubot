@@ -22,7 +22,6 @@ import (
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/commandpg"
-	"github.com/karitham/waifubot/storage/dropstore"
 	"github.com/karitham/waifubot/storage/interactionstore"
 	"github.com/karitham/waifubot/storage/wishlistpg"
 )
@@ -195,7 +194,6 @@ func runTestHarness(c *cli.Context) error {
 
 	// Create stores (mirroring run.go)
 	interStore := interactionstore.NewPostgresStore(store.InteractionStore())
-	dropStore := dropstore.NewPostgresStore(store.DropStore())
 	collStore := collectionwire.NewDB(store)
 	wishStore := wishlistpg.New(store.WishlistStore())
 
@@ -228,7 +226,6 @@ func runTestHarness(c *cli.Context) error {
 		CommandStore:      commandpg.New(store.CommandStore()),
 		WishlistStore:     wishStore,
 		AnimeService:      fakeService,
-		DropStore:         dropStore,
 		InterStore:        interStore,
 		GuildIndexer:      guild.NewIndexer(collectionwire.NewGuildDB(collStore), guild.NewDiscordFetcher(botToken)),
 		GuildOps:          collStore,

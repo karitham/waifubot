@@ -24,7 +24,6 @@ import (
 	"github.com/karitham/waifubot/services"
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/commandpg"
-	"github.com/karitham/waifubot/storage/dropstore"
 	"github.com/karitham/waifubot/storage/interactionstore"
 	"github.com/karitham/waifubot/storage/wishlistpg"
 	"github.com/karitham/waifubot/sync"
@@ -93,7 +92,6 @@ var RunCommand = &cli.Command{
 		}
 
 		interStore := interactionstore.NewPostgresStore(store.InteractionStore())
-		dropStore := dropstore.NewPostgresStore(store.DropStore())
 		collStore := newCollectionStore(store)
 		wishStore := wishlistpg.New(store.WishlistStore())
 		catalogStore := newCatalogStore(store)
@@ -112,7 +110,6 @@ var RunCommand = &cli.Command{
 			CommandStore:      commandpg.New(store.CommandStore()),
 			WishlistStore:     wishStore,
 			AnimeService:      anilistClient,
-			DropStore:         dropStore,
 			InterStore:        interStore,
 			GuildIndexer:      guild.NewIndexer(newGuildDB(collStore), guild.NewDiscordFetcher(c.String(botTokenFlag.Name))),
 			GuildOps:          collStore,

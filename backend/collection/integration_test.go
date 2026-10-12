@@ -370,6 +370,20 @@ func TestIntegration_DropOperations(t *testing.T) {
 	require.ErrorIs(t, err, collection.ErrNotFound)
 }
 
+func TestIntegration_CreateDrop(t *testing.T) {
+	store := setupStore(t)
+	ctx := t.Context()
+
+	require.NoError(t, store.UpsertCharacter(ctx, catalog.Character{ID: 7001, Name: "DropChar", Image: "img", Popularity: 100}))
+
+	char, err := collection.CreateDrop(ctx, store, 888002)
+	require.NoError(t, err)
+
+	got, err := store.GetDropForUpdate(ctx, 888002)
+	require.NoError(t, err)
+	assert.Equal(t, char.ID, got.ID)
+}
+
 func TestIntegration_GetUserByAnilist(t *testing.T) {
 	const uid collection.UserID = 900010
 	store := setupStore(t)

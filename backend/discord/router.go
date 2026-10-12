@@ -10,7 +10,6 @@ import (
 
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/guild"
-	"github.com/karitham/waifubot/storage/dropstore"
 	"github.com/karitham/waifubot/storage/interactionstore"
 	"github.com/karitham/waifubot/tracker"
 	"github.com/karitham/waifubot/wishlist"
@@ -66,7 +65,6 @@ type Router struct {
 	CommandStore      CommandStore
 	WishlistStore     wishlist.Store
 	AnimeService      TrackingService
-	DropStore         dropstore.Store
 	InterStore        interactionstore.Store
 	GuildIndexer      *guild.Indexer
 	GuildOps          guild.Querier

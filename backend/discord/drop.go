@@ -13,14 +13,9 @@ import (
 func (r *Router) drop(ctx context.Context, channelID corde.Snowflake) {
 	logger := slog.With("channel_id", uint64(channelID))
 
-	char, err := r.Store.RandomActiveChar(ctx, collection.DropWeightExponent)
+	char, err := collection.CreateDrop(ctx, r.Store, collection.ChannelID(channelID))
 	if err != nil {
-		logger.Error("failed to get random character for drop", "error", err)
-		return
-	}
-
-	if err := r.DropStore.Set(ctx, collection.ChannelID(channelID), char); err != nil {
-		logger.Error("failed to set channel character", "error", err, "character_id", char.ID, "character_name", char.Name)
+		logger.Error("failed to create drop", "error", err)
 		return
 	}
 

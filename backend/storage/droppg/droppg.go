@@ -39,3 +39,7 @@ func (p *Pg) GetDropForUpdate(ctx context.Context, channelID collection.ChannelI
 func (p *Pg) DeleteDrop(ctx context.Context, channelID collection.ChannelID) error {
 	return p.Q.DeleteDrop(ctx, uint64(channelID))
 }
+
+func (p *Pg) SetDrop(ctx context.Context, channelID collection.ChannelID, char catalog.Character) error {
+	return dropstore.Set(ctx, p.Q, channelID, char)
+}

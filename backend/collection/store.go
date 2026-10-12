@@ -107,8 +107,11 @@ type CollectionRepository interface {
 	RandomActiveChar(ctx context.Context, weightExponent float64) (catalog.Character, error)
 }
 
-// DropRepository handles channel drop operations for the claim flow.
+// DropRepository handles the channel drop lifecycle.
 type DropRepository interface {
+	// SetDrop stores the character as the channel's drop, upserting it into
+	// the catalog first.
+	SetDrop(ctx context.Context, channelID ChannelID, char catalog.Character) error
 	GetDropForUpdate(ctx context.Context, channelID ChannelID) (catalog.Character, error)
 	DeleteDrop(ctx context.Context, channelID ChannelID) error
 }

@@ -34,6 +34,7 @@ type MockStore struct {
 	RemoveFromWishlistFunc      func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error
 	AddCharactersToWishlistFunc func(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) error
 
+	SetDropFunc          func(ctx context.Context, channelID collection.ChannelID, char catalog.Character) error
 	GetDropForUpdateFunc func(ctx context.Context, channelID collection.ChannelID) (catalog.Character, error)
 	DeleteDropFunc       func(ctx context.Context, channelID collection.ChannelID) error
 
@@ -211,6 +212,13 @@ func (m *MockStore) RemoveFromWishlist(ctx context.Context, userID collection.Us
 func (m *MockStore) AddCharactersToWishlist(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) error {
 	if m.AddCharactersToWishlistFunc != nil {
 		return m.AddCharactersToWishlistFunc(ctx, userID, characterIDs)
+	}
+	return nil
+}
+
+func (m *MockStore) SetDrop(ctx context.Context, channelID collection.ChannelID, char catalog.Character) error {
+	if m.SetDropFunc != nil {
+		return m.SetDropFunc(ctx, channelID, char)
 	}
 	return nil
 }
