@@ -136,9 +136,9 @@ FOR NO KEY UPDATE
 `
 
 // Locks the user's row for the rest of the transaction. FOR NO KEY UPDATE is
-// the weakest lock that still conflicts with the non-key updates (tokens,
-// date, profile) that withUsers serializes, and it does not block foreign
-// key checks.
+// the weakest lock that still serializes with the non-key updates (tokens,
+// date, profile) other writers apply to the same row, and it does not block
+// foreign key checks.
 func (q *Queries) LockUser(ctx context.Context, userID uint64) (uint64, error) {
 	row := q.db.QueryRow(ctx, lockUser, userID)
 	var user_id uint64

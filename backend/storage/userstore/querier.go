@@ -15,9 +15,9 @@ type Querier interface {
 	GetByAnilist(ctx context.Context, lower string) (User, error)
 	GetByDiscordUsername(ctx context.Context, discordUsername string) (User, error)
 	// Locks the user's row for the rest of the transaction. FOR NO KEY UPDATE is
-	// the weakest lock that still conflicts with the non-key updates (tokens,
-	// date, profile) that withUsers serializes, and it does not block foreign
-	// key checks.
+	// the weakest lock that still serializes with the non-key updates (tokens,
+	// date, profile) other writers apply to the same row, and it does not block
+	// foreign key checks.
 	LockUser(ctx context.Context, userID uint64) (uint64, error)
 	// Zero rows affected means the cooldown is still active.
 	RecordRoll(ctx context.Context, arg RecordRollParams) (int64, error)

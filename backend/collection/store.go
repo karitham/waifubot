@@ -58,13 +58,10 @@ type OwnedCharacter struct {
 type UserRepository interface {
 	GetUser(ctx context.Context, userID UserID) (User, error)
 	// CreateUser creates the user when it is absent. It is idempotent and
-	// the only path that creates users, so withUsers calls it for every
-	// user an operation acts on.
+	// the only path that creates users.
 	CreateUser(ctx context.Context, userID UserID) error
 	// LockUser locks the user's row for the rest of the transaction,
-	// returning ErrNotFound when the user does not exist. withUsers locks
-	// every user it materializes, in sorted order, so concurrent writes
-	// acquire user row locks in the same order.
+	// returning ErrNotFound when the user does not exist.
 	LockUser(ctx context.Context, userID UserID) error
 	GetUserByAnilist(ctx context.Context, anilistURL string) (User, error)
 	GetUserByDiscordUsername(ctx context.Context, username string) (User, error)
