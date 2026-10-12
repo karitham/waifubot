@@ -3,6 +3,7 @@ package collection_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -55,6 +56,20 @@ func TestProfileEdits(t *testing.T) {
 			},
 			apply: func(ctx context.Context, store collection.DB) error {
 				return collection.SetFavorite(ctx, store, 1, 42)
+			},
+		},
+		{
+			name: "discord info",
+			setup: func(m *collectiontest.MockStore) {
+				m.UpdateDiscordInfoFunc = func(_ context.Context, userID collection.UserID, username, avatar string, _ time.Time) error {
+					assert.Equal(t, collection.UserID(1), userID)
+					assert.Equal(t, "testuser", username)
+					assert.Equal(t, "avatar_hash", avatar)
+					return nil
+				}
+			},
+			apply: func(ctx context.Context, store collection.DB) error {
+				return collection.SetDiscordInfo(ctx, store, 1, "testuser", "avatar_hash", time.Now())
 			},
 		},
 	}

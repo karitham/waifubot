@@ -24,13 +24,13 @@ func NewDiscordService(botToken string) *DiscordService {
 }
 
 // UpdateUserInfo fetches and updates Discord user information.
-func (ds *DiscordService) UpdateUserInfo(ctx context.Context, store collection.Store, userID corde.Snowflake) error {
+func (ds *DiscordService) UpdateUserInfo(ctx context.Context, store collection.DB, userID corde.Snowflake) error {
 	discordUser, err := ds.discordClient.GetUser(ctx, fmt.Sprintf("%d", uint64(userID)))
 	if err != nil {
 		return fmt.Errorf("failed to fetch Discord user: %w", err)
 	}
 
-	return store.UpdateDiscordInfo(ctx, collection.UserID(userID), discordUser.Username, discordUser.Avatar, time.Now())
+	return collection.SetDiscordInfo(ctx, store, collection.UserID(userID), discordUser.Username, discordUser.Avatar, time.Now())
 }
 
 // ShouldUpdateInfo checks if Discord info should be updated (older than 24 hours).
@@ -49,7 +49,7 @@ func ShouldUpdateInfo(ctx context.Context, store collection.Store, userID corde.
 }
 
 // UpdateIfNeeded updates Discord user info if it's stale.
-func (ds *DiscordService) UpdateIfNeeded(ctx context.Context, store collection.Store, userID corde.Snowflake) error {
+func (ds *DiscordService) UpdateIfNeeded(ctx context.Context, store collection.DB, userID corde.Snowflake) error {
 	shouldUpdate, err := ShouldUpdateInfo(ctx, store, userID)
 	if err != nil {
 		return err

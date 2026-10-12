@@ -3,6 +3,7 @@ package collection
 import (
 	"context"
 	"slices"
+	"time"
 
 	"github.com/karitham/waifubot/catalog"
 )
@@ -66,5 +67,13 @@ func SetAnilistURL(ctx context.Context, store DB, userID UserID, url string) err
 func SetFavorite(ctx context.Context, store DB, userID UserID, charID catalog.CharacterID) error {
 	return withUsers(ctx, store, []UserID{userID}, func(tx Tx) error {
 		return tx.SetFavorite(ctx, userID, charID)
+	})
+}
+
+// SetDiscordInfo records the user's fetched Discord profile, materializing
+// the user first.
+func SetDiscordInfo(ctx context.Context, store DB, userID UserID, username, avatar string, fetchedAt time.Time) error {
+	return withUsers(ctx, store, []UserID{userID}, func(tx Tx) error {
+		return tx.UpdateDiscordInfo(ctx, userID, username, avatar, fetchedAt)
 	})
 }

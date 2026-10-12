@@ -23,12 +23,12 @@ import (
 )
 
 type Server struct {
-	db             collection.Store
+	db             collection.DB
 	wishlistStore  wishlist.Store
 	discordService *services.DiscordService
 }
 
-func New(db collection.Store, ws wishlist.Store, discordService *services.DiscordService) *Server {
+func New(db collection.DB, ws wishlist.Store, discordService *services.DiscordService) *Server {
 	return &Server{
 		db:             db,
 		wishlistStore:  ws,
