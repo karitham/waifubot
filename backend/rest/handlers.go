@@ -265,7 +265,7 @@ func (s *Server) findUserByQuery(ctx context.Context, anilist, discord string, u
 		user, err = s.db.GetUserByDiscordUsername(ctx, discord)
 	}
 
-	if err != nil || user.UserID == 0 {
+	if err != nil {
 		return nil, errUserNotFound
 	}
 
