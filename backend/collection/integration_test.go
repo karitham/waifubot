@@ -5,6 +5,7 @@ package collection_test
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -536,4 +537,63 @@ func TestIntegration_GiveCharacterToFreshUser(t *testing.T) {
 	owned, err := store.GetOwnedCharacter(ctx, recipient, 2002)
 	require.NoError(t, err)
 	assert.Equal(t, collection.SourceTrade, owned.Source)
+}
+
+func TestIntegration_ConcurrentOppositeTransfers(t *testing.T) {
+	const a, b collection.UserID = 900030, 900031
+	ctx := t.Context()
+
+	dbStore, err := storage.NewStore(ctx, testDBURL)
+	require.NoError(t, err)
+	store := collectionwire.NewDB(dbStore)
+
+	// Both rows exist before the race: concurrent transfers between existing
+	// users must acquire their row locks in the same order, or Postgres
+	// aborts one with a deadlock error.
+	require.NoError(t, store.CreateUser(ctx, a))
+	require.NoError(t, store.CreateUser(ctx, b))
+	for _, uid := range []collection.UserID{a, b} {
+		_, err := store.AddTokens(ctx, uid, tokenAmount(t, 1000))
+		require.NoError(t, err)
+	}
+
+	amount := tokenAmount(t, 1)
+
+	before := make(map[collection.UserID]int32)
+	for _, uid := range []collection.UserID{a, b} {
+		user, err := store.GetUser(ctx, uid)
+		require.NoError(t, err)
+		before[uid] = user.Tokens
+	}
+
+	errs := make(chan error, 8)
+	var wg sync.WaitGroup
+	for i := range 8 {
+		from, to := a, b
+		if i%2 == 1 {
+			from, to = b, a
+		}
+		wg.Add(1)
+		go func(from, to collection.UserID) {
+			defer wg.Done()
+			for round := range 250 {
+				if err := collection.TransferTokens(ctx, store, from, to, amount); err != nil {
+					errs <- fmt.Errorf("transfer %d->%d (round %d): %w", from, to, round, err)
+					return
+				}
+			}
+		}(from, to)
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		t.Error(err)
+	}
+
+	// The transfers net out, so each balance must be unchanged.
+	for _, uid := range []collection.UserID{a, b} {
+		user, err := store.GetUser(ctx, uid)
+		require.NoError(t, err)
+		assert.Equal(t, before[uid], user.Tokens, "tokens must be conserved")
+	}
 }

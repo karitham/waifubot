@@ -13,6 +13,19 @@ FROM
 WHERE
   user_id = $1;
 
+-- name: LockUser :one
+-- Locks the user's row for the rest of the transaction. FOR NO KEY UPDATE is
+-- the weakest lock that still conflicts with the non-key updates (tokens,
+-- date, profile) that withUsers serializes, and it does not block foreign
+-- key checks.
+SELECT
+  user_id
+FROM
+  users
+WHERE
+  user_id = $1
+FOR NO KEY UPDATE;
+
 -- name: UpdateTokens :one
 UPDATE users
 SET

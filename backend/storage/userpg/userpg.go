@@ -32,8 +32,22 @@ func (p *Pg) GetUser(ctx context.Context, userID collection.UserID) (collection.
 	return toUser(u), nil
 }
 
+// CreateUser creates the user when it is absent. It is idempotent.
 func (p *Pg) CreateUser(ctx context.Context, userID collection.UserID) error {
 	return p.Q.Create(ctx, uint64(userID))
+}
+
+// LockUser locks the user's row for the rest of the transaction. It returns
+// ErrNotFound when the user does not exist.
+func (p *Pg) LockUser(ctx context.Context, userID collection.UserID) error {
+	_, err := p.Q.LockUser(ctx, uint64(userID))
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return collection.ErrNotFound
+		}
+		return err
+	}
+	return nil
 }
 
 func (p *Pg) GetUserByAnilist(ctx context.Context, anilistURL string) (collection.User, error) {

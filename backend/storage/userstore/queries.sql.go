@@ -125,6 +125,27 @@ func (q *Queries) GetByDiscordUsername(ctx context.Context, discordUsername stri
 	return i, err
 }
 
+const lockUser = `-- name: LockUser :one
+SELECT
+  user_id
+FROM
+  users
+WHERE
+  user_id = $1
+FOR NO KEY UPDATE
+`
+
+// Locks the user's row for the rest of the transaction. FOR NO KEY UPDATE is
+// the weakest lock that still conflicts with the non-key updates (tokens,
+// date, profile) that withUsers serializes, and it does not block foreign
+// key checks.
+func (q *Queries) LockUser(ctx context.Context, userID uint64) (uint64, error) {
+	row := q.db.QueryRow(ctx, lockUser, userID)
+	var user_id uint64
+	err := row.Scan(&user_id)
+	return user_id, err
+}
+
 const recordRoll = `-- name: RecordRoll :execrows
 UPDATE users
 SET

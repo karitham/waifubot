@@ -12,6 +12,7 @@ import (
 type MockStore struct {
 	GetUserFunc                  func(ctx context.Context, userID collection.UserID) (collection.User, error)
 	CreateUserFunc               func(ctx context.Context, userID collection.UserID) error
+	LockUserFunc                 func(ctx context.Context, userID collection.UserID) error
 	GetUserByAnilistFunc         func(ctx context.Context, anilistURL string) (collection.User, error)
 	GetUserByDiscordUsernameFunc func(ctx context.Context, username string) (collection.User, error)
 	RecordRollFunc               func(ctx context.Context, userID collection.UserID, now time.Time, cooldown time.Duration) error
@@ -70,6 +71,13 @@ func (m *MockStore) GetUser(ctx context.Context, userID collection.UserID) (coll
 func (m *MockStore) CreateUser(ctx context.Context, userID collection.UserID) error {
 	if m.CreateUserFunc != nil {
 		return m.CreateUserFunc(ctx, userID)
+	}
+	return nil
+}
+
+func (m *MockStore) LockUser(ctx context.Context, userID collection.UserID) error {
+	if m.LockUserFunc != nil {
+		return m.LockUserFunc(ctx, userID)
 	}
 	return nil
 }
