@@ -3,7 +3,9 @@ package discord
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/Karitham/corde"
 
@@ -26,7 +28,7 @@ func (h *RollHandler) Roll(ctx context.Context, w corde.ResponseWriter, cmd Comm
 	var cd collection.ErrRollCooldown
 	switch {
 	case errors.As(err, &cd):
-		w.Respond(rspErr(cd.Error()))
+		w.Respond(rspErr(fmt.Sprintf("You can roll again in %s.", time.Until(cd.Until).Round(time.Second))))
 		return
 	case err != nil:
 		logger.Error("error performing roll", "error", err)

@@ -15,7 +15,7 @@ type ErrRollCooldown struct {
 }
 
 func (e ErrRollCooldown) Error() string {
-	return fmt.Sprintf("You can roll again in %s.", time.Until(e.Until).Round(time.Second))
+	return fmt.Sprintf("roll cooldown until %s", e.Until.UTC().Format(time.RFC3339))
 }
 
 // RollService orchestrates roll operations.
