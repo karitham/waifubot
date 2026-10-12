@@ -8,19 +8,20 @@ import (
 
 func TestGradientHex(t *testing.T) {
 	tests := []struct {
+		name    string
 		val     int
 		wantHex string
 	}{
-		{0, "#969696"},
-		{1, "#969696"},
-		{100, "#2ECC71"},
-		{1000, "#3498DB"},
-		{5000, "#F1C40F"},
-		{15000, "#E67E22"},
+		{"zero", 0, "#969696"},
+		{"one", 1, "#969696"},
+		{"uncommon stop", 100, "#2ECC71"},
+		{"rare stop", 1000, "#3498DB"},
+		{"legendary stop", 5000, "#F1C40F"},
+		{"max stop", 15000, "#E67E22"},
 	}
 
 	for _, tt := range tests {
-		t.Run("", func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			got := gradientHex(tt.val)
 			assert.Equal(t, tt.wantHex, got)
 

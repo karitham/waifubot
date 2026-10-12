@@ -3,6 +3,7 @@ package collection
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/karitham/waifubot/catalog"
@@ -42,7 +43,7 @@ func SetFavorite(ctx context.Context, store Store, userID UserID, charID catalog
 	if charID != 0 {
 		if _, err := store.GetOwnedCharacter(ctx, userID, charID); err != nil {
 			if errors.Is(err, ErrNotFound) {
-				return ErrUserDoesNotOwnCharacter
+				return fmt.Errorf("%w %d", ErrUserDoesNotOwnCharacter, charID)
 			}
 			return err
 		}

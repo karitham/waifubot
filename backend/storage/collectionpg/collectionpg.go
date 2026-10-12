@@ -98,8 +98,7 @@ func (p *Pg) RemoveFromCollection(ctx context.Context, userID collection.UserID,
 		return err
 	}
 
-	p.clearFavorite(ctx, userID, charID)
-	return nil
+	return p.clearFavorite(ctx, userID, charID)
 }
 
 func (p *Pg) GiveCharacter(ctx context.Context, from, to collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
@@ -113,7 +112,9 @@ func (p *Pg) GiveCharacter(ctx context.Context, from, to collection.UserID, char
 		return collection.OwnedCharacter{}, err
 	}
 
-	p.clearFavorite(ctx, from, charID)
+	if err := p.clearFavorite(ctx, from, charID); err != nil {
+		return collection.OwnedCharacter{}, err
+	}
 
 	charRow, err := p.C.GetByID(ctx, int64(charID))
 	if err != nil {
@@ -129,8 +130,8 @@ func (p *Pg) GiveCharacter(ctx context.Context, from, to collection.UserID, char
 }
 
 // clearFavorite removes the character as the user's favorite when it is.
-func (p *Pg) clearFavorite(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) {
-	_ = p.U.ClearFavorite(ctx, userstore.ClearFavoriteParams{
+func (p *Pg) clearFavorite(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
+	return p.U.ClearFavorite(ctx, userstore.ClearFavoriteParams{
 		UserID:   uint64(userID),
 		Favorite: pgtype.Int8{Int64: int64(charID), Valid: true},
 	})

@@ -104,11 +104,11 @@ func (h *ProfileHandler) EditFavorite(ctx context.Context, w corde.ResponseWrite
 
 	optID, _ := cmd.OptInt64("id")
 	if err := collection.SetFavorite(ctx, h.store, cmd.UserID(), catalog.CharacterID(optID)); err != nil {
-		logger.Error("error setting favorite character", "error", err, "character_id", optID)
 		if errors.Is(err, collection.ErrUserDoesNotOwnCharacter) {
 			w.Respond(corde.NewResp().Content("You don't own that character").Ephemeral())
 			return
 		}
+		logger.Error("error setting favorite character", "error", err, "character_id", optID)
 		w.Respond(corde.NewResp().Content("An error occurred setting this character").Ephemeral())
 		return
 	}
