@@ -68,6 +68,13 @@ func (h *ProfileHandler) View(ctx context.Context, w corde.ResponseWriter, cmd C
 		anilistURLDesc = fmt.Sprintf("Find them on [Anilist](%s)", data.AnilistURL)
 	}
 
+	favoriteName := ""
+	var favoriteImage string
+	if data.FavoriteCharacter != nil {
+		favoriteName = data.FavoriteCharacter.Name
+		favoriteImage = data.FavoriteCharacter.Image
+	}
+
 	resp := corde.NewEmbed().
 		Title(opts.targetUsername).
 		URL(fmt.Sprintf("https://waifugui.karitham.dev/#/list/%d", opts.targetUserID)).
@@ -75,16 +82,16 @@ func (h *ProfileHandler) View(ctx context.Context, w corde.ResponseWriter, cmd C
 			"%s\n%s last rolled %s ago and has %d tokens.\nThey have %d characters.\nFavorite: %s\n%s",
 			data.Quote,
 			opts.targetUsername,
-			time.Since(data.Date.UTC()).Truncate(time.Second),
+			time.Since(data.LastRoll.UTC()).Truncate(time.Second),
 			data.Tokens,
 			data.CharacterCount,
-			data.Favorite.Name,
+			favoriteName,
 			anilistURLDesc,
 		).
 		Field("Collection", fmt.Sprintf("[View Collection](https://waifugui.karitham.dev/#/list/%d)", opts.targetUserID)).
 		Field("Wishlist", fmt.Sprintf("[View Wishlist](https://waifugui.karitham.dev/#/wishlist/%d)", opts.targetUserID))
-	if data.Favorite.Image != "" {
-		resp.Thumbnail(corde.Image{URL: data.Favorite.Image})
+	if favoriteImage != "" {
+		resp.Thumbnail(corde.Image{URL: favoriteImage})
 	}
 
 	w.Respond(resp)

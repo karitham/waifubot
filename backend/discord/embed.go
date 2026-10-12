@@ -16,8 +16,8 @@ func rollEmbed(char catalog.Character, usersWanting string) corde.Embed {
 		"You got %s (%s)\n⭐ Rarity: %s | ❤️ %d favorites%s\n\n🎲 Standard Roll\nID: %d",
 		char.Name,
 		char.MediaTitle,
-		collection.RarityFromFavorites(char.Favorites),
-		char.Favorites,
+		collection.RarityFromPopularity(char.Popularity),
+		char.Popularity,
 		usersWanting,
 		char.ID,
 	))
@@ -28,8 +28,8 @@ func seriesRollEmbed(char catalog.Character, cost int32) corde.Embed {
 		"You got %s (%s)\n⭐ Rarity: %s | ❤️ %d favorites\n\n🎯 Series Roll | Cost: %d tokens\nID: %d",
 		char.Name,
 		char.MediaTitle,
-		collection.RarityFromFavorites(char.Favorites),
-		char.Favorites,
+		collection.RarityFromPopularity(char.Popularity),
+		char.Popularity,
 		cost,
 		char.ID,
 	))
@@ -54,10 +54,10 @@ func dropMessage(char catalog.Character, image io.Reader) corde.Message {
 			Description: fmt.Sprintf(
 				"A character has appeared! Use `/claim <name>` to add them to your collection.\n\n**Hint:** %s\n\n⭐ Rarity: %s",
 				initials.String(),
-				collection.RarityFromFavorites(char.Favorites),
+				collection.RarityFromPopularity(char.Popularity),
 			),
 			Footer: corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"},
-			Color:  collection.GradientColor(char.Favorites),
+			Color:  collection.GradientColor(char.Popularity),
 		}},
 	}
 
@@ -76,7 +76,7 @@ func claimEmbed(char catalog.Character, rarity string) corde.Embed {
 	return corde.NewEmbed().
 		Title(char.Name).
 		URL(fmt.Sprintf("https://anilist.co/character/%d", char.ID)).
-		Color(collection.GradientColor(char.Favorites)).
+		Color(collection.GradientColor(char.Popularity)).
 		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"}).
 		Thumbnail(corde.Image{URL: char.Image}).
 		Descriptionf(
@@ -84,7 +84,7 @@ func claimEmbed(char catalog.Character, rarity string) corde.Embed {
 			char.Name,
 			char.MediaTitle,
 			rarity,
-			char.Favorites,
+			char.Popularity,
 			char.ID,
 		).
 		Embed()
@@ -94,7 +94,7 @@ func newCharEmbed(char catalog.Character, description string) corde.Embed {
 	return corde.NewEmbed().
 		Title(char.Name).
 		URL(fmt.Sprintf("https://anilist.co/character/%d", char.ID)).
-		Color(collection.GradientColor(char.Favorites)).
+		Color(collection.GradientColor(char.Popularity)).
 		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"}).
 		Thumbnail(corde.Image{URL: char.Image}).
 		Description(description).

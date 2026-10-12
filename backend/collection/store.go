@@ -36,15 +36,15 @@ type ChannelID uint64
 
 // User holds user profile data.
 type User struct {
-	UserID          UserID
-	Date            time.Time
-	Tokens          int32
-	Quote           string
-	Favorite        catalog.CharacterID
-	AnilistURL      string
-	DiscordUsername string
-	DiscordAvatar   string
-	LastUpdated     time.Time
+	UserID              UserID
+	LastRoll            time.Time
+	Tokens              int32
+	Quote               string
+	FavoriteCharacterID catalog.CharacterID
+	AnilistURL          string
+	DiscordUsername     string
+	DiscordAvatar       string
+	LastUpdated         time.Time
 }
 
 type OwnedCharacter struct {

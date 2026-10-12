@@ -107,14 +107,14 @@ func (s *Server) GetProfileV1(ctx context.Context, params api.GetProfileV1Params
 	}
 
 	var fav api.OptCharacter
-	if u.Favorite != 0 {
-		favChar, err := s.db.GetCharacterByID(ctx, u.Favorite)
+	if u.FavoriteCharacterID != 0 {
+		favChar, err := s.db.GetCharacterByID(ctx, u.FavoriteCharacterID)
 		if err == nil {
 			fav = api.NewOptCharacter(api.Character{
 				ID:        int64(favChar.ID),
 				Name:      favChar.Name,
 				Image:     favChar.Image,
-				Favorites: favChar.Favorites,
+				Favorites: favChar.Popularity,
 				// date and type are null — character comes from catalog, not collection
 			})
 		}
@@ -152,7 +152,7 @@ func (s *Server) GetCollectionV1(ctx context.Context, params api.GetCollectionV1
 
 	characters := make([]api.Character, len(chars))
 	for i, entry := range chars {
-		characters[i] = mapCharacter(entry.ID, entry.Name, entry.Image, entry.Favorites, entry.Source, entry.Date)
+		characters[i] = mapCharacter(entry.ID, entry.Name, entry.Image, entry.Popularity, entry.Source, entry.Date)
 	}
 
 	return &api.CollectionResponse{
@@ -297,7 +297,7 @@ func (s *Server) GetWishlist(ctx context.Context, params api.GetWishlistParams) 
 			Name:      c.Name,
 			Image:     c.Image,
 			ID:        int64(c.ID),
-			Favorites: c.Favorites,
+			Favorites: c.Popularity,
 		}
 	}
 
@@ -308,12 +308,12 @@ func (s *Server) GetWishlist(ctx context.Context, params api.GetWishlistParams) 
 }
 
 // mapCharacter builds an api.Character from common fields.
-func mapCharacter(id catalog.CharacterID, name, image string, favorites int, source collection.Source, date time.Time) api.Character {
+func mapCharacter(id catalog.CharacterID, name, image string, popularity int, source collection.Source, date time.Time) api.Character {
 	return api.Character{
 		ID:        int64(id),
 		Name:      name,
 		Image:     image,
-		Favorites: favorites,
+		Favorites: popularity,
 		Type:      api.NewOptNilCharacterType(api.CharacterType(source)),
 		Date:      api.NewOptNilDateTime(date),
 	}
@@ -323,9 +323,9 @@ func (s *Server) mapUser(u collection.User, list []collection.OwnedCharacter) *a
 	waifus := make([]api.Character, 0, len(list))
 	var fav api.OptCharacter
 	for _, entry := range list {
-		c := mapCharacter(entry.ID, entry.Name, entry.Image, entry.Favorites, entry.Source, entry.Date)
+		c := mapCharacter(entry.ID, entry.Name, entry.Image, entry.Popularity, entry.Source, entry.Date)
 
-		if u.Favorite != 0 && entry.ID == u.Favorite {
+		if u.FavoriteCharacterID != 0 && entry.ID == u.FavoriteCharacterID {
 			fav = api.NewOptCharacter(c)
 		}
 

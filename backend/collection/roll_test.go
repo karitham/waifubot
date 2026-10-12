@@ -33,7 +33,7 @@ func TestRoll(t *testing.T) {
 					return catalog.Character{ID: 3, Name: "Char3", Image: "img3"}, nil
 				}
 				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
-					return collection.User{UserID: userID, Date: time.Now().Add(-2 * time.Hour), Tokens: 5}, nil
+					return collection.User{UserID: userID, LastRoll: time.Now().Add(-2 * time.Hour), Tokens: 5}, nil
 				}
 				m.AddToCollectionFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID, _ collection.Source, _ time.Time) error {
 					return nil
@@ -48,7 +48,7 @@ func TestRoll(t *testing.T) {
 			name: "cooldown",
 			setup: func(m *collectiontest.MockStore) {
 				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
-					return collection.User{UserID: userID, Date: time.Now().Add(-30 * time.Minute), Tokens: 5}, nil
+					return collection.User{UserID: userID, LastRoll: time.Now().Add(-30 * time.Minute), Tokens: 5}, nil
 				}
 			},
 			userID:    123,
@@ -62,7 +62,7 @@ func TestRoll(t *testing.T) {
 					return catalog.Character{ID: 6, Name: "Char6", Image: "img6"}, nil
 				}
 				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
-					return collection.User{UserID: userID, Date: time.Now().Add(-2 * time.Hour)}, nil
+					return collection.User{UserID: userID, LastRoll: time.Now().Add(-2 * time.Hour)}, nil
 				}
 				// The checks pass on the stale read; the atomic charge is
 				// what rejects the loser of the race.
@@ -107,7 +107,7 @@ func TestRoll(t *testing.T) {
 					return catalog.Character{}, collection.ErrNotFound
 				}
 				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
-					return collection.User{UserID: userID, Date: time.Now().Add(-2 * time.Hour), Tokens: 5}, nil
+					return collection.User{UserID: userID, LastRoll: time.Now().Add(-2 * time.Hour), Tokens: 5}, nil
 				}
 			},
 			userID:    123,
@@ -121,7 +121,7 @@ func TestRoll(t *testing.T) {
 					return catalog.Character{ID: 5, Name: "Char5", Image: "img5"}, nil
 				}
 				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
-					return collection.User{UserID: userID, Date: time.Now().Add(-2 * time.Hour), Tokens: 5}, nil
+					return collection.User{UserID: userID, LastRoll: time.Now().Add(-2 * time.Hour), Tokens: 5}, nil
 				}
 				m.AddToCollectionFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID, _ collection.Source, _ time.Time) error {
 					return nil

@@ -32,8 +32,8 @@ type RollConfig struct {
 // Profile represents a complete user profile with character count and favorite.
 type Profile struct {
 	User
-	CharacterCount int
-	Favorite       catalog.Character
+	CharacterCount    int
+	FavoriteCharacter *catalog.Character
 }
 
 // UserProfile retrieves a user's profile.
@@ -53,11 +53,11 @@ func UserProfile(ctx context.Context, store Store, userID UserID) (Profile, erro
 		}
 	}
 
-	var favorite catalog.Character
-	if u.Favorite != 0 {
-		fav, err := store.GetCharacterByID(ctx, u.Favorite)
+	var favorite *catalog.Character
+	if u.FavoriteCharacterID != 0 {
+		fav, err := store.GetCharacterByID(ctx, u.FavoriteCharacterID)
 		if err == nil {
-			favorite = fav
+			favorite = &fav
 		}
 	}
 
@@ -67,8 +67,8 @@ func UserProfile(ctx context.Context, store Store, userID UserID) (Profile, erro
 	}
 
 	return Profile{
-		User:           u,
-		Favorite:       favorite,
-		CharacterCount: int(count),
+		User:              u,
+		FavoriteCharacter: favorite,
+		CharacterCount:    int(count),
 	}, nil
 }

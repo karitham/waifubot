@@ -112,7 +112,7 @@ func TestClaimHandler_Claim(t *testing.T) {
 			},
 			store: &collectiontest.MockStore{
 				GetDropForUpdateFunc: func(ctx context.Context, channelID collection.ChannelID) (catalog.Drop, error) {
-					return catalog.Drop{ID: 42, Name: "Sakura", Image: "https://example.com/sakura.png", Favorites: 1000}, nil
+					return catalog.Drop{ID: 42, Name: "Sakura", Image: "https://example.com/sakura.png", Popularity: 1000}, nil
 				},
 				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID, source collection.Source, acquiredAt time.Time) error {
 					return nil

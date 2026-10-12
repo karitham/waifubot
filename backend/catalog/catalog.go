@@ -16,7 +16,7 @@ type Character struct {
 	Name       string
 	Image      string
 	MediaTitle string
-	Favorites  int
+	Popularity int
 	UpdatedAt  time.Time // for cursor tracking
 	IsActive   bool
 }

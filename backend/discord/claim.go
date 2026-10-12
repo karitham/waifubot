@@ -59,7 +59,7 @@ func (h *ClaimHandler) Claim(ctx context.Context, w corde.ResponseWriter, cmd Co
 		"character_id", char.ID,
 		"character_name", char.Name)
 
-	rarity := collection.RarityFromFavorites(char.Favorites)
+	rarity := collection.RarityFromPopularity(char.Popularity)
 
 	w.Respond(claimEmbed(char, rarity.String()))
 }

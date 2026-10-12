@@ -32,23 +32,23 @@ func (r RarityTier) String() string {
 	}
 }
 
-// RarityFromFavorites classifies a favorites count into a tier.
-func RarityFromFavorites(favorites int) RarityTier {
+// RarityFromPopularity classifies a popularity count into a tier.
+func RarityFromPopularity(popularity int) RarityTier {
 	switch {
-	case favorites >= 5000:
+	case popularity >= 5000:
 		return RarityLegendary
-	case favorites >= 1000:
+	case popularity >= 1000:
 		return RarityRare
-	case favorites >= 100:
+	case popularity >= 100:
 		return RarityUncommon
 	default:
 		return RarityCommon
 	}
 }
 
-// GradientColor returns the Discord embed color using gradient interpolation based on favorites count.
-func GradientColor(favorites int) uint32 {
-	hex := getRarityHex(favorites)
+// GradientColor returns the Discord embed color using gradient interpolation based on popularity count.
+func GradientColor(popularity int) uint32 {
+	hex := getRarityHex(popularity)
 	// Parse "#RRGGBB" to uint32 (stored as 0xRRGGBB)
 	parsed, err := strconv.ParseInt(hex[1:], 16, 32)
 	if err != nil {

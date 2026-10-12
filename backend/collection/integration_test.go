@@ -17,13 +17,9 @@ import (
 
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/collectionwire"
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/storage"
-	"github.com/karitham/waifubot/storage/catalogpg"
-	"github.com/karitham/waifubot/storage/collectionpg"
-	"github.com/karitham/waifubot/storage/droppg"
-	"github.com/karitham/waifubot/storage/guildpg"
-	"github.com/karitham/waifubot/storage/userpg"
 	"github.com/karitham/waifubot/storage/userstore"
 )
 
@@ -63,13 +59,7 @@ func TestMain(m *testing.M) {
 }
 
 func buildStore(s storage.Store) collection.Store {
-	return collection.NewStore(
-		userpg.New(s.UserStore()),
-		collectionpg.New(s.CollectionStore(), s.WishlistStore()),
-		droppg.New(s.DropStore()),
-		guildpg.New(s.GuildStore()),
-		catalogpg.New(s.CollectionStore()),
-	)
+	return collectionwire.QueryStore(s)
 }
 
 func setupStore(t *testing.T) collection.Store {
@@ -116,7 +106,7 @@ func TestIntegration_UserCRUD(t *testing.T) {
 
 	require.NoError(t, store.UpdateFavorite(ctx, uid, 42))
 	user, _ = store.GetUser(ctx, uid)
-	assert.Equal(t, catalog.CharacterID(42), user.Favorite)
+	assert.Equal(t, catalog.CharacterID(42), user.FavoriteCharacterID)
 
 	require.NoError(t, store.UpdateAnilistURL(ctx, uid, "https://anilist.co/user/test"))
 	user, _ = store.GetUser(ctx, uid)
@@ -372,7 +362,7 @@ func TestIntegration_RandomCharNotOwned_ExcludesInactive(t *testing.T) {
 	// Insert active characters.
 	for i := int64(1); i <= 10; i++ {
 		require.NoError(t, store.UpsertCharacter(ctx, catalog.Character{
-			ID: catalog.CharacterID(i), Name: fmt.Sprintf("Char%d", i), Image: "img", Favorites: 100,
+			ID: catalog.CharacterID(i), Name: fmt.Sprintf("Char%d", i), Image: "img", Popularity: 100,
 		}))
 	}
 
@@ -437,29 +427,9 @@ func TestIntegration_TransactionsAreScoped(t *testing.T) {
 	dbStore, err := storage.NewStore(ctx, testDBURL)
 	require.NoError(t, err)
 
-	// Mirror the production wiring: the tx factory must build adapters over
-	// the transaction, not the pool, or rollback undoes nothing.
-	txFn := func(tx pgx.Tx) collection.Store {
-		scoped := dbStore.WithTx(tx)
-		return collection.NewStore(
-			userpg.New(scoped.UserStore()),
-			collectionpg.New(scoped.CollectionStore(), scoped.WishlistStore()),
-			droppg.New(scoped.DropStore()),
-			guildpg.New(scoped.GuildStore()),
-			catalogpg.New(scoped.CollectionStore()),
-		)
-	}
-	store := collection.NewPostgresStore(
-		collection.NewStore(
-			userpg.New(dbStore.UserStore()),
-			collectionpg.New(dbStore.CollectionStore(), dbStore.WishlistStore()),
-			droppg.New(dbStore.DropStore()),
-			guildpg.New(dbStore.GuildStore()),
-			catalogpg.New(dbStore.CollectionStore()),
-		),
-		dbStore.DB(),
-		txFn,
-	)
+	// Wire through the same composition the binaries use, so a regression
+	// in the tx factory fails this test.
+	store := collectionwire.NewDB(dbStore)
 
 	tx, err := store.Begin(ctx)
 	require.NoError(t, err)

@@ -24,7 +24,7 @@ func (p *Pg) UpsertCharacter(ctx context.Context, char catalog.Character) error 
 		Name:       char.Name,
 		Image:      char.Image,
 		MediaTitle: char.MediaTitle,
-		Favorites:  int32(char.Favorites),
+		Favorites:  int32(char.Popularity),
 	})
 	return err
 }
@@ -42,7 +42,7 @@ func (p *Pg) GetCharacterByID(ctx context.Context, charID catalog.CharacterID) (
 		Name:       c.Name,
 		Image:      c.Image,
 		MediaTitle: c.MediaTitle,
-		Favorites:  int(c.Favorites),
+		Popularity: int(c.Favorites),
 		UpdatedAt:  c.UpdatedAt.Time,
 	}, nil
 }
@@ -59,7 +59,7 @@ func (p *Pg) SearchGlobalCharacters(ctx context.Context, term string) ([]catalog
 			Name:       r.Name,
 			Image:      r.Image,
 			MediaTitle: r.MediaTitle,
-			Favorites:  int(r.Favorites),
+			Popularity: int(r.Favorites),
 		}
 	}
 	return chars, nil

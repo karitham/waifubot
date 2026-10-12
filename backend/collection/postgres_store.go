@@ -3,22 +3,9 @@ package collection
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5"
-
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/guild"
 )
-
-// TxFn creates tx-scoped query adapters from a pgx transaction.
-// Registered by the wiring layer (cmd/) so collection doesn't import
-// storage/*pg. It must build every adapter over the transaction, never
-// over the pool, or the "transaction" is a no-op.
-type TxFn func(tx pgx.Tx) Store
-
-// pooler is the minimal interface for beginning transactions.
-type pooler interface {
-	Begin(ctx context.Context) (pgx.Tx, error)
-}
 
 // composedStore is the query surface assembled from repository adapters.
 type composedStore struct {
@@ -46,49 +33,53 @@ func NewStore(
 	}
 }
 
-// PostgresStore is the pool-level DB: repository adapters plus transaction
-// creation.
-type PostgresStore struct {
+// TxControl commits or rolls back a transaction.
+type TxControl interface {
+	Commit(ctx context.Context) error
+	Rollback(ctx context.Context) error
+}
+
+// NewTx wraps tx-scoped query adapters with commit and rollback control.
+func NewTx(store Store, control TxControl) Tx {
+	return txStore{Store: store, control: control}
+}
+
+type txStore struct {
 	Store
-	pool pooler
-	txFn TxFn
-}
-
-// NewPostgresStore creates a pool-level DB from a query Store and a tx
-// adapter factory.
-func NewPostgresStore(store Store, pool pooler, txFn TxFn) *PostgresStore {
-	return &PostgresStore{
-		Store: store,
-		pool:  pool,
-		txFn:  txFn,
-	}
-}
-
-// Begin starts a transaction and returns a Tx scoped to it.
-func (s *PostgresStore) Begin(ctx context.Context) (Tx, error) {
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return newTx(s.txFn(tx), tx), nil
-}
-
-// postgresTx is a Store scoped to a pgx transaction.
-type postgresTx struct {
-	Store
-	tx pgx.Tx
-}
-
-func newTx(store Store, tx pgx.Tx) Tx {
-	return &postgresTx{Store: store, tx: tx}
+	control TxControl
 }
 
 // Commit commits the transaction.
-func (t *postgresTx) Commit(ctx context.Context) error {
-	return t.tx.Commit(ctx)
+func (t txStore) Commit(ctx context.Context) error {
+	return t.control.Commit(ctx)
 }
 
 // Rollback rolls back the transaction.
-func (t *postgresTx) Rollback(ctx context.Context) error {
-	return t.tx.Rollback(ctx)
+func (t txStore) Rollback(ctx context.Context) error {
+	return t.control.Rollback(ctx)
+}
+
+// BeginFunc starts a transaction and returns a Tx scoped to it.
+type BeginFunc func(ctx context.Context) (Tx, error)
+
+// PostgresStore is the pool-level DB: repository adapters plus transaction
+// creation. The wiring layer supplies BeginFunc so collection doesn't import
+// storage packages.
+type PostgresStore struct {
+	Store
+	begin BeginFunc
+}
+
+// NewPostgresStore creates a pool-level DB from a query Store and a begin
+// function.
+func NewPostgresStore(store Store, begin BeginFunc) *PostgresStore {
+	return &PostgresStore{
+		Store: store,
+		begin: begin,
+	}
+}
+
+// Begin starts a new transaction and returns a Tx scoped to it.
+func (s *PostgresStore) Begin(ctx context.Context) (Tx, error) {
+	return s.begin(ctx)
 }

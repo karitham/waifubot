@@ -56,7 +56,7 @@ func (s *store) GetUserCharacterWishlist(ctx context.Context, userID collection.
 				ID:        catalog.CharacterID(row.ID),
 				Name:      row.Name,
 				Image:     row.Image,
-				Favorites: int(row.Favorites),
+				Popularity: int(row.Favorites),
 			},
 			AddedAt: row.Date.Time,
 		}

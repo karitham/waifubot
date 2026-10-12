@@ -32,7 +32,7 @@ func (p *Pg) GetDropForUpdate(ctx context.Context, channelID collection.ChannelI
 		Name:       c.Name,
 		Image:      c.Image,
 		MediaTitle: c.MediaTitle,
-		Favorites:  int(c.Favorites),
+		Popularity: int(c.Favorites),
 	}, nil
 }
 

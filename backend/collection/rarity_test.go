@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRarityFromFavorites(t *testing.T) {
+func TestRarityFromPopularity(t *testing.T) {
 	tests := []struct {
 		favorites int
 		want      RarityTier
@@ -26,7 +26,7 @@ func TestRarityFromFavorites(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-			got := RarityFromFavorites(tt.favorites)
+			got := RarityFromPopularity(tt.favorites)
 			assert.Equal(t, tt.want, got)
 		})
 	}

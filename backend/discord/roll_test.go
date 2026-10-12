@@ -33,8 +33,8 @@ func TestRollHandler_Roll(t *testing.T) {
 			store: &collectiontest.MockStore{
 				GetUserFunc: func(ctx context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{
-						UserID: userID,
-						Date:   time.Now().Add(30 * time.Minute),
+						UserID:   userID,
+						LastRoll: time.Now().Add(30 * time.Minute),
 					}, nil
 				},
 			},
@@ -75,7 +75,7 @@ func TestRollHandler_Roll(t *testing.T) {
 						Name:       "Rem",
 						Image:      "https://example.com/rem.png",
 						MediaTitle: "Re:Zero",
-						Favorites:  5000,
+						Popularity:  5000,
 					}, nil
 				},
 				UpsertCharacterFunc: func(ctx context.Context, char catalog.Character) error { return nil },
@@ -113,7 +113,7 @@ func TestRollHandler_Roll(t *testing.T) {
 						Name:       "Rem",
 						Image:      "https://example.com/rem.png",
 						MediaTitle: "Re:Zero",
-						Favorites:  5000,
+						Popularity:  5000,
 					}, nil
 				},
 				UpsertCharacterFunc: func(ctx context.Context, char catalog.Character) error { return nil },

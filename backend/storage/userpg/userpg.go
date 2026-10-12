@@ -141,14 +141,14 @@ func (p *Pg) UpdateDiscordInfo(ctx context.Context, userID collection.UserID, us
 
 func toUser(u userstore.User) collection.User {
 	return collection.User{
-		UserID:          collection.UserID(u.UserID),
-		Date:            u.Date.Time,
-		Tokens:          u.Tokens,
-		Quote:           u.Quote,
-		Favorite:        catalog.CharacterID(u.Favorite.Int64),
-		AnilistURL:      u.AnilistUrl,
-		DiscordUsername: u.DiscordUsername,
-		DiscordAvatar:   u.DiscordAvatar,
-		LastUpdated:     u.LastUpdated.Time,
+		UserID:              collection.UserID(u.UserID),
+		LastRoll:            u.Date.Time,
+		Tokens:              u.Tokens,
+		Quote:               u.Quote,
+		FavoriteCharacterID: catalog.CharacterID(u.Favorite.Int64),
+		AnilistURL:          u.AnilistUrl,
+		DiscordUsername:     u.DiscordUsername,
+		DiscordAvatar:       u.DiscordAvatar,
+		LastUpdated:         u.LastUpdated.Time,
 	}
 }

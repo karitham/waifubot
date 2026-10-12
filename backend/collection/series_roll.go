@@ -22,7 +22,7 @@ func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID tra
 		pick: func(ctx context.Context, store Store, userID UserID) (catalog.Character, error) {
 			return pickSeriesCharacter(ctx, store, userID, mediaID, anime)
 		},
-		charge: func(ctx context.Context, tx Store, now time.Time) error {
+		charge: func(ctx context.Context, tx Tx, now time.Time) error {
 			_, err := tx.SpendTokens(ctx, userID, seriesRollCost)
 			return err
 		},

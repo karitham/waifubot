@@ -19,7 +19,7 @@ type Character struct {
 	URL         string
 	Description string
 	MediaTitle  string
-	Favorites   int
+	Popularity  int
 }
 
 // ToCatalog converts the provider record into the local catalog form.
@@ -29,7 +29,7 @@ func (c Character) ToCatalog() catalog.Character {
 		Name:       c.Name,
 		Image:      c.ImageURL,
 		MediaTitle: c.MediaTitle,
-		Favorites:  c.Favorites,
+		Popularity: c.Popularity,
 	}
 }
 

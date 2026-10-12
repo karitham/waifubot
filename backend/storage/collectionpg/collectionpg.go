@@ -32,7 +32,7 @@ func (p *Pg) GetCollection(ctx context.Context, userID collection.UserID) ([]col
 	chars := make([]collection.OwnedCharacter, len(rows))
 	for i, r := range rows {
 		chars[i] = collection.OwnedCharacter{
-			ID: catalog.CharacterID(r.ID), Name: r.Name, Image: r.Image, MediaTitle: r.MediaTitle, Favorites: int(r.Favorites),
+			ID: catalog.CharacterID(r.ID), Name: r.Name, Image: r.Image, MediaTitle: r.MediaTitle, Popularity: int(r.Favorites),
 			Date:   r.Date.Time,
 			Source: collection.Source(r.Source),
 			UserID: userID,
@@ -63,7 +63,7 @@ func (p *Pg) GetOwnedCharacter(ctx context.Context, userID collection.UserID, ch
 		return collection.OwnedCharacter{}, err
 	}
 	return collection.OwnedCharacter{
-		ID: catalog.CharacterID(row.ID), Name: row.Name, Image: row.Image, MediaTitle: row.MediaTitle, Favorites: int(row.Favorites),
+		ID: catalog.CharacterID(row.ID), Name: row.Name, Image: row.Image, MediaTitle: row.MediaTitle, Popularity: int(row.Favorites),
 		Date:   row.Date.Time,
 		Source: collection.Source(row.Source),
 		UserID: userID,
@@ -115,7 +115,7 @@ func (p *Pg) GiveCharacter(ctx context.Context, from, to collection.UserID, char
 	}
 
 	return collection.OwnedCharacter{
-		ID: catalog.CharacterID(charRow.ID), Name: charRow.Name, Image: charRow.Image, MediaTitle: charRow.MediaTitle, Favorites: int(charRow.Favorites),
+		ID: catalog.CharacterID(charRow.ID), Name: charRow.Name, Image: charRow.Image, MediaTitle: charRow.MediaTitle, Popularity: int(charRow.Favorites),
 		Date:   col.AcquiredAt.Time,
 		Source: collection.Source(col.Source),
 		UserID: to,
@@ -143,7 +143,7 @@ func (p *Pg) SearchCharacters(ctx context.Context, userID collection.UserID, ter
 			Name:       r.Name,
 			Image:      r.Image,
 			MediaTitle: r.MediaTitle,
-			Favorites:  int(r.Favorites),
+			Popularity: int(r.Favorites),
 		}
 	}
 	return chars, nil
@@ -173,7 +173,7 @@ func (p *Pg) RandomCharNotOwned(ctx context.Context, userID collection.UserID, w
 		Name:       c.Name,
 		Image:      c.Image,
 		MediaTitle: c.MediaTitle,
-		Favorites:  int(c.Favorites),
+		Popularity: int(c.Favorites),
 	}, nil
 }
 
@@ -190,7 +190,7 @@ func (p *Pg) RandomActiveChar(ctx context.Context, weightExponent float64) (cata
 		Name:       c.Name,
 		Image:      c.Image,
 		MediaTitle: c.MediaTitle,
-		Favorites:  int(c.Favorites),
+		Popularity: int(c.Favorites),
 		UpdatedAt:  c.UpdatedAt.Time,
 		IsActive:   c.IsActive,
 	}, nil

@@ -25,7 +25,7 @@ type acquisition struct {
 	// charge applies the cost of the acquisition inside the transaction:
 	// tokens for a paid roll, the next cooldown for a free one. It is the
 	// authoritative gate under concurrency; check only narrows the window.
-	charge func(ctx context.Context, tx Store, now time.Time) error
+	charge func(ctx context.Context, tx Tx, now time.Time) error
 }
 
 // acquire runs an acquisition: check eligibility, pick an unowned character,

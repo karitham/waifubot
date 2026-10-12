@@ -34,8 +34,6 @@ type Store interface {
 	WishlistStore() wishliststore.Querier
 	CommandStore() commandstore.Querier
 	Tx(ctx context.Context) (Store, error)
-	// WithTx returns a Store whose queries run on the given transaction.
-	WithTx(tx pgx.Tx) Store
 	Commit(ctx context.Context) error
 	Rollback(ctx context.Context) error
 }

@@ -371,7 +371,7 @@ func TestTokenHandler_Roll(t *testing.T) {
 			animeService: &collectiontest.MockAnimeService{
 				GetMediaCharactersFunc: func(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error) {
 					return []tracker.Character{
-						{ID: 10, Name: "Sakura", MediaTitle: "Naruto", Favorites: 5000},
+						{ID: 10, Name: "Sakura", MediaTitle: "Naruto", Popularity: 5000},
 					}, nil
 				},
 			},

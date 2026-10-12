@@ -32,12 +32,12 @@ func TestProfileHandler_View(t *testing.T) {
 			store: &collectiontest.MockStore{
 				GetUserFunc: func(ctx context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{
-						UserID:     1,
-						Tokens:     42,
-						Quote:      "hello world",
-						Favorite:   10,
-						AnilistURL: "https://anilist.co/user/testuser",
-						Date:       time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC),
+						UserID:              1,
+						Tokens:              42,
+						Quote:               "hello world",
+						FavoriteCharacterID: 10,
+						AnilistURL:          "https://anilist.co/user/testuser",
+						LastRoll:            time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC),
 					}, nil
 				},
 				GetCharacterByIDFunc: func(ctx context.Context, charID catalog.CharacterID) (catalog.Character, error) {
@@ -63,9 +63,9 @@ func TestProfileHandler_View(t *testing.T) {
 			store: &collectiontest.MockStore{
 				GetUserFunc: func(ctx context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{
-						UserID: 99,
-						Tokens: 10,
-						Date:   time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC),
+						UserID:   99,
+						Tokens:   10,
+						LastRoll: time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC),
 					}, nil
 				},
 				CountCollectionFunc: func(ctx context.Context, userID collection.UserID) (int64, error) {

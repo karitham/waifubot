@@ -30,7 +30,7 @@ func TestRollEmbed(t *testing.T) {
 				Name:       "Test Character",
 				Image:      "https://example.com/image.png",
 				MediaTitle: "Test Anime",
-				Favorites:  150,
+				Popularity:  150,
 			},
 			rarity:       "Uncommon",
 			usersWanting: "",
@@ -42,7 +42,7 @@ func TestRollEmbed(t *testing.T) {
 				Name:       "Popular Character",
 				Image:      "https://example.com/popular.png",
 				MediaTitle: "Popular Anime",
-				Favorites:  2500,
+				Popularity:  2500,
 			},
 			rarity:       "Rare",
 			usersWanting: "\n\nWanted by: @user1, @user2",
@@ -53,7 +53,7 @@ func TestRollEmbed(t *testing.T) {
 
 			assert.Equal(t, tt.char.Name, embed.Title)
 			assert.Equal(t, "https://anilist.co/character/"+strconv.FormatInt(int64(tt.char.ID), 10), embed.URL)
-			assert.Equal(t, collection.GradientColor(tt.char.Favorites), embed.Color)
+			assert.Equal(t, collection.GradientColor(tt.char.Popularity), embed.Color)
 			assert.Contains(t, embed.Description, tt.char.Name)
 			assert.Contains(t, embed.Description, tt.char.MediaTitle)
 			assert.Contains(t, embed.Description, tt.rarity)
@@ -78,7 +78,7 @@ func TestSeriesRollEmbed(t *testing.T) {
 				Name:       "Series Character",
 				Image:      "https://example.com/series.png",
 				MediaTitle: "Series Anime",
-				Favorites:  500,
+				Popularity:  500,
 			},
 			cost: 5,
 		},
@@ -88,7 +88,7 @@ func TestSeriesRollEmbed(t *testing.T) {
 
 			assert.Equal(t, tt.char.Name, embed.Title)
 			assert.Equal(t, "https://anilist.co/character/"+strconv.FormatInt(int64(tt.char.ID), 10), embed.URL)
-			assert.Equal(t, collection.GradientColor(tt.char.Favorites), embed.Color)
+			assert.Equal(t, collection.GradientColor(tt.char.Popularity), embed.Color)
 			assert.Contains(t, embed.Description, tt.char.Name)
 			assert.Contains(t, embed.Description, tt.char.MediaTitle)
 			assert.Contains(t, embed.Description, "Series Roll")
@@ -112,7 +112,7 @@ func TestClaimEmbed(t *testing.T) {
 				Name:       "Claimed Character",
 				Image:      "https://example.com/claimed.png",
 				MediaTitle: "Claimed Anime",
-				Favorites:  75,
+				Popularity:  75,
 			},
 			rarity: "Common",
 		},
@@ -123,7 +123,7 @@ func TestClaimEmbed(t *testing.T) {
 				Name:       "Legend Claimed",
 				Image:      "https://example.com/legend.png",
 				MediaTitle: "Legend Anime",
-				Favorites:  10000,
+				Popularity:  10000,
 			},
 			rarity: "Legendary",
 		},
@@ -133,7 +133,7 @@ func TestClaimEmbed(t *testing.T) {
 
 			assert.Equal(t, tt.char.Name, embed.Title)
 			assert.Equal(t, "https://anilist.co/character/999", embed.URL)
-			assert.Equal(t, collection.GradientColor(tt.char.Favorites), embed.Color)
+			assert.Equal(t, collection.GradientColor(tt.char.Popularity), embed.Color)
 			assert.Contains(t, embed.Description, tt.char.Name)
 			assert.Contains(t, embed.Description, tt.char.MediaTitle)
 			assert.Contains(t, embed.Description, tt.rarity)
@@ -180,7 +180,7 @@ func TestBuildDropMessage(t *testing.T) {
 				Name:       "Character With Name",
 				Image:      "https://example.com/nohint.png",
 				MediaTitle: "No Hint Anime",
-				Favorites:  1200,
+				Popularity:  1200,
 			},
 			image:     strings.NewReader("fake image data"),
 			wantTitle: "Character Drop!",
@@ -193,7 +193,7 @@ func TestBuildDropMessage(t *testing.T) {
 				Name:       "Character With Name",
 				Image:      "https://example.com/noimage.png",
 				MediaTitle: "No Image Anime",
-				Favorites:  450,
+				Popularity:  450,
 			},
 			image:     nil,
 			wantTitle: "Character Drop!",
@@ -208,13 +208,13 @@ func TestBuildDropMessage(t *testing.T) {
 
 			assert.Equal(t, tt.wantTitle, embed.Title)
 			assert.Empty(t, embed.URL)
-			assert.Equal(t, collection.GradientColor(tt.char.Favorites), embed.Color)
+			assert.Equal(t, collection.GradientColor(tt.char.Popularity), embed.Color)
 			assert.Contains(t, embed.Description, "A character has appeared!")
 			assert.Contains(t, embed.Description, "/claim")
 
 			assert.Contains(t, embed.Description, "C.W.N")
 
-			assert.Contains(t, embed.Description, collection.RarityFromFavorites(tt.char.Favorites).String())
+			assert.Contains(t, embed.Description, collection.RarityFromPopularity(tt.char.Popularity).String())
 			assert.Equal(t, AnilistIconURL, embed.Footer.IconURL)
 			assert.Equal(t, "View on Anilist", embed.Footer.Text)
 

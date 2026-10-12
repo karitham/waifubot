@@ -50,7 +50,7 @@ func (s *RollService) Roll(ctx context.Context, userID UserID) (catalog.Characte
 	return acquire(ctx, s.store, userID, acquisition{
 		source: SourceRoll,
 		check: func(user User, now time.Time) error {
-			cooldownUntil := user.Date.Add(s.config.RollCooldown)
+			cooldownUntil := user.LastRoll.Add(s.config.RollCooldown)
 			if now.Before(cooldownUntil) {
 				return ErrRollCooldown{Until: cooldownUntil}
 			}
@@ -63,7 +63,7 @@ func (s *RollService) Roll(ctx context.Context, userID UserID) (catalog.Characte
 			}
 			return char, err
 		},
-		charge: func(ctx context.Context, tx Store, now time.Time) error {
+		charge: func(ctx context.Context, tx Tx, now time.Time) error {
 			return tx.RecordRoll(ctx, userID, now, s.config.RollCooldown)
 		},
 	})

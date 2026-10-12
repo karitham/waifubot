@@ -33,7 +33,7 @@ func (p *PostgresStore) Set(ctx context.Context, id collection.ChannelID, data c
 		Name:       data.Name,
 		Image:      data.Image,
 		MediaTitle: data.MediaTitle,
-		Favorites:  int32(data.Favorites),
+		Favorites:  int32(data.Popularity),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to upsert character: %w", err)
@@ -59,7 +59,7 @@ func (p *PostgresStore) Get(ctx context.Context, id collection.ChannelID) (*cata
 		Name:       row.Name,
 		Image:      row.Image,
 		MediaTitle: row.MediaTitle,
-		Favorites:  int(row.Favorites),
+		Popularity: int(row.Favorites),
 	}, nil
 }
 
