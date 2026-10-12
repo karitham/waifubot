@@ -10,11 +10,11 @@ import (
 )
 
 // SeriesRoll executes a paid, series-specific roll for a user, deducting tokens.
-func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID tracker.MediaID, seriesRollCost TokenAmount, anime AnimeService) (catalog.Character, error) {
-	return acquire(ctx, s.store, userID, acquisition{
+func SeriesRoll(ctx context.Context, store DB, anime AnimeService, userID UserID, mediaID tracker.MediaID, config Config) (catalog.Character, error) {
+	return acquire(ctx, store, userID, acquisition{
 		source: SourceSeriesRoll,
 		check: func(user User, _ time.Time) error {
-			if user.Tokens < seriesRollCost.amount {
+			if user.Tokens < config.SeriesRollCost.amount {
 				return ErrInsufficientTokens
 			}
 			return nil
@@ -23,7 +23,7 @@ func (s *RollService) SeriesRoll(ctx context.Context, userID UserID, mediaID tra
 			return pickSeriesCharacter(ctx, store, userID, mediaID, anime)
 		},
 		charge: func(ctx context.Context, tx Tx, now time.Time) error {
-			_, err := tx.SpendTokens(ctx, userID, seriesRollCost)
+			_, err := tx.SpendTokens(ctx, userID, config.SeriesRollCost)
 			return err
 		},
 	})

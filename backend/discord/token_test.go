@@ -405,7 +405,7 @@ func TestTokenHandler_Roll(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
 			config := tokenConfig(t)
-			h := &TokenHandler{store: tt.store, animeService: tt.animeService, rollService: collection.NewRollService(tt.store, collection.RollConfig{RollCooldown: config.RollCooldown}), config: config}
+			h := &TokenHandler{store: tt.store, animeService: tt.animeService, config: config}
 
 			h.Roll(t.Context(), w, tt.cmd)
 

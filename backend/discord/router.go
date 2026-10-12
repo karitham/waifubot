@@ -112,15 +112,16 @@ func (r *Router) Register() *corde.Mux {
 		guildIndexer:  r.GuildIndexer,
 	}
 	holdersHandler := &HoldersHandler{guildOps: r.GuildOps, catalog: r.Catalog, guildIndexer: r.GuildIndexer}
+	rollConfig := collection.Config{RollCooldown: r.RollCooldown, SeriesRollCost: r.SeriesRollCost}
 	rollHandler := &RollHandler{
-		rollService: collection.NewRollService(r.Store, collection.RollConfig{RollCooldown: r.RollCooldown}),
-		wishlist:    r.WishlistStore,
+		store:    r.Store,
+		config:   rollConfig,
+		wishlist: r.WishlistStore,
 	}
 	tokenHandler := &TokenHandler{
 		store:        r.Store,
 		animeService: r.AnimeService,
-		rollService:  collection.NewRollService(r.Store, collection.RollConfig{RollCooldown: r.RollCooldown}),
-		config:       collection.Config{RollCooldown: r.RollCooldown, SeriesRollCost: r.SeriesRollCost},
+		config:       rollConfig,
 	}
 	wishlistHandler := &WishlistHandler{
 		wishlist:     r.WishlistStore,

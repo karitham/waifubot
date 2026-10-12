@@ -24,11 +24,6 @@ type Config struct {
 	SeriesRollCost TokenAmount
 }
 
-// RollConfig holds configuration for roll operations.
-type RollConfig struct {
-	RollCooldown time.Duration
-}
-
 // Profile represents a complete user profile with character count and favorite.
 type Profile struct {
 	User

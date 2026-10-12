@@ -36,11 +36,10 @@ var RollCommand = &cli.Command{
 			return fmt.Errorf("invalid user ID: %s", userIDStr)
 		}
 
-		config := collection.RollConfig{
+		config := collection.Config{
 			RollCooldown: rollCooldown,
 		}
-		svc := collection.NewRollService(newCollectionStore(store), config)
-		char, err := svc.Roll(ctx, collection.UserID(userID))
+		char, err := collection.Roll(ctx, newCollectionStore(store), collection.UserID(userID), config)
 		if err != nil {
 			return fmt.Errorf("error rolling: %w", err)
 		}

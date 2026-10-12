@@ -145,10 +145,10 @@ func TestRollHandler_Roll(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
-			svc := collection.NewRollService(tt.store, collection.RollConfig{RollCooldown: tt.config.RollCooldown})
 			h := &RollHandler{
-				rollService: svc,
-				wishlist:    tt.wishlist,
+				store:    tt.store,
+				config:   tt.config,
+				wishlist: tt.wishlist,
 			}
 
 			h.Roll(t.Context(), w, tt.cmd)

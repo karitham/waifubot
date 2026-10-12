@@ -16,7 +16,6 @@ import (
 
 func TestSeriesRoll(t *testing.T) {
 	config := collection.Config{SeriesRollCost: tokenAmount(t, 20)}
-	rollConfig := collection.RollConfig{}
 
 	tests := []struct {
 		name       string
@@ -183,8 +182,7 @@ func TestSeriesRoll(t *testing.T) {
 				tt.setup(store, anime)
 			}
 
-			svc := collection.NewRollService(store, rollConfig)
-			got, err := svc.SeriesRoll(t.Context(), tt.userID, tt.mediaID, config.SeriesRollCost, anime)
+			got, err := collection.SeriesRoll(t.Context(), store, anime, tt.userID, tt.mediaID, config)
 
 			if tt.wantErr {
 				require.Error(t, err)

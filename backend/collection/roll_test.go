@@ -15,7 +15,7 @@ import (
 )
 
 func TestRoll(t *testing.T) {
-	config := collection.RollConfig{RollCooldown: time.Hour}
+	config := collection.Config{RollCooldown: time.Hour}
 
 	tests := []struct {
 		name       string
@@ -166,8 +166,7 @@ func TestRoll(t *testing.T) {
 				tt.setup(store)
 			}
 
-			svc := collection.NewRollService(store, config)
-			got, err := svc.Roll(t.Context(), tt.userID)
+			got, err := collection.Roll(t.Context(), store, tt.userID, config)
 
 			if tt.wantErr {
 				require.Error(t, err)
