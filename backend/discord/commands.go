@@ -1,5 +1,11 @@
 package discord
 
+import (
+	"fmt"
+
+	"github.com/karitham/waifubot/collection"
+)
+
 var commandDefinitions = []CommandDef{
 	{
 		Name: "list", Description: "View a user's character collection",
@@ -26,7 +32,7 @@ var commandDefinitions = []CommandDef{
 				},
 			},
 			{
-				Name: "sell", Description: "Sell a character for 1 token", Type: OptionSubcommand,
+				Name: "sell", Description: fmt.Sprintf("Sell a character for %d tokens", collection.SellReward().Int32()), Type: OptionSubcommand,
 				Options: []OptionDef{
 					{Name: "id", Description: "ID of the character to sell", Type: OptionInt, Required: true, Autocomplete: true},
 				},

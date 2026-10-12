@@ -14,34 +14,36 @@ import (
 )
 
 func TestUserProfile_Favorite(t *testing.T) {
-	t.Run("lookup failure surfaces", func(t *testing.T) {
-		store := &collectiontest.MockStore{
-			GetUserFunc: func(_ context.Context, userID collection.UserID) (collection.User, error) {
-				return collection.User{UserID: userID, FavoriteCharacterID: 42}, nil
-			},
-			GetCharacterByIDFunc: func(_ context.Context, _ catalog.CharacterID) (catalog.Character, error) {
-				return catalog.Character{}, errors.New("database on fire")
-			},
-		}
+	tests := []struct {
+		name      string
+		lookupErr error
+		wantErr   bool
+	}{
+		{name: "lookup failure is returned", lookupErr: errors.New("database on fire"), wantErr: true},
+		{name: "dangling favorite is tolerated", lookupErr: collection.ErrNotFound},
+	}
 
-		_, err := collection.UserProfile(t.Context(), store, 7)
-		require.Error(t, err)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := &collectiontest.MockStore{
+				GetUserFunc: func(_ context.Context, userID collection.UserID) (collection.User, error) {
+					return collection.User{UserID: userID, FavoriteCharacterID: 42}, nil
+				},
+				GetCharacterByIDFunc: func(_ context.Context, _ catalog.CharacterID) (catalog.Character, error) {
+					return catalog.Character{}, tt.lookupErr
+				},
+			}
 
-	t.Run("dangling favorite is tolerated", func(t *testing.T) {
-		store := &collectiontest.MockStore{
-			GetUserFunc: func(_ context.Context, userID collection.UserID) (collection.User, error) {
-				return collection.User{UserID: userID, FavoriteCharacterID: 42}, nil
-			},
-			GetCharacterByIDFunc: func(_ context.Context, _ catalog.CharacterID) (catalog.Character, error) {
-				return catalog.Character{}, collection.ErrNotFound
-			},
-		}
+			profile, err := collection.UserProfile(t.Context(), store, 7)
 
-		profile, err := collection.UserProfile(t.Context(), store, 7)
-		require.NoError(t, err)
-		assert.Nil(t, profile.FavoriteCharacter)
-	})
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Nil(t, profile.FavoriteCharacter)
+		})
+	}
 }
 
 func TestUserProfile_AbsentUser(t *testing.T) {

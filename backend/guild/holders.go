@@ -8,12 +8,11 @@ import (
 	"github.com/karitham/waifubot/catalog"
 )
 
-var (
-	// ErrNotInGuild is returned when the operation needs a guild context.
-	ErrNotInGuild = errors.New("not in a guild")
-	// ErrNotIndexed is returned when the guild's member index is not ready.
-	ErrNotIndexed = errors.New("guild members not indexed")
-)
+// ErrNotInGuild is returned when the operation needs a guild context.
+var ErrNotInGuild = errors.New("not in a guild")
+
+// ErrNotIndexed is returned when the guild's member index is not ready.
+var ErrNotIndexed = errors.New("guild members not indexed")
 
 // CharacterHolders retrieves users in a guild who own a specific character.
 func CharacterHolders(ctx context.Context, store Querier, charStore catalog.Store, guildID ID, charID catalog.CharacterID) (string, []MemberID, error) {
