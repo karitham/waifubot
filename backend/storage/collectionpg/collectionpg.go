@@ -3,6 +3,7 @@ package collectionpg
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -135,6 +136,35 @@ func (p *Pg) clearFavorite(ctx context.Context, userID collection.UserID, charID
 		UserID:   uint64(userID),
 		Favorite: pgtype.Int8{Int64: int64(charID), Valid: true},
 	})
+}
+
+func (p *Pg) SetFavorite(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
+	var favorite pgtype.Int8
+	if charID != 0 {
+		favorite = pgtype.Int8{Int64: int64(charID), Valid: true}
+	}
+
+	rows, err := p.C.SetFavoriteIfOwned(ctx, collectionstore.SetFavoriteIfOwnedParams{
+		UserID:      uint64(userID),
+		CharacterID: int64(charID),
+		Favorite:    favorite,
+	})
+	if err != nil {
+		return err
+	}
+	if rows > 0 {
+		return nil
+	}
+
+	// No row updated: either the user is missing or the character is not
+	// in their collection.
+	if _, err := p.U.Get(ctx, uint64(userID)); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return collection.ErrNotFound
+		}
+		return err
+	}
+	return fmt.Errorf("%w %d", collection.ErrUserDoesNotOwnCharacter, charID)
 }
 
 func (p *Pg) CountCollection(ctx context.Context, userID collection.UserID) (int64, error) {

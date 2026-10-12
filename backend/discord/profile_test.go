@@ -3,6 +3,7 @@ package discord
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -125,7 +126,7 @@ func TestProfileHandler_EditFavorite(t *testing.T) {
 				OptInt64Vals: map[string]int64{"id": 42},
 			},
 			store: &collectiontest.MockStore{
-				UpdateFavoriteFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
+				SetFavoriteFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
 					return nil
 				},
 			},
@@ -139,8 +140,8 @@ func TestProfileHandler_EditFavorite(t *testing.T) {
 				OptInt64Vals: map[string]int64{"id": 42},
 			},
 			store: &collectiontest.MockStore{
-				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
-					return collection.OwnedCharacter{}, collection.ErrNotFound
+				SetFavoriteFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
+					return fmt.Errorf("%w %d", collection.ErrUserDoesNotOwnCharacter, charID)
 				},
 			},
 			wantContent: "You don't own that character",
@@ -153,10 +154,7 @@ func TestProfileHandler_EditFavorite(t *testing.T) {
 				OptInt64Vals: map[string]int64{"id": 42},
 			},
 			store: &collectiontest.MockStore{
-				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
-					return collection.OwnedCharacter{ID: charID}, nil
-				},
-				UpdateFavoriteFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
+				SetFavoriteFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
 					return errors.New("db error")
 				},
 			},

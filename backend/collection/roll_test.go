@@ -87,11 +87,11 @@ func TestRoll(t *testing.T) {
 					}
 					return collection.User{UserID: userID}, nil
 				}
-				// The create loses a race; the follow-up read finds the
-				// winner's row.
+				// The create loses a race; the idempotent insert is a
+				// no-op and the read finds the winner's row.
 				m.CreateUserFunc = func(_ context.Context, _ collection.UserID) error {
 					created = true
-					return errors.New("duplicate key")
+					return nil
 				}
 			},
 			userID:     789,

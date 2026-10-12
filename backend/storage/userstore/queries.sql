@@ -2,7 +2,8 @@
 INSERT INTO
   users (user_id)
 VALUES
-  ($1);
+  ($1)
+ON CONFLICT (user_id) DO NOTHING;
 
 -- name: Get :one
 SELECT

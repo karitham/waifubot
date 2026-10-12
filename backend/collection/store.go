@@ -82,6 +82,9 @@ type CollectionRepository interface {
 	RemoveFromCollection(ctx context.Context, userID UserID, charID catalog.CharacterID) error
 	GiveCharacter(ctx context.Context, from, to UserID, charID catalog.CharacterID) (OwnedCharacter, error)
 	CountCollection(ctx context.Context, userID UserID) (int64, error)
+	// SetFavorite atomically sets the user's favorite character, requiring
+	// ownership when setting; a zero charID clears it.
+	SetFavorite(ctx context.Context, userID UserID, charID catalog.CharacterID) error
 	// SearchCharacters searches the user's collection by name or ID.
 	SearchCharacters(ctx context.Context, userID UserID, term string) ([]catalog.Character, error)
 	// RemoveFromWishlist is called inside roll/claim/give transactions.

@@ -105,6 +105,24 @@ RETURNING
   source,
   acquired_at;
 
+-- name: SetFavoriteIfOwned :execrows
+-- Sets or clears the favorite; when setting, the character must be in the
+-- user's collection, checked in the same statement.
+UPDATE users
+SET
+  favorite = sqlc.arg (favorite)
+WHERE
+  users.user_id = sqlc.arg (user_id)
+  AND (
+    sqlc.arg (favorite)::BIGINT IS NULL
+    OR EXISTS (
+      SELECT 1
+      FROM collection col
+      WHERE col.user_id = sqlc.arg (user_id)
+        AND col.character_id = sqlc.arg (character_id)
+    )
+  );
+
 -- name: Count :one
 SELECT
   COUNT(col.character_id)

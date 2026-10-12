@@ -3,7 +3,6 @@ package collection
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/karitham/waifubot/catalog"
@@ -35,21 +34,6 @@ type Profile struct {
 	User
 	CharacterCount    int
 	FavoriteCharacter *catalog.Character
-}
-
-// SetFavorite sets the user's favorite character, validating ownership.
-// A zero charID clears the favorite.
-func SetFavorite(ctx context.Context, store Store, userID UserID, charID catalog.CharacterID) error {
-	if charID != 0 {
-		if _, err := store.GetOwnedCharacter(ctx, userID, charID); err != nil {
-			if errors.Is(err, ErrNotFound) {
-				return fmt.Errorf("%w %d", ErrUserDoesNotOwnCharacter, charID)
-			}
-			return err
-		}
-	}
-
-	return store.UpdateFavorite(ctx, userID, charID)
 }
 
 // UserProfile retrieves a user's profile.

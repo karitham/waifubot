@@ -29,6 +29,7 @@ type MockStore struct {
 	RemoveFromCollectionFunc func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error
 	GiveCharacterFunc        func(ctx context.Context, from, to collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error)
 	CountCollectionFunc      func(ctx context.Context, userID collection.UserID) (int64, error)
+	SetFavoriteFunc          func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error
 	SearchCharactersFunc     func(ctx context.Context, userID collection.UserID, term string) ([]catalog.Character, error)
 	RemoveFromWishlistFunc   func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error
 
@@ -176,6 +177,13 @@ func (m *MockStore) GiveCharacter(ctx context.Context, from, to collection.UserI
 		return m.GiveCharacterFunc(ctx, from, to, charID)
 	}
 	return collection.OwnedCharacter{}, nil
+}
+
+func (m *MockStore) SetFavorite(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
+	if m.SetFavoriteFunc != nil {
+		return m.SetFavoriteFunc(ctx, userID, charID)
+	}
+	return nil
 }
 
 func (m *MockStore) CountCollection(ctx context.Context, userID collection.UserID) (int64, error) {

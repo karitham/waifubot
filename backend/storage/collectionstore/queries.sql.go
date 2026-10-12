@@ -524,6 +524,39 @@ func (q *Queries) SearchGlobalCharacters(ctx context.Context, arg SearchGlobalCh
 	return items, nil
 }
 
+const setFavoriteIfOwned = `-- name: SetFavoriteIfOwned :execrows
+UPDATE users
+SET
+  favorite = $1
+WHERE
+  users.user_id = $2
+  AND (
+    $1::BIGINT IS NULL
+    OR EXISTS (
+      SELECT 1
+      FROM collection col
+      WHERE col.user_id = $2
+        AND col.character_id = $3
+    )
+  )
+`
+
+type SetFavoriteIfOwnedParams struct {
+	Favorite    pgtype.Int8
+	UserID      uint64
+	CharacterID int64
+}
+
+// Sets or clears the favorite; when setting, the character must be in the
+// user's collection, checked in the same statement.
+func (q *Queries) SetFavoriteIfOwned(ctx context.Context, arg SetFavoriteIfOwnedParams) (int64, error) {
+	result, err := q.db.Exec(ctx, setFavoriteIfOwned, arg.Favorite, arg.UserID, arg.CharacterID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const updateImageName = `-- name: UpdateImageName :one
 UPDATE characters c
 SET

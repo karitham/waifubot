@@ -103,7 +103,7 @@ func (h *ProfileHandler) EditFavorite(ctx context.Context, w corde.ResponseWrite
 	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
 
 	optID, _ := cmd.OptInt64("id")
-	if err := collection.SetFavorite(ctx, h.store, cmd.UserID(), catalog.CharacterID(optID)); err != nil {
+	if err := h.store.SetFavorite(ctx, cmd.UserID(), catalog.CharacterID(optID)); err != nil {
 		if errors.Is(err, collection.ErrUserDoesNotOwnCharacter) {
 			w.Respond(corde.NewResp().Content("You don't own that character").Ephemeral())
 			return

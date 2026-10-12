@@ -92,12 +92,8 @@ func ensureUser(ctx context.Context, store Store, userID UserID) (User, error) {
 		return User{}, err
 	}
 
+	// Create is idempotent, so losing a create race is not an error.
 	if err := store.CreateUser(ctx, userID); err != nil {
-		// Another request may have created the user first; the create
-		// error is only real if the row is still missing.
-		if u, getErr := store.GetUser(ctx, userID); getErr == nil {
-			return u, nil
-		}
 		return User{}, err
 	}
 

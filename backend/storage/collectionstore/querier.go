@@ -25,6 +25,9 @@ type Querier interface {
 	RandomCharNotOwned(ctx context.Context, arg RandomCharNotOwnedParams) (RandomCharNotOwnedRow, error)
 	SearchCharacters(ctx context.Context, arg SearchCharactersParams) ([]SearchCharactersRow, error)
 	SearchGlobalCharacters(ctx context.Context, arg SearchGlobalCharactersParams) ([]Character, error)
+	// Sets or clears the favorite; when setting, the character must be in the
+	// user's collection, checked in the same statement.
+	SetFavoriteIfOwned(ctx context.Context, arg SetFavoriteIfOwnedParams) (int64, error)
 	UpdateImageName(ctx context.Context, arg UpdateImageNameParams) (Character, error)
 	UpsertCharacter(ctx context.Context, arg UpsertCharacterParams) (Character, error)
 	UsersOwningCharFiltered(ctx context.Context, arg UsersOwningCharFilteredParams) ([]uint64, error)
