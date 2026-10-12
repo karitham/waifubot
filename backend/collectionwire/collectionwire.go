@@ -16,17 +16,41 @@ import (
 	"github.com/karitham/waifubot/storage/userpg"
 )
 
-// NewDB composes the storage adapters into a collection.DB. The begin
-// function derives every adapter from the new transaction; the integration
-// suite asserts a write inside it is rolled back.
+// db implements collection.DB over a storage.Store.
+type db struct {
+	collection.Store
+	s storage.Store
+}
+
+// Begin starts a transaction and returns a Tx whose adapters and committer
+// both come from the same transaction.
+func (d db) Begin(ctx context.Context) (collection.Tx, error) {
+	scoped, err := d.s.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return tx{Store: QueryStore(scoped), control: scoped}, nil
+}
+
+// tx pairs tx-scoped adapters with the transaction that scopes them.
+type tx struct {
+	collection.Store
+	control storage.Store
+}
+
+// Commit commits the transaction.
+func (t tx) Commit(ctx context.Context) error {
+	return t.control.Commit(ctx)
+}
+
+// Rollback rolls back the transaction.
+func (t tx) Rollback(ctx context.Context) error {
+	return t.control.Rollback(ctx)
+}
+
+// NewDB composes the storage adapters into a collection.DB.
 func NewDB(s storage.Store) collection.DB {
-	return collection.NewPostgresStore(QueryStore(s), func(ctx context.Context) (collection.Tx, error) {
-		scoped, err := s.Tx(ctx)
-		if err != nil {
-			return nil, err
-		}
-		return collection.NewTx(QueryStore(scoped), scoped), nil
-	})
+	return db{Store: QueryStore(s), s: s}
 }
 
 // QueryStore composes the storage adapters into a query-only collection.Store.
