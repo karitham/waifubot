@@ -55,6 +55,14 @@ SET
 WHERE
   user_id = $2;
 
+-- name: ClearFavorite :exec
+UPDATE users
+SET
+  favorite = NULL
+WHERE
+  user_id = $1
+  AND favorite = $2;
+
 -- name: UpdateAnilistURL :exec
 UPDATE users
 SET

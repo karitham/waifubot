@@ -75,6 +75,29 @@ func TestRoll(t *testing.T) {
 			wantErrAs: &collection.ErrRollCooldown{},
 		},
 		{
+			name: "user_created_concurrently",
+			setup: func(m *collectiontest.MockStore) {
+				m.RandomCharNotOwnedFunc = func(_ context.Context, _ collection.UserID, _ float64) (catalog.Character, error) {
+					return catalog.Character{ID: 7, Name: "Char7", Image: "img7"}, nil
+				}
+				created := false
+				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
+					if !created {
+						return collection.User{}, collection.ErrNotFound
+					}
+					return collection.User{UserID: userID}, nil
+				}
+				// The create loses a race; the follow-up read finds the
+				// winner's row.
+				m.CreateUserFunc = func(_ context.Context, _ collection.UserID) error {
+					created = true
+					return errors.New("duplicate key")
+				}
+			},
+			userID:     789,
+			wantCharID: 7,
+		},
+		{
 			name: "new_user",
 			setup: func(m *collectiontest.MockStore) {
 				m.RandomCharNotOwnedFunc = func(_ context.Context, _ collection.UserID, _ float64) (catalog.Character, error) {

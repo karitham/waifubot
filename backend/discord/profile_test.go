@@ -132,6 +132,20 @@ func TestProfileHandler_EditFavorite(t *testing.T) {
 			wantContent: "Favorite character set as char id 42",
 		},
 		{
+			name: "not owned",
+			cmd: &MockCommandContext{
+				UserIDVal:    1,
+				UsernameVal:  "testuser",
+				OptInt64Vals: map[string]int64{"id": 42},
+			},
+			store: &collectiontest.MockStore{
+				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
+					return collection.OwnedCharacter{}, collection.ErrNotFound
+				},
+			},
+			wantContent: "You don't own that character",
+		},
+		{
 			name: "store error",
 			cmd: &MockCommandContext{
 				UserIDVal:    1,
@@ -139,6 +153,9 @@ func TestProfileHandler_EditFavorite(t *testing.T) {
 				OptInt64Vals: map[string]int64{"id": 42},
 			},
 			store: &collectiontest.MockStore{
+				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
+					return collection.OwnedCharacter{ID: charID}, nil
+				},
 				UpdateFavoriteFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
 					return errors.New("db error")
 				},

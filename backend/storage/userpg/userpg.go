@@ -90,10 +90,16 @@ func (p *Pg) SpendTokens(ctx context.Context, userID collection.UserID, amount i
 		UserID: uint64(userID),
 	})
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return collection.User{}, collection.ErrInsufficientTokens
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return collection.User{}, err
 		}
-		return collection.User{}, err
+
+		// No row updated: either the user does not exist or the balance
+		// is too low. Distinguish so callers can report the right thing.
+		if _, getErr := p.Q.Get(ctx, uint64(userID)); errors.Is(getErr, pgx.ErrNoRows) {
+			return collection.User{}, collection.ErrNotFound
+		}
+		return collection.User{}, collection.ErrInsufficientTokens
 	}
 	return toUser(u), nil
 }

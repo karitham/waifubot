@@ -53,7 +53,7 @@ func TestRollEmbed(t *testing.T) {
 
 			assert.Equal(t, tt.char.Name, embed.Title)
 			assert.Equal(t, "https://anilist.co/character/"+strconv.FormatInt(int64(tt.char.ID), 10), embed.URL)
-			assert.Equal(t, collection.GradientColor(tt.char.Popularity), embed.Color)
+			assert.Equal(t, gradientColor(tt.char.Popularity), embed.Color)
 			assert.Contains(t, embed.Description, tt.char.Name)
 			assert.Contains(t, embed.Description, tt.char.MediaTitle)
 			assert.Contains(t, embed.Description, tt.rarity)
@@ -88,7 +88,7 @@ func TestSeriesRollEmbed(t *testing.T) {
 
 			assert.Equal(t, tt.char.Name, embed.Title)
 			assert.Equal(t, "https://anilist.co/character/"+strconv.FormatInt(int64(tt.char.ID), 10), embed.URL)
-			assert.Equal(t, collection.GradientColor(tt.char.Popularity), embed.Color)
+			assert.Equal(t, gradientColor(tt.char.Popularity), embed.Color)
 			assert.Contains(t, embed.Description, tt.char.Name)
 			assert.Contains(t, embed.Description, tt.char.MediaTitle)
 			assert.Contains(t, embed.Description, "Series Roll")
@@ -133,7 +133,7 @@ func TestClaimEmbed(t *testing.T) {
 
 			assert.Equal(t, tt.char.Name, embed.Title)
 			assert.Equal(t, "https://anilist.co/character/999", embed.URL)
-			assert.Equal(t, collection.GradientColor(tt.char.Popularity), embed.Color)
+			assert.Equal(t, gradientColor(tt.char.Popularity), embed.Color)
 			assert.Contains(t, embed.Description, tt.char.Name)
 			assert.Contains(t, embed.Description, tt.char.MediaTitle)
 			assert.Contains(t, embed.Description, tt.rarity)
@@ -208,7 +208,7 @@ func TestBuildDropMessage(t *testing.T) {
 
 			assert.Equal(t, tt.wantTitle, embed.Title)
 			assert.Empty(t, embed.URL)
-			assert.Equal(t, collection.GradientColor(tt.char.Popularity), embed.Color)
+			assert.Equal(t, gradientColor(tt.char.Popularity), embed.Color)
 			assert.Contains(t, embed.Description, "A character has appeared!")
 			assert.Contains(t, embed.Description, "/claim")
 

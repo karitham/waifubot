@@ -9,6 +9,7 @@ import (
 )
 
 type Querier interface {
+	ClearFavorite(ctx context.Context, arg ClearFavoriteParams) error
 	Create(ctx context.Context, userID uint64) error
 	Get(ctx context.Context, userID uint64) (User, error)
 	GetByAnilist(ctx context.Context, lower string) (User, error)

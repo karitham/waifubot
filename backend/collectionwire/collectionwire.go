@@ -33,7 +33,7 @@ func NewDB(s storage.Store) collection.DB {
 func QueryStore(s storage.Store) collection.Store {
 	return collection.NewStore(
 		userpg.New(s.UserStore()),
-		collectionpg.New(s.CollectionStore(), s.WishlistStore()),
+		collectionpg.New(s.CollectionStore(), s.WishlistStore(), s.UserStore()),
 		droppg.New(s.DropStore()),
 		guildpg.New(s.GuildStore()),
 		catalogpg.New(s.CollectionStore()),

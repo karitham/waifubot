@@ -11,6 +11,25 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const clearFavorite = `-- name: ClearFavorite :exec
+UPDATE users
+SET
+  favorite = NULL
+WHERE
+  user_id = $1
+  AND favorite = $2
+`
+
+type ClearFavoriteParams struct {
+	UserID   uint64
+	Favorite pgtype.Int8
+}
+
+func (q *Queries) ClearFavorite(ctx context.Context, arg ClearFavoriteParams) error {
+	_, err := q.db.Exec(ctx, clearFavorite, arg.UserID, arg.Favorite)
+	return err
+}
+
 const create = `-- name: Create :exec
 INSERT INTO
   users (user_id)

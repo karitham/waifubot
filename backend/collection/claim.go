@@ -29,7 +29,7 @@ func Claim(ctx context.Context, store DB, userID UserID, channelID ChannelID, ch
 			return fmt.Errorf("failed to get drop: %w", err)
 		}
 
-		if !strings.EqualFold(SanitizeName(drop.Name), charName) {
+		if !strings.EqualFold(SanitizeName(drop.Name), SanitizeName(charName)) {
 			return ErrWrongCharacterName
 		}
 

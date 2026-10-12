@@ -57,7 +57,7 @@ func dropMessage(char catalog.Character, image io.Reader) corde.Message {
 				collection.RarityFromPopularity(char.Popularity),
 			),
 			Footer: corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"},
-			Color:  collection.GradientColor(char.Popularity),
+			Color:  gradientColor(char.Popularity),
 		}},
 	}
 
@@ -76,7 +76,7 @@ func claimEmbed(char catalog.Character, rarity string) corde.Embed {
 	return corde.NewEmbed().
 		Title(char.Name).
 		URL(fmt.Sprintf("https://anilist.co/character/%d", char.ID)).
-		Color(collection.GradientColor(char.Popularity)).
+		Color(gradientColor(char.Popularity)).
 		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"}).
 		Thumbnail(corde.Image{URL: char.Image}).
 		Descriptionf(
@@ -94,7 +94,7 @@ func newCharEmbed(char catalog.Character, description string) corde.Embed {
 	return corde.NewEmbed().
 		Title(char.Name).
 		URL(fmt.Sprintf("https://anilist.co/character/%d", char.ID)).
-		Color(collection.GradientColor(char.Popularity)).
+		Color(gradientColor(char.Popularity)).
 		Footer(corde.Footer{IconURL: AnilistIconURL, Text: "View on Anilist"}).
 		Thumbnail(corde.Image{URL: char.Image}).
 		Description(description).

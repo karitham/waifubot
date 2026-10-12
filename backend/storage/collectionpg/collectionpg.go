@@ -12,16 +12,18 @@ import (
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage/collectionstore"
+	"github.com/karitham/waifubot/storage/userstore"
 	"github.com/karitham/waifubot/storage/wishliststore"
 )
 
 type Pg struct {
 	C collectionstore.Querier
 	W wishliststore.Querier
+	U userstore.Querier
 }
 
-func New(c collectionstore.Querier, w wishliststore.Querier) *Pg {
-	return &Pg{C: c, W: w}
+func New(c collectionstore.Querier, w wishliststore.Querier, u userstore.Querier) *Pg {
+	return &Pg{C: c, W: w, U: u}
 }
 
 func (p *Pg) GetCollection(ctx context.Context, userID collection.UserID) ([]collection.OwnedCharacter, error) {
@@ -95,6 +97,8 @@ func (p *Pg) RemoveFromCollection(ctx context.Context, userID collection.UserID,
 		}
 		return err
 	}
+
+	p.clearFavorite(ctx, userID, charID)
 	return nil
 }
 
@@ -109,6 +113,8 @@ func (p *Pg) GiveCharacter(ctx context.Context, from, to collection.UserID, char
 		return collection.OwnedCharacter{}, err
 	}
 
+	p.clearFavorite(ctx, from, charID)
+
 	charRow, err := p.C.GetByID(ctx, int64(charID))
 	if err != nil {
 		return collection.OwnedCharacter{}, err
@@ -120,6 +126,14 @@ func (p *Pg) GiveCharacter(ctx context.Context, from, to collection.UserID, char
 		Source: collection.Source(col.Source),
 		UserID: to,
 	}, nil
+}
+
+// clearFavorite removes the character as the user's favorite when it is.
+func (p *Pg) clearFavorite(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) {
+	_ = p.U.ClearFavorite(ctx, userstore.ClearFavoriteParams{
+		UserID:   uint64(userID),
+		Favorite: pgtype.Int8{Int64: int64(charID), Valid: true},
+	})
 }
 
 func (p *Pg) CountCollection(ctx context.Context, userID collection.UserID) (int64, error) {
