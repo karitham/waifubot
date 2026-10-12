@@ -34,6 +34,8 @@ type Store interface {
 	WishlistStore() wishliststore.Querier
 	CommandStore() commandstore.Querier
 	Tx(ctx context.Context) (Store, error)
+	// WithTx returns a Store whose queries run on the given transaction.
+	WithTx(tx pgx.Tx) Store
 	Commit(ctx context.Context) error
 	Rollback(ctx context.Context) error
 }
@@ -81,6 +83,11 @@ func NewStore(ctx context.Context, url string) (*DBStore, error) {
 		interactionStore: interactionstore.New(conn),
 		dropStore:        dropstore.New(conn),
 	}, nil
+}
+
+// WithTx returns a Store whose queries run on the given transaction.
+func (s *DBStore) WithTx(tx pgx.Tx) Store {
+	return s.withTx(tx)
 }
 
 func (s *DBStore) withTx(tx pgx.Tx) *DBStore {

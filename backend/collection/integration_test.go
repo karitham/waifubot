@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -62,14 +63,12 @@ func TestMain(m *testing.M) {
 }
 
 func buildStore(s storage.Store) collection.Store {
-	return collection.NewPostgresStore(
+	return collection.NewStore(
 		userpg.New(s.UserStore()),
 		collectionpg.New(s.CollectionStore(), s.WishlistStore()),
 		droppg.New(s.DropStore()),
 		guildpg.New(s.GuildStore()),
 		catalogpg.New(s.CollectionStore()),
-		s.DB(),
-		nil,
 	)
 }
 
@@ -429,4 +428,44 @@ func TestIntegration_RollCooldownIsAtomic(t *testing.T) {
 	var cooldownErr collection.ErrRollCooldown
 	require.ErrorAs(t, err, &cooldownErr)
 	assert.WithinDuration(t, now.Add(cooldown), cooldownErr.Until, time.Minute)
+}
+
+func TestIntegration_TransactionsAreScoped(t *testing.T) {
+	ctx := t.Context()
+	const uid collection.UserID = 900016
+
+	dbStore, err := storage.NewStore(ctx, testDBURL)
+	require.NoError(t, err)
+
+	// Mirror the production wiring: the tx factory must build adapters over
+	// the transaction, not the pool, or rollback undoes nothing.
+	txFn := func(tx pgx.Tx) collection.Store {
+		scoped := dbStore.WithTx(tx)
+		return collection.NewStore(
+			userpg.New(scoped.UserStore()),
+			collectionpg.New(scoped.CollectionStore(), scoped.WishlistStore()),
+			droppg.New(scoped.DropStore()),
+			guildpg.New(scoped.GuildStore()),
+			catalogpg.New(scoped.CollectionStore()),
+		)
+	}
+	store := collection.NewPostgresStore(
+		collection.NewStore(
+			userpg.New(dbStore.UserStore()),
+			collectionpg.New(dbStore.CollectionStore(), dbStore.WishlistStore()),
+			droppg.New(dbStore.DropStore()),
+			guildpg.New(dbStore.GuildStore()),
+			catalogpg.New(dbStore.CollectionStore()),
+		),
+		dbStore.DB(),
+		txFn,
+	)
+
+	tx, err := store.WithTx(ctx)
+	require.NoError(t, err)
+	require.NoError(t, tx.CreateUser(ctx, uid))
+	require.NoError(t, tx.Rollback(ctx))
+
+	_, err = dbStore.UserStore().Get(ctx, uint64(uid))
+	require.ErrorIs(t, err, pgx.ErrNoRows, "write escaped the transaction")
 }

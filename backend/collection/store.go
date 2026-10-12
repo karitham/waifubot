@@ -102,16 +102,25 @@ type DropRepository interface {
 	DeleteDrop(ctx context.Context, channelID ChannelID) error
 }
 
-// Store is the transactional composition of all repositories.
-// Each domain function (Roll, Claim, Give, Exchange) takes this.
+// Store is the query surface over the domain repositories.
 type Store interface {
 	UserRepository
 	CollectionRepository
 	DropRepository
 	guild.Querier
 	catalog.Store
+}
 
-	WithTx(ctx context.Context) (Store, error)
+// Tx is a Store scoped to a database transaction.
+type Tx interface {
+	Store
 	Commit(ctx context.Context) error
 	Rollback(ctx context.Context) error
+}
+
+// DB is the pool-level entry point: the query surface plus transaction
+// creation.
+type DB interface {
+	Store
+	WithTx(ctx context.Context) (Tx, error)
 }

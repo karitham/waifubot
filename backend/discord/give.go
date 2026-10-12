@@ -14,7 +14,7 @@ import (
 
 // GiveHandler handles the /give command and its autocomplete.
 type GiveHandler struct {
-	store collection.Store
+	store collection.DB
 }
 
 // giveOptions holds the parsed options for the give command.

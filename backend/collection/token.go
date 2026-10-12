@@ -7,7 +7,7 @@ import (
 )
 
 // TransferTokens transfers tokens between users.
-func TransferTokens(ctx context.Context, store Store, from, to UserID, amount int32) (err error) {
+func TransferTokens(ctx context.Context, store DB, from, to UserID, amount int32) error {
 	if amount <= 0 {
 		return ErrInvalidAmount
 	}
@@ -15,28 +15,17 @@ func TransferTokens(ctx context.Context, store Store, from, to UserID, amount in
 		return ErrSameUserTransfer
 	}
 
-	tx, err := store.WithTx(ctx)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err != nil {
-			_ = tx.Rollback(ctx)
+	return withTx(ctx, store, func(tx Tx) error {
+		if _, err := tx.SpendTokens(ctx, from, amount); err != nil {
+			if errors.Is(err, ErrInsufficientTokens) {
+				return err
+			}
+			return fmt.Errorf("failed to update source token count: %w", err)
 		}
-	}()
 
-	_, err = tx.SpendTokens(ctx, from, amount)
-	if err != nil {
-		if errors.Is(err, ErrInsufficientTokens) {
+		if _, err := tx.AddTokens(ctx, to, amount); err != nil {
 			return err
 		}
-		return fmt.Errorf("failed to update source token count: %w", err)
-	}
-
-	_, err = tx.AddTokens(ctx, to, amount)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit(ctx)
+		return nil
+	})
 }

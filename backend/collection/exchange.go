@@ -9,49 +9,43 @@ import (
 )
 
 // Exchange sells a character for 1 token.
-func Exchange(ctx context.Context, store Store, userID UserID, charID catalog.CharacterID) (OwnedCharacter, error) {
-	tx, err := store.WithTx(ctx)
-	if err != nil {
-		return OwnedCharacter{}, err
-	}
-
-	committed := false
-	defer func() {
-		if !committed {
-			_ = tx.Rollback(ctx)
+func Exchange(ctx context.Context, store DB, userID UserID, charID catalog.CharacterID) (OwnedCharacter, error) {
+	var (
+		charInfo catalog.Character
+		owned    OwnedCharacter
+	)
+	err := withTx(ctx, store, func(tx Tx) error {
+		var err error
+		charInfo, err = tx.GetCharacterByID(ctx, charID)
+		if err != nil {
+			return err
 		}
-	}()
 
-	charInfo, err := tx.GetCharacterByID(ctx, charID)
-	if err != nil {
-		return OwnedCharacter{}, err
-	}
-
-	owned, err := tx.GetOwnedCharacter(ctx, userID, charID)
-	if err != nil {
-		if errors.Is(err, ErrNotFound) {
-			return OwnedCharacter{}, fmt.Errorf("%w %d", ErrUserDoesNotOwnCharacter, charID)
+		owned, err = tx.GetOwnedCharacter(ctx, userID, charID)
+		if err != nil {
+			if errors.Is(err, ErrNotFound) {
+				return fmt.Errorf("%w %d", ErrUserDoesNotOwnCharacter, charID)
+			}
+			return err
 		}
-		return OwnedCharacter{}, err
-	}
 
-	err = tx.RemoveFromCollection(ctx, userID, charID)
+		if err := tx.RemoveFromCollection(ctx, userID, charID); err != nil {
+			return err
+		}
+
+		if _, err := tx.AddTokens(ctx, userID, 1); err != nil {
+			return err
+		}
+		return nil
+	})
 	if err != nil {
 		return OwnedCharacter{}, err
 	}
-
-	_, err = tx.AddTokens(ctx, userID, 1)
-	if err != nil {
-		return OwnedCharacter{}, err
-	}
-
-	err = tx.Commit(ctx)
-	committed = err == nil
 
 	return OwnedCharacter{
 		Character: charInfo,
 		Date:      owned.Date,
 		Source:    SourceExchange,
 		UserID:    userID,
-	}, err
+	}, nil
 }

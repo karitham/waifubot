@@ -36,7 +36,7 @@ type acquisition struct {
 // the second narrows the race window inside the transaction. Neither call is
 // a lock; the charge is the authoritative gate, because both costs are
 // applied by conditional updates (SpendTokens, RecordRoll).
-func acquire(ctx context.Context, store Store, userID UserID, a acquisition) (catalog.Character, error) {
+func acquire(ctx context.Context, store DB, userID UserID, a acquisition) (catalog.Character, error) {
 	now := time.Now()
 
 	user, err := store.GetUser(ctx, userID)
@@ -55,7 +55,7 @@ func acquire(ctx context.Context, store Store, userID UserID, a acquisition) (ca
 		return catalog.Character{}, err
 	}
 
-	err = withTx(ctx, store, func(tx Store) error {
+	err = withTx(ctx, store, func(tx Tx) error {
 		user, err := ensureUser(ctx, tx, userID)
 		if err != nil {
 			return err

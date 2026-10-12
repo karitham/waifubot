@@ -61,7 +61,7 @@ type CommandStore interface {
 // Router holds the infrastructure needed to wire command handlers.
 type Router struct {
 	mux               *corde.Mux
-	Store             collection.Store
+	Store             collection.DB
 	Catalog           catalog.Store
 	CommandStore      CommandStore
 	WishlistStore     wishlist.Store
@@ -84,7 +84,7 @@ type Router struct {
 func New(r *Router) *Router {
 	prometheus.MustRegister(commandCounter, commandDuration)
 
-	// Wire up guild transaction factory — collection.Store already satisfies guild.TxQuerier
+	// Wire up guild transaction factory — collection.Tx satisfies guild.TxQuerier
 	r.guildTxFn = func(ctx context.Context) (guild.TxQuerier, error) {
 		return r.Store.WithTx(ctx)
 	}

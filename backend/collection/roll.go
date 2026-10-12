@@ -19,7 +19,7 @@ func (e ErrRollCooldown) Error() string {
 }
 
 // withTx runs fn inside a transaction, committing on success or rolling back on failure.
-func withTx(ctx context.Context, store Store, fn func(tx Store) error) error {
+func withTx(ctx context.Context, store DB, fn func(tx Tx) error) error {
 	tx, err := store.WithTx(ctx)
 	if err != nil {
 		return err
@@ -37,11 +37,11 @@ func withTx(ctx context.Context, store Store, fn func(tx Store) error) error {
 
 // RollService orchestrates roll operations.
 type RollService struct {
-	store  Store
+	store  DB
 	config RollConfig
 }
 
-func NewRollService(store Store, config RollConfig) *RollService {
+func NewRollService(store DB, config RollConfig) *RollService {
 	return &RollService{store: store, config: config}
 }
 

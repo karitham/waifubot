@@ -12,7 +12,7 @@ import (
 
 // ClaimHandler handles the /claim command.
 type ClaimHandler struct {
-	store collection.Store
+	store collection.DB
 }
 
 // claimOptions holds the parsed options for the claim command.

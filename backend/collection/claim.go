@@ -17,67 +17,55 @@ var ErrNoDropInChannel = errors.New("no drop in this channel")
 var ErrWrongCharacterName = errors.New("wrong character name")
 
 // Claim claims a dropped character for a user.
-func Claim(ctx context.Context, store Store, userID UserID, channelID ChannelID, charName string) (catalog.Character, error) {
-	tx, err := store.WithTx(ctx)
-	if err != nil {
-		return catalog.Character{}, fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	committed := false
-	defer func() {
-		if !committed {
-			_ = tx.Rollback(ctx)
-		}
-	}()
-
-	drop, err := tx.GetDropForUpdate(ctx, channelID)
-	if err != nil {
-		if errors.Is(err, ErrNotFound) {
-			return catalog.Character{}, ErrNoDropInChannel
-		}
-		return catalog.Character{}, fmt.Errorf("failed to get drop: %w", err)
-	}
-
-	if !strings.EqualFold(SanitizeName(drop.Name), charName) {
-		return catalog.Character{}, ErrWrongCharacterName
-	}
-
-	// Ensure user exists
-	_, err = tx.GetUser(ctx, userID)
-	if err != nil {
-		if errors.Is(err, ErrNotFound) {
-			if err = tx.CreateUser(ctx, userID); err != nil {
-				return catalog.Character{}, fmt.Errorf("failed to create user: %w", err)
+func Claim(ctx context.Context, store DB, userID UserID, channelID ChannelID, charName string) (catalog.Character, error) {
+	var drop catalog.Drop
+	err := withTx(ctx, store, func(tx Tx) error {
+		var err error
+		drop, err = tx.GetDropForUpdate(ctx, channelID)
+		if err != nil {
+			if errors.Is(err, ErrNotFound) {
+				return ErrNoDropInChannel
 			}
-		} else {
-			return catalog.Character{}, fmt.Errorf("failed to get user: %w", err)
+			return fmt.Errorf("failed to get drop: %w", err)
 		}
-	}
 
-	err = tx.UpsertCharacter(ctx, drop)
-	if err != nil {
-		return catalog.Character{}, fmt.Errorf("failed to upsert character: %w", err)
-	}
-
-	now := time.Now()
-	err = tx.AddToCollection(ctx, userID, drop.ID, SourceClaim, now)
-	if err != nil {
-		if errors.Is(err, ErrAlreadyOwned) {
-			return catalog.Character{}, ErrAlreadyOwned
+		if !strings.EqualFold(SanitizeName(drop.Name), charName) {
+			return ErrWrongCharacterName
 		}
-		return catalog.Character{}, fmt.Errorf("failed to insert character into collection: %w", err)
-	}
 
-	_ = tx.RemoveFromWishlist(ctx, userID, drop.ID)
+		// Ensure user exists
+		_, err = tx.GetUser(ctx, userID)
+		if err != nil {
+			if errors.Is(err, ErrNotFound) {
+				if err = tx.CreateUser(ctx, userID); err != nil {
+					return fmt.Errorf("failed to create user: %w", err)
+				}
+			} else {
+				return fmt.Errorf("failed to get user: %w", err)
+			}
+		}
 
-	err = tx.DeleteDrop(ctx, channelID)
+		if err := tx.UpsertCharacter(ctx, drop); err != nil {
+			return fmt.Errorf("failed to upsert character: %w", err)
+		}
+
+		err = tx.AddToCollection(ctx, userID, drop.ID, SourceClaim, time.Now())
+		if err != nil {
+			if errors.Is(err, ErrAlreadyOwned) {
+				return ErrAlreadyOwned
+			}
+			return fmt.Errorf("failed to insert character into collection: %w", err)
+		}
+
+		_ = tx.RemoveFromWishlist(ctx, userID, drop.ID)
+
+		if err := tx.DeleteDrop(ctx, channelID); err != nil {
+			return fmt.Errorf("failed to delete drop: %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return catalog.Character{}, fmt.Errorf("failed to delete drop: %w", err)
-	}
-
-	err = tx.Commit(ctx)
-	committed = err == nil
-	if err != nil {
-		return catalog.Character{}, fmt.Errorf("failed to commit transaction: %w", err)
+		return catalog.Character{}, err
 	}
 
 	return drop, nil
