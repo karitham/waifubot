@@ -51,7 +51,7 @@ type MockStore struct {
 	RandomCharNotOwnedFunc func(ctx context.Context, userID collection.UserID, weightExponent float64) (catalog.Character, error)
 	RandomActiveCharFunc   func(ctx context.Context, weightExponent float64) (catalog.Character, error)
 
-	WithTxFunc   func(ctx context.Context) (collection.Tx, error)
+	BeginFunc    func(ctx context.Context) (collection.Tx, error)
 	CommitFunc   func(ctx context.Context) error
 	RollbackFunc func(ctx context.Context) error
 
@@ -304,9 +304,9 @@ func (m *MockStore) RandomActiveChar(ctx context.Context, weightExponent float64
 	return catalog.Character{}, nil
 }
 
-func (m *MockStore) WithTx(ctx context.Context) (collection.Tx, error) {
-	if m.WithTxFunc != nil {
-		return m.WithTxFunc(ctx)
+func (m *MockStore) Begin(ctx context.Context) (collection.Tx, error) {
+	if m.BeginFunc != nil {
+		return m.BeginFunc(ctx)
 	}
 	return m, nil
 }

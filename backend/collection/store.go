@@ -122,5 +122,5 @@ type Tx interface {
 // creation.
 type DB interface {
 	Store
-	WithTx(ctx context.Context) (Tx, error)
+	Begin(ctx context.Context) (Tx, error)
 }

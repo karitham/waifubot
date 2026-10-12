@@ -64,32 +64,31 @@ func NewPostgresStore(store Store, pool pooler, txFn TxFn) *PostgresStore {
 	}
 }
 
-// WithTx starts a new transaction and returns a Store scoped to it.
-func (s *PostgresStore) WithTx(ctx context.Context) (Tx, error) {
+// Begin starts a transaction and returns a Tx scoped to it.
+func (s *PostgresStore) Begin(ctx context.Context) (Tx, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return NewTx(s.txFn(tx), tx), nil
+	return newTx(s.txFn(tx), tx), nil
 }
 
-// PostgresTx is a Store scoped to a pgx transaction.
-type PostgresTx struct {
+// postgresTx is a Store scoped to a pgx transaction.
+type postgresTx struct {
 	Store
 	tx pgx.Tx
 }
 
-// NewTx wraps tx-scoped adapters with commit and rollback control.
-func NewTx(store Store, tx pgx.Tx) Tx {
-	return &PostgresTx{Store: store, tx: tx}
+func newTx(store Store, tx pgx.Tx) Tx {
+	return &postgresTx{Store: store, tx: tx}
 }
 
 // Commit commits the transaction.
-func (t *PostgresTx) Commit(ctx context.Context) error {
+func (t *postgresTx) Commit(ctx context.Context) error {
 	return t.tx.Commit(ctx)
 }
 
 // Rollback rolls back the transaction.
-func (t *PostgresTx) Rollback(ctx context.Context) error {
+func (t *postgresTx) Rollback(ctx context.Context) error {
 	return t.tx.Rollback(ctx)
 }

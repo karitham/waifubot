@@ -86,7 +86,7 @@ func New(r *Router) *Router {
 
 	// Wire up guild transaction factory — collection.Tx satisfies guild.TxQuerier
 	r.guildTxFn = func(ctx context.Context) (guild.TxQuerier, error) {
-		return r.Store.WithTx(ctx)
+		return r.Store.Begin(ctx)
 	}
 
 	r.MustMigrateCommands()

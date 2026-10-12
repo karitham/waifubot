@@ -85,7 +85,6 @@ func NewStore(ctx context.Context, url string) (*DBStore, error) {
 	}, nil
 }
 
-// WithTx returns a Store whose queries run on the given transaction.
 func (s *DBStore) WithTx(tx pgx.Tx) Store {
 	return s.withTx(tx)
 }

@@ -20,7 +20,7 @@ func (e ErrRollCooldown) Error() string {
 
 // withTx runs fn inside a transaction, committing on success or rolling back on failure.
 func withTx(ctx context.Context, store DB, fn func(tx Tx) error) error {
-	tx, err := store.WithTx(ctx)
+	tx, err := store.Begin(ctx)
 	if err != nil {
 		return err
 	}

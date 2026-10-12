@@ -461,7 +461,7 @@ func TestIntegration_TransactionsAreScoped(t *testing.T) {
 		txFn,
 	)
 
-	tx, err := store.WithTx(ctx)
+	tx, err := store.Begin(ctx)
 	require.NoError(t, err)
 	require.NoError(t, tx.CreateUser(ctx, uid))
 	require.NoError(t, tx.Rollback(ctx))

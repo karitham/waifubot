@@ -19,8 +19,6 @@ func newCollectionStore(s storage.Store) collection.DB {
 }
 
 func newStoreFromStorage(s storage.Store) *collection.PostgresStore {
-	// txFn must build every adapter over the transaction; using the
-	// pool-level adapters here would make the "transaction" a no-op.
 	txFn := func(tx pgx.Tx) collection.Store {
 		scoped := s.WithTx(tx)
 		return collection.NewStore(
