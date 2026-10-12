@@ -69,7 +69,7 @@ func TestSeriesRollEmbed(t *testing.T) {
 	for _, tt := range []struct {
 		name string
 		char catalog.Character
-		cost int32
+		cost collection.TokenAmount
 	}{
 		{
 			name: "series roll",
@@ -80,7 +80,7 @@ func TestSeriesRollEmbed(t *testing.T) {
 				MediaTitle: "Series Anime",
 				Popularity: 500,
 			},
-			cost: 5,
+			cost: tokenAmount(t, 5),
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

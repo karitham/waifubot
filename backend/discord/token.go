@@ -55,7 +55,7 @@ func (h *TokenHandler) Balance(ctx context.Context, w corde.ResponseWriter, cmd 
 type tokenGiveOptions struct {
 	recipientID collection.UserID
 	recipient   corde.User
-	amount      int32
+	amount      collection.TokenAmount
 }
 
 func parseTokenGiveOptions(cmd CommandContext) (tokenGiveOptions, error) {
@@ -63,14 +63,21 @@ func parseTokenGiveOptions(cmd CommandContext) (tokenGiveOptions, error) {
 	if err != nil {
 		return tokenGiveOptions{}, fmt.Errorf("select a user to give tokens to: %w", err)
 	}
+
 	amount, err := cmd.OptInt("amount")
 	if err != nil {
 		return tokenGiveOptions{}, fmt.Errorf("specify a valid amount of tokens: %w", err)
 	}
+
+	tokenAmount, err := collection.NewTokenAmount(amount)
+	if err != nil {
+		return tokenGiveOptions{}, fmt.Errorf("specify a valid amount of tokens: %w", err)
+	}
+
 	return tokenGiveOptions{
 		recipientID: collection.UserID(user.ID),
 		recipient:   user,
-		amount:      int32(amount),
+		amount:      tokenAmount,
 	}, nil
 }
 
@@ -100,12 +107,12 @@ func (h *TokenHandler) Give(ctx context.Context, w corde.ResponseWriter, cmd Com
 			return
 		}
 
-		logger.Error("error performing token transfer", "error", err, "recipient_id", opts.recipientID, "amount", opts.amount)
+		logger.Error("error performing token transfer", "error", err, "recipient_id", opts.recipientID, "amount", opts.amount.Int32())
 		w.Respond(rspErr("Failed to transfer tokens"))
 		return
 	}
 
-	w.Respond(corde.NewResp().Contentf("Gave %d tokens to %s", opts.amount, opts.recipient.Username))
+	w.Respond(corde.NewResp().Contentf("Gave %d tokens to %s", opts.amount.Int32(), opts.recipient.Username))
 }
 
 // tokenSellOptions holds the parsed options for the token sell command.
@@ -175,7 +182,7 @@ func (h *TokenHandler) Roll(ctx context.Context, w corde.ResponseWriter, cmd Com
 	char, err := h.rollService.SeriesRoll(ctx, cmd.UserID(), opts.mediaID, h.config.SeriesRollCost, h.animeService)
 	if err != nil {
 		if errors.Is(err, collection.ErrInsufficientTokens) {
-			w.Respond(rspErr(fmt.Sprintf("You need %d tokens to roll for a series", h.config.SeriesRollCost)))
+			w.Respond(rspErr(fmt.Sprintf("You need %d tokens to roll for a series", h.config.SeriesRollCost.Int32())))
 			return
 		}
 		if errors.Is(err, collection.ErrNoUnownedCharacters) {

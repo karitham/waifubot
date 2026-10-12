@@ -15,7 +15,7 @@ import (
 )
 
 func TestSeriesRoll(t *testing.T) {
-	config := collection.Config{SeriesRollCost: 20}
+	config := collection.Config{SeriesRollCost: tokenAmount(t, 20)}
 	rollConfig := collection.RollConfig{}
 
 	tests := []struct {
@@ -45,7 +45,7 @@ func TestSeriesRoll(t *testing.T) {
 					return nil
 				}
 				m.RemoveFromWishlistFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) error { return nil }
-				m.SpendTokensFunc = func(_ context.Context, _ collection.UserID, _ int32) (collection.User, error) {
+				m.SpendTokensFunc = func(_ context.Context, _ collection.UserID, _ collection.TokenAmount) (collection.User, error) {
 					return collection.User{}, nil
 				}
 			},
@@ -122,7 +122,7 @@ func TestSeriesRoll(t *testing.T) {
 					return nil
 				}
 				m.RemoveFromWishlistFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) error { return nil }
-				m.SpendTokensFunc = func(_ context.Context, _ collection.UserID, _ int32) (collection.User, error) {
+				m.SpendTokensFunc = func(_ context.Context, _ collection.UserID, _ collection.TokenAmount) (collection.User, error) {
 					return collection.User{}, nil
 				}
 			},
@@ -165,7 +165,7 @@ func TestSeriesRoll(t *testing.T) {
 				m.RemoveFromWishlistFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) error {
 					return assert.AnError
 				}
-				m.SpendTokensFunc = func(_ context.Context, _ collection.UserID, _ int32) (collection.User, error) {
+				m.SpendTokensFunc = func(_ context.Context, _ collection.UserID, _ collection.TokenAmount) (collection.User, error) {
 					return collection.User{}, nil
 				}
 			},

@@ -16,6 +16,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/karitham/waifubot/cmd/waifubot/flags"
+	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/collectionwire"
 	"github.com/karitham/waifubot/discord"
 	"github.com/karitham/waifubot/guild"
@@ -84,6 +85,7 @@ func main() {
 						Required: true,
 					},
 					flags.RollCooldownFlag,
+					flags.SeriesRollCostFlag,
 					&cli.Int64Flag{
 						Name:        "interaction-needed",
 						EnvVars:     []string{"INTERACTION_NEEDED"},
@@ -214,6 +216,11 @@ func runTestHarness(c *cli.Context) error {
 		"test_guild_id", testGuildID,
 	)
 
+	seriesRollCost, err := collection.NewTokenAmount(c.Int(flags.SeriesRollCostFlag.Name))
+	if err != nil {
+		return fmt.Errorf("invalid series roll cost: %w", err)
+	}
+
 	// Create bot with fake AnimeService
 	router := discord.New(&discord.Router{
 		Store:             collStore,
@@ -231,6 +238,7 @@ func runTestHarness(c *cli.Context) error {
 		PublicKey:         publicKey,
 		RollCooldown:      c.Duration(flags.RollCooldownFlag.Name),
 		InteractionNeeded: c.Int64("interaction-needed"),
+		SeriesRollCost:    seriesRollCost,
 	})
 	mux := router.Register()
 

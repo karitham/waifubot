@@ -5,7 +5,7 @@ import "errors"
 // ErrInsufficientTokens is returned when a user has insufficient tokens.
 var ErrInsufficientTokens = errors.New("insufficient tokens")
 
-// ErrInvalidAmount is returned when a transfer amount is invalid.
+// ErrInvalidAmount is returned when a token amount is not positive.
 var ErrInvalidAmount = errors.New("amount must be positive")
 
 // ErrSameUserTransfer is returned when transferring to yourself.

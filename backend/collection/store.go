@@ -65,8 +65,10 @@ type UserRepository interface {
 	// rolls. When the cooldown is still active it returns ErrRollCooldown
 	// with the time the user may roll again.
 	RecordRoll(ctx context.Context, userID UserID, now time.Time, cooldown time.Duration) error
-	SpendTokens(ctx context.Context, userID UserID, amount int32) (User, error)
-	AddTokens(ctx context.Context, userID UserID, amount int32) (User, error)
+	// SpendTokens deducts a positive amount from the user's balance.
+	SpendTokens(ctx context.Context, userID UserID, amount TokenAmount) (User, error)
+	// AddTokens credits a positive amount to the user's balance.
+	AddTokens(ctx context.Context, userID UserID, amount TokenAmount) (User, error)
 	UpdateFavorite(ctx context.Context, userID UserID, charID catalog.CharacterID) error
 	UpdateQuote(ctx context.Context, userID UserID, quote string) error
 	UpdateAnilistURL(ctx context.Context, userID UserID, url string) error

@@ -16,6 +16,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/karitham/waifubot/anilist"
+	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/discord"
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/rest"
@@ -99,6 +100,11 @@ var RunCommand = &cli.Command{
 
 		anilistClient := anilist.New(version)
 
+		seriesRollCost, err := collection.NewTokenAmount(c.Int(seriesRollCostFlag.Name))
+		if err != nil {
+			return fmt.Errorf("invalid series roll cost: %w", err)
+		}
+
 		slog.Info("Starting WaifuBot", "port", c.String("port"), "app_id", c.String("app-id"), "api_enabled", c.Bool(apiFlag.Name))
 		router := discord.New(&discord.Router{
 			Store:             collStore,
@@ -116,7 +122,7 @@ var RunCommand = &cli.Command{
 			PublicKey:         c.String("public-key"),
 			RollCooldown:      c.Duration(rollCooldownFlag.Name),
 			InteractionNeeded: c.Int64("interaction-needed"),
-			SeriesRollCost:    int32(c.Int(seriesRollCostFlag.Name)),
+			SeriesRollCost:    seriesRollCost,
 		})
 		mux := router.Register()
 

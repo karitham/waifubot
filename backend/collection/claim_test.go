@@ -159,7 +159,7 @@ func TestExchange(t *testing.T) {
 					}, nil
 				}
 				m.RemoveFromCollectionFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) error { return nil }
-				m.AddTokensFunc = func(_ context.Context, _ collection.UserID, _ int32) (collection.User, error) {
+				m.AddTokensFunc = func(_ context.Context, _ collection.UserID, _ collection.TokenAmount) (collection.User, error) {
 					return collection.User{UserID: 123, Tokens: 6}, nil
 				}
 			},
@@ -303,54 +303,47 @@ func TestTransferTokens(t *testing.T) {
 		setup   func(m *collectiontest.MockStore)
 		from    collection.UserID
 		to      collection.UserID
-		amount  int32
+		amount  collection.TokenAmount
 		wantErr error
 	}{
 		{
 			name: "success",
 			setup: func(m *collectiontest.MockStore) {
-				m.SpendTokensFunc = func(_ context.Context, _ collection.UserID, _ int32) (collection.User, error) {
+				m.SpendTokensFunc = func(_ context.Context, _ collection.UserID, _ collection.TokenAmount) (collection.User, error) {
 					return collection.User{UserID: 1, Tokens: 50}, nil
 				}
-				m.AddTokensFunc = func(_ context.Context, _ collection.UserID, _ int32) (collection.User, error) {
+				m.AddTokensFunc = func(_ context.Context, _ collection.UserID, _ collection.TokenAmount) (collection.User, error) {
 					return collection.User{UserID: 2, Tokens: 50}, nil
 				}
 			},
 			from:   1,
 			to:     2,
-			amount: 50,
+			amount: tokenAmount(t, 50),
 		},
 		{
 			name: "insufficient_funds",
 			setup: func(m *collectiontest.MockStore) {
-				m.SpendTokensFunc = func(_ context.Context, _ collection.UserID, _ int32) (collection.User, error) {
+				m.SpendTokensFunc = func(_ context.Context, _ collection.UserID, _ collection.TokenAmount) (collection.User, error) {
 					return collection.User{}, collection.ErrInsufficientTokens
 				}
 			},
 			from:    1,
 			to:      2,
-			amount:  100,
+			amount:  tokenAmount(t, 100),
 			wantErr: collection.ErrInsufficientTokens,
 		},
 		{
 			name:    "invalid_amount_zero",
 			from:    1,
 			to:      2,
-			amount:  0,
-			wantErr: collection.ErrInvalidAmount,
-		},
-		{
-			name:    "invalid_amount_negative",
-			from:    1,
-			to:      2,
-			amount:  -5,
+			amount:  collection.TokenAmount{},
 			wantErr: collection.ErrInvalidAmount,
 		},
 		{
 			name:    "same_user",
 			from:    1,
 			to:      1,
-			amount:  50,
+			amount:  tokenAmount(t, 50),
 			wantErr: collection.ErrSameUserTransfer,
 		},
 	}

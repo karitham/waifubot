@@ -23,14 +23,14 @@ func rollEmbed(char catalog.Character, usersWanting string) corde.Embed {
 	))
 }
 
-func seriesRollEmbed(char catalog.Character, cost int32) corde.Embed {
+func seriesRollEmbed(char catalog.Character, cost collection.TokenAmount) corde.Embed {
 	return newCharEmbed(char, fmt.Sprintf(
 		"You got %s (%s)\n⭐ Rarity: %s | ❤️ %d favorites\n\n🎯 Series Roll | Cost: %d tokens\nID: %d",
 		char.Name,
 		char.MediaTitle,
 		collection.RarityFromPopularity(char.Popularity),
 		char.Popularity,
-		cost,
+		cost.Int32(),
 		char.ID,
 	))
 }

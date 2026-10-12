@@ -77,7 +77,7 @@ type Router struct {
 	PublicKey         string
 	RollCooldown      time.Duration
 	InteractionNeeded int64
-	SeriesRollCost    int32
+	SeriesRollCost    collection.TokenAmount
 }
 
 // New constructs a Router with all dependencies and runs command migration.

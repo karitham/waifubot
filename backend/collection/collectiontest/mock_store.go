@@ -15,8 +15,8 @@ type MockStore struct {
 	GetUserByAnilistFunc         func(ctx context.Context, anilistURL string) (collection.User, error)
 	GetUserByDiscordUsernameFunc func(ctx context.Context, username string) (collection.User, error)
 	RecordRollFunc               func(ctx context.Context, userID collection.UserID, now time.Time, cooldown time.Duration) error
-	SpendTokensFunc              func(ctx context.Context, userID collection.UserID, amount int32) (collection.User, error)
-	AddTokensFunc                func(ctx context.Context, userID collection.UserID, amount int32) (collection.User, error)
+	SpendTokensFunc              func(ctx context.Context, userID collection.UserID, amount collection.TokenAmount) (collection.User, error)
+	AddTokensFunc                func(ctx context.Context, userID collection.UserID, amount collection.TokenAmount) (collection.User, error)
 	UpdateFavoriteFunc           func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error
 	UpdateQuoteFunc              func(ctx context.Context, userID collection.UserID, quote string) error
 	UpdateAnilistURLFunc         func(ctx context.Context, userID collection.UserID, url string) error
@@ -95,14 +95,14 @@ func (m *MockStore) RecordRoll(ctx context.Context, userID collection.UserID, no
 	return nil
 }
 
-func (m *MockStore) SpendTokens(ctx context.Context, userID collection.UserID, amount int32) (collection.User, error) {
+func (m *MockStore) SpendTokens(ctx context.Context, userID collection.UserID, amount collection.TokenAmount) (collection.User, error) {
 	if m.SpendTokensFunc != nil {
 		return m.SpendTokensFunc(ctx, userID, amount)
 	}
 	return collection.User{UserID: userID}, nil
 }
 
-func (m *MockStore) AddTokens(ctx context.Context, userID collection.UserID, amount int32) (collection.User, error) {
+func (m *MockStore) AddTokens(ctx context.Context, userID collection.UserID, amount collection.TokenAmount) (collection.User, error) {
 	if m.AddTokensFunc != nil {
 		return m.AddTokensFunc(ctx, userID, amount)
 	}

@@ -114,11 +114,11 @@ func TestIntegration_UserCRUD(t *testing.T) {
 
 	require.NoError(t, store.RecordRoll(ctx, uid, time.Now(), time.Hour))
 
-	user, err = store.AddTokens(ctx, uid, 10)
+	user, err = store.AddTokens(ctx, uid, tokenAmount(t, 10))
 	require.NoError(t, err)
 	assert.Equal(t, int32(10), user.Tokens)
 
-	user, err = store.SpendTokens(ctx, uid, 3)
+	user, err = store.SpendTokens(ctx, uid, tokenAmount(t, 3))
 	require.NoError(t, err)
 	assert.Equal(t, int32(7), user.Tokens)
 
@@ -272,12 +272,12 @@ func TestIntegration_TokenConsistency(t *testing.T) {
 	ctx := t.Context()
 
 	require.NoError(t, store.CreateUser(ctx, uid))
-	user, err := store.AddTokens(ctx, uid, 100)
+	user, err := store.AddTokens(ctx, uid, tokenAmount(t, 100))
 	require.NoError(t, err)
 	assert.Equal(t, int32(100), user.Tokens)
 
 	for i := range 10 {
-		user, err = store.SpendTokens(ctx, uid, 1)
+		user, err = store.SpendTokens(ctx, uid, tokenAmount(t, 1))
 		require.NoError(t, err)
 		assert.Equal(t, int32(99-i), user.Tokens)
 	}

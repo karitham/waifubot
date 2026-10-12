@@ -8,7 +8,10 @@ import (
 	"github.com/karitham/waifubot/catalog"
 )
 
-// Exchange sells a character for 1 token.
+// sellReward is granted for selling a character.
+var sellReward = TokenAmount{amount: 1}
+
+// Exchange sells a character for tokens.
 func Exchange(ctx context.Context, store DB, userID UserID, charID catalog.CharacterID) (OwnedCharacter, error) {
 	var (
 		charInfo catalog.Character
@@ -33,7 +36,7 @@ func Exchange(ctx context.Context, store DB, userID UserID, charID catalog.Chara
 			return err
 		}
 
-		if _, err := tx.AddTokens(ctx, userID, 1); err != nil {
+		if _, err := tx.AddTokens(ctx, userID, sellReward); err != nil {
 			return err
 		}
 		return nil

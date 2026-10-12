@@ -8,6 +8,7 @@ import (
 
 	"github.com/Karitham/corde"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
@@ -16,9 +17,21 @@ import (
 	"github.com/karitham/waifubot/tracker"
 )
 
-var tokenConfig = collection.Config{
-	RollCooldown:   time.Hour,
-	SeriesRollCost: 5,
+func tokenAmount(t *testing.T, n int) collection.TokenAmount {
+	t.Helper()
+
+	amount, err := collection.NewTokenAmount(n)
+	require.NoError(t, err)
+	return amount
+}
+
+func tokenConfig(t *testing.T) collection.Config {
+	t.Helper()
+
+	return collection.Config{
+		RollCooldown:   time.Hour,
+		SeriesRollCost: tokenAmount(t, 5),
+	}
 }
 
 func TestTokenHandler_Balance(t *testing.T) {
@@ -153,7 +166,7 @@ func TestTokenHandler_Give(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
 			store := &collectiontest.MockStore{}
 			if tt.transferErr != nil {
-				store.AddTokensFunc = func(ctx context.Context, userID collection.UserID, amount int32) (collection.User, error) {
+				store.AddTokensFunc = func(ctx context.Context, userID collection.UserID, amount collection.TokenAmount) (collection.User, error) {
 					return collection.User{}, tt.transferErr
 				}
 			}
@@ -227,7 +240,7 @@ func TestTokenHandler_Sell(t *testing.T) {
 				RemoveFromCollectionFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
 					return nil
 				},
-				AddTokensFunc: func(ctx context.Context, userID collection.UserID, amount int32) (collection.User, error) {
+				AddTokensFunc: func(ctx context.Context, userID collection.UserID, amount collection.TokenAmount) (collection.User, error) {
 					return collection.User{UserID: userID}, nil
 				},
 			},
@@ -364,7 +377,7 @@ func TestTokenHandler_Roll(t *testing.T) {
 				RecordRollFunc: func(ctx context.Context, userID collection.UserID, now time.Time, cooldown time.Duration) error {
 					return nil
 				},
-				SpendTokensFunc: func(ctx context.Context, userID collection.UserID, amount int32) (collection.User, error) {
+				SpendTokensFunc: func(ctx context.Context, userID collection.UserID, amount collection.TokenAmount) (collection.User, error) {
 					return collection.User{UserID: userID}, nil
 				},
 			},
@@ -382,7 +395,8 @@ func TestTokenHandler_Roll(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
-			h := &TokenHandler{store: tt.store, animeService: tt.animeService, rollService: collection.NewRollService(tt.store, collection.RollConfig{RollCooldown: tokenConfig.RollCooldown}), config: tokenConfig}
+			config := tokenConfig(t)
+			h := &TokenHandler{store: tt.store, animeService: tt.animeService, rollService: collection.NewRollService(tt.store, collection.RollConfig{RollCooldown: config.RollCooldown}), config: config}
 
 			h.Roll(t.Context(), w, tt.cmd)
 

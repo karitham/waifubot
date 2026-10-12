@@ -84,9 +84,13 @@ func (p *Pg) RecordRoll(ctx context.Context, userID collection.UserID, now time.
 	return collection.ErrRollCooldown{Until: u.Date.Time.Add(cooldown)}
 }
 
-func (p *Pg) SpendTokens(ctx context.Context, userID collection.UserID, amount int32) (collection.User, error) {
+func (p *Pg) SpendTokens(ctx context.Context, userID collection.UserID, amount collection.TokenAmount) (collection.User, error) {
+	if !amount.Valid() {
+		return collection.User{}, collection.ErrInvalidAmount
+	}
+
 	u, err := p.Q.SpendTokens(ctx, userstore.SpendTokensParams{
-		Tokens: amount,
+		Tokens: amount.Int32(),
 		UserID: uint64(userID),
 	})
 	if err != nil {
@@ -107,9 +111,13 @@ func (p *Pg) SpendTokens(ctx context.Context, userID collection.UserID, amount i
 	return toUser(u), nil
 }
 
-func (p *Pg) AddTokens(ctx context.Context, userID collection.UserID, amount int32) (collection.User, error) {
+func (p *Pg) AddTokens(ctx context.Context, userID collection.UserID, amount collection.TokenAmount) (collection.User, error) {
+	if !amount.Valid() {
+		return collection.User{}, collection.ErrInvalidAmount
+	}
+
 	u, err := p.Q.UpdateTokens(ctx, userstore.UpdateTokensParams{
-		Tokens: amount,
+		Tokens: amount.Int32(),
 		UserID: uint64(userID),
 	})
 	if err != nil {
