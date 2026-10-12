@@ -27,6 +27,8 @@ func NewPostgresStore(q Querier) *PostgresStore {
 	}
 }
 
+// Set stores the drop for a channel, upserting the character first: a drop
+// implies its character row exists, and the claim relies on that.
 func (p *PostgresStore) Set(ctx context.Context, id collection.ChannelID, data catalog.Character) error {
 	err := p.q.UpsertCharacter(ctx, UpsertCharacterParams{
 		ID:         int64(data.ID),

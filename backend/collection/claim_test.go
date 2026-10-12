@@ -34,7 +34,6 @@ func TestClaim(t *testing.T) {
 				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID}, nil
 				}
-				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
 				m.AddToCollectionFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID, _ collection.Source, _ time.Time) error {
 					return nil
 				}
@@ -79,7 +78,6 @@ func TestClaim(t *testing.T) {
 				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID}, nil
 				}
-				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
 				m.AddToCollectionFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID, _ collection.Source, _ time.Time) error {
 					return collection.ErrAlreadyOwned
 				}
@@ -99,7 +97,6 @@ func TestClaim(t *testing.T) {
 					return collection.User{}, collection.ErrNotFound
 				}
 				m.CreateUserFunc = func(_ context.Context, _ collection.UserID) error { return nil }
-				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
 				m.AddToCollectionFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID, _ collection.Source, _ time.Time) error {
 					return nil
 				}

@@ -33,10 +33,6 @@ func Claim(ctx context.Context, store DB, userID UserID, channelID ChannelID, ch
 			return ErrWrongCharacterName
 		}
 
-		if err := tx.UpsertCharacter(ctx, drop); err != nil {
-			return fmt.Errorf("failed to upsert character: %w", err)
-		}
-
 		err = tx.AddToCollection(ctx, userID, drop.ID, SourceClaim, time.Now())
 		if err != nil {
 			if errors.Is(err, ErrAlreadyOwned) {
