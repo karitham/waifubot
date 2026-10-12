@@ -38,8 +38,7 @@ WHERE
   channel_id = $1;
 
 -- name: GetDropForUpdate :one
--- FOR UPDATE OF cd locks only the drop row; the character row is read, not
--- held, so inserts that reference it do not wait.
+-- Locks only the drop row; the joined character row is read, not locked.
 SELECT
   c.id,
   c.name,

@@ -14,10 +14,7 @@ WHERE
   user_id = $1;
 
 -- name: LockUser :one
--- Locks the user's row for the rest of the transaction. FOR NO KEY UPDATE is
--- the weakest lock that still serializes with the non-key updates (tokens,
--- date, profile) other writers apply to the same row, and it does not block
--- foreign key checks.
+-- FOR NO KEY UPDATE: serializes writers, does not block foreign key checks.
 SELECT
   user_id
 FROM

@@ -62,8 +62,7 @@ WHERE
 FOR UPDATE OF cd
 `
 
-// FOR UPDATE OF cd locks only the drop row; the character row is read, not
-// held, so inserts that reference it do not wait.
+// Locks only the drop row; the joined character row is read, not locked.
 func (q *Queries) GetDropForUpdate(ctx context.Context, channelID uint64) (Character, error) {
 	row := q.db.QueryRow(ctx, getDropForUpdate, channelID)
 	var i Character
