@@ -49,13 +49,6 @@ WHERE
   discord_username = $1
   AND discord_username != '';
 
--- name: UpdateFavorite :exec
-UPDATE users
-SET
-  favorite = $1
-WHERE
-  user_id = $2;
-
 -- name: ClearFavorite :exec
 UPDATE users
 SET

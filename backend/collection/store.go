@@ -69,7 +69,6 @@ type UserRepository interface {
 	SpendTokens(ctx context.Context, userID UserID, amount TokenAmount) (User, error)
 	// AddTokens credits a positive amount to the user's balance.
 	AddTokens(ctx context.Context, userID UserID, amount TokenAmount) (User, error)
-	UpdateFavorite(ctx context.Context, userID UserID, charID catalog.CharacterID) error
 	UpdateQuote(ctx context.Context, userID UserID, quote string) error
 	UpdateAnilistURL(ctx context.Context, userID UserID, url string) error
 	UpdateDiscordInfo(ctx context.Context, userID UserID, username, avatar string, lastUpdated time.Time) error

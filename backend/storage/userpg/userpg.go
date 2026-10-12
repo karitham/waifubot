@@ -126,13 +126,6 @@ func (p *Pg) AddTokens(ctx context.Context, userID collection.UserID, amount col
 	return toUser(u), nil
 }
 
-func (p *Pg) UpdateFavorite(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
-	return p.Q.UpdateFavorite(ctx, userstore.UpdateFavoriteParams{
-		Favorite: pgtype.Int8{Int64: int64(charID), Valid: true},
-		UserID:   uint64(userID),
-	})
-}
-
 func (p *Pg) UpdateQuote(ctx context.Context, userID collection.UserID, quote string) error {
 	return p.Q.UpdateQuote(ctx, userstore.UpdateQuoteParams{
 		Quote:  quote,

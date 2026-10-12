@@ -228,24 +228,6 @@ func (q *Queries) UpdateDiscordInfo(ctx context.Context, arg UpdateDiscordInfoPa
 	return err
 }
 
-const updateFavorite = `-- name: UpdateFavorite :exec
-UPDATE users
-SET
-  favorite = $1
-WHERE
-  user_id = $2
-`
-
-type UpdateFavoriteParams struct {
-	Favorite pgtype.Int8
-	UserID   uint64
-}
-
-func (q *Queries) UpdateFavorite(ctx context.Context, arg UpdateFavoriteParams) error {
-	_, err := q.db.Exec(ctx, updateFavorite, arg.Favorite, arg.UserID)
-	return err
-}
-
 const updateQuote = `-- name: UpdateQuote :exec
 UPDATE users
 SET

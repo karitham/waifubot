@@ -17,7 +17,6 @@ type MockStore struct {
 	RecordRollFunc               func(ctx context.Context, userID collection.UserID, now time.Time, cooldown time.Duration) error
 	SpendTokensFunc              func(ctx context.Context, userID collection.UserID, amount collection.TokenAmount) (collection.User, error)
 	AddTokensFunc                func(ctx context.Context, userID collection.UserID, amount collection.TokenAmount) (collection.User, error)
-	UpdateFavoriteFunc           func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error
 	UpdateQuoteFunc              func(ctx context.Context, userID collection.UserID, quote string) error
 	UpdateAnilistURLFunc         func(ctx context.Context, userID collection.UserID, url string) error
 	UpdateDiscordInfoFunc        func(ctx context.Context, userID collection.UserID, username, avatar string, lastUpdated time.Time) error
@@ -108,13 +107,6 @@ func (m *MockStore) AddTokens(ctx context.Context, userID collection.UserID, amo
 		return m.AddTokensFunc(ctx, userID, amount)
 	}
 	return collection.User{UserID: userID}, nil
-}
-
-func (m *MockStore) UpdateFavorite(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
-	if m.UpdateFavoriteFunc != nil {
-		return m.UpdateFavoriteFunc(ctx, userID, charID)
-	}
-	return nil
 }
 
 func (m *MockStore) UpdateQuote(ctx context.Context, userID collection.UserID, quote string) error {

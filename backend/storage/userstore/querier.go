@@ -19,7 +19,6 @@ type Querier interface {
 	SpendTokens(ctx context.Context, arg SpendTokensParams) (User, error)
 	UpdateAnilistURL(ctx context.Context, arg UpdateAnilistURLParams) error
 	UpdateDiscordInfo(ctx context.Context, arg UpdateDiscordInfoParams) error
-	UpdateFavorite(ctx context.Context, arg UpdateFavoriteParams) error
 	UpdateQuote(ctx context.Context, arg UpdateQuoteParams) error
 	UpdateTokens(ctx context.Context, arg UpdateTokensParams) (User, error)
 }
