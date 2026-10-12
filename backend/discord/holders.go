@@ -15,12 +15,11 @@ import (
 // indexMiddleware triggers guild indexing in a background goroutine.
 func indexMiddleware[T corde.InteractionDataConstraint](
 	guildIndexer *guild.Indexer,
-	guildTxFn func(context.Context) (guild.TxQuerier, error),
 ) func(func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T])) func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]) {
 	return func(next func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T])) func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]) {
 		return func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]) {
 			go func() {
-				if err := guildIndexer.IndexGuildIfNeeded(context.Background(), i.GuildID, guildTxFn); err != nil {
+				if err := guildIndexer.IndexGuildIfNeeded(context.Background(), i.GuildID); err != nil {
 					slog.Error("failed to index guild", "error", err, "guild_id", i.GuildID)
 				}
 			}()
@@ -35,14 +34,13 @@ type HoldersHandler struct {
 	guildOps     guild.Querier
 	catalog      catalog.Store
 	guildIndexer *guild.Indexer
-	guildTxFn    func(context.Context) (guild.TxQuerier, error)
 }
 
 // Register wires the holders sub-routes on the mux.
 func (h *HoldersHandler) Register(m *corde.Mux) {
 	m.SlashCommand("", wrap(
 		wrapCtx(h.Holders),
-		indexMiddleware[corde.SlashCommandInteractionData](h.guildIndexer, h.guildTxFn),
+		indexMiddleware[corde.SlashCommandInteractionData](h.guildIndexer),
 		trace[corde.SlashCommandInteractionData],
 	))
 	m.Autocomplete("id", h.Autocomplete)

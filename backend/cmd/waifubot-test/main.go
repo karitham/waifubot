@@ -230,7 +230,7 @@ func runTestHarness(c *cli.Context) error {
 		AnimeService:      fakeService,
 		DropStore:         dropStore,
 		InterStore:        interStore,
-		GuildIndexer:      guild.NewIndexer(collStore, guild.NewDiscordFetcher(botToken)),
+		GuildIndexer:      guild.NewIndexer(collectionwire.NewGuildDB(collStore), guild.NewDiscordFetcher(botToken)),
 		GuildOps:          collStore,
 		AppID:             corde.Snowflake(appID),
 		GuildID:           nil,

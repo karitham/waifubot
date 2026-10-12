@@ -44,3 +44,9 @@ type TxQuerier interface {
 	Commit(ctx context.Context) error
 	Rollback(ctx context.Context) error
 }
+
+// DB is the guild query surface plus transaction creation.
+type DB interface {
+	Querier
+	Begin(ctx context.Context) (TxQuerier, error)
+}

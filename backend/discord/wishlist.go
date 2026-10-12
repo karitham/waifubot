@@ -61,7 +61,6 @@ type WishlistHandler struct {
 	animeService TrackingService
 	catalog      catalog.Store
 	guildIndexer *guild.Indexer
-	guildTxFn    func(context.Context) (guild.TxQuerier, error)
 }
 
 // Register wires the wishlist sub-routes on the mux.
@@ -84,8 +83,8 @@ func (h *WishlistHandler) Register(m *corde.Mux) {
 			m.Autocomplete("media", h.MediaAutocomplete)
 		})
 	})
-	m.SlashCommand("holders", wrap(wrapCtx(h.Holders), indexMiddleware[corde.SlashCommandInteractionData](h.guildIndexer, h.guildTxFn), trace[corde.SlashCommandInteractionData]))
-	m.SlashCommand("wanted", wrap(wrapCtx(h.Wanted), indexMiddleware[corde.SlashCommandInteractionData](h.guildIndexer, h.guildTxFn), trace[corde.SlashCommandInteractionData]))
+	m.SlashCommand("holders", wrap(wrapCtx(h.Holders), indexMiddleware[corde.SlashCommandInteractionData](h.guildIndexer), trace[corde.SlashCommandInteractionData]))
+	m.SlashCommand("wanted", wrap(wrapCtx(h.Wanted), indexMiddleware[corde.SlashCommandInteractionData](h.guildIndexer), trace[corde.SlashCommandInteractionData]))
 	m.SlashCommand("compare", trace(wrapCtx(h.Compare)))
 }
 

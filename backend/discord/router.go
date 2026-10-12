@@ -70,7 +70,6 @@ type Router struct {
 	InterStore        interactionstore.Store
 	GuildIndexer      *guild.Indexer
 	GuildOps          guild.Querier
-	guildTxFn         func(context.Context) (guild.TxQuerier, error)
 	AppID             corde.Snowflake
 	GuildID           *corde.Snowflake
 	BotToken          string
@@ -83,11 +82,6 @@ type Router struct {
 // New constructs a Router with all dependencies and runs command migration.
 func New(r *Router) *Router {
 	prometheus.MustRegister(commandCounter, commandDuration)
-
-	// Wire up guild transaction factory — collection.Tx satisfies guild.TxQuerier
-	r.guildTxFn = func(ctx context.Context) (guild.TxQuerier, error) {
-		return r.Store.Begin(ctx)
-	}
 
 	r.MustMigrateCommands()
 
@@ -102,23 +96,22 @@ func (r *Router) Register() *corde.Mux {
 
 	t := trace[corde.SlashCommandInteractionData]
 	i := interact(r.InterStore, r.onInteraction)
-	idx := indexMiddleware[corde.SlashCommandInteractionData](r.GuildIndexer, r.guildTxFn)
+	idx := indexMiddleware[corde.SlashCommandInteractionData](r.GuildIndexer)
 
 	// Construct handlers
 	infoHandler := &InfoHandler{}
 	claimHandler := &ClaimHandler{store: r.Store}
 	listHandler := &ListHandler{store: r.Store}
 	giveHandler := &GiveHandler{store: r.Store}
-	verifyHandler := &VerifyHandler{store: r.Store, guildIndexer: r.GuildIndexer, guildTxFn: r.guildTxFn}
+	verifyHandler := &VerifyHandler{store: r.Store, guildIndexer: r.GuildIndexer}
 	profileHandler := &ProfileHandler{store: r.Store}
 	searchHandler := &SearchHandler{
 		animeService:  r.AnimeService,
 		interStore:    r.InterStore,
 		onInteraction: r.onInteraction,
 		guildIndexer:  r.GuildIndexer,
-		guildTxFn:     r.guildTxFn,
 	}
-	holdersHandler := &HoldersHandler{guildOps: r.GuildOps, catalog: r.Catalog, guildIndexer: r.GuildIndexer, guildTxFn: r.guildTxFn}
+	holdersHandler := &HoldersHandler{guildOps: r.GuildOps, catalog: r.Catalog, guildIndexer: r.GuildIndexer}
 	rollHandler := &RollHandler{
 		rollService: collection.NewRollService(r.Store, collection.RollConfig{RollCooldown: r.RollCooldown}),
 		wishlist:    r.WishlistStore,
@@ -135,7 +128,6 @@ func (r *Router) Register() *corde.Mux {
 		animeService: r.AnimeService,
 		catalog:      r.Catalog,
 		guildIndexer: r.GuildIndexer,
-		guildTxFn:    r.guildTxFn,
 	}
 
 	// Register routes

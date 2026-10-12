@@ -14,7 +14,6 @@ import (
 type VerifyHandler struct {
 	store        collection.Store
 	guildIndexer *guild.Indexer
-	guildTxFn    func(context.Context) (guild.TxQuerier, error)
 }
 
 // verifyOptions holds the parsed options for the verify command.
@@ -43,7 +42,7 @@ func (h *VerifyHandler) Register(m *corde.Mux) {
 	m.SlashCommand("", wrap(
 		wrapCtx(h.Verify),
 		trace[corde.SlashCommandInteractionData],
-		indexMiddleware[corde.SlashCommandInteractionData](h.guildIndexer, h.guildTxFn),
+		indexMiddleware[corde.SlashCommandInteractionData](h.guildIndexer),
 	))
 	m.Autocomplete("id", h.Autocomplete)
 }

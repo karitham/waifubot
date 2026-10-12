@@ -37,7 +37,7 @@ var IndexCommand = &cli.Command{
 
 		collStore := newCollectionStore(store)
 		fetcher := guild.NewDiscordFetcher(botToken)
-		indexer := guild.NewIndexer(collStore, fetcher)
+		indexer := guild.NewIndexer(newGuildDB(collStore), fetcher)
 		err = indexer.IndexGuild(ctx, guildID)
 		if err != nil {
 			return fmt.Errorf("failed to index guild: %w", err)

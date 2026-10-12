@@ -16,29 +16,27 @@ const maxAge = 7 * 24 * time.Hour
 
 // Indexer handles guild indexing operations.
 type Indexer struct {
-	store   Querier
+	db      DB
 	fetcher MemberFetcher
 }
 
 // NewIndexer creates a new guild indexer.
-// Store must be a Querier. Pass a tx factory when the store is also
-// transactional.
-func NewIndexer(store Querier, fetcher MemberFetcher) *Indexer {
+func NewIndexer(db DB, fetcher MemberFetcher) *Indexer {
 	return &Indexer{
-		store:   store,
+		db:      db,
 		fetcher: fetcher,
 	}
 }
 
 // IndexGuildIfNeeded checks if a guild needs indexing and runs it if necessary.
-func (i *Indexer) IndexGuildIfNeeded(ctx context.Context, guildID corde.Snowflake, txFactory func(context.Context) (TxQuerier, error)) error {
+func (i *Indexer) IndexGuildIfNeeded(ctx context.Context, guildID corde.Snowflake) error {
 	id := ID(guildID)
-	status, err := i.store.IsGuildIndexed(ctx, id)
+	status, err := i.db.IsGuildIndexed(ctx, id)
 	if err == nil && status.Status == IndexingCompleted && time.Since(status.UpdatedAt) <= maxAge {
 		return nil
 	}
 
-	if err := StartIndexingJobIfNeeded(ctx, i.store, id, txFactory); err != nil {
+	if err := startIndexingJobIfNeeded(ctx, i.db, id); err != nil {
 		return err
 	}
 
@@ -57,23 +55,23 @@ func (i *Indexer) IndexGuild(ctx context.Context, guildID corde.Snowflake) error
 		ids[idx] = MemberID(id)
 	}
 
-	if err := i.store.DeleteGuildMembersNotIn(ctx, ID(guildID), ids); err != nil {
+	if err := i.db.DeleteGuildMembersNotIn(ctx, ID(guildID), ids); err != nil {
 		return err
 	}
 
 	if len(ids) > 0 {
-		if err := i.store.UpsertGuildMembers(ctx, ID(guildID), ids, time.Now()); err != nil {
+		if err := i.db.UpsertGuildMembers(ctx, ID(guildID), ids, time.Now()); err != nil {
 			return err
 		}
 	}
 
-	return i.store.CompleteIndexingJob(ctx, ID(guildID))
+	return i.db.CompleteIndexingJob(ctx, ID(guildID))
 }
 
-// StartIndexingJobIfNeeded acquires a transaction lock and starts an indexing job
-// if no other indexer is currently active.
-func StartIndexingJobIfNeeded(ctx context.Context, store Querier, guildID ID, txFactory func(context.Context) (TxQuerier, error)) error {
-	tx, err := txFactory(ctx)
+// startIndexingJobIfNeeded acquires a transaction lock and starts an indexing
+// job if no other indexer is currently active.
+func startIndexingJobIfNeeded(ctx context.Context, db DB, guildID ID) error {
+	tx, err := db.Begin(ctx)
 	if err != nil {
 		return err
 	}

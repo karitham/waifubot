@@ -114,7 +114,7 @@ var RunCommand = &cli.Command{
 			AnimeService:      anilistClient,
 			DropStore:         dropStore,
 			InterStore:        interStore,
-			GuildIndexer:      guild.NewIndexer(collStore, guild.NewDiscordFetcher(c.String(botTokenFlag.Name))),
+			GuildIndexer:      guild.NewIndexer(newGuildDB(collStore), guild.NewDiscordFetcher(c.String(botTokenFlag.Name))),
 			GuildOps:          collStore,
 			AppID:             corde.Snowflake(c.Uint64("app-id")),
 			GuildID:           guildID,

@@ -18,14 +18,13 @@ type SearchHandler struct {
 	interStore    interactionstore.Store
 	onInteraction func(context.Context, int64, *corde.Interaction[corde.SlashCommandInteractionData])
 	guildIndexer  *guild.Indexer
-	guildTxFn     func(context.Context) (guild.TxQuerier, error)
 }
 
 // Register wires the search sub-routes on the mux.
 func (h *SearchHandler) Register(m *corde.Mux) {
 	t := trace[corde.SlashCommandInteractionData]
 	i := interact(h.interStore, h.onInteraction)
-	idx := indexMiddleware[corde.SlashCommandInteractionData](h.guildIndexer, h.guildTxFn)
+	idx := indexMiddleware[corde.SlashCommandInteractionData](h.guildIndexer)
 
 	m.SlashCommand("char", wrap(wrapCtx(h.SearchChar), t, i, idx))
 	m.SlashCommand("user", wrap(wrapCtx(h.SearchUser), t, i, idx))

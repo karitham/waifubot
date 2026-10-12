@@ -8,6 +8,7 @@ import (
 
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/catalogpg"
 	"github.com/karitham/waifubot/storage/collectionpg"
@@ -62,6 +63,26 @@ func QueryStore(s storage.Store) collection.Store {
 		guildpg.New(s.GuildStore()),
 		catalogpg.New(s.CollectionStore()),
 	)
+}
+
+// NewGuildDB composes the guild transaction surface over a collection.DB.
+func NewGuildDB(db collection.DB) guild.DB {
+	return guildDB{DB: db}
+}
+
+// guildDB adapts a collection.DB to the guild transaction surface. Go has no
+// covariant returns, so Begin needs its own method to satisfy guild.DB.
+type guildDB struct {
+	collection.DB
+}
+
+// Begin starts a transaction and returns it as a guild.TxQuerier.
+func (g guildDB) Begin(ctx context.Context) (guild.TxQuerier, error) {
+	tx, err := g.DB.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
 }
 
 // NewCatalog composes the character catalog adapter.

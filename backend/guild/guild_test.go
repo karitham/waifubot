@@ -13,10 +13,18 @@ import (
 	"github.com/karitham/waifubot/guild"
 )
 
-// mockQuerier implements guild.TxQuerier for testing.
+// mockQuerier implements guild.DB for testing.
 type mockQuerier struct {
 	status guild.IndexStatus
 	err    error
+	tx     guild.TxQuerier
+}
+
+func (m *mockQuerier) Begin(ctx context.Context) (guild.TxQuerier, error) {
+	if m.tx != nil {
+		return m.tx, nil
+	}
+	return m, nil
 }
 
 func (m *mockQuerier) IsGuildIndexed(ctx context.Context, guildID guild.ID) (guild.IndexStatus, error) {
@@ -62,33 +70,29 @@ func TestIndexGuildIfNeeded_AlreadyIndexed(t *testing.T) {
 	fetcher := &mockFetcher{}
 
 	indexer := guild.NewIndexer(querier, fetcher)
-	err := indexer.IndexGuildIfNeeded(t.Context(), corde.Snowflake(123), nil)
+	err := indexer.IndexGuildIfNeeded(t.Context(), corde.Snowflake(123))
 	require.NoError(t, err)
 }
 
 func TestIndexGuildIfNeeded_ExpiredIndex(t *testing.T) {
-	querier := &mockQuerier{
-		status: guild.IndexStatus{
-			Status:    guild.IndexingCompleted,
-			UpdatedAt: time.Now().Add(-8 * 24 * time.Hour),
-		},
-	}
-
-	fetcher := &mockFetcher{ids: []corde.Snowflake{100, 200}}
-
-	indexer := guild.NewIndexer(querier, fetcher)
-
 	txQuerier := &mockQuerier{
 		status: guild.IndexStatus{
 			Status:    guild.IndexingInProgress,
 			UpdatedAt: time.Now(),
 		},
 	}
-	txFactory := func(ctx context.Context) (guild.TxQuerier, error) {
-		return txQuerier, nil
+	querier := &mockQuerier{
+		status: guild.IndexStatus{
+			Status:    guild.IndexingCompleted,
+			UpdatedAt: time.Now().Add(-8 * 24 * time.Hour),
+		},
+		tx: txQuerier,
 	}
 
-	err := indexer.IndexGuildIfNeeded(t.Context(), corde.Snowflake(123), txFactory)
+	fetcher := &mockFetcher{ids: []corde.Snowflake{100, 200}}
+
+	indexer := guild.NewIndexer(querier, fetcher)
+	err := indexer.IndexGuildIfNeeded(t.Context(), corde.Snowflake(123))
 	require.NoError(t, err)
 }
 
