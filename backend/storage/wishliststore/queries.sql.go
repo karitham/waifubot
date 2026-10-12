@@ -16,7 +16,15 @@ INSERT INTO
   character_wishlist (user_id, character_id)
 SELECT
   $1,
-  UNNEST($2::BIGINT[])
+  ids.id
+FROM
+  UNNEST($2::BIGINT[]) AS ids (id)
+WHERE
+  NOT EXISTS (
+    SELECT 1
+    FROM collection col
+    WHERE col.user_id = $1 AND col.character_id = ids.id
+  )
 ON CONFLICT (user_id, character_id) DO NOTHING
 `
 
@@ -25,6 +33,7 @@ type AddCharactersToWishlistParams struct {
 	Column2 []int64
 }
 
+// Skips characters the user already owns.
 func (q *Queries) AddCharactersToWishlist(ctx context.Context, arg AddCharactersToWishlistParams) error {
 	_, err := q.db.Exec(ctx, addCharactersToWishlist, arg.UserID, arg.Column2)
 	return err

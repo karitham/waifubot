@@ -1,9 +1,18 @@
 -- name: AddCharactersToWishlist :exec
+-- Skips characters the user already owns.
 INSERT INTO
   character_wishlist (user_id, character_id)
 SELECT
   $1,
-  UNNEST($2::BIGINT[])
+  ids.id
+FROM
+  UNNEST($2::BIGINT[]) AS ids (id)
+WHERE
+  NOT EXISTS (
+    SELECT 1
+    FROM collection col
+    WHERE col.user_id = $1 AND col.character_id = ids.id
+  )
 ON CONFLICT (user_id, character_id) DO NOTHING;
 
 -- name: RemoveCharactersFromWishlist :exec

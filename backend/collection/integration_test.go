@@ -340,6 +340,28 @@ func TestIntegration_AddToWishlistFreshUser(t *testing.T) {
 	assert.Equal(t, catalog.CharacterID(4002), entries[0].ID)
 }
 
+func TestIntegration_WishlistSkipsOwnedCharacters(t *testing.T) {
+	const uid collection.UserID = 900032
+	ctx := t.Context()
+
+	dbStore, err := storage.NewStore(ctx, testDBURL)
+	require.NoError(t, err)
+	store := collectionwire.NewDB(dbStore)
+
+	require.NoError(t, store.UpsertCharacter(ctx, catalog.Character{ID: 4003, Name: "OwnedWish"}))
+	require.NoError(t, store.UpsertCharacter(ctx, catalog.Character{ID: 4004, Name: "WantedWish"}))
+
+	require.NoError(t, store.CreateUser(ctx, uid))
+	require.NoError(t, store.AddToCollection(ctx, uid, 4003, collection.SourceRoll, time.Now()))
+
+	require.NoError(t, collection.AddToWishlist(ctx, store, uid, []catalog.CharacterID{4003, 4004}))
+
+	entries, err := wishlistpg.New(dbStore.WishlistStore()).GetUserCharacterWishlist(ctx, uid)
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+	assert.Equal(t, catalog.CharacterID(4004), entries[0].ID)
+}
+
 func TestIntegration_DropOperations(t *testing.T) {
 	store := setupStore(t)
 	ctx := t.Context()
