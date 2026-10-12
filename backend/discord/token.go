@@ -151,7 +151,7 @@ func (h *TokenHandler) Sell(ctx context.Context, w corde.ResponseWriter, cmd Com
 		w.Respond(rspErr("Failed to sell character"))
 		return
 	}
-	w.Respond(Privf("Sold %s for 1 token", char.Name))
+	w.Respond(Privf("Sold %s for %d token", char.Name, collection.SellReward().Int32()))
 }
 
 // tokenRollOptions holds the parsed options for the token roll command.

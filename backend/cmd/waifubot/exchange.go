@@ -44,7 +44,7 @@ var ExchangeCommand = &cli.Command{
 
 		result := map[string]any{
 			"exchanged_character": ownedCharacterView(char),
-			"message":             fmt.Sprintf("Exchanged %s for a token", char.Name),
+			"message":             fmt.Sprintf("Exchanged %s for %d token", char.Name, collection.SellReward().Int32()),
 		}
 
 		return json.NewEncoder(os.Stdout).Encode(result)

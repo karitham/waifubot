@@ -8,8 +8,8 @@ import (
 	"github.com/karitham/waifubot/catalog"
 )
 
-// sellReward is granted for selling a character.
-var sellReward = TokenAmount{amount: 1}
+// SellReward is the token reward for selling a character.
+func SellReward() TokenAmount { return TokenAmount{amount: 1} }
 
 // Exchange sells a character for tokens.
 func Exchange(ctx context.Context, store DB, userID UserID, charID catalog.CharacterID) (OwnedCharacter, error) {
@@ -36,7 +36,7 @@ func Exchange(ctx context.Context, store DB, userID UserID, charID catalog.Chara
 			return err
 		}
 
-		if _, err := tx.AddTokens(ctx, userID, sellReward); err != nil {
+		if _, err := tx.AddTokens(ctx, userID, SellReward()); err != nil {
 			return err
 		}
 		return nil
