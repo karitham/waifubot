@@ -76,14 +76,16 @@ func userCharacterSetView(s wishlist.UserCharacterSet) cliUserCharacterSet {
 }
 
 type cliProfile struct {
-	ID                uint64        `json:"id"`
-	Quote             string        `json:"quote"`
-	Tokens            int32         `json:"tokens"`
-	AnilistURL        string        `json:"anilist_url"`
-	DiscordUsername   string        `json:"discord_username"`
-	DiscordAvatar     string        `json:"discord_avatar"`
-	CharacterCount    int           `json:"character_count"`
-	FavoriteCharacter *cliCharacter `json:"favorite_character,omitempty"`
+	ID                  uint64        `json:"user_id"`
+	Quote               string        `json:"quote"`
+	Tokens              int32         `json:"tokens"`
+	LastRoll            time.Time     `json:"last_roll"`
+	FavoriteCharacterID int64         `json:"favorite_character_id"`
+	AnilistURL          string        `json:"anilist_url"`
+	DiscordUsername     string        `json:"discord_username"`
+	DiscordAvatar       string        `json:"discord_avatar"`
+	CharacterCount      int           `json:"character_count"`
+	FavoriteCharacter   *cliCharacter `json:"favorite_character,omitempty"`
 }
 
 func profileView(p collection.Profile) cliProfile {
@@ -93,14 +95,16 @@ func profileView(p collection.Profile) cliProfile {
 		favorite = &v
 	}
 	return cliProfile{
-		ID:                uint64(p.UserID),
-		Quote:             p.Quote,
-		Tokens:            p.Tokens,
-		AnilistURL:        p.AnilistURL,
-		DiscordUsername:   p.DiscordUsername,
-		DiscordAvatar:     p.DiscordAvatar,
-		CharacterCount:    p.CharacterCount,
-		FavoriteCharacter: favorite,
+		ID:                  uint64(p.UserID),
+		Quote:               p.Quote,
+		Tokens:              p.Tokens,
+		LastRoll:            p.LastRoll,
+		FavoriteCharacterID: int64(p.FavoriteCharacterID),
+		AnilistURL:          p.AnilistURL,
+		DiscordUsername:     p.DiscordUsername,
+		DiscordAvatar:       p.DiscordAvatar,
+		CharacterCount:      p.CharacterCount,
+		FavoriteCharacter:   favorite,
 	}
 }
 
@@ -132,6 +136,30 @@ func mediaViews(media []tracker.Media) []cliMedia {
 	views := make([]cliMedia, len(media))
 	for i, m := range media {
 		views[i] = mediaView(m)
+	}
+	return views
+}
+
+func ownedCharacterViews(chars []collection.OwnedCharacter) []cliOwnedCharacter {
+	views := make([]cliOwnedCharacter, len(chars))
+	for i, c := range chars {
+		views[i] = ownedCharacterView(c)
+	}
+	return views
+}
+
+func wishlistEntryViews(entries []wishlist.Entry) []cliWishlistEntry {
+	views := make([]cliWishlistEntry, len(entries))
+	for i, e := range entries {
+		views[i] = wishlistEntryView(e)
+	}
+	return views
+}
+
+func userCharacterSetViews(sets []wishlist.UserCharacterSet) []cliUserCharacterSet {
+	views := make([]cliUserCharacterSet, len(sets))
+	for i, s := range sets {
+		views[i] = userCharacterSetView(s)
 	}
 	return views
 }

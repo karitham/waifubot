@@ -75,7 +75,7 @@ func TestRollHandler_Roll(t *testing.T) {
 						Name:       "Rem",
 						Image:      "https://example.com/rem.png",
 						MediaTitle: "Re:Zero",
-						Popularity:  5000,
+						Popularity: 5000,
 					}, nil
 				},
 				UpsertCharacterFunc: func(ctx context.Context, char catalog.Character) error { return nil },
@@ -113,7 +113,7 @@ func TestRollHandler_Roll(t *testing.T) {
 						Name:       "Rem",
 						Image:      "https://example.com/rem.png",
 						MediaTitle: "Re:Zero",
-						Popularity:  5000,
+						Popularity: 5000,
 					}, nil
 				},
 				UpsertCharacterFunc: func(ctx context.Context, char catalog.Character) error { return nil },

@@ -15,9 +15,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/urfave/cli/v2"
 
-	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/cmd/waifubot/flags"
-	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/collectionwire"
 	"github.com/karitham/waifubot/discord"
 	"github.com/karitham/waifubot/guild"
@@ -196,7 +194,7 @@ func runTestHarness(c *cli.Context) error {
 	// Create stores (mirroring run.go)
 	interStore := interactionstore.NewPostgresStore(store.InteractionStore())
 	dropStore := dropstore.NewPostgresStore(store.DropStore())
-	collStore := newCollectionStore(store)
+	collStore := collectionwire.NewDB(store)
 	wishStore := wishlist.New(store.WishlistStore())
 
 	// Get bot token for command registration
@@ -219,7 +217,7 @@ func runTestHarness(c *cli.Context) error {
 	// Create bot with fake AnimeService
 	router := discord.New(&discord.Router{
 		Store:             collStore,
-		Catalog:           newCatalogStore(store),
+		Catalog:           collectionwire.NewCatalog(store),
 		CommandStore:      commandpg.New(store.CommandStore()),
 		WishlistStore:     wishStore,
 		AnimeService:      fakeService,
@@ -263,16 +261,4 @@ func runTestHarness(c *cli.Context) error {
 	}
 
 	return nil
-}
-
-// Wire functions shared with cmd/waifubot.
-
-// newCollectionStore wires adapters into a collection.DB.
-func newCollectionStore(s storage.Store) collection.DB {
-	return collectionwire.NewDB(s)
-}
-
-// newCatalogStore creates a catalog.Store from the underlying storage.
-func newCatalogStore(s storage.Store) catalog.Store {
-	return collectionwire.NewCatalog(s)
 }

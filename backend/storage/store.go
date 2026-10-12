@@ -83,10 +83,6 @@ func NewStore(ctx context.Context, url string) (*DBStore, error) {
 	}, nil
 }
 
-func (s *DBStore) WithTx(tx pgx.Tx) Store {
-	return s.withTx(tx)
-}
-
 func (s *DBStore) withTx(tx pgx.Tx) *DBStore {
 	return &DBStore{
 		userStore:        s.userStore.WithTx(tx),

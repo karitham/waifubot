@@ -21,7 +21,8 @@ type Indexer struct {
 }
 
 // NewIndexer creates a new guild indexer.
-// Store must be a Querier. If it's also a Transactional, pass WithTx as the tx factory.
+// Store must be a Querier. Pass a tx factory when the store is also
+// transactional.
 func NewIndexer(store Querier, fetcher MemberFetcher) *Indexer {
 	return &Indexer{
 		store:   store,

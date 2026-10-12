@@ -121,10 +121,7 @@ var WishlistCommand = &cli.Command{
 					return fmt.Errorf("error getting user wishlist: %w", err)
 				}
 
-				views := make([]cliWishlistEntry, len(chars))
-				for i, c := range chars {
-					views[i] = wishlistEntryView(c)
-				}
+				views := wishlistEntryViews(chars)
 
 				result := map[string]any{
 					"user_id":  userID.String(),
@@ -172,10 +169,7 @@ var WishlistCommand = &cli.Command{
 					return fmt.Errorf("error getting wishlist holders: %w", err)
 				}
 
-				views := make([]cliUserCharacterSet, len(holders))
-				for i, h := range holders {
-					views[i] = userCharacterSetView(h)
-				}
+				views := userCharacterSetViews(holders)
 
 				result := map[string]any{
 					"user_id": userID.String(),
@@ -212,10 +206,7 @@ var WishlistCommand = &cli.Command{
 					return fmt.Errorf("error getting wanted characters: %w", err)
 				}
 
-				views := make([]cliUserCharacterSet, len(wanted))
-				for i, w := range wanted {
-					views[i] = userCharacterSetView(w)
-				}
+				views := userCharacterSetViews(wanted)
 
 				result := map[string]any{
 					"user_id": userID.String(),

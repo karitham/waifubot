@@ -147,7 +147,7 @@ func (a *Anilist) Character(ctx context.Context, name string) ([]tracker.Charact
 			ImageURL:    c.Image.Large,
 			URL:         c.SiteUrl,
 			Description: c.Description,
-			Popularity: int(c.Favourites),
+			Popularity:  int(c.Favourites),
 		}
 	}
 
@@ -181,7 +181,7 @@ func (a *Anilist) CharactersByIDs(ctx context.Context, ids []int64) ([]tracker.C
 			ID:         catalog.CharacterID(c.Id),
 			Name:       c.Name.Full,
 			ImageURL:   c.Image.Large,
-			Popularity:  int(c.Favourites),
+			Popularity: int(c.Favourites),
 			MediaTitle: mediaTitle,
 		})
 	}

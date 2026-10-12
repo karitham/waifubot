@@ -53,9 +53,9 @@ func (s *store) GetUserCharacterWishlist(ctx context.Context, userID collection.
 	for i, row := range rows {
 		entries[i] = Entry{
 			Character: catalog.Character{
-				ID:        catalog.CharacterID(row.ID),
-				Name:      row.Name,
-				Image:     row.Image,
+				ID:         catalog.CharacterID(row.ID),
+				Name:       row.Name,
+				Image:      row.Image,
 				Popularity: int(row.Favorites),
 			},
 			AddedAt: row.Date.Time,
