@@ -59,6 +59,22 @@ func TestGiveHandler_Give(t *testing.T) {
 			wantContent: "don't own that character",
 		},
 		{
+			name: "recipient already owns",
+			cmd: &MockCommandContext{
+				UserIDVal: 1,
+				OptUserVals: map[string]corde.User{
+					"user": {ID: 99, Username: "recipient"},
+				},
+				OptInt64Vals: map[string]int64{"id": 42},
+			},
+			store: &collectiontest.MockStore{
+				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
+					return collection.OwnedCharacter{ID: charID, Name: "Sakura"}, nil
+				},
+			},
+			wantContent: "already have",
+		},
+		{
 			name: "generic store error",
 			cmd: &MockCommandContext{
 				UserIDVal: 1,

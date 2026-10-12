@@ -2,6 +2,7 @@ package collection_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -203,6 +204,8 @@ func TestExchange(t *testing.T) {
 }
 
 func TestGive(t *testing.T) {
+	dbErr := errors.New("database on fire")
+
 	tests := []struct {
 		name        string
 		setup       func(m *collectiontest.MockStore)
@@ -210,6 +213,7 @@ func TestGive(t *testing.T) {
 		to          collection.UserID
 		charID      catalog.CharacterID
 		wantErr     bool
+		wantErrIs   error
 		errContains string
 		wantSource  collection.Source
 		wantUserID  collection.UserID
@@ -266,7 +270,62 @@ func TestGive(t *testing.T) {
 			to:          456,
 			charID:      1,
 			wantErr:     true,
-			errContains: "already owns",
+			wantErrIs:   collection.ErrAlreadyOwned,
+			errContains: "already in collection",
+		},
+		{
+			name: "recipient_lookup_fails",
+			setup: func(m *collectiontest.MockStore) {
+				m.GetOwnedCharacterFunc = func(_ context.Context, userID collection.UserID, _ catalog.CharacterID) (collection.OwnedCharacter, error) {
+					if userID == 123 {
+						return collection.OwnedCharacter{ID: 1, Name: "Char1"}, nil
+					}
+					return collection.OwnedCharacter{}, dbErr
+				}
+			},
+			from:      123,
+			to:        456,
+			charID:    1,
+			wantErr:   true,
+			wantErrIs: dbErr,
+		},
+		{
+			name: "recipient_wins_race",
+			setup: func(m *collectiontest.MockStore) {
+				m.GetOwnedCharacterFunc = func(_ context.Context, userID collection.UserID, _ catalog.CharacterID) (collection.OwnedCharacter, error) {
+					if userID == 123 {
+						return collection.OwnedCharacter{ID: 1, Name: "Char1"}, nil
+					}
+					return collection.OwnedCharacter{}, collection.ErrNotFound
+				}
+				m.GiveCharacterFunc = func(_ context.Context, _, _ collection.UserID, _ catalog.CharacterID) (collection.OwnedCharacter, error) {
+					return collection.OwnedCharacter{}, collection.ErrAlreadyOwned
+				}
+			},
+			from:      123,
+			to:        456,
+			charID:    1,
+			wantErr:   true,
+			wantErrIs: collection.ErrAlreadyOwned,
+		},
+		{
+			name: "sender_loses_race",
+			setup: func(m *collectiontest.MockStore) {
+				m.GetOwnedCharacterFunc = func(_ context.Context, userID collection.UserID, _ catalog.CharacterID) (collection.OwnedCharacter, error) {
+					if userID == 123 {
+						return collection.OwnedCharacter{ID: 1, Name: "Char1"}, nil
+					}
+					return collection.OwnedCharacter{}, collection.ErrNotFound
+				}
+				m.GiveCharacterFunc = func(_ context.Context, _, _ collection.UserID, _ catalog.CharacterID) (collection.OwnedCharacter, error) {
+					return collection.OwnedCharacter{}, collection.ErrNotFound
+				}
+			},
+			from:      123,
+			to:        456,
+			charID:    1,
+			wantErr:   true,
+			wantErrIs: collection.ErrUserDoesNotOwnCharacter,
 		},
 	}
 
@@ -281,7 +340,12 @@ func TestGive(t *testing.T) {
 
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.Contains(t, err.Error(), tt.errContains)
+				if tt.wantErrIs != nil {
+					require.ErrorIs(t, err, tt.wantErrIs)
+				}
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
 				assert.Equal(t, 1, store.RollbackCalls)
 				return
 			}

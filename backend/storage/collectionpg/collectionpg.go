@@ -110,6 +110,13 @@ func (p *Pg) GiveCharacter(ctx context.Context, from, to collection.UserID, char
 		Source:      string(collection.SourceTrade),
 	})
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return collection.OwnedCharacter{}, collection.ErrNotFound
+		}
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return collection.OwnedCharacter{}, collection.ErrAlreadyOwned
+		}
 		return collection.OwnedCharacter{}, err
 	}
 

@@ -67,6 +67,10 @@ func (h *GiveHandler) Give(ctx context.Context, w corde.ResponseWriter, cmd Comm
 			w.Respond(rspErr("You don't own that character"))
 			return
 		}
+		if errors.Is(err, collection.ErrAlreadyOwned) {
+			w.Respond(rspErr("They already have that character"))
+			return
+		}
 		logger.Error("error performing give", "error", err, "to_user_id", opts.recipientID, "character_id", opts.charID)
 		w.Respond(Privf("Failed to give character"))
 		return
