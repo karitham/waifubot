@@ -18,23 +18,6 @@ func (e ErrRollCooldown) Error() string {
 	return fmt.Sprintf("You can roll again in %s.", time.Until(e.Until).Round(time.Second))
 }
 
-// withTx runs fn inside a transaction, committing on success or rolling back on failure.
-func withTx(ctx context.Context, store DB, fn func(tx Tx) error) error {
-	tx, err := store.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	if err := fn(tx); err != nil {
-		_ = tx.Rollback(ctx)
-		return err
-	}
-	if err := tx.Commit(ctx); err != nil {
-		_ = tx.Rollback(ctx)
-		return err
-	}
-	return nil
-}
-
 // RollService orchestrates roll operations.
 type RollService struct {
 	store  DB

@@ -17,7 +17,7 @@ func Exchange(ctx context.Context, store DB, userID UserID, charID catalog.Chara
 		charInfo catalog.Character
 		owned    OwnedCharacter
 	)
-	err := withTx(ctx, store, func(tx Tx) error {
+	err := withUsers(ctx, store, []UserID{userID}, func(tx Tx) error {
 		var err error
 		charInfo, err = tx.GetCharacterByID(ctx, charID)
 		if err != nil {

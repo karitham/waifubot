@@ -40,7 +40,7 @@ func TransferTokens(ctx context.Context, store DB, from, to UserID, amount Token
 		return ErrSameUserTransfer
 	}
 
-	return withTx(ctx, store, func(tx Tx) error {
+	return withUsers(ctx, store, []UserID{from, to}, func(tx Tx) error {
 		if _, err := tx.SpendTokens(ctx, from, amount); err != nil {
 			if errors.Is(err, ErrInsufficientTokens) {
 				return err

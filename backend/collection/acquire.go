@@ -55,8 +55,8 @@ func acquire(ctx context.Context, store DB, userID UserID, a acquisition) (catal
 		return catalog.Character{}, err
 	}
 
-	err = withTx(ctx, store, func(tx Tx) error {
-		user, err := ensureUser(ctx, tx, userID)
+	err = withUsers(ctx, store, []UserID{userID}, func(tx Tx) error {
+		user, err := tx.GetUser(ctx, userID)
 		if err != nil {
 			return err
 		}
@@ -80,22 +80,4 @@ func acquire(ctx context.Context, store DB, userID UserID, a acquisition) (catal
 	}
 
 	return char, nil
-}
-
-// ensureUser fetches the user, creating the row when it does not exist yet.
-func ensureUser(ctx context.Context, store Store, userID UserID) (User, error) {
-	user, err := store.GetUser(ctx, userID)
-	if err == nil {
-		return user, nil
-	}
-	if !errors.Is(err, ErrNotFound) {
-		return User{}, err
-	}
-
-	// Create is idempotent, so losing a create race is not an error.
-	if err := store.CreateUser(ctx, userID); err != nil {
-		return User{}, err
-	}
-
-	return store.GetUser(ctx, userID)
 }

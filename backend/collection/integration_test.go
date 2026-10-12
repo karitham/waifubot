@@ -439,3 +439,57 @@ func TestIntegration_TransactionsAreScoped(t *testing.T) {
 	_, err = dbStore.UserStore().Get(ctx, uint64(uid))
 	require.ErrorIs(t, err, pgx.ErrNoRows, "write escaped the transaction")
 }
+
+func TestIntegration_TransferToFreshUser(t *testing.T) {
+	const giver, recipient, other collection.UserID = 900021, 900022, 900023
+	ctx := t.Context()
+
+	dbStore, err := storage.NewStore(ctx, testDBURL)
+	require.NoError(t, err)
+	store := collectionwire.NewDB(dbStore)
+
+	require.NoError(t, store.CreateUser(ctx, giver))
+	_, err = store.AddTokens(ctx, giver, tokenAmount(t, 5))
+	require.NoError(t, err)
+
+	require.NoError(t, collection.TransferTokens(ctx, store, giver, recipient, tokenAmount(t, 3)))
+
+	fresh, err := store.GetUser(ctx, recipient)
+	require.NoError(t, err, "receiving tokens must materialize the recipient")
+	assert.Equal(t, int32(3), fresh.Tokens)
+
+	sender, err := store.GetUser(ctx, giver)
+	require.NoError(t, err)
+	assert.Equal(t, int32(2), sender.Tokens)
+
+	err = collection.TransferTokens(ctx, store, giver, other, tokenAmount(t, 999))
+	require.ErrorIs(t, err, collection.ErrInsufficientTokens)
+
+	_, err = store.GetUser(ctx, other)
+	require.ErrorIs(t, err, collection.ErrNotFound, "a failed transfer must not materialize its target")
+}
+
+func TestIntegration_GiveCharacterToFreshUser(t *testing.T) {
+	const giver, recipient collection.UserID = 900024, 900025
+	ctx := t.Context()
+
+	dbStore, err := storage.NewStore(ctx, testDBURL)
+	require.NoError(t, err)
+	store := collectionwire.NewDB(dbStore)
+
+	require.NoError(t, store.CreateUser(ctx, giver))
+	require.NoError(t, store.UpsertCharacter(ctx, catalog.Character{ID: 2002, Name: "FreshChar", Image: "fresh.jpg"}))
+	require.NoError(t, store.AddToCollection(ctx, giver, catalog.CharacterID(2002), collection.SourceRoll, time.Now()))
+
+	given, err := collection.Give(ctx, store, giver, recipient, 2002)
+	require.NoError(t, err)
+	assert.Equal(t, recipient, given.UserID)
+
+	fresh, err := store.GetUser(ctx, recipient)
+	require.NoError(t, err, "receiving a character must materialize the recipient")
+	assert.Equal(t, recipient, fresh.UserID)
+
+	owned, err := store.GetOwnedCharacter(ctx, recipient, 2002)
+	require.NoError(t, err)
+	assert.Equal(t, collection.SourceTrade, owned.Source)
+}

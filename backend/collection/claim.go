@@ -19,7 +19,7 @@ var ErrWrongCharacterName = errors.New("wrong character name")
 // Claim claims a dropped character for a user.
 func Claim(ctx context.Context, store DB, userID UserID, channelID ChannelID, charName string) (catalog.Character, error) {
 	var drop catalog.Character
-	err := withTx(ctx, store, func(tx Tx) error {
+	err := withUsers(ctx, store, []UserID{userID}, func(tx Tx) error {
 		var err error
 		drop, err = tx.GetDropForUpdate(ctx, channelID)
 		if err != nil {
@@ -31,18 +31,6 @@ func Claim(ctx context.Context, store DB, userID UserID, channelID ChannelID, ch
 
 		if !strings.EqualFold(SanitizeName(drop.Name), SanitizeName(charName)) {
 			return ErrWrongCharacterName
-		}
-
-		// Ensure user exists
-		_, err = tx.GetUser(ctx, userID)
-		if err != nil {
-			if errors.Is(err, ErrNotFound) {
-				if err = tx.CreateUser(ctx, userID); err != nil {
-					return fmt.Errorf("failed to create user: %w", err)
-				}
-			} else {
-				return fmt.Errorf("failed to get user: %w", err)
-			}
 		}
 
 		if err := tx.UpsertCharacter(ctx, drop); err != nil {

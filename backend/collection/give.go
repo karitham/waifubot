@@ -11,7 +11,7 @@ import (
 // Give executes the give logic from one user to another.
 func Give(ctx context.Context, store DB, from, to UserID, charID catalog.CharacterID) (OwnedCharacter, error) {
 	var given OwnedCharacter
-	err := withTx(ctx, store, func(tx Tx) error {
+	err := withUsers(ctx, store, []UserID{from, to}, func(tx Tx) error {
 		if _, err := tx.GetOwnedCharacter(ctx, from, charID); err != nil {
 			if errors.Is(err, ErrNotFound) {
 				return fmt.Errorf("%w %d", ErrUserDoesNotOwnCharacter, charID)
