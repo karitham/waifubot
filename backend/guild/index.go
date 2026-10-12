@@ -59,17 +59,34 @@ func (i *Indexer) IndexGuild(ctx context.Context, guildID corde.Snowflake) error
 		ids[idx] = MemberID(id)
 	}
 
-	if err := i.db.DeleteGuildMembersNotIn(ctx, ID(guildID), ids); err != nil {
+	tx, err := i.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err := syncMembers(ctx, tx, ID(guildID), ids); err != nil {
+		_ = tx.Rollback(ctx)
+		return err
+	}
+
+	return tx.Commit(ctx)
+}
+
+// syncMembers replaces the guild's member set and completes the job in one
+// transaction: a failure mid-index must not leave members deleted or the job
+// marked in progress.
+func syncMembers(ctx context.Context, tx TxQuerier, guildID ID, ids []MemberID) error {
+	if err := tx.DeleteGuildMembersNotIn(ctx, guildID, ids); err != nil {
 		return err
 	}
 
 	if len(ids) > 0 {
-		if err := i.db.UpsertGuildMembers(ctx, ID(guildID), ids, time.Now()); err != nil {
+		if err := tx.UpsertGuildMembers(ctx, guildID, ids, time.Now()); err != nil {
 			return err
 		}
 	}
 
-	return i.db.CompleteIndexingJob(ctx, ID(guildID))
+	return tx.CompleteIndexingJob(ctx, guildID)
 }
 
 // startIndexingJobIfNeeded acquires a transaction lock and starts an indexing

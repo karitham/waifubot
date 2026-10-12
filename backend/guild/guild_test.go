@@ -18,6 +18,10 @@ type mockQuerier struct {
 	status guild.IndexStatus
 	err    error
 	tx     guild.TxQuerier
+
+	deleteCalls   int
+	upsertCalls   int
+	completeCalls int
 }
 
 func (m *mockQuerier) Begin(ctx context.Context) (guild.TxQuerier, error) {
@@ -34,15 +38,18 @@ func (m *mockQuerier) IsGuildIndexed(ctx context.Context, guildID guild.ID) (gui
 func (m *mockQuerier) StartIndexingJob(ctx context.Context, guildID guild.ID) error { return nil }
 
 func (m *mockQuerier) CompleteIndexingJob(ctx context.Context, guildID guild.ID) error {
+	m.completeCalls++
 	return nil
 }
 func (m *mockQuerier) Commit(ctx context.Context) error   { return nil }
 func (m *mockQuerier) Rollback(ctx context.Context) error { return nil }
 func (m *mockQuerier) UpsertGuildMembers(ctx context.Context, guildID guild.ID, memberIDs []guild.MemberID, indexedAt time.Time) error {
+	m.upsertCalls++
 	return nil
 }
 
 func (m *mockQuerier) DeleteGuildMembersNotIn(ctx context.Context, guildID guild.ID, memberIDs []guild.MemberID) error {
+	m.deleteCalls++
 	return nil
 }
 
@@ -97,6 +104,7 @@ func TestIndexGuildIfNeeded_AnotherIndexerActive(t *testing.T) {
 	err := indexer.IndexGuildIfNeeded(t.Context(), corde.Snowflake(123))
 	require.NoError(t, err)
 	require.False(t, fetcher.called, "a fresh in-progress job must not be indexed again")
+	require.Zero(t, txQuerier.deleteCalls, "a skipped run must not touch members")
 }
 
 func TestIndexGuildIfNeeded_ExpiredIndex(t *testing.T) {
@@ -120,6 +128,9 @@ func TestIndexGuildIfNeeded_ExpiredIndex(t *testing.T) {
 	err := indexer.IndexGuildIfNeeded(t.Context(), corde.Snowflake(123))
 	require.NoError(t, err)
 	require.True(t, fetcher.called, "a stale in-progress job must be taken over")
+	require.Equal(t, 1, txQuerier.deleteCalls, "the member sync must go through the transaction")
+	require.Equal(t, 1, txQuerier.upsertCalls)
+	require.Equal(t, 1, txQuerier.completeCalls)
 }
 
 func TestCharacterHolders_GuildNotIndexed(t *testing.T) {
