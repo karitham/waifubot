@@ -25,13 +25,6 @@ func storageIDs(ids []catalog.CharacterID) []int64 {
 	return out
 }
 
-func (s *store) AddCharactersToWishlist(ctx context.Context, userID collection.UserID, ids []catalog.CharacterID) error {
-	return s.q.AddCharactersToWishlist(ctx, wishliststore.AddCharactersToWishlistParams{
-		UserID:  uint64(userID),
-		Column2: storageIDs(ids),
-	})
-}
-
 func (s *store) RemoveCharactersFromWishlist(ctx context.Context, userID collection.UserID, ids []catalog.CharacterID) error {
 	return s.q.RemoveCharactersFromWishlist(ctx, wishliststore.RemoveCharactersFromWishlistParams{
 		UserID:  uint64(userID),

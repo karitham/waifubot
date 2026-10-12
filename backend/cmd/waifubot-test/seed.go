@@ -8,9 +8,9 @@ import (
 
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/collectionwire"
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/guildstore"
-	"github.com/karitham/waifubot/wishlist"
 )
 
 // seedCharacter inserts a character into the characters table using raw SQL.
@@ -25,21 +25,10 @@ func seedCharacter(ctx context.Context, store *storage.DBStore, charID int64, ch
 
 // seedWishlistUsers adds characters to the wishlist for the specified user IDs.
 func seedWishlistUsers(ctx context.Context, store *storage.DBStore, userIDs []uint64, charID int64) error {
-	// First, create users in the users table
+	db := collectionwire.NewDB(store)
 	for _, userID := range userIDs {
-		_, err := store.DB().Exec(ctx, `
-			INSERT INTO users (user_id) VALUES ($1)
-			ON CONFLICT DO NOTHING
-		`, int64(userID))
+		err := collection.AddToWishlist(ctx, db, collection.UserID(userID), []catalog.CharacterID{catalog.CharacterID(charID)})
 		if err != nil {
-			return err
-		}
-	}
-
-	// Then add characters to their wishlists
-	wishStore := wishlist.New(store.WishlistStore())
-	for _, userID := range userIDs {
-		if err := wishStore.AddCharactersToWishlist(ctx, collection.UserID(userID), []catalog.CharacterID{catalog.CharacterID(charID)}); err != nil {
 			return err
 		}
 	}

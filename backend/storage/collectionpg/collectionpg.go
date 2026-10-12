@@ -202,6 +202,18 @@ func (p *Pg) RemoveFromWishlist(ctx context.Context, userID collection.UserID, c
 	return nil
 }
 
+func (p *Pg) AddCharactersToWishlist(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) error {
+	ids := make([]int64, len(characterIDs))
+	for i, id := range characterIDs {
+		ids[i] = int64(id)
+	}
+
+	return p.W.AddCharactersToWishlist(ctx, wishliststore.AddCharactersToWishlistParams{
+		UserID:  uint64(userID),
+		Column2: ids,
+	})
+}
+
 func (p *Pg) RandomCharNotOwned(ctx context.Context, userID collection.UserID, weightExponent float64) (catalog.Character, error) {
 	c, err := p.C.RandomCharNotOwned(ctx, collectionstore.RandomCharNotOwnedParams{
 		UserID:         uint64(userID),

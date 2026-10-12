@@ -22,16 +22,17 @@ type MockStore struct {
 	UpdateAnilistURLFunc         func(ctx context.Context, userID collection.UserID, url string) error
 	UpdateDiscordInfoFunc        func(ctx context.Context, userID collection.UserID, username, avatar string, lastUpdated time.Time) error
 
-	GetCollectionFunc        func(ctx context.Context, userID collection.UserID) ([]collection.OwnedCharacter, error)
-	GetCollectionIDsFunc     func(ctx context.Context, userID collection.UserID) ([]catalog.CharacterID, error)
-	GetOwnedCharacterFunc    func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error)
-	AddToCollectionFunc      func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID, source collection.Source, acquiredAt time.Time) error
-	RemoveFromCollectionFunc func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error
-	GiveCharacterFunc        func(ctx context.Context, from, to collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error)
-	CountCollectionFunc      func(ctx context.Context, userID collection.UserID) (int64, error)
-	SetFavoriteFunc          func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error
-	SearchCharactersFunc     func(ctx context.Context, userID collection.UserID, term string) ([]catalog.Character, error)
-	RemoveFromWishlistFunc   func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error
+	GetCollectionFunc           func(ctx context.Context, userID collection.UserID) ([]collection.OwnedCharacter, error)
+	GetCollectionIDsFunc        func(ctx context.Context, userID collection.UserID) ([]catalog.CharacterID, error)
+	GetOwnedCharacterFunc       func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error)
+	AddToCollectionFunc         func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID, source collection.Source, acquiredAt time.Time) error
+	RemoveFromCollectionFunc    func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error
+	GiveCharacterFunc           func(ctx context.Context, from, to collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error)
+	CountCollectionFunc         func(ctx context.Context, userID collection.UserID) (int64, error)
+	SetFavoriteFunc             func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error
+	SearchCharactersFunc        func(ctx context.Context, userID collection.UserID, term string) ([]catalog.Character, error)
+	RemoveFromWishlistFunc      func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error
+	AddCharactersToWishlistFunc func(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) error
 
 	GetDropForUpdateFunc func(ctx context.Context, channelID collection.ChannelID) (catalog.Character, error)
 	DeleteDropFunc       func(ctx context.Context, channelID collection.ChannelID) error
@@ -203,6 +204,13 @@ func (m *MockStore) SearchCharacters(ctx context.Context, userID collection.User
 func (m *MockStore) RemoveFromWishlist(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
 	if m.RemoveFromWishlistFunc != nil {
 		return m.RemoveFromWishlistFunc(ctx, userID, charID)
+	}
+	return nil
+}
+
+func (m *MockStore) AddCharactersToWishlist(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) error {
+	if m.AddCharactersToWishlistFunc != nil {
+		return m.AddCharactersToWishlistFunc(ctx, userID, characterIDs)
 	}
 	return nil
 }

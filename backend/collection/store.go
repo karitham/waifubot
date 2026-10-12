@@ -91,6 +91,8 @@ type CollectionRepository interface {
 	SearchCharacters(ctx context.Context, userID UserID, term string) ([]catalog.Character, error)
 	// RemoveFromWishlist is called inside roll/claim/give transactions.
 	RemoveFromWishlist(ctx context.Context, userID UserID, charID catalog.CharacterID) error
+	// AddCharactersToWishlist is called inside wishlist-add transactions.
+	AddCharactersToWishlist(ctx context.Context, userID UserID, characterIDs []catalog.CharacterID) error
 	// RandomCharNotOwned returns a random active character not owned by the user,
 	// weighted by favorites^weightExponent. Does NOT filter the default AniList image
 	// (rolls/direct rolls use this path and the image isn't publicly embedded).

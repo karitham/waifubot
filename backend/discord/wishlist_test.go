@@ -84,8 +84,6 @@ func TestWishlistHandler_CharacterAdd(t *testing.T) {
 				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{}, collection.ErrNotFound
 				},
-			},
-			wlStore: &wishlisttest.MockStore{
 				AddCharactersToWishlistFunc: func(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) error {
 					return errors.New("db error")
 				},

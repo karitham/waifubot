@@ -57,7 +57,7 @@ func formatUser(userID collection.UserID) string {
 // WishlistHandler handles the /wishlist command and its subcommands.
 type WishlistHandler struct {
 	wishlist     wishlist.Store
-	store        collection.Store
+	store        collection.DB
 	animeService TrackingService
 	catalog      catalog.Store
 	guildIndexer *guild.Indexer
@@ -121,7 +121,7 @@ func (h *WishlistHandler) CharacterAdd(ctx context.Context, w corde.ResponseWrit
 		return
 	}
 
-	err = h.wishlist.AddCharactersToWishlist(ctx, cmd.UserID(), []catalog.CharacterID{opts.charID})
+	err = collection.AddToWishlist(ctx, h.store, cmd.UserID(), []catalog.CharacterID{opts.charID})
 	if err != nil {
 		logger.Error("error adding character to wishlist", "error", err, "character_id", opts.charID)
 		w.Respond(rspErr("Unable to add character to wishlist. Please try again."))
@@ -211,7 +211,7 @@ func (h *WishlistHandler) MediaAdd(ctx context.Context, w corde.ResponseWriter, 
 		opts.mediaID = tracker.MediaID(id)
 	}
 
-	count, err := wishlist.AddMediaToWishlist(ctx, h.wishlist, h.animeService, h.store, cmd.UserID(), opts.mediaID)
+	count, err := wishlist.AddMediaToWishlist(ctx, h.animeService, h.store, cmd.UserID(), opts.mediaID)
 	if err != nil {
 		logger.Error("error adding media to wishlist", "error", err, "media_id", opts.mediaID)
 		w.Respond(rspErr("Unable to add characters from this media to your wishlist. Please try again."))

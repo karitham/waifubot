@@ -21,6 +21,7 @@ import (
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/userstore"
+	"github.com/karitham/waifubot/wishlist"
 )
 
 var testDBURL string
@@ -293,6 +294,27 @@ func TestIntegration_WishlistBridge(t *testing.T) {
 
 	require.NoError(t, store.UpsertCharacter(ctx, catalog.Character{ID: 4001, Name: "WishChar"}))
 	require.NoError(t, store.RemoveFromWishlist(ctx, uid, 4001))
+}
+
+func TestIntegration_AddToWishlistFreshUser(t *testing.T) {
+	const uid collection.UserID = 900026
+	ctx := t.Context()
+
+	dbStore, err := storage.NewStore(ctx, testDBURL)
+	require.NoError(t, err)
+	store := collectionwire.NewDB(dbStore)
+
+	require.NoError(t, store.UpsertCharacter(ctx, catalog.Character{ID: 4002, Name: "FreshWish"}))
+
+	require.NoError(t, collection.AddToWishlist(ctx, store, uid, []catalog.CharacterID{4002}))
+
+	_, err = store.GetUser(ctx, uid)
+	require.NoError(t, err, "adding to the wishlist must materialize the user")
+
+	entries, err := wishlist.New(dbStore.WishlistStore()).GetUserCharacterWishlist(ctx, uid)
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+	assert.Equal(t, catalog.CharacterID(4002), entries[0].ID)
 }
 
 func TestIntegration_DropOperations(t *testing.T) {

@@ -28,7 +28,6 @@ type WishlistComparison struct {
 }
 
 type Store interface {
-	AddCharactersToWishlist(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) error
 	RemoveCharactersFromWishlist(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) error
 	RemoveAllFromWishlist(ctx context.Context, userID collection.UserID) error
 	GetUserCharacterWishlist(ctx context.Context, userID collection.UserID) ([]Entry, error)
@@ -46,8 +45,10 @@ type MediaService interface {
 	GetMediaCharacters(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error)
 }
 
-// AddMediaToWishlist adds all characters from a media to the user's wishlist, filtering out owned characters.
-func AddMediaToWishlist(ctx context.Context, wishlistStore Store, mediaService MediaService, store collection.Store, userID collection.UserID, mediaID tracker.MediaID) (int, error) {
+// AddMediaToWishlist adds all characters from a media to the user's wishlist,
+// filtering out owned characters. The user is materialized and the list is
+// added in one transaction.
+func AddMediaToWishlist(ctx context.Context, mediaService MediaService, store collection.DB, userID collection.UserID, mediaID tracker.MediaID) (int, error) {
 	characters, err := mediaService.GetMediaCharacters(ctx, mediaID)
 	if err != nil {
 		return 0, err
@@ -82,17 +83,9 @@ func AddMediaToWishlist(ctx context.Context, wishlistStore Store, mediaService M
 		return 0, nil
 	}
 
-	batchSize := 50
-	added := 0
-	for i := 0; i < len(characterIDs); i += batchSize {
-		end := min(i+batchSize, len(characterIDs))
-		batch := characterIDs[i:end]
-		err = wishlistStore.AddCharactersToWishlist(ctx, userID, batch)
-		if err != nil {
-			return added, err
-		}
-		added += len(batch)
+	if err := collection.AddToWishlist(ctx, store, userID, characterIDs); err != nil {
+		return 0, err
 	}
 
-	return added, nil
+	return len(characterIDs), nil
 }
