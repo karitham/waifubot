@@ -17,7 +17,7 @@ import (
 
 // ProfileHandler handles the /profile command and its subcommands.
 type ProfileHandler struct {
-	store collection.Store
+	store collection.DB
 }
 
 // Register wires the profile sub-routes on the mux.
@@ -103,7 +103,7 @@ func (h *ProfileHandler) EditFavorite(ctx context.Context, w corde.ResponseWrite
 	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
 
 	optID, _ := cmd.OptInt64("id")
-	if err := h.store.SetFavorite(ctx, cmd.UserID(), catalog.CharacterID(optID)); err != nil {
+	if err := collection.SetFavorite(ctx, h.store, cmd.UserID(), catalog.CharacterID(optID)); err != nil {
 		if errors.Is(err, collection.ErrUserDoesNotOwnCharacter) {
 			w.Respond(corde.NewResp().Content("You don't own that character").Ephemeral())
 			return
@@ -124,7 +124,7 @@ func (h *ProfileHandler) EditQuote(ctx context.Context, w corde.ResponseWriter, 
 		return
 	}
 
-	if err := h.store.UpdateQuote(ctx, cmd.UserID(), quote); err != nil {
+	if err := collection.SetQuote(ctx, h.store, cmd.UserID(), quote); err != nil {
 		w.Respond(corde.NewResp().Content(err.Error()).Ephemeral())
 		return
 	}
@@ -151,7 +151,7 @@ func (h *ProfileHandler) EditAnilistURL(ctx context.Context, w corde.ResponseWri
 		return
 	}
 
-	if err := h.store.UpdateAnilistURL(ctx, cmd.UserID(), anilistURL); err != nil {
+	if err := collection.SetAnilistURL(ctx, h.store, cmd.UserID(), anilistURL); err != nil {
 		w.Respond(corde.NewResp().Content(err.Error()).Ephemeral())
 		return
 	}

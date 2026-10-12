@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"slices"
+
+	"github.com/karitham/waifubot/catalog"
 )
 
 // ensureUser materializes a user: it creates the users row when it is absent.
@@ -53,4 +55,26 @@ func withUsers(ctx context.Context, store DB, userIDs []UserID, fn func(tx Tx) e
 	}
 
 	return nil
+}
+
+// SetQuote sets the user's quote, materializing the user first.
+func SetQuote(ctx context.Context, store DB, userID UserID, quote string) error {
+	return withUsers(ctx, store, []UserID{userID}, func(tx Tx) error {
+		return tx.UpdateQuote(ctx, userID, quote)
+	})
+}
+
+// SetAnilistURL sets the user's AniList URL, materializing the user first.
+func SetAnilistURL(ctx context.Context, store DB, userID UserID, url string) error {
+	return withUsers(ctx, store, []UserID{userID}, func(tx Tx) error {
+		return tx.UpdateAnilistURL(ctx, userID, url)
+	})
+}
+
+// SetFavorite sets the user's favorite character; a zero charID clears it.
+// The character must be owned when setting.
+func SetFavorite(ctx context.Context, store DB, userID UserID, charID catalog.CharacterID) error {
+	return withUsers(ctx, store, []UserID{userID}, func(tx Tx) error {
+		return tx.SetFavorite(ctx, userID, charID)
+	})
 }
