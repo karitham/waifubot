@@ -25,9 +25,21 @@ func (p *Pg) IsGuildIndexed(ctx context.Context, guildID guild.ID) (guild.IndexS
 		return guild.IndexStatus{}, err
 	}
 	return guild.IndexStatus{
-		Status:    guild.ConvertIndexingStatus(string(row.Status)),
+		Status:    toIndexingStatus(row.Status),
 		UpdatedAt: row.UpdatedAt.Time,
 	}, nil
+}
+
+// toIndexingStatus maps a stored indexing status to the domain type.
+func toIndexingStatus(status guildstore.IndexingStatus) guild.IndexingStatus {
+	switch status {
+	case guildstore.IndexingStatusCompleted:
+		return guild.IndexingCompleted
+	case guildstore.IndexingStatusInProgress:
+		return guild.IndexingInProgress
+	default:
+		return guild.IndexingPending
+	}
 }
 
 func (p *Pg) StartIndexingJob(ctx context.Context, guildID guild.ID) error {

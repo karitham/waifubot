@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/Karitham/corde"
@@ -51,26 +50,6 @@ type mockFetcher struct {
 
 func (m *mockFetcher) FetchMemberIDs(ctx context.Context, guildID corde.Snowflake) ([]corde.Snowflake, error) {
 	return m.ids, m.err
-}
-
-func TestConvertIndexingStatus(t *testing.T) {
-	tests := []struct {
-		input string
-		want  guild.IndexingStatus
-	}{
-		{"completed", guild.IndexingCompleted},
-		{"in_progress", guild.IndexingInProgress},
-		{"pending", guild.IndexingPending},
-		{"", guild.IndexingPending},
-		{"unknown_status", guild.IndexingPending},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			got := guild.ConvertIndexingStatus(tt.input)
-			assert.Equal(t, tt.want, got)
-		})
-	}
 }
 
 func TestIndexGuildIfNeeded_AlreadyIndexed(t *testing.T) {

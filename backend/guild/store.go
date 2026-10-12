@@ -28,18 +28,6 @@ type IndexStatus struct {
 	UpdatedAt time.Time
 }
 
-// ConvertIndexingStatus maps a database indexing-status string to the domain type.
-func ConvertIndexingStatus(s string) IndexingStatus {
-	switch s {
-	case "completed":
-		return IndexingCompleted
-	case "in_progress":
-		return IndexingInProgress
-	default:
-		return IndexingPending
-	}
-}
-
 // Querier provides guild indexing and holder lookups.
 type Querier interface {
 	IsGuildIndexed(ctx context.Context, guildID ID) (IndexStatus, error)
