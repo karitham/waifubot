@@ -18,7 +18,7 @@ var ErrWrongCharacterName = errors.New("wrong character name")
 
 // Claim claims a dropped character for a user.
 func Claim(ctx context.Context, store DB, userID UserID, channelID ChannelID, charName string) (catalog.Character, error) {
-	var drop catalog.Drop
+	var drop catalog.Character
 	err := withTx(ctx, store, func(tx Tx) error {
 		var err error
 		drop, err = tx.GetDropForUpdate(ctx, channelID)

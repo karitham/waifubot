@@ -28,8 +28,8 @@ func TestClaim(t *testing.T) {
 		{
 			name: "success",
 			setup: func(m *collectiontest.MockStore) {
-				m.GetDropForUpdateFunc = func(_ context.Context, _ collection.ChannelID) (catalog.Drop, error) {
-					return catalog.Drop{ID: 1, Name: "Test Character", Image: "test.jpg", MediaTitle: "Test Anime"}, nil
+				m.GetDropForUpdateFunc = func(_ context.Context, _ collection.ChannelID) (catalog.Character, error) {
+					return catalog.Character{ID: 1, Name: "Test Character", Image: "test.jpg", MediaTitle: "Test Anime"}, nil
 				}
 				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID}, nil
@@ -49,8 +49,8 @@ func TestClaim(t *testing.T) {
 		{
 			name: "no_drop_in_channel",
 			setup: func(m *collectiontest.MockStore) {
-				m.GetDropForUpdateFunc = func(_ context.Context, _ collection.ChannelID) (catalog.Drop, error) {
-					return catalog.Drop{}, collection.ErrNotFound
+				m.GetDropForUpdateFunc = func(_ context.Context, _ collection.ChannelID) (catalog.Character, error) {
+					return catalog.Character{}, collection.ErrNotFound
 				}
 			},
 			userID:    123,
@@ -61,8 +61,8 @@ func TestClaim(t *testing.T) {
 		{
 			name: "wrong_name",
 			setup: func(m *collectiontest.MockStore) {
-				m.GetDropForUpdateFunc = func(_ context.Context, _ collection.ChannelID) (catalog.Drop, error) {
-					return catalog.Drop{ID: 1, Name: "Test Character"}, nil
+				m.GetDropForUpdateFunc = func(_ context.Context, _ collection.ChannelID) (catalog.Character, error) {
+					return catalog.Character{ID: 1, Name: "Test Character"}, nil
 				}
 			},
 			userID:    123,
@@ -73,8 +73,8 @@ func TestClaim(t *testing.T) {
 		{
 			name: "already_owned",
 			setup: func(m *collectiontest.MockStore) {
-				m.GetDropForUpdateFunc = func(_ context.Context, _ collection.ChannelID) (catalog.Drop, error) {
-					return catalog.Drop{ID: 1, Name: "Test Character"}, nil
+				m.GetDropForUpdateFunc = func(_ context.Context, _ collection.ChannelID) (catalog.Character, error) {
+					return catalog.Character{ID: 1, Name: "Test Character"}, nil
 				}
 				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID}, nil
@@ -92,8 +92,8 @@ func TestClaim(t *testing.T) {
 		{
 			name: "new_user",
 			setup: func(m *collectiontest.MockStore) {
-				m.GetDropForUpdateFunc = func(_ context.Context, _ collection.ChannelID) (catalog.Drop, error) {
-					return catalog.Drop{ID: 1, Name: "Test Character", Image: "test.jpg"}, nil
+				m.GetDropForUpdateFunc = func(_ context.Context, _ collection.ChannelID) (catalog.Character, error) {
+					return catalog.Character{ID: 1, Name: "Test Character", Image: "test.jpg"}, nil
 				}
 				m.GetUserFunc = func(_ context.Context, _ collection.UserID) (collection.User, error) {
 					return collection.User{}, collection.ErrNotFound

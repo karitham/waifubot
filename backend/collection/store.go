@@ -103,7 +103,7 @@ type CollectionRepository interface {
 
 // DropRepository handles channel drop operations for the claim flow.
 type DropRepository interface {
-	GetDropForUpdate(ctx context.Context, channelID ChannelID) (catalog.Drop, error)
+	GetDropForUpdate(ctx context.Context, channelID ChannelID) (catalog.Character, error)
 	DeleteDrop(ctx context.Context, channelID ChannelID) error
 }
 

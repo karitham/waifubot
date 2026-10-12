@@ -19,15 +19,15 @@ func New(q dropstore.Querier) *Pg {
 	return &Pg{Q: q}
 }
 
-func (p *Pg) GetDropForUpdate(ctx context.Context, channelID collection.ChannelID) (catalog.Drop, error) {
+func (p *Pg) GetDropForUpdate(ctx context.Context, channelID collection.ChannelID) (catalog.Character, error) {
 	c, err := p.Q.GetDropForUpdate(ctx, uint64(channelID))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return catalog.Drop{}, collection.ErrNotFound
+			return catalog.Character{}, collection.ErrNotFound
 		}
-		return catalog.Drop{}, err
+		return catalog.Character{}, err
 	}
-	return catalog.Drop{
+	return catalog.Character{
 		ID:         catalog.CharacterID(c.ID),
 		Name:       c.Name,
 		Image:      c.Image,

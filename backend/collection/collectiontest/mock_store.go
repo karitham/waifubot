@@ -33,7 +33,7 @@ type MockStore struct {
 	SearchCharactersFunc     func(ctx context.Context, userID collection.UserID, term string) ([]catalog.Character, error)
 	RemoveFromWishlistFunc   func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error
 
-	GetDropForUpdateFunc func(ctx context.Context, channelID collection.ChannelID) (catalog.Drop, error)
+	GetDropForUpdateFunc func(ctx context.Context, channelID collection.ChannelID) (catalog.Character, error)
 	DeleteDropFunc       func(ctx context.Context, channelID collection.ChannelID) error
 
 	IsGuildIndexedFunc             func(ctx context.Context, guildID guild.ID) (guild.IndexStatus, error)
@@ -207,11 +207,11 @@ func (m *MockStore) RemoveFromWishlist(ctx context.Context, userID collection.Us
 	return nil
 }
 
-func (m *MockStore) GetDropForUpdate(ctx context.Context, channelID collection.ChannelID) (catalog.Drop, error) {
+func (m *MockStore) GetDropForUpdate(ctx context.Context, channelID collection.ChannelID) (catalog.Character, error) {
 	if m.GetDropForUpdateFunc != nil {
 		return m.GetDropForUpdateFunc(ctx, channelID)
 	}
-	return catalog.Drop{}, nil
+	return catalog.Character{}, nil
 }
 
 func (m *MockStore) DeleteDrop(ctx context.Context, channelID collection.ChannelID) error {

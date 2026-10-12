@@ -21,9 +21,6 @@ type Character struct {
 	IsActive   bool
 }
 
-// Drop is a Character that appeared in a channel drop.
-type Drop = Character
-
 // Store provides character catalog operations.
 type Store interface {
 	UpsertCharacter(ctx context.Context, char Character) error
