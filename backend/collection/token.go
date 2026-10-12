@@ -31,6 +31,19 @@ func (a TokenAmount) Valid() bool { return a.amount > 0 }
 // Int32 returns the amount in the representation used by storage.
 func (a TokenAmount) Int32() int32 { return a.amount }
 
+// Balance reports the user's tokens. A user with no row has none.
+func Balance(ctx context.Context, store Store, userID UserID) (int32, error) {
+	user, err := store.GetUser(ctx, userID)
+	if errors.Is(err, ErrNotFound) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+
+	return user.Tokens, nil
+}
+
 // TransferTokens transfers tokens between users.
 func TransferTokens(ctx context.Context, store DB, from, to UserID, amount TokenAmount) error {
 	if !amount.Valid() {

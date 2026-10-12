@@ -43,12 +43,12 @@ func (h *TokenHandler) Register(m *corde.Mux) {
 
 // Balance shows the user's token balance.
 func (h *TokenHandler) Balance(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
-	user, err := h.store.GetUser(ctx, cmd.UserID())
+	tokens, err := collection.Balance(ctx, h.store, cmd.UserID())
 	if err != nil {
 		w.Respond(rspErr("Failed to get your balance"))
 		return
 	}
-	w.Respond(corde.NewResp().Contentf("You have %d tokens", user.Tokens).Ephemeral())
+	w.Respond(corde.NewResp().Contentf("You have %d tokens", tokens).Ephemeral())
 }
 
 // tokenGiveOptions holds the parsed options for the token give command.

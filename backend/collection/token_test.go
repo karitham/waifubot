@@ -1,6 +1,7 @@
 package collection_test
 
 import (
+	"context"
 	"math"
 	"testing"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/collection/collectiontest"
 )
 
 // tokenAmount builds a TokenAmount for tests that need a known-positive amount.
@@ -22,6 +24,18 @@ func tokenAmount(t *testing.T, n int) collection.TokenAmount {
 func TestTokenAmountValid(t *testing.T) {
 	assert.False(t, collection.TokenAmount{}.Valid())
 	assert.True(t, tokenAmount(t, 1).Valid())
+}
+
+func TestBalance_AbsentUser(t *testing.T) {
+	store := &collectiontest.MockStore{
+		GetUserFunc: func(_ context.Context, _ collection.UserID) (collection.User, error) {
+			return collection.User{}, collection.ErrNotFound
+		},
+	}
+
+	tokens, err := collection.Balance(t.Context(), store, 7)
+	require.NoError(t, err)
+	assert.Equal(t, int32(0), tokens)
 }
 
 func TestNewTokenAmount(t *testing.T) {

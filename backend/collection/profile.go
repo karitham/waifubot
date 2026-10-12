@@ -36,21 +36,14 @@ type Profile struct {
 	FavoriteCharacter *catalog.Character
 }
 
-// UserProfile retrieves a user's profile.
+// UserProfile retrieves a user's profile. A user with no row has an empty
+// profile; reads never create the user.
 func UserProfile(ctx context.Context, store Store, userID UserID) (Profile, error) {
 	u, err := store.GetUser(ctx, userID)
-	if err != nil {
-		if errors.Is(err, ErrNotFound) {
-			if err = store.CreateUser(ctx, userID); err != nil {
-				return Profile{}, err
-			}
-			u, err = store.GetUser(ctx, userID)
-			if err != nil {
-				return Profile{}, err
-			}
-		} else {
-			return Profile{}, err
-		}
+	if errors.Is(err, ErrNotFound) {
+		u = User{UserID: userID}
+	} else if err != nil {
+		return Profile{}, err
 	}
 
 	var favorite *catalog.Character

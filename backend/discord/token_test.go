@@ -50,6 +50,15 @@ func TestTokenHandler_Balance(t *testing.T) {
 			wantContent: "You have 42 tokens",
 		},
 		{
+			name: "fresh user",
+			store: &collectiontest.MockStore{
+				GetUserFunc: func(ctx context.Context, userID collection.UserID) (collection.User, error) {
+					return collection.User{}, collection.ErrNotFound
+				},
+			},
+			wantContent: "You have 0 tokens",
+		},
+		{
 			name: "store error",
 			store: &collectiontest.MockStore{
 				GetUserFunc: func(ctx context.Context, userID collection.UserID) (collection.User, error) {
