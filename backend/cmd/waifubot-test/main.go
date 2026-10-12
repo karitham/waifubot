@@ -24,7 +24,7 @@ import (
 	"github.com/karitham/waifubot/storage/commandpg"
 	"github.com/karitham/waifubot/storage/dropstore"
 	"github.com/karitham/waifubot/storage/interactionstore"
-	"github.com/karitham/waifubot/wishlist"
+	"github.com/karitham/waifubot/storage/wishlistpg"
 )
 
 // Test-specific flags
@@ -197,7 +197,7 @@ func runTestHarness(c *cli.Context) error {
 	interStore := interactionstore.NewPostgresStore(store.InteractionStore())
 	dropStore := dropstore.NewPostgresStore(store.DropStore())
 	collStore := collectionwire.NewDB(store)
-	wishStore := wishlist.New(store.WishlistStore())
+	wishStore := wishlistpg.New(store.WishlistStore())
 
 	// Get bot token for command registration
 	botToken := c.String(flags.BotTokenFlag.Name)

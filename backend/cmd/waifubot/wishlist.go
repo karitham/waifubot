@@ -11,7 +11,7 @@ import (
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage"
-	"github.com/karitham/waifubot/wishlist"
+	"github.com/karitham/waifubot/storage/wishlistpg"
 )
 
 var WishlistCommand = &cli.Command{
@@ -113,7 +113,7 @@ var WishlistCommand = &cli.Command{
 					return fmt.Errorf("error connecting to db: %w", err)
 				}
 
-				wishlistStore := wishlist.New(store.WishlistStore())
+				wishlistStore := wishlistpg.New(store.WishlistStore())
 				chars, err := wishlistStore.GetUserCharacterWishlist(ctx, collection.UserID(userID))
 				if err != nil {
 					return fmt.Errorf("error getting user wishlist: %w", err)
@@ -151,7 +151,7 @@ var WishlistCommand = &cli.Command{
 					return fmt.Errorf("error connecting to db: %w", err)
 				}
 
-				wishlistStore := wishlist.New(store.WishlistStore())
+				wishlistStore := wishlistpg.New(store.WishlistStore())
 				wishlist, err := wishlistStore.GetUserCharacterWishlist(ctx, collection.UserID(userID))
 				if err != nil {
 					return fmt.Errorf("error getting wishlist: %w", err)
@@ -198,7 +198,7 @@ var WishlistCommand = &cli.Command{
 					return fmt.Errorf("error connecting to db: %w", err)
 				}
 
-				wishlistStore := wishlist.New(store.WishlistStore())
+				wishlistStore := wishlistpg.New(store.WishlistStore())
 				wanted, err := wishlistStore.GetWantedCharacters(ctx, collection.UserID(userID), 0)
 				if err != nil {
 					return fmt.Errorf("error getting wanted characters: %w", err)
@@ -235,7 +235,7 @@ var WishlistCommand = &cli.Command{
 					return fmt.Errorf("error connecting to db: %w", err)
 				}
 
-				wishlistStore := wishlist.New(store.WishlistStore())
+				wishlistStore := wishlistpg.New(store.WishlistStore())
 				err = wishlistStore.RemoveAllFromWishlist(ctx, collection.UserID(userID))
 				if err != nil {
 					return fmt.Errorf("error removing all from wishlist: %w", err)

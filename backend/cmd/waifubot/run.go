@@ -26,8 +26,8 @@ import (
 	"github.com/karitham/waifubot/storage/commandpg"
 	"github.com/karitham/waifubot/storage/dropstore"
 	"github.com/karitham/waifubot/storage/interactionstore"
+	"github.com/karitham/waifubot/storage/wishlistpg"
 	"github.com/karitham/waifubot/sync"
-	"github.com/karitham/waifubot/wishlist"
 )
 
 var RunCommand = &cli.Command{
@@ -95,7 +95,7 @@ var RunCommand = &cli.Command{
 		interStore := interactionstore.NewPostgresStore(store.InteractionStore())
 		dropStore := dropstore.NewPostgresStore(store.DropStore())
 		collStore := newCollectionStore(store)
-		wishStore := wishlist.New(store.WishlistStore())
+		wishStore := wishlistpg.New(store.WishlistStore())
 		catalogStore := newCatalogStore(store)
 
 		anilistClient := anilist.New(version)
