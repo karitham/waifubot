@@ -32,7 +32,7 @@ var commandDefinitions = []CommandDef{
 				},
 			},
 			{
-				Name: "sell", Description: fmt.Sprintf("Sell a character for %d tokens", collection.SellReward().Int32()), Type: OptionSubcommand,
+				Name: "sell", Description: fmt.Sprintf("Sell a character for %d token", collection.SellReward().Int32()), Type: OptionSubcommand,
 				Options: []OptionDef{
 					{Name: "id", Description: "ID of the character to sell", Type: OptionInt, Required: true, Autocomplete: true},
 				},
