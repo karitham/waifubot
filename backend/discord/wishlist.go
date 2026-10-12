@@ -93,20 +93,16 @@ type wishlistCharacterOptions struct {
 	charID catalog.CharacterID
 }
 
-func parseWishlistCharacterOptions(cmd CommandContext) (wishlistCharacterOptions, error) {
+func parseWishlistCharacterOptions(cmd CommandContext) wishlistCharacterOptions {
 	charID, _ := cmd.OptInt64("character")
-	return wishlistCharacterOptions{charID: catalog.CharacterID(charID)}, nil
+	return wishlistCharacterOptions{charID: catalog.CharacterID(charID)}
 }
 
 // CharacterAdd adds a character to the user's wishlist.
 func (h *WishlistHandler) CharacterAdd(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
 	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
 
-	opts, err := parseWishlistCharacterOptions(cmd)
-	if err != nil {
-		id, _ := cmd.OptInt64("character")
-		opts.charID = catalog.CharacterID(id)
-	}
+	opts := parseWishlistCharacterOptions(cmd)
 
 	// Check if user already owns this character
 	has, char, err := collection.CheckOwnership(ctx, h.store, cmd.UserID(), opts.charID)
@@ -134,13 +130,9 @@ func (h *WishlistHandler) CharacterAdd(ctx context.Context, w corde.ResponseWrit
 func (h *WishlistHandler) CharacterRemove(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
 	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
 
-	opts, err := parseWishlistCharacterOptions(cmd)
-	if err != nil {
-		id, _ := cmd.OptInt64("character")
-		opts.charID = catalog.CharacterID(id)
-	}
+	opts := parseWishlistCharacterOptions(cmd)
 
-	err = h.store.RemoveFromWishlist(ctx, cmd.UserID(), opts.charID)
+	err := h.store.RemoveFromWishlist(ctx, cmd.UserID(), opts.charID)
 	if err != nil {
 		logger.Error("error removing character from wishlist", "error", err, "character_id", opts.charID)
 		w.Respond(rspErr("Unable to remove character from wishlist. Please try again."))
@@ -195,20 +187,16 @@ type wishlistMediaOptions struct {
 	mediaID tracker.MediaID
 }
 
-func parseWishlistMediaOptions(cmd CommandContext) (wishlistMediaOptions, error) {
+func parseWishlistMediaOptions(cmd CommandContext) wishlistMediaOptions {
 	mediaID, _ := cmd.OptInt64("media")
-	return wishlistMediaOptions{mediaID: tracker.MediaID(mediaID)}, nil
+	return wishlistMediaOptions{mediaID: tracker.MediaID(mediaID)}
 }
 
 // MediaAdd adds all characters from a media to the user's wishlist.
 func (h *WishlistHandler) MediaAdd(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
 	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
 
-	opts, err := parseWishlistMediaOptions(cmd)
-	if err != nil {
-		id, _ := cmd.OptInt64("media")
-		opts.mediaID = tracker.MediaID(id)
-	}
+	opts := parseWishlistMediaOptions(cmd)
 
 	count, err := wishlist.AddMediaToWishlist(ctx, h.animeService, h.store, cmd.UserID(), opts.mediaID)
 	if err != nil {
