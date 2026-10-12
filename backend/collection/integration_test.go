@@ -107,7 +107,7 @@ func TestIntegration_UserCRUD(t *testing.T) {
 
 	require.NoError(t, store.UpsertCharacter(ctx, catalog.Character{ID: 42, Name: "FavChar"}))
 	require.NoError(t, store.AddToCollection(ctx, uid, catalog.CharacterID(42), collection.SourceRoll, time.Now()))
-	require.NoError(t, store.SetFavorite(ctx, uid, 42))
+	require.NoError(t, store.SetFavorite(ctx, uid, catalog.CharacterID(42)))
 	user, _ = store.GetUser(ctx, uid)
 	assert.Equal(t, catalog.CharacterID(42), user.FavoriteCharacterID)
 

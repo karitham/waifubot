@@ -88,7 +88,7 @@ type CollectionRepository interface {
 	SetFavorite(ctx context.Context, userID UserID, charID catalog.CharacterID) error
 	// SearchCharacters searches the user's collection by name or ID.
 	SearchCharacters(ctx context.Context, userID UserID, term string) ([]catalog.Character, error)
-	// RemoveFromWishlist is called inside roll/claim/give transactions.
+	// RemoveFromWishlist removes a character from the user's wishlist.
 	RemoveFromWishlist(ctx context.Context, userID UserID, charID catalog.CharacterID) error
 	// AddCharactersToWishlist is called inside wishlist-add transactions.
 	AddCharactersToWishlist(ctx context.Context, userID UserID, characterIDs []catalog.CharacterID) error
