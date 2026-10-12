@@ -7,7 +7,7 @@ import (
 )
 
 type MockQuerier struct {
-	AddCharactersToWishlistFunc      func(ctx context.Context, arg wishliststore.AddCharactersToWishlistParams) error
+	AddCharactersToWishlistFunc      func(ctx context.Context, arg wishliststore.AddCharactersToWishlistParams) (int64, error)
 	CompareWithUserFunc              func(ctx context.Context, arg wishliststore.CompareWithUserParams) ([]wishliststore.CompareWithUserRow, error)
 	GetUserCharacterWishlistFunc     func(ctx context.Context, userID uint64) ([]wishliststore.GetUserCharacterWishlistRow, error)
 	GetUsersWantingCharacterFunc     func(ctx context.Context, arg wishliststore.GetUsersWantingCharacterParams) ([]uint64, error)
@@ -17,11 +17,11 @@ type MockQuerier struct {
 	RemoveCharactersFromWishlistFunc func(ctx context.Context, arg wishliststore.RemoveCharactersFromWishlistParams) error
 }
 
-func (m *MockQuerier) AddCharactersToWishlist(ctx context.Context, arg wishliststore.AddCharactersToWishlistParams) error {
+func (m *MockQuerier) AddCharactersToWishlist(ctx context.Context, arg wishliststore.AddCharactersToWishlistParams) (int64, error) {
 	if m.AddCharactersToWishlistFunc != nil {
 		return m.AddCharactersToWishlistFunc(ctx, arg)
 	}
-	return nil
+	return 0, nil
 }
 
 func (m *MockQuerier) CompareWithUser(ctx context.Context, arg wishliststore.CompareWithUserParams) ([]wishliststore.CompareWithUserRow, error) {

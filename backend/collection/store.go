@@ -96,7 +96,8 @@ type CollectionRepository interface {
 	// RemoveFromWishlist removes a character from the user's wishlist.
 	RemoveFromWishlist(ctx context.Context, userID UserID, charID catalog.CharacterID) error
 	// AddCharactersToWishlist is called inside wishlist-add transactions.
-	AddCharactersToWishlist(ctx context.Context, userID UserID, characterIDs []catalog.CharacterID) error
+	// It reports how many characters were actually added.
+	AddCharactersToWishlist(ctx context.Context, userID UserID, characterIDs []catalog.CharacterID) (int64, error)
 	// RandomCharNotOwned returns a random active character not owned by the user,
 	// weighted by favorites^weightExponent. Does NOT filter the default AniList image
 	// (rolls/direct rolls use this path and the image isn't publicly embedded).

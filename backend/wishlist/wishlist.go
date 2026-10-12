@@ -58,7 +58,9 @@ func AddMediaToWishlist(ctx context.Context, mediaService MediaService, store co
 	}
 
 	for _, char := range characters {
-		_ = store.UpsertCharacter(ctx, char.ToCatalog())
+		if err := store.UpsertCharacter(ctx, char.ToCatalog()); err != nil {
+			return 0, err
+		}
 	}
 
 	ownedIDs, err := store.GetCollectionIDs(ctx, userID)
@@ -82,9 +84,10 @@ func AddMediaToWishlist(ctx context.Context, mediaService MediaService, store co
 		return 0, nil
 	}
 
-	if err := collection.AddToWishlist(ctx, store, userID, characterIDs); err != nil {
+	added, err := collection.AddToWishlist(ctx, store, userID, characterIDs)
+	if err != nil {
 		return 0, err
 	}
 
-	return len(characterIDs), nil
+	return int(added), nil
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const addCharactersToWishlist = `-- name: AddCharactersToWishlist :exec
+const addCharactersToWishlist = `-- name: AddCharactersToWishlist :execrows
 INSERT INTO
   character_wishlist (user_id, character_id)
 SELECT
@@ -34,9 +34,12 @@ type AddCharactersToWishlistParams struct {
 }
 
 // Skips characters the user already owns.
-func (q *Queries) AddCharactersToWishlist(ctx context.Context, arg AddCharactersToWishlistParams) error {
-	_, err := q.db.Exec(ctx, addCharactersToWishlist, arg.UserID, arg.Column2)
-	return err
+func (q *Queries) AddCharactersToWishlist(ctx context.Context, arg AddCharactersToWishlistParams) (int64, error) {
+	result, err := q.db.Exec(ctx, addCharactersToWishlist, arg.UserID, arg.Column2)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const compareWithUser = `-- name: CompareWithUser :many

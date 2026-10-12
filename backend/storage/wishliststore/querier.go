@@ -10,7 +10,7 @@ import (
 
 type Querier interface {
 	// Skips characters the user already owns.
-	AddCharactersToWishlist(ctx context.Context, arg AddCharactersToWishlistParams) error
+	AddCharactersToWishlist(ctx context.Context, arg AddCharactersToWishlistParams) (int64, error)
 	CompareWithUser(ctx context.Context, arg CompareWithUserParams) ([]CompareWithUserRow, error)
 	GetUserCharacterWishlist(ctx context.Context, userID uint64) ([]GetUserCharacterWishlistRow, error)
 	GetUsersWantingCharacter(ctx context.Context, arg GetUsersWantingCharacterParams) ([]uint64, error)

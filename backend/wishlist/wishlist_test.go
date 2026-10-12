@@ -35,11 +35,11 @@ func TestAddMediaToWishlist(t *testing.T) {
 
 	calls := 0
 	store := &collectiontest.MockStore{
-		AddCharactersToWishlistFunc: func(_ context.Context, userID collection.UserID, ids []catalog.CharacterID) error {
+		AddCharactersToWishlistFunc: func(_ context.Context, userID collection.UserID, ids []catalog.CharacterID) (int64, error) {
 			calls++
 			assert.Equal(t, collection.UserID(1), userID)
 			assert.Len(t, ids, len(characters))
-			return nil
+			return int64(len(ids)), nil
 		},
 	}
 

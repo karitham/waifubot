@@ -120,7 +120,7 @@ func (h *WishlistHandler) CharacterAdd(ctx context.Context, w corde.ResponseWrit
 		return
 	}
 
-	err = collection.AddToWishlist(ctx, h.store, cmd.UserID(), []catalog.CharacterID{opts.charID})
+	_, err = collection.AddToWishlist(ctx, h.store, cmd.UserID(), []catalog.CharacterID{opts.charID})
 	if err != nil {
 		logger.Error("error adding character to wishlist", "error", err, "character_id", opts.charID)
 		w.Respond(rspErr("Unable to add character to wishlist. Please try again."))

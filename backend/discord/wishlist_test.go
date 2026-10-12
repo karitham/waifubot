@@ -84,8 +84,8 @@ func TestWishlistHandler_CharacterAdd(t *testing.T) {
 				GetOwnedCharacterFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
 					return collection.OwnedCharacter{}, collection.ErrNotFound
 				},
-				AddCharactersToWishlistFunc: func(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) error {
-					return errors.New("db error")
+				AddCharactersToWishlistFunc: func(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) (int64, error) {
+					return 0, errors.New("db error")
 				},
 			},
 			wantContent: "Unable to add character to wishlist.",
@@ -310,6 +310,9 @@ func TestWishlistHandler_MediaAdd(t *testing.T) {
 			collStore: &collectiontest.MockStore{
 				GetCollectionIDsFunc: func(ctx context.Context, userID collection.UserID) ([]catalog.CharacterID, error) {
 					return nil, nil
+				},
+				AddCharactersToWishlistFunc: func(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) (int64, error) {
+					return int64(len(characterIDs)), nil
 				},
 			},
 			animeService: &collectiontest.MockAnimeService{

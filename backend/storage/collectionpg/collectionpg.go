@@ -208,7 +208,7 @@ func (p *Pg) RemoveFromWishlist(ctx context.Context, userID collection.UserID, c
 	})
 }
 
-func (p *Pg) AddCharactersToWishlist(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) error {
+func (p *Pg) AddCharactersToWishlist(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) (int64, error) {
 	ids := make([]int64, len(characterIDs))
 	for i, id := range characterIDs {
 		ids[i] = int64(id)

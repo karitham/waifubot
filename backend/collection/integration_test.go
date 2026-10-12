@@ -329,7 +329,9 @@ func TestIntegration_AddToWishlistFreshUser(t *testing.T) {
 
 	require.NoError(t, store.UpsertCharacter(ctx, catalog.Character{ID: 4002, Name: "FreshWish"}))
 
-	require.NoError(t, collection.AddToWishlist(ctx, store, uid, []catalog.CharacterID{4002}))
+	added, err := collection.AddToWishlist(ctx, store, uid, []catalog.CharacterID{4002})
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), added)
 
 	_, err = store.GetUser(ctx, uid)
 	require.NoError(t, err, "adding to the wishlist must materialize the user")
@@ -354,7 +356,9 @@ func TestIntegration_WishlistSkipsOwnedCharacters(t *testing.T) {
 	require.NoError(t, store.CreateUser(ctx, uid))
 	require.NoError(t, store.AddToCollection(ctx, uid, 4003, collection.SourceRoll, time.Now()))
 
-	require.NoError(t, collection.AddToWishlist(ctx, store, uid, []catalog.CharacterID{4003, 4004}))
+	added, err := collection.AddToWishlist(ctx, store, uid, []catalog.CharacterID{4003, 4004})
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), added, "only the unowned character may be added")
 
 	entries, err := wishlistpg.New(dbStore.WishlistStore()).GetUserCharacterWishlist(ctx, uid)
 	require.NoError(t, err)

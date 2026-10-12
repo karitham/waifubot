@@ -1,4 +1,4 @@
--- name: AddCharactersToWishlist :exec
+-- name: AddCharactersToWishlist :execrows
 -- Skips characters the user already owns.
 INSERT INTO
   character_wishlist (user_id, character_id)

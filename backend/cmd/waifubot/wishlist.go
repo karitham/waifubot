@@ -41,7 +41,7 @@ var WishlistCommand = &cli.Command{
 					return fmt.Errorf("error connecting to db: %w", err)
 				}
 
-				err = collection.AddToWishlist(ctx, newCollectionStore(store), collection.UserID(userID), []catalog.CharacterID{catalog.CharacterID(charID)})
+				_, err = collection.AddToWishlist(ctx, newCollectionStore(store), collection.UserID(userID), []catalog.CharacterID{catalog.CharacterID(charID)})
 				if err != nil {
 					return fmt.Errorf("error adding character to wishlist: %w", err)
 				}

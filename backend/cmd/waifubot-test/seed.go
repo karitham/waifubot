@@ -27,7 +27,7 @@ func seedCharacter(ctx context.Context, store *storage.DBStore, charID int64, ch
 func seedWishlistUsers(ctx context.Context, store *storage.DBStore, userIDs []uint64, charID int64) error {
 	db := collectionwire.NewDB(store)
 	for _, userID := range userIDs {
-		err := collection.AddToWishlist(ctx, db, collection.UserID(userID), []catalog.CharacterID{catalog.CharacterID(charID)})
+		_, err := collection.AddToWishlist(ctx, db, collection.UserID(userID), []catalog.CharacterID{catalog.CharacterID(charID)})
 		if err != nil {
 			return err
 		}
