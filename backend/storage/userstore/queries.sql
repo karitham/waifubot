@@ -14,7 +14,8 @@ WHERE
   user_id = $1;
 
 -- name: LockUser :one
--- FOR NO KEY UPDATE: serializes writers, does not block foreign key checks.
+-- Locks the user's row so concurrent writers serialize; does not block
+-- foreign key checks.
 SELECT
   user_id
 FROM

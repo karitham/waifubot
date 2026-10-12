@@ -62,7 +62,8 @@ WHERE
 FOR UPDATE OF cd
 `
 
-// Locks only the drop row; the joined character row is read, not locked.
+// Locks only the drop row; locking the joined character row blocks inserts
+// that reference it.
 func (q *Queries) GetDropForUpdate(ctx context.Context, channelID uint64) (Character, error) {
 	row := q.db.QueryRow(ctx, getDropForUpdate, channelID)
 	var i Character

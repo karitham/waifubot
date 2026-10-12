@@ -135,7 +135,8 @@ WHERE
 FOR NO KEY UPDATE
 `
 
-// FOR NO KEY UPDATE: serializes writers, does not block foreign key checks.
+// Locks the user's row so concurrent writers serialize; does not block
+// foreign key checks.
 func (q *Queries) LockUser(ctx context.Context, userID uint64) (uint64, error) {
 	row := q.db.QueryRow(ctx, lockUser, userID)
 	var user_id uint64
