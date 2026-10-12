@@ -36,8 +36,12 @@ func (i *Indexer) IndexGuildIfNeeded(ctx context.Context, guildID corde.Snowflak
 		return nil
 	}
 
-	if err := startIndexingJobIfNeeded(ctx, i.db, id); err != nil {
+	started, err := startIndexingJobIfNeeded(ctx, i.db, id)
+	if err != nil {
 		return err
+	}
+	if !started {
+		return nil
 	}
 
 	return i.IndexGuild(ctx, guildID)
@@ -69,24 +73,29 @@ func (i *Indexer) IndexGuild(ctx context.Context, guildID corde.Snowflake) error
 }
 
 // startIndexingJobIfNeeded acquires a transaction lock and starts an indexing
-// job if no other indexer is currently active.
-func startIndexingJobIfNeeded(ctx context.Context, db DB, guildID ID) error {
+// job unless another indexer is currently active. It reports whether this
+// caller owns the job and may run the index.
+func startIndexingJobIfNeeded(ctx context.Context, db DB, guildID ID) (bool, error) {
 	tx, err := db.Begin(ctx)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	// Re-check inside transaction to prevent duplicate indexing
+	// Re-check inside the transaction: a fresh in-progress job belongs to
+	// another indexer, and running a second one would duplicate the fetch.
 	status, err := tx.IsGuildIndexed(ctx, guildID)
 	if err == nil && status.Status == IndexingInProgress && time.Since(status.UpdatedAt) < 10*time.Minute {
 		_ = tx.Rollback(ctx)
-		return nil
+		return false, nil
 	}
 
 	if err := tx.StartIndexingJob(ctx, guildID); err != nil {
 		_ = tx.Rollback(ctx)
-		return err
+		return false, err
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return false, err
+	}
+	return true, nil
 }
