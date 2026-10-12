@@ -110,7 +110,7 @@ func (h *WishlistHandler) CharacterAdd(ctx context.Context, w corde.ResponseWrit
 	}
 
 	// Check if user already owns this character
-	has, char, err := collectionCheckOwnership(ctx, h.store, cmd.UserID(), opts.charID)
+	has, char, err := collection.CheckOwnership(ctx, h.store, cmd.UserID(), opts.charID)
 	if err != nil {
 		logger.Error("error checking ownership", "error", err, "character_id", opts.charID)
 		w.Respond(rspErr("Unable to verify character ownership. Please try again."))

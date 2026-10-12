@@ -1,18 +1,12 @@
 package discord
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
-	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/guild"
 )
-
-func collectionCheckOwnership(ctx context.Context, store collection.Store, userID collection.UserID, charID catalog.CharacterID) (bool, catalog.Character, error) {
-	return collection.CheckOwnership(ctx, store, userID, charID)
-}
 
 func formatUsersWantingCharacter(memberIDs []guild.MemberID, excludeUserID collection.UserID) string {
 	var filtered []guild.MemberID

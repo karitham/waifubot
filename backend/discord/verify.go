@@ -52,7 +52,7 @@ func (h *VerifyHandler) Register(m *corde.Mux) {
 func (h *VerifyHandler) Verify(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
 	opts := parseVerifyOptions(cmd)
 
-	has, char, err := collectionCheckOwnership(ctx, h.store, opts.targetUserID, opts.charID)
+	has, char, err := collection.CheckOwnership(ctx, h.store, opts.targetUserID, opts.charID)
 	if err != nil {
 		w.Respond(newErrf("Error checking ownership: %s", err.Error()))
 		return
