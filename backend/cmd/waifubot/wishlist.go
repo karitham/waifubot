@@ -78,8 +78,7 @@ var WishlistCommand = &cli.Command{
 					return fmt.Errorf("error connecting to db: %w", err)
 				}
 
-				wishlistStore := wishlist.New(store.WishlistStore())
-				err = wishlistStore.RemoveCharactersFromWishlist(ctx, collection.UserID(userID), []catalog.CharacterID{catalog.CharacterID(charID)})
+				err = newCollectionStore(store).RemoveFromWishlist(ctx, collection.UserID(userID), catalog.CharacterID(charID))
 				if err != nil {
 					return fmt.Errorf("error removing character from wishlist: %w", err)
 				}

@@ -45,7 +45,9 @@ func Claim(ctx context.Context, store DB, userID UserID, channelID ChannelID, ch
 			return fmt.Errorf("failed to insert character into collection: %w", err)
 		}
 
-		_ = tx.RemoveFromWishlist(ctx, userID, drop.ID)
+		if err := tx.RemoveFromWishlist(ctx, userID, drop.ID); err != nil {
+			return err
+		}
 
 		if err := tx.DeleteDrop(ctx, channelID); err != nil {
 			return fmt.Errorf("failed to delete drop: %w", err)

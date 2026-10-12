@@ -11,23 +11,15 @@ import (
 
 // MockStore implements wishlist.Store for testing.
 type MockStore struct {
-	RemoveCharactersFromWishlistFunc func(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) error
-	RemoveAllFromWishlistFunc        func(ctx context.Context, userID collection.UserID) error
-	GetUserCharacterWishlistFunc     func(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error)
-	GetWishlistHoldersFunc           func(ctx context.Context, characterIDs []catalog.CharacterID, userID collection.UserID, guildID guild.ID) ([]wishlist.UserCharacterSet, error)
-	GetWantedCharactersFunc          func(ctx context.Context, userID collection.UserID, guildID guild.ID) ([]wishlist.UserCharacterSet, error)
-	CompareWithUserFunc              func(ctx context.Context, userID1, userID2 collection.UserID) (wishlist.WishlistComparison, error)
-	GetUsersWantingCharacterFunc     func(ctx context.Context, charID catalog.CharacterID, guildID guild.ID, excludeUserID collection.UserID) ([]guild.MemberID, error)
+	RemoveAllFromWishlistFunc    func(ctx context.Context, userID collection.UserID) error
+	GetUserCharacterWishlistFunc func(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error)
+	GetWishlistHoldersFunc       func(ctx context.Context, characterIDs []catalog.CharacterID, userID collection.UserID, guildID guild.ID) ([]wishlist.UserCharacterSet, error)
+	GetWantedCharactersFunc      func(ctx context.Context, userID collection.UserID, guildID guild.ID) ([]wishlist.UserCharacterSet, error)
+	CompareWithUserFunc          func(ctx context.Context, userID1, userID2 collection.UserID) (wishlist.WishlistComparison, error)
+	GetUsersWantingCharacterFunc func(ctx context.Context, charID catalog.CharacterID, guildID guild.ID, excludeUserID collection.UserID) ([]guild.MemberID, error)
 }
 
 var _ wishlist.Store = (*MockStore)(nil)
-
-func (m *MockStore) RemoveCharactersFromWishlist(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) error {
-	if m.RemoveCharactersFromWishlistFunc != nil {
-		return m.RemoveCharactersFromWishlistFunc(ctx, userID, characterIDs)
-	}
-	return nil
-}
 
 func (m *MockStore) RemoveAllFromWishlist(ctx context.Context, userID collection.UserID) error {
 	if m.RemoveAllFromWishlistFunc != nil {

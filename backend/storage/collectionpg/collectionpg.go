@@ -195,11 +195,10 @@ func (p *Pg) SearchCharacters(ctx context.Context, userID collection.UserID, ter
 }
 
 func (p *Pg) RemoveFromWishlist(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
-	_ = p.W.RemoveCharactersFromWishlist(ctx, wishliststore.RemoveCharactersFromWishlistParams{
+	return p.W.RemoveCharactersFromWishlist(ctx, wishliststore.RemoveCharactersFromWishlistParams{
 		UserID:  uint64(userID),
 		Column2: []int64{int64(charID)},
 	})
-	return nil
 }
 
 func (p *Pg) AddCharactersToWishlist(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) error {

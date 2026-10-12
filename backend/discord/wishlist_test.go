@@ -116,7 +116,7 @@ func TestWishlistHandler_CharacterRemove(t *testing.T) {
 	tests := []struct {
 		name        string
 		cmd         CommandContext
-		wlStore     *wishlisttest.MockStore
+		collStore   *collectiontest.MockStore
 		wantContent string
 	}{
 		{
@@ -127,7 +127,7 @@ func TestWishlistHandler_CharacterRemove(t *testing.T) {
 				GuildIDVal:   1,
 				OptInt64Vals: map[string]int64{"character": 42},
 			},
-			wlStore:     &wishlisttest.MockStore{},
+			collStore:   &collectiontest.MockStore{},
 			wantContent: "Removed character 42 from your wishlist.",
 		},
 		{
@@ -138,8 +138,8 @@ func TestWishlistHandler_CharacterRemove(t *testing.T) {
 				GuildIDVal:   1,
 				OptInt64Vals: map[string]int64{"character": 42},
 			},
-			wlStore: &wishlisttest.MockStore{
-				RemoveCharactersFromWishlistFunc: func(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) error {
+			collStore: &collectiontest.MockStore{
+				RemoveFromWishlistFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
 					return errors.New("db error")
 				},
 			},
@@ -151,8 +151,8 @@ func TestWishlistHandler_CharacterRemove(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
 			h := &WishlistHandler{
-				wishlist: tt.wlStore,
-				store:    &collectiontest.MockStore{},
+				wishlist: &wishlisttest.MockStore{},
+				store:    tt.collStore,
 			}
 
 			h.CharacterRemove(t.Context(), w, tt.cmd)

@@ -29,7 +29,9 @@ func Give(ctx context.Context, store DB, from, to UserID, charID catalog.Charact
 			return fmt.Errorf("error giving char: %w", err)
 		}
 
-		_ = tx.RemoveFromWishlist(ctx, to, charID)
+		if err := tx.RemoveFromWishlist(ctx, to, charID); err != nil {
+			return err
+		}
 		return nil
 	})
 	if err != nil {

@@ -141,7 +141,7 @@ func (h *WishlistHandler) CharacterRemove(ctx context.Context, w corde.ResponseW
 		opts.charID = catalog.CharacterID(id)
 	}
 
-	err = h.wishlist.RemoveCharactersFromWishlist(ctx, cmd.UserID(), []catalog.CharacterID{opts.charID})
+	err = h.store.RemoveFromWishlist(ctx, cmd.UserID(), opts.charID)
 	if err != nil {
 		logger.Error("error removing character from wishlist", "error", err, "character_id", opts.charID)
 		w.Respond(rspErr("Unable to remove character from wishlist. Please try again."))
