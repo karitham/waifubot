@@ -3,6 +3,7 @@ package collection
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/karitham/waifubot/catalog"
@@ -44,8 +45,11 @@ func UserProfile(ctx context.Context, store Store, userID UserID) (Profile, erro
 	var favorite *catalog.Character
 	if u.FavoriteCharacterID != 0 {
 		fav, err := store.GetCharacterByID(ctx, u.FavoriteCharacterID)
-		if err == nil {
+		switch {
+		case err == nil:
 			favorite = &fav
+		case !errors.Is(err, ErrNotFound):
+			return Profile{}, fmt.Errorf("failed to get favorite character: %w", err)
 		}
 	}
 
