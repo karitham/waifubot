@@ -141,12 +141,10 @@ func TestCharacterHolders_GuildNotIndexed(t *testing.T) {
 	}
 
 	_, _, err := guild.CharacterHolders(t.Context(), querier, nil, 123, 456)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "not indexed")
+	require.ErrorIs(t, err, guild.ErrNotIndexed)
 }
 
 func TestCharacterHolders_GuildIDZero(t *testing.T) {
 	_, _, err := guild.CharacterHolders(t.Context(), nil, nil, 0, 456)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "only be used in servers")
+	require.ErrorIs(t, err, guild.ErrNotInGuild)
 }

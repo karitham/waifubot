@@ -2,25 +2,36 @@ package guild
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/karitham/waifubot/catalog"
 )
 
+var (
+	// ErrNotInGuild is returned when the operation needs a guild context.
+	ErrNotInGuild = errors.New("not in a guild")
+	// ErrNotIndexed is returned when the guild's member index is not ready.
+	ErrNotIndexed = errors.New("guild members not indexed")
+)
+
 // CharacterHolders retrieves users in a guild who own a specific character.
 func CharacterHolders(ctx context.Context, store Querier, charStore catalog.Store, guildID ID, charID catalog.CharacterID) (string, []MemberID, error) {
 	if guildID == 0 {
-		return "", nil, fmt.Errorf("this command can only be used in servers")
+		return "", nil, ErrNotInGuild
 	}
 
 	status, err := store.IsGuildIndexed(ctx, guildID)
-	if err != nil || status.Status != IndexingCompleted {
-		return "", nil, fmt.Errorf("guild members not indexed yet, please try again later")
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to read indexing status: %w", err)
+	}
+	if status.Status != IndexingCompleted {
+		return "", nil, ErrNotIndexed
 	}
 
 	char, err := charStore.GetCharacterByID(ctx, charID)
 	if err != nil {
-		return "", nil, fmt.Errorf("no one in this server has %d", charID)
+		return "", nil, err
 	}
 
 	holderIDs, err := store.GetCharacterHoldersInGuild(ctx, guildID, charID)

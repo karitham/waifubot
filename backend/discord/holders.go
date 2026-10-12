@@ -2,6 +2,7 @@ package discord
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -69,7 +70,16 @@ func (h *HoldersHandler) Holders(ctx context.Context, w corde.ResponseWriter, cm
 
 	charName, holderIDs, err := guild.CharacterHolders(ctx, h.guildOps, h.catalog, cmd.GuildID(), opts.charID)
 	if err != nil {
-		w.Respond(Privf("Failed to check holders"))
+		switch {
+		case errors.Is(err, guild.ErrNotInGuild):
+			w.Respond(rspErr("This command can only be used in servers"))
+		case errors.Is(err, guild.ErrNotIndexed):
+			w.Respond(rspErr("Guild members are still being indexed, please try again in a moment"))
+		case errors.Is(err, catalog.ErrNotFound):
+			w.Respond(corde.NewResp().Contentf("No one in this server has (ID: %d)", opts.charID).Ephemeral())
+		default:
+			w.Respond(Privf("Failed to check holders"))
+		}
 		return
 	}
 

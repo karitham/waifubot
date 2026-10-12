@@ -87,6 +87,44 @@ func TestHoldersHandler_Holders(t *testing.T) {
 			},
 			wantContent: "Failed to check holders",
 		},
+		{
+			name: "guild not indexed",
+			cmd: &MockCommandContext{
+				GuildIDVal: 1,
+				OptIntVals: map[string]int{"id": 42},
+			},
+			guildOps: &mockGuildQuerier{
+				IsGuildIndexedFunc: func(ctx context.Context, guildID guild.ID) (guild.IndexStatus, error) {
+					return guild.IndexStatus{Status: guild.IndexingPending}, nil
+				},
+			},
+			wantContent: "still being indexed",
+		},
+		{
+			name: "direct message",
+			cmd: &MockCommandContext{
+				OptIntVals: map[string]int{"id": 42},
+			},
+			wantContent: "only be used in servers",
+		},
+		{
+			name: "character not found",
+			cmd: &MockCommandContext{
+				GuildIDVal: 1,
+				OptIntVals: map[string]int{"id": 42},
+			},
+			guildOps: &mockGuildQuerier{
+				IsGuildIndexedFunc: func(ctx context.Context, guildID guild.ID) (guild.IndexStatus, error) {
+					return guild.IndexStatus{Status: guild.IndexingCompleted}, nil
+				},
+			},
+			catalog: &cordetest.MockCatalogStore{
+				GetCharacterByIDFunc: func(ctx context.Context, charID catalog.CharacterID) (catalog.Character, error) {
+					return catalog.Character{}, catalog.ErrNotFound
+				},
+			},
+			wantContent: "No one in this server has (ID: 42)",
+		},
 	}
 
 	for _, tt := range tests {

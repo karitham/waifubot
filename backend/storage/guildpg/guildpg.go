@@ -2,8 +2,10 @@ package guildpg
 
 import (
 	"context"
+	"errors"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/karitham/waifubot/catalog"
@@ -22,6 +24,10 @@ func New(q guildstore.Querier) *Pg {
 func (p *Pg) IsGuildIndexed(ctx context.Context, guildID guild.ID) (guild.IndexStatus, error) {
 	row, err := p.Q.IsGuildIndexed(ctx, uint64(guildID))
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			// A guild with no job row is simply not indexed yet.
+			return guild.IndexStatus{Status: guild.IndexingPending}, nil
+		}
 		return guild.IndexStatus{}, err
 	}
 	return guild.IndexStatus{
