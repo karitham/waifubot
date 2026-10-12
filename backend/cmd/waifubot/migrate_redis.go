@@ -12,10 +12,10 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/urfave/cli/v2"
 
+	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/dropstore"
-	"github.com/karitham/waifubot/tracker"
 )
 
 type InteractionDB interface {
@@ -151,13 +151,27 @@ func (m *Migrator) migrateDrop(ctx context.Context, key string) error {
 		return fmt.Errorf("failed to get drop for key %s: %w", key, err)
 	}
 
-	var data tracker.Character
+	// Legacy payloads predate the Popularity rename; keep decoding the
+	// original field names.
+	var data struct {
+		ID         int64
+		Name       string
+		ImageURL   string
+		MediaTitle string
+		Favorites  int
+	}
 	if err := cbor.Unmarshal([]byte(s), &data); err != nil {
 		return fmt.Errorf("failed to unmarshal cbor drop for key %s: %w", key, err)
 	}
 
 	sf := corde.SnowflakeFromString(idStr)
-	err = m.DropStore.Set(ctx, collection.ChannelID(sf), data.ToCatalog())
+	err = m.DropStore.Set(ctx, collection.ChannelID(sf), catalog.Character{
+		ID:         catalog.CharacterID(data.ID),
+		Name:       data.Name,
+		Image:      data.ImageURL,
+		MediaTitle: data.MediaTitle,
+		Popularity: data.Favorites,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to migrate drop for channel %s: %w", sf, err)
 	}

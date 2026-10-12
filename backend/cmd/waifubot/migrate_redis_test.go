@@ -13,7 +13,6 @@ import (
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage/dropstore"
-	"github.com/karitham/waifubot/tracker"
 )
 
 type mockRedis struct {
@@ -100,14 +99,23 @@ func TestMigrateInteractions(t *testing.T) {
 func TestMigrateDrops(t *testing.T) {
 	ctx := t.Context()
 	keys := []string{"channel:123:char"}
-	char := tracker.Character{
-		ID:          1,
-		Name:        "Test Char",
-		ImageURL:    "http://example.com/img.png",
-		Description: "Desc",
-		MediaTitle:  "Media",
+
+	// The payload was written before the Popularity rename, so the key
+	// must stay Favorites.
+	legacy := struct {
+		ID         int64
+		Name       string
+		ImageURL   string
+		MediaTitle string
+		Favorites  int
+	}{
+		ID:         1,
+		Name:       "Test Char",
+		ImageURL:   "http://example.com/img.png",
+		MediaTitle: "Media",
+		Favorites:  4242,
 	}
-	data, _ := cbor.Marshal(char)
+	data, _ := cbor.Marshal(legacy)
 
 	mr := &mockRedis{
 		scanFunc: func(ctx context.Context, cursor uint64, match string, count int64) *redis.ScanCmd {
@@ -139,6 +147,7 @@ func TestMigrateDrops(t *testing.T) {
 	err := m.MigrateDrops(ctx)
 	assert.NoError(t, err)
 
-	assert.Equal(t, char.ID, capturedDrop.ID)
-	assert.Equal(t, char.Name, capturedDrop.Name)
+	assert.Equal(t, int64(1), int64(capturedDrop.ID))
+	assert.Equal(t, "Test Char", capturedDrop.Name)
+	assert.Equal(t, 4242, capturedDrop.Popularity)
 }
