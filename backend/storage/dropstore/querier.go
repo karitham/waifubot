@@ -11,6 +11,8 @@ import (
 type Querier interface {
 	DeleteDrop(ctx context.Context, channelID uint64) error
 	GetDrop(ctx context.Context, channelID uint64) (Character, error)
+	// FOR UPDATE OF cd locks only the drop row; the character row is read, not
+	// held, so inserts that reference it do not wait.
 	GetDropForUpdate(ctx context.Context, channelID uint64) (Character, error)
 	SetDrop(ctx context.Context, arg SetDropParams) error
 	UpsertCharacter(ctx context.Context, arg UpsertCharacterParams) error

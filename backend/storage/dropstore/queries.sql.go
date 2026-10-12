@@ -59,9 +59,11 @@ FROM
   JOIN characters c ON cd.character_id = c.id
 WHERE
   cd.channel_id = $1
-FOR UPDATE
+FOR UPDATE OF cd
 `
 
+// FOR UPDATE OF cd locks only the drop row; the character row is read, not
+// held, so inserts that reference it do not wait.
 func (q *Queries) GetDropForUpdate(ctx context.Context, channelID uint64) (Character, error) {
 	row := q.db.QueryRow(ctx, getDropForUpdate, channelID)
 	var i Character
