@@ -19,13 +19,14 @@ func Give(ctx context.Context, store DB, from, to UserID, charID catalog.Charact
 			return fmt.Errorf("error checking ownership: %w", err)
 		}
 
-		if _, err := tx.GetOwnedCharacter(ctx, to, charID); err == nil {
+		_, err := tx.GetOwnedCharacter(ctx, to, charID)
+		if err == nil {
 			return fmt.Errorf("%w %d", ErrAlreadyOwned, charID)
-		} else if !errors.Is(err, ErrNotFound) {
+		}
+		if !errors.Is(err, ErrNotFound) {
 			return fmt.Errorf("error checking recipient ownership: %w", err)
 		}
 
-		var err error
 		given, err = tx.GiveCharacter(ctx, from, to, charID)
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {

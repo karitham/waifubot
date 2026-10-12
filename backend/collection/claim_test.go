@@ -207,16 +207,15 @@ func TestGive(t *testing.T) {
 	dbErr := errors.New("database on fire")
 
 	tests := []struct {
-		name        string
-		setup       func(m *collectiontest.MockStore)
-		from        collection.UserID
-		to          collection.UserID
-		charID      catalog.CharacterID
-		wantErr     bool
-		wantErrIs   error
-		errContains string
-		wantSource  collection.Source
-		wantUserID  collection.UserID
+		name       string
+		setup      func(m *collectiontest.MockStore)
+		from       collection.UserID
+		to         collection.UserID
+		charID     catalog.CharacterID
+		wantErr    bool
+		wantErrIs  error
+		wantSource collection.Source
+		wantUserID collection.UserID
 	}{
 		{
 			name: "success",
@@ -251,11 +250,11 @@ func TestGive(t *testing.T) {
 					return collection.OwnedCharacter{}, collection.ErrNotFound
 				}
 			},
-			from:        123,
-			to:          456,
-			charID:      1,
-			wantErr:     true,
-			errContains: "does not own",
+			from:      123,
+			to:        456,
+			charID:    1,
+			wantErr:   true,
+			wantErrIs: collection.ErrUserDoesNotOwnCharacter,
 		},
 		{
 			name: "target_already_owns",
@@ -266,12 +265,11 @@ func TestGive(t *testing.T) {
 					}, nil
 				}
 			},
-			from:        123,
-			to:          456,
-			charID:      1,
-			wantErr:     true,
-			wantErrIs:   collection.ErrAlreadyOwned,
-			errContains: "already in collection",
+			from:      123,
+			to:        456,
+			charID:    1,
+			wantErr:   true,
+			wantErrIs: collection.ErrAlreadyOwned,
 		},
 		{
 			name: "recipient_lookup_fails",
@@ -342,9 +340,6 @@ func TestGive(t *testing.T) {
 				require.Error(t, err)
 				if tt.wantErrIs != nil {
 					require.ErrorIs(t, err, tt.wantErrIs)
-				}
-				if tt.errContains != "" {
-					assert.Contains(t, err.Error(), tt.errContains)
 				}
 				assert.Equal(t, 1, store.RollbackCalls)
 				return
