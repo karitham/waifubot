@@ -26,6 +26,6 @@ var SearchAnimeCommand = &cli.Command{
 			return fmt.Errorf("error searching anime: %w", err)
 		}
 
-		return json.NewEncoder(os.Stdout).Encode(media)
+		return json.NewEncoder(os.Stdout).Encode(mediaViews(media))
 	},
 }

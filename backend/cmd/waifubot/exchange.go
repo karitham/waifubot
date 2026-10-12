@@ -43,7 +43,7 @@ var ExchangeCommand = &cli.Command{
 		}
 
 		result := map[string]any{
-			"exchanged_character": char,
+			"exchanged_character": ownedCharacterView(char),
 			"message":             fmt.Sprintf("Exchanged %s for a token", char.Name),
 		}
 

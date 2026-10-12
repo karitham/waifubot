@@ -46,7 +46,7 @@ var VerifyCommand = &cli.Command{
 			"has": has,
 		}
 		if has {
-			result["character"] = char
+			result["character"] = characterView(char)
 		}
 
 		return json.NewEncoder(os.Stdout).Encode(result)

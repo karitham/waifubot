@@ -45,6 +45,6 @@ var RollCommand = &cli.Command{
 			return fmt.Errorf("error rolling: %w", err)
 		}
 
-		return json.NewEncoder(os.Stdout).Encode(char)
+		return json.NewEncoder(os.Stdout).Encode(characterView(char))
 	},
 }

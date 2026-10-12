@@ -39,6 +39,6 @@ var ProfileCommand = &cli.Command{
 			return fmt.Errorf("error getting profile: %w", err)
 		}
 
-		return json.NewEncoder(os.Stdout).Encode(profile)
+		return json.NewEncoder(os.Stdout).Encode(profileView(profile))
 	},
 }

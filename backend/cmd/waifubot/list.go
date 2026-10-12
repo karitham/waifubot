@@ -39,6 +39,10 @@ var ListCommand = &cli.Command{
 			return fmt.Errorf("error listing characters: %w", err)
 		}
 
-		return json.NewEncoder(os.Stdout).Encode(characters)
+		views := make([]cliOwnedCharacter, len(characters))
+		for i, c := range characters {
+			views[i] = ownedCharacterView(c)
+		}
+		return json.NewEncoder(os.Stdout).Encode(views)
 	},
 }

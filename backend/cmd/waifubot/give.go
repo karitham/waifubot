@@ -55,6 +55,6 @@ var GiveCommand = &cli.Command{
 			return fmt.Errorf("error giving: %w", err)
 		}
 
-		return json.NewEncoder(os.Stdout).Encode(char)
+		return json.NewEncoder(os.Stdout).Encode(ownedCharacterView(char))
 	},
 }

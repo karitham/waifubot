@@ -26,6 +26,6 @@ var SearchMangaCommand = &cli.Command{
 			return fmt.Errorf("error searching manga: %w", err)
 		}
 
-		return json.NewEncoder(os.Stdout).Encode(media)
+		return json.NewEncoder(os.Stdout).Encode(mediaViews(media))
 	},
 }
