@@ -37,7 +37,7 @@ var HoldersCommand = &cli.Command{
 		}
 
 		collStore := pg.NewPool(store)
-		charName, holderIDs, err := guild.CharacterHolders(ctx, collStore, collStore, guild.ID(guildID), catalog.CharacterID(charID))
+		charName, holderIDs, err := guild.CharacterHolders(ctx, collStore, guild.ID(guildID), catalog.CharacterID(charID))
 		if err != nil {
 			return fmt.Errorf("failed to get character holders: %w", err)
 		}

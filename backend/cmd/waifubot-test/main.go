@@ -215,22 +215,23 @@ func runTestHarness(c *cli.Context) error {
 	}
 
 	// Create bot with fake AnimeService
-	router := discord.New(&discord.Router{
-		Store:             db,
-		CommandStore:      db,
-		AnimeService:      fakeService,
-		InterStore:        db,
-		GuildIndexer:      guild.NewIndexer(pg.NewGuildDB(store), guild.NewDiscordFetcher(botToken)),
-		GuildOps:          db,
+	mux, err := discord.New(ctx, discord.Config{
 		AppID:             corde.Snowflake(appID),
 		GuildID:           nil,
 		BotToken:          botToken,
 		PublicKey:         publicKey,
-		RollCooldown:      c.Duration(flags.RollCooldownFlag.Name),
+		RollConfig:        collection.Config{RollCooldown: c.Duration(flags.RollCooldownFlag.Name), SeriesRollCost: seriesRollCost},
 		InteractionNeeded: c.Int64("interaction-needed"),
-		SeriesRollCost:    seriesRollCost,
+	}, discord.Deps{
+		Store:        db,
+		CommandStore: db,
+		AnimeService: fakeService,
+		Interactions: db,
+		GuildIndexer: guild.NewIndexer(pg.NewGuildDB(store), guild.NewDiscordFetcher(botToken)),
 	})
-	mux := router.Register()
+	if err != nil {
+		return fmt.Errorf("error starting discord bot: %w", err)
+	}
 
 	// Create HTTP server
 	portNum, err := strconv.Atoi(c.String(portFlag.Name))

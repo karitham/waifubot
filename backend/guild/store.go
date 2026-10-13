@@ -34,6 +34,13 @@ type Reader interface {
 	GetCharacterHoldersInGuild(ctx context.Context, guildID ID, charID catalog.CharacterID) ([]MemberID, error)
 }
 
+// CharacterStore reads guild indexing state plus the character a holder
+// lookup names.
+type CharacterStore interface {
+	Reader
+	GetCharacterByID(ctx context.Context, charID catalog.CharacterID) (catalog.Character, error)
+}
+
 // Writer holds the indexing writes; all run inside a transaction.
 type Writer interface {
 	StartIndexingJob(ctx context.Context, guildID ID) error

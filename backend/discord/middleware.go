@@ -8,6 +8,12 @@ import (
 	"github.com/Karitham/corde"
 )
 
+// slashHandler is the handler shape for one slash command route.
+type slashHandler = func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData])
+
+// slashMiddleware wraps a slash command handler with another layer.
+type slashMiddleware = func(next slashHandler) slashHandler
+
 // interaction middleware — increments interaction count and checks for drop trigger.
 func interact[T corde.InteractionDataConstraint](inter InteractionStore, interact func(ctx context.Context, count int64, i *corde.Interaction[T])) func(func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T])) func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]) {
 	return func(next func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T])) func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]) {

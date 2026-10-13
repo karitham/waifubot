@@ -98,22 +98,23 @@ var RunCommand = &cli.Command{
 		}
 
 		slog.Info("Starting WaifuBot", "port", c.String("port"), "app_id", c.String("app-id"), "api_enabled", c.Bool(apiFlag.Name))
-		router := discord.New(&discord.Router{
-			Store:             db,
-			CommandStore:      db,
-			AnimeService:      anilistClient,
-			InterStore:        db,
-			GuildIndexer:      guild.NewIndexer(pg.NewGuildDB(store), guild.NewDiscordFetcher(c.String(botTokenFlag.Name))),
-			GuildOps:          db,
+		mux, err := discord.New(ctx, discord.Config{
 			AppID:             corde.Snowflake(c.Uint64("app-id")),
 			GuildID:           guildID,
 			BotToken:          c.String(botTokenFlag.Name),
 			PublicKey:         c.String("public-key"),
-			RollCooldown:      c.Duration(rollCooldownFlag.Name),
+			RollConfig:        collection.Config{RollCooldown: c.Duration(rollCooldownFlag.Name), SeriesRollCost: seriesRollCost},
 			InteractionNeeded: c.Int64("interaction-needed"),
-			SeriesRollCost:    seriesRollCost,
+		}, discord.Deps{
+			Store:        db,
+			CommandStore: db,
+			AnimeService: anilistClient,
+			Interactions: db,
+			GuildIndexer: guild.NewIndexer(pg.NewGuildDB(store), guild.NewDiscordFetcher(c.String(botTokenFlag.Name))),
 		})
-		mux := router.Register()
+		if err != nil {
+			return fmt.Errorf("error starting discord bot: %w", err)
+		}
 
 		// Start background sync worker if enabled
 		if c.Bool("sync") {

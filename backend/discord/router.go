@@ -2,8 +2,9 @@ package discord
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/Karitham/corde"
 	"github.com/prometheus/client_golang/prometheus"
@@ -50,110 +51,119 @@ type InteractionStore interface {
 	Reset(ctx context.Context, channelID corde.Snowflake) error
 }
 
-// Router holds the infrastructure needed to wire command handlers.
-type Router struct {
-	mux               *corde.Mux
-	Store             collection.DB
-	CommandStore      CommandStore
-	AnimeService      tracker.Service
-	InterStore        InteractionStore
-	GuildIndexer      *guild.Indexer
-	GuildOps          guild.Reader
+// Config is the bot's Discord identity and command tuning, set from CLI flags.
+type Config struct {
 	AppID             corde.Snowflake
 	GuildID           *corde.Snowflake
 	BotToken          string
 	PublicKey         string
-	RollCooldown      time.Duration
+	RollConfig        collection.Config
 	InteractionNeeded int64
-	SeriesRollCost    collection.TokenAmount
 }
 
-// New constructs a Router with all dependencies and runs command migration.
-func New(r *Router) *Router {
-	prometheus.MustRegister(commandCounter, commandDuration)
-
-	r.MustMigrateCommands()
-
-	return r
+// Deps are the adapters the command handlers run against.
+type Deps struct {
+	Store        collection.DB
+	CommandStore CommandStore
+	AnimeService tracker.Service
+	Interactions InteractionStore
+	GuildIndexer *guild.Indexer
 }
 
-// Register sets up the mux, middleware, and all command routes.
-// Returns the configured *corde.Mux.
-func (r *Router) Register() *corde.Mux {
-	r.mux = corde.NewMux(r.PublicKey, r.AppID, r.BotToken)
-	r.mux.OnNotFound = r.RemoveUnknownCommands
+// New wires the bot: it registers the command definitions when their hash
+// changed, builds every command handler, and returns the mux serving them.
+func New(ctx context.Context, cfg Config, deps Deps) (*corde.Mux, error) {
+	if err := registerMetrics(); err != nil {
+		return nil, err
+	}
+
+	mux := corde.NewMux(cfg.PublicKey, cfg.AppID, cfg.BotToken)
+	if err := migrateCommands(ctx, mux, cfg, deps.CommandStore); err != nil {
+		return nil, err
+	}
+
+	mux.OnNotFound = removeUnknownCommands(mux, cfg.GuildID)
+
+	drops := &drops{
+		store:        deps.Store,
+		interactions: deps.Interactions,
+		mux:          mux,
+		threshold:    cfg.InteractionNeeded,
+		guildID:      cfg.GuildID,
+	}
 
 	t := trace[corde.SlashCommandInteractionData]
-	i := interact(r.InterStore, r.onInteraction)
-	idx := indexMiddleware[corde.SlashCommandInteractionData](r.GuildIndexer)
+	i := interact(deps.Interactions, drops.trigger)
+	idx := indexMiddleware[corde.SlashCommandInteractionData](deps.GuildIndexer)
 
-	// Construct handlers
 	infoHandler := &InfoHandler{}
-	claimHandler := &ClaimHandler{store: r.Store}
-	listHandler := &ListHandler{store: r.Store}
-	giveHandler := &GiveHandler{store: r.Store}
-	verifyHandler := &VerifyHandler{store: r.Store, guildIndexer: r.GuildIndexer}
-	profileHandler := &ProfileHandler{store: r.Store}
+	claimHandler := &ClaimHandler{store: deps.Store}
+	listHandler := &ListHandler{store: deps.Store}
+	giveHandler := &GiveHandler{store: deps.Store}
+	verifyHandler := &VerifyHandler{store: deps.Store, guildIndexer: deps.GuildIndexer}
+	profileHandler := &ProfileHandler{store: deps.Store}
 	searchHandler := &SearchHandler{
-		animeService:  r.AnimeService,
-		interStore:    r.InterStore,
-		onInteraction: r.onInteraction,
-		guildIndexer:  r.GuildIndexer,
+		animeService: deps.AnimeService,
+		interact:     i,
+		guildIndexer: deps.GuildIndexer,
 	}
-	holdersHandler := &HoldersHandler{guildOps: r.GuildOps, store: r.Store, guildIndexer: r.GuildIndexer}
-	rollConfig := collection.Config{RollCooldown: r.RollCooldown, SeriesRollCost: r.SeriesRollCost}
+	holdersHandler := &HoldersHandler{store: deps.Store, guildIndexer: deps.GuildIndexer}
 	rollHandler := &RollHandler{
-		store:  r.Store,
-		config: rollConfig,
+		store:  deps.Store,
+		config: cfg.RollConfig,
 	}
 	tokenHandler := &TokenHandler{
-		store:        r.Store,
-		animeService: r.AnimeService,
-		config:       rollConfig,
+		store:        deps.Store,
+		animeService: deps.AnimeService,
+		config:       cfg.RollConfig,
 	}
 	wishlistHandler := &WishlistHandler{
-		store:        r.Store,
-		animeService: r.AnimeService,
-		guildIndexer: r.GuildIndexer,
+		store:        deps.Store,
+		animeService: deps.AnimeService,
+		guildIndexer: deps.GuildIndexer,
 	}
 
-	// Register routes
-	r.mux.SlashCommand("info", wrap(wrapCtx(infoHandler.Info), t))
-	r.mux.SlashCommand("claim", wrap(wrapCtx(claimHandler.Claim), t))
-	r.mux.SlashCommand("list", wrap(wrapCtx(listHandler.List), t, i, idx))
-	r.mux.Route("give", giveHandler.Register)
-	r.mux.Route("verify", verifyHandler.Register)
-	r.mux.Route("profile", profileHandler.Register)
-	r.mux.Route("search", searchHandler.Register)
-	r.mux.Route("holders", holdersHandler.Register)
-	r.mux.SlashCommand("roll", wrap(wrapCtx(rollHandler.Roll), t, i, idx))
-	r.mux.Route("token", tokenHandler.Register)
-	r.mux.Route("wishlist", wishlistHandler.Register)
+	mux.SlashCommand("info", wrap(wrapCtx(infoHandler.Info), t))
+	mux.SlashCommand("claim", wrap(wrapCtx(claimHandler.Claim), t))
+	mux.SlashCommand("list", wrap(wrapCtx(listHandler.List), t, i, idx))
+	mux.Route("give", giveHandler.Register)
+	mux.Route("verify", verifyHandler.Register)
+	mux.Route("profile", profileHandler.Register)
+	mux.Route("search", searchHandler.Register)
+	mux.Route("holders", holdersHandler.Register)
+	mux.SlashCommand("roll", wrap(wrapCtx(rollHandler.Roll), t, i, idx))
+	mux.Route("token", tokenHandler.Register)
+	mux.Route("wishlist", wishlistHandler.Register)
 
-	return r.mux
+	return mux, nil
 }
 
-func (r *Router) onInteraction(ctx context.Context, count int64, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	if count < r.InteractionNeeded {
-		return
+// registerMetrics registers the command metrics. A previous bot in the same
+// process finds them already registered and reuses them.
+func registerMetrics() error {
+	for _, c := range []prometheus.Collector{commandCounter, commandDuration} {
+		if err := prometheus.Register(c); err != nil {
+			var already prometheus.AlreadyRegisteredError
+			if !errors.As(err, &already) {
+				return fmt.Errorf("register command metrics: %w", err)
+			}
+		}
 	}
-
-	if r.GuildID != nil && *r.GuildID != i.GuildID {
-		return
-	}
-
-	_ = r.InterStore.Reset(ctx, i.ChannelID)
-	r.drop(ctx, i.ChannelID)
+	return nil
 }
 
-func (r *Router) RemoveUnknownCommands(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.JsonRaw]) {
-	slog.Error("Unknown command", "command", i.Route, "type", int(i.Type))
-	w.Respond(corde.NewResp().Content("I don't know what that means, you shouldn't be able to do that").Ephemeral())
+// removeUnknownCommands answers commands Discord sends that the bot no longer
+// defines and deletes them.
+func removeUnknownCommands(mux *corde.Mux, guildID *corde.Snowflake) func(context.Context, corde.ResponseWriter, *corde.Interaction[corde.JsonRaw]) {
+	return func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.JsonRaw]) {
+		slog.Error("Unknown command", "command", i.Route, "type", int(i.Type))
+		w.Respond(corde.NewResp().Content("I don't know what that means, you shouldn't be able to do that").Ephemeral())
 
-	var opt []func(*corde.CommandsOpt)
-	if r.GuildID != nil {
-		opt = append(opt, corde.GuildOpt(*r.GuildID))
+		var opt []func(*corde.CommandsOpt)
+		if guildID != nil {
+			opt = append(opt, corde.GuildOpt(*guildID))
+		}
+
+		_ = mux.DeleteCommand(i.ID, opt...)
 	}
-
-	_ = r.mux.DeleteCommand(i.ID, opt...)
 }

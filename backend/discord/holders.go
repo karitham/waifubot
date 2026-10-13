@@ -33,7 +33,6 @@ func indexMiddleware[T corde.InteractionDataConstraint](
 
 // HoldersHandler handles the /holders command and its autocomplete.
 type HoldersHandler struct {
-	guildOps     guild.Reader
 	store        collection.Store
 	guildIndexer *guild.Indexer
 }
@@ -69,7 +68,7 @@ func (h *HoldersHandler) Holders(ctx context.Context, w corde.ResponseWriter, cm
 		return
 	}
 
-	charName, holderIDs, err := guild.CharacterHolders(ctx, h.guildOps, h.store, cmd.GuildID(), opts.charID)
+	charName, holderIDs, err := guild.CharacterHolders(ctx, h.store, cmd.GuildID(), opts.charID)
 	if err != nil {
 		switch {
 		case errors.Is(err, guild.ErrNotInGuild):

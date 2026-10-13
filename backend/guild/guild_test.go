@@ -57,6 +57,10 @@ func (m *mockQuerier) GetCharacterHoldersInGuild(ctx context.Context, guildID gu
 	return nil, nil
 }
 
+func (m *mockQuerier) GetCharacterByID(ctx context.Context, charID catalog.CharacterID) (catalog.Character, error) {
+	return catalog.Character{}, nil
+}
+
 // mockFetcher implements guild.MemberFetcher for testing.
 type mockFetcher struct {
 	ids    []corde.Snowflake
@@ -140,11 +144,11 @@ func TestCharacterHolders_GuildNotIndexed(t *testing.T) {
 		},
 	}
 
-	_, _, err := guild.CharacterHolders(t.Context(), querier, nil, 123, 456)
+	_, _, err := guild.CharacterHolders(t.Context(), querier, 123, 456)
 	require.ErrorIs(t, err, guild.ErrNotIndexed)
 }
 
 func TestCharacterHolders_GuildIDZero(t *testing.T) {
-	_, _, err := guild.CharacterHolders(t.Context(), nil, nil, 0, 456)
+	_, _, err := guild.CharacterHolders(t.Context(), nil, 0, 456)
 	require.ErrorIs(t, err, guild.ErrNotInGuild)
 }
