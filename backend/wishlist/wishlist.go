@@ -45,8 +45,9 @@ type MediaService interface {
 }
 
 // AddMediaToWishlist adds all characters from a media to the user's wishlist,
-// filtering out owned characters. The user is materialized and the list is
-// added in one transaction.
+// filtering out characters the catalog does not know and ones the user
+// already owns. The user is materialized and the list is added in one
+// transaction.
 func AddMediaToWishlist(ctx context.Context, mediaService MediaService, store collection.DB, userID collection.UserID, mediaID tracker.MediaID) (int, error) {
 	characters, err := mediaService.GetMediaCharacters(ctx, mediaID)
 	if err != nil {
@@ -57,10 +58,22 @@ func AddMediaToWishlist(ctx context.Context, mediaService MediaService, store co
 		return 0, nil
 	}
 
-	for _, char := range characters {
-		if err := store.UpsertCharacter(ctx, char.ToCatalog()); err != nil {
-			return 0, err
-		}
+	ids := make([]catalog.CharacterID, len(characters))
+	for i, char := range characters {
+		ids[i] = char.ID
+	}
+
+	// Characters enter the catalog only through the hydrator; entries for
+	// characters it has not reached would be invisible to the reads that
+	// join characters.
+	known, err := store.KnownCharacterIDs(ctx, ids)
+	if err != nil {
+		return 0, err
+	}
+
+	knownSet := make(map[catalog.CharacterID]bool, len(known))
+	for _, id := range known {
+		knownSet[id] = true
 	}
 
 	ownedIDs, err := store.GetCollectionIDs(ctx, userID)
@@ -75,7 +88,7 @@ func AddMediaToWishlist(ctx context.Context, mediaService MediaService, store co
 
 	var characterIDs []catalog.CharacterID
 	for _, char := range characters {
-		if !ownedSet[char.ID] {
+		if knownSet[char.ID] && !ownedSet[char.ID] {
 			characterIDs = append(characterIDs, char.ID)
 		}
 	}
