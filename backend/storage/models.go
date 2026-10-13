@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.31.1
 
-package guildstore
+package storage
 
 import (
 	"database/sql/driver"
@@ -54,11 +54,51 @@ func (ns NullIndexingStatus) Value() (driver.Value, error) {
 	return string(ns.IndexingStatus), nil
 }
 
+type ChannelDrop struct {
+	ChannelID   uint64
+	CharacterID int64
+}
+
+type ChannelInteraction struct {
+	ChannelID        uint64
+	InteractionCount int64
+}
+
+type Character struct {
+	ID         int64
+	Name       string
+	Image      string
+	MediaTitle string
+	Favorites  int32
+	UpdatedAt  pgtype.Timestamp
+	IsActive   bool
+}
+
+type CharacterWishlist struct {
+	UserID      uint64
+	CharacterID int64
+	CreatedAt   pgtype.Timestamp
+}
+
+type CharactersBackup struct {
+	UserID int64
+	ID     int64
+	Image  string
+	Name   string
+	Date   pgtype.Timestamp
+	Type   string
+}
+
 type Collection struct {
 	UserID      uint64
 	CharacterID int64
 	Source      string
 	AcquiredAt  pgtype.Timestamp
+}
+
+type CommandMigration struct {
+	Hash       string
+	DeployedAt pgtype.Timestamp
 }
 
 type GuildIndexingJob struct {
@@ -71,4 +111,21 @@ type GuildMember struct {
 	GuildID   uint64
 	UserID    uint64
 	IndexedAt pgtype.Timestamp
+}
+
+type SchemaMigration struct {
+	Version string
+}
+
+type User struct {
+	ID              int32
+	UserID          uint64
+	Quote           string
+	Date            pgtype.Timestamp
+	Favorite        pgtype.Int8
+	Tokens          int32
+	AnilistUrl      string
+	DiscordUsername string
+	DiscordAvatar   string
+	LastUpdated     pgtype.Timestamp
 }

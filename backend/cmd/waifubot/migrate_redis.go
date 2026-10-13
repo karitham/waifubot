@@ -78,7 +78,7 @@ var MigrateRedisCommand = &cli.Command{
 
 		m := &Migrator{
 			Redis:     rdb,
-			DropStore: droppg.New(store.DropStore()),
+			DropStore: droppg.New(store.Querier()),
 			Catalog:   newCatalogStore(store),
 			DB:        store.DB(),
 		}

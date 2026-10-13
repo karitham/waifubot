@@ -10,11 +10,10 @@ import (
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/collectionwire"
 	"github.com/karitham/waifubot/storage"
-	"github.com/karitham/waifubot/storage/guildstore"
 )
 
 // seedCharacter inserts a character into the characters table using raw SQL.
-func seedCharacter(ctx context.Context, store *storage.DBStore, charID int64, charName, charImage string) error {
+func seedCharacter(ctx context.Context, store storage.Store, charID int64, charName, charImage string) error {
 	_, err := store.DB().Exec(ctx, `
 		INSERT INTO characters (id, name, image)
 		VALUES ($1, $2, $3)
@@ -24,7 +23,7 @@ func seedCharacter(ctx context.Context, store *storage.DBStore, charID int64, ch
 }
 
 // seedWishlistUsers adds characters to the wishlist for the specified user IDs.
-func seedWishlistUsers(ctx context.Context, store *storage.DBStore, userIDs []uint64, charID int64) error {
+func seedWishlistUsers(ctx context.Context, store storage.Store, userIDs []uint64, charID int64) error {
 	db := collectionwire.NewDB(store)
 	for _, userID := range userIDs {
 		_, err := collection.AddToWishlist(ctx, db, collection.UserID(userID), []catalog.CharacterID{catalog.CharacterID(charID)})
@@ -36,7 +35,7 @@ func seedWishlistUsers(ctx context.Context, store *storage.DBStore, userIDs []ui
 }
 
 // seedGuildMembers inserts guild members into the guild_members table.
-func seedGuildMembers(ctx context.Context, store *storage.DBStore, guildID uint64, memberIDs []uint64) error {
+func seedGuildMembers(ctx context.Context, store storage.Store, guildID uint64, memberIDs []uint64) error {
 	if guildID == 0 || len(memberIDs) == 0 {
 		return nil
 	}
@@ -47,7 +46,7 @@ func seedGuildMembers(ctx context.Context, store *storage.DBStore, guildID uint6
 		int64MemberIDs[i] = int64(id)
 	}
 
-	return store.GuildStore().UpsertGuildMembers(ctx, guildstore.UpsertGuildMembersParams{
+	return store.Querier().UpsertGuildMembers(ctx, storage.UpsertGuildMembersParams{
 		GuildID:   guildID,
 		Column2:   int64MemberIDs,
 		IndexedAt: pgtype.Timestamp{Time: time.Now(), Valid: true},

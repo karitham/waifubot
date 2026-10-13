@@ -6,18 +6,18 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/karitham/waifubot/guild"
-	"github.com/karitham/waifubot/storage/guildstore"
+	"github.com/karitham/waifubot/storage"
 )
 
 func TestToIndexingStatus(t *testing.T) {
 	tests := []struct {
 		name  string
-		input guildstore.IndexingStatus
+		input storage.IndexingStatus
 		want  guild.IndexingStatus
 	}{
-		{name: "completed", input: guildstore.IndexingStatusCompleted, want: guild.IndexingCompleted},
-		{name: "in progress", input: guildstore.IndexingStatusInProgress, want: guild.IndexingInProgress},
-		{name: "pending", input: guildstore.IndexingStatusPending, want: guild.IndexingPending},
+		{name: "completed", input: storage.IndexingStatusCompleted, want: guild.IndexingCompleted},
+		{name: "in progress", input: storage.IndexingStatusInProgress, want: guild.IndexingInProgress},
+		{name: "pending", input: storage.IndexingStatusPending, want: guild.IndexingPending},
 		{name: "empty", input: "", want: guild.IndexingPending},
 		{name: "unknown", input: "unknown_status", want: guild.IndexingPending},
 	}

@@ -10,14 +10,14 @@ import (
 
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/guild"
-	"github.com/karitham/waifubot/storage/guildstore"
+	"github.com/karitham/waifubot/storage"
 )
 
 type Pg struct {
-	Q guildstore.Querier
+	Q storage.Querier
 }
 
-func New(q guildstore.Querier) *Pg {
+func New(q storage.Querier) *Pg {
 	return &Pg{Q: q}
 }
 
@@ -37,11 +37,11 @@ func (p *Pg) IsGuildIndexed(ctx context.Context, guildID guild.ID) (guild.IndexS
 }
 
 // toIndexingStatus maps a stored indexing status to the domain type.
-func toIndexingStatus(status guildstore.IndexingStatus) guild.IndexingStatus {
+func toIndexingStatus(status storage.IndexingStatus) guild.IndexingStatus {
 	switch status {
-	case guildstore.IndexingStatusCompleted:
+	case storage.IndexingStatusCompleted:
 		return guild.IndexingCompleted
-	case guildstore.IndexingStatusInProgress:
+	case storage.IndexingStatusInProgress:
 		return guild.IndexingInProgress
 	default:
 		return guild.IndexingPending
@@ -61,7 +61,7 @@ func (p *Pg) UpsertGuildMembers(ctx context.Context, guildID guild.ID, memberIDs
 	for i, id := range memberIDs {
 		ids[i] = int64(id)
 	}
-	return p.Q.UpsertGuildMembers(ctx, guildstore.UpsertGuildMembersParams{
+	return p.Q.UpsertGuildMembers(ctx, storage.UpsertGuildMembersParams{
 		GuildID:   uint64(guildID),
 		Column2:   ids,
 		IndexedAt: pgtype.Timestamp{Time: indexedAt.UTC(), Valid: true},
@@ -73,14 +73,14 @@ func (p *Pg) DeleteGuildMembersNotIn(ctx context.Context, guildID guild.ID, memb
 	for i, id := range memberIDs {
 		ids[i] = int64(id)
 	}
-	return p.Q.DeleteGuildMembersNotIn(ctx, guildstore.DeleteGuildMembersNotInParams{
+	return p.Q.DeleteGuildMembersNotIn(ctx, storage.DeleteGuildMembersNotInParams{
 		GuildID: uint64(guildID),
 		Column2: ids,
 	})
 }
 
 func (p *Pg) GetCharacterHoldersInGuild(ctx context.Context, guildID guild.ID, charID catalog.CharacterID) ([]guild.MemberID, error) {
-	holders, err := p.Q.UsersOwningCharInGuild(ctx, guildstore.UsersOwningCharInGuildParams{
+	holders, err := p.Q.UsersOwningCharInGuild(ctx, storage.UsersOwningCharInGuildParams{
 		CharacterID: int64(charID),
 		GuildID:     uint64(guildID),
 	})

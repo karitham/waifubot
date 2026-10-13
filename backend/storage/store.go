@@ -9,48 +9,30 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/tracelog"
-
-	"github.com/karitham/waifubot/storage/collectionstore"
-	"github.com/karitham/waifubot/storage/commandstore"
-	"github.com/karitham/waifubot/storage/dropstore"
-	"github.com/karitham/waifubot/storage/guildstore"
-	"github.com/karitham/waifubot/storage/interactionstore"
-	"github.com/karitham/waifubot/storage/userstore"
-	"github.com/karitham/waifubot/storage/wishliststore"
 )
 
 type TXer interface {
 	Begin(context.Context) (pgx.Tx, error)
-	userstore.DBTX
+	DBTX
 }
 
+// Store is the database handle: queries, the raw connection, and transaction
+// creation. A Store returned by Tx is scoped to that transaction.
 type Store interface {
+	Querier() Querier
 	DB() TXer
-	InteractionStore() interactionstore.Querier
-	DropStore() dropstore.Querier
-	UserStore() userstore.Querier
-	CollectionStore() collectionstore.Querier
-	GuildStore() guildstore.Querier
-	WishlistStore() wishliststore.Querier
-	CommandStore() commandstore.Querier
 	Tx(ctx context.Context) (Store, error)
 	Commit(ctx context.Context) error
 	Rollback(ctx context.Context) error
 }
 
 type DBStore struct {
-	interactionStore *interactionstore.Queries
-	dropStore        *dropstore.Queries
-	userStore        *userstore.Queries
-	collectionStore  *collectionstore.Queries
-	guildStore       *guildstore.Queries
-	wishlistStore    *wishliststore.Queries
-	commandStore     *commandstore.Queries
-	db               TXer
-	tx               pgx.Tx
+	q  *Queries
+	db TXer
+	tx pgx.Tx
 }
 
-func NewStore(ctx context.Context, url string) (*DBStore, error) {
+func NewStore(ctx context.Context, url string) (Store, error) {
 	cfg, err := pgxpool.ParseConfig(url)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't parse connect url: %w", err)
@@ -71,29 +53,14 @@ func NewStore(ctx context.Context, url string) (*DBStore, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	return &DBStore{
-		userStore:        userstore.New(conn),
-		collectionStore:  collectionstore.New(conn),
-		guildStore:       guildstore.New(conn),
-		wishlistStore:    wishliststore.New(conn),
-		commandStore:     commandstore.New(conn),
-		db:               conn,
-		interactionStore: interactionstore.New(conn),
-		dropStore:        dropstore.New(conn),
-	}, nil
+	return &DBStore{q: New(conn), db: conn}, nil
 }
 
 func (s *DBStore) withTx(tx pgx.Tx) *DBStore {
 	return &DBStore{
-		userStore:        s.userStore.WithTx(tx),
-		collectionStore:  s.collectionStore.WithTx(tx),
-		guildStore:       s.guildStore.WithTx(tx),
-		wishlistStore:    s.wishlistStore.WithTx(tx),
-		commandStore:     s.commandStore.WithTx(tx),
-		db:               tx,
-		interactionStore: s.interactionStore.WithTx(tx),
-		dropStore:        s.dropStore.WithTx(tx),
-		tx:               tx,
+		q:  s.q.WithTx(tx),
+		db: tx,
+		tx: tx,
 	}
 }
 
@@ -116,7 +83,6 @@ func (l *Logger) Log(ctx context.Context, level tracelog.LogLevel, msg string, d
 
 	m := strings.ReplaceAll(msg, "\n", " ")
 	formattedMsg := strings.ReplaceAll(m, "\t", " ")
-
 	logger.LogAttrs(ctx, translateLevel(level), formattedMsg, attrs...)
 }
 
@@ -137,36 +103,12 @@ func translateLevel(level tracelog.LogLevel) slog.Level {
 	}
 }
 
-func (s *DBStore) UserStore() userstore.Querier {
-	return s.userStore
-}
-
-func (s *DBStore) CollectionStore() collectionstore.Querier {
-	return s.collectionStore
-}
-
-func (s *DBStore) GuildStore() guildstore.Querier {
-	return s.guildStore
-}
-
-func (s *DBStore) WishlistStore() wishliststore.Querier {
-	return s.wishlistStore
-}
-
-func (s *DBStore) InteractionStore() interactionstore.Querier {
-	return s.interactionStore
-}
-
-func (s *DBStore) DropStore() dropstore.Querier {
-	return s.dropStore
+func (s *DBStore) Querier() Querier {
+	return s.q
 }
 
 func (s *DBStore) DB() TXer {
 	return s.db
-}
-
-func (s *DBStore) CommandStore() commandstore.Querier {
-	return s.commandStore
 }
 
 func (s *DBStore) Tx(ctx context.Context) (Store, error) {

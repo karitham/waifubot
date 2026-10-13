@@ -6,14 +6,14 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/karitham/waifubot/storage/commandstore"
+	"github.com/karitham/waifubot/storage"
 )
 
 type Pg struct {
-	Q commandstore.Querier
+	Q storage.Querier
 }
 
-func New(q commandstore.Querier) *Pg {
+func New(q storage.Querier) *Pg {
 	return &Pg{Q: q}
 }
 

@@ -12,23 +12,19 @@ import (
 
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
-	"github.com/karitham/waifubot/storage/collectionstore"
-	"github.com/karitham/waifubot/storage/userstore"
-	"github.com/karitham/waifubot/storage/wishliststore"
+	"github.com/karitham/waifubot/storage"
 )
 
 type Pg struct {
-	C collectionstore.Querier
-	W wishliststore.Querier
-	U userstore.Querier
+	q storage.Querier
 }
 
-func New(c collectionstore.Querier, w wishliststore.Querier, u userstore.Querier) *Pg {
-	return &Pg{C: c, W: w, U: u}
+func New(q storage.Querier) *Pg {
+	return &Pg{q: q}
 }
 
 func (p *Pg) GetCollection(ctx context.Context, userID collection.UserID) ([]collection.OwnedCharacter, error) {
-	rows, err := p.C.List(ctx, uint64(userID))
+	rows, err := p.q.List(ctx, uint64(userID))
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +41,7 @@ func (p *Pg) GetCollection(ctx context.Context, userID collection.UserID) ([]col
 }
 
 func (p *Pg) GetCollectionIDs(ctx context.Context, userID collection.UserID) ([]catalog.CharacterID, error) {
-	ids, err := p.C.ListIDs(ctx, uint64(userID))
+	ids, err := p.q.ListIDs(ctx, uint64(userID))
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +54,7 @@ func (p *Pg) GetCollectionIDs(ctx context.Context, userID collection.UserID) ([]
 }
 
 func (p *Pg) GetOwnedCharacter(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
-	row, err := p.C.Get(ctx, collectionstore.GetParams{ID: int64(charID), UserID: uint64(userID)})
+	row, err := p.q.GetCollection(ctx, storage.GetCollectionParams{ID: int64(charID), UserID: uint64(userID)})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return collection.OwnedCharacter{}, collection.ErrNotFound
@@ -74,7 +70,7 @@ func (p *Pg) GetOwnedCharacter(ctx context.Context, userID collection.UserID, ch
 }
 
 func (p *Pg) AddToCollection(ctx context.Context, userID collection.UserID, charID catalog.CharacterID, source collection.Source, acquiredAt time.Time) error {
-	_, err := p.C.Insert(ctx, collectionstore.InsertParams{
+	_, err := p.q.Insert(ctx, storage.InsertParams{
 		UserID:      uint64(userID),
 		CharacterID: int64(charID),
 		Source:      string(source),
@@ -91,7 +87,7 @@ func (p *Pg) AddToCollection(ctx context.Context, userID collection.UserID, char
 }
 
 func (p *Pg) RemoveFromCollection(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
-	_, err := p.C.Delete(ctx, collectionstore.DeleteParams{UserID: uint64(userID), CharacterID: int64(charID)})
+	_, err := p.q.Delete(ctx, storage.DeleteParams{UserID: uint64(userID), CharacterID: int64(charID)})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return collection.ErrNotFound
@@ -103,7 +99,7 @@ func (p *Pg) RemoveFromCollection(ctx context.Context, userID collection.UserID,
 }
 
 func (p *Pg) GiveCharacter(ctx context.Context, from, to collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
-	col, err := p.C.Give(ctx, collectionstore.GiveParams{
+	col, err := p.q.Give(ctx, storage.GiveParams{
 		UserID:      uint64(to),
 		CharacterID: int64(charID),
 		UserID_2:    uint64(from),
@@ -124,7 +120,7 @@ func (p *Pg) GiveCharacter(ctx context.Context, from, to collection.UserID, char
 		return collection.OwnedCharacter{}, err
 	}
 
-	charRow, err := p.C.GetByID(ctx, int64(charID))
+	charRow, err := p.q.GetByID(ctx, int64(charID))
 	if err != nil {
 		return collection.OwnedCharacter{}, err
 	}
@@ -139,7 +135,7 @@ func (p *Pg) GiveCharacter(ctx context.Context, from, to collection.UserID, char
 
 // clearFavorite removes the character as the user's favorite when it is.
 func (p *Pg) clearFavorite(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
-	return p.U.ClearFavorite(ctx, userstore.ClearFavoriteParams{
+	return p.q.ClearFavorite(ctx, storage.ClearFavoriteParams{
 		UserID:   uint64(userID),
 		Favorite: pgtype.Int8{Int64: int64(charID), Valid: true},
 	})
@@ -151,7 +147,7 @@ func (p *Pg) SetFavorite(ctx context.Context, userID collection.UserID, charID c
 		favorite = pgtype.Int8{Int64: int64(charID), Valid: true}
 	}
 
-	rows, err := p.C.SetFavoriteIfOwned(ctx, collectionstore.SetFavoriteIfOwnedParams{
+	rows, err := p.q.SetFavoriteIfOwned(ctx, storage.SetFavoriteIfOwnedParams{
 		UserID:      uint64(userID),
 		CharacterID: int64(charID),
 		Favorite:    favorite,
@@ -165,7 +161,7 @@ func (p *Pg) SetFavorite(ctx context.Context, userID collection.UserID, charID c
 
 	// No row updated: either the user is missing or the character is not
 	// in their collection.
-	if _, err := p.U.Get(ctx, uint64(userID)); err != nil {
+	if _, err := p.q.GetUser(ctx, uint64(userID)); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return collection.ErrNotFound
 		}
@@ -175,11 +171,11 @@ func (p *Pg) SetFavorite(ctx context.Context, userID collection.UserID, charID c
 }
 
 func (p *Pg) CountCollection(ctx context.Context, userID collection.UserID) (int64, error) {
-	return p.C.Count(ctx, uint64(userID))
+	return p.q.Count(ctx, uint64(userID))
 }
 
 func (p *Pg) SearchCharacters(ctx context.Context, userID collection.UserID, term string) ([]catalog.Character, error) {
-	rows, err := p.C.SearchCharacters(ctx, collectionstore.SearchCharactersParams{
+	rows, err := p.q.SearchCharacters(ctx, storage.SearchCharactersParams{
 		UserID: uint64(userID),
 		Term:   term,
 		Lim:    25,
@@ -202,14 +198,14 @@ func (p *Pg) SearchCharacters(ctx context.Context, userID collection.UserID, ter
 }
 
 func (p *Pg) RemoveFromWishlist(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
-	return p.W.RemoveCharactersFromWishlist(ctx, wishliststore.RemoveCharactersFromWishlistParams{
+	return p.q.RemoveCharactersFromWishlist(ctx, storage.RemoveCharactersFromWishlistParams{
 		UserID:  uint64(userID),
 		Column2: []int64{int64(charID)},
 	})
 }
 
 func (p *Pg) RemoveAllFromWishlist(ctx context.Context, userID collection.UserID) error {
-	return p.W.RemoveAllFromWishlist(ctx, uint64(userID))
+	return p.q.RemoveAllFromWishlist(ctx, uint64(userID))
 }
 
 func (p *Pg) AddCharactersToWishlist(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) (int64, error) {
@@ -218,14 +214,14 @@ func (p *Pg) AddCharactersToWishlist(ctx context.Context, userID collection.User
 		ids[i] = int64(id)
 	}
 
-	return p.W.AddCharactersToWishlist(ctx, wishliststore.AddCharactersToWishlistParams{
+	return p.q.AddCharactersToWishlist(ctx, storage.AddCharactersToWishlistParams{
 		UserID:  uint64(userID),
 		Column2: ids,
 	})
 }
 
 func (p *Pg) RandomCharNotOwned(ctx context.Context, userID collection.UserID, weightExponent float64) (catalog.Character, error) {
-	c, err := p.C.RandomCharNotOwned(ctx, collectionstore.RandomCharNotOwnedParams{
+	c, err := p.q.RandomCharNotOwned(ctx, storage.RandomCharNotOwnedParams{
 		UserID:         uint64(userID),
 		WeightExponent: weightExponent,
 	})
@@ -245,7 +241,7 @@ func (p *Pg) RandomCharNotOwned(ctx context.Context, userID collection.UserID, w
 }
 
 func (p *Pg) RandomActiveChar(ctx context.Context, weightExponent float64) (catalog.Character, error) {
-	c, err := p.C.RandomActiveChar(ctx, weightExponent)
+	c, err := p.q.RandomActiveChar(ctx, weightExponent)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return catalog.Character{}, collection.ErrNotFound

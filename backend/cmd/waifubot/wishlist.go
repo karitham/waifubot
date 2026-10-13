@@ -113,7 +113,7 @@ var WishlistCommand = &cli.Command{
 					return fmt.Errorf("error connecting to db: %w", err)
 				}
 
-				wishlistStore := wishlistpg.New(store.WishlistStore())
+				wishlistStore := wishlistpg.New(store.Querier())
 				chars, err := wishlistStore.GetUserCharacterWishlist(ctx, collection.UserID(userID))
 				if err != nil {
 					return fmt.Errorf("error getting user wishlist: %w", err)
@@ -151,7 +151,7 @@ var WishlistCommand = &cli.Command{
 					return fmt.Errorf("error connecting to db: %w", err)
 				}
 
-				wishlistStore := wishlistpg.New(store.WishlistStore())
+				wishlistStore := wishlistpg.New(store.Querier())
 				wishlist, err := wishlistStore.GetUserCharacterWishlist(ctx, collection.UserID(userID))
 				if err != nil {
 					return fmt.Errorf("error getting wishlist: %w", err)
@@ -198,7 +198,7 @@ var WishlistCommand = &cli.Command{
 					return fmt.Errorf("error connecting to db: %w", err)
 				}
 
-				wishlistStore := wishlistpg.New(store.WishlistStore())
+				wishlistStore := wishlistpg.New(store.Querier())
 				wanted, err := wishlistStore.GetWantedCharacters(ctx, collection.UserID(userID), 0)
 				if err != nil {
 					return fmt.Errorf("error getting wanted characters: %w", err)

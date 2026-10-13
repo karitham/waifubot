@@ -21,7 +21,6 @@ import (
 	"github.com/karitham/waifubot/collectionwire"
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/storage"
-	"github.com/karitham/waifubot/storage/userstore"
 	"github.com/karitham/waifubot/storage/wishlistpg"
 )
 
@@ -224,29 +223,29 @@ func TestIntegration_Transaction(t *testing.T) {
 	require.NoError(t, err)
 	ctx := t.Context()
 
-	require.NoError(t, dbStore.UserStore().Create(ctx, uint64(uid)))
+	require.NoError(t, dbStore.Querier().Create(ctx, uint64(uid)))
 
 	txStore, err := dbStore.Tx(ctx)
 	require.NoError(t, err)
-	require.NoError(t, txStore.UserStore().UpdateQuote(ctx, userstore.UpdateQuoteParams{
+	require.NoError(t, txStore.Querier().UpdateQuote(ctx, storage.UpdateQuoteParams{
 		Quote:  "committed",
 		UserID: uint64(uid),
 	}))
 	require.NoError(t, txStore.Commit(ctx))
 
-	user, err := dbStore.UserStore().Get(ctx, uint64(uid))
+	user, err := dbStore.Querier().GetUser(ctx, uint64(uid))
 	require.NoError(t, err)
 	assert.Equal(t, "committed", user.Quote)
 
 	txStore, err = dbStore.Tx(ctx)
 	require.NoError(t, err)
-	require.NoError(t, txStore.UserStore().UpdateQuote(ctx, userstore.UpdateQuoteParams{
+	require.NoError(t, txStore.Querier().UpdateQuote(ctx, storage.UpdateQuoteParams{
 		Quote:  "rolled back",
 		UserID: uint64(uid),
 	}))
 	require.NoError(t, txStore.Rollback(ctx))
 
-	user, err = dbStore.UserStore().Get(ctx, uint64(uid))
+	user, err = dbStore.Querier().GetUser(ctx, uint64(uid))
 	require.NoError(t, err)
 	assert.Equal(t, "committed", user.Quote)
 }
@@ -337,7 +336,7 @@ func TestIntegration_AddToWishlistFreshUser(t *testing.T) {
 	_, err = store.GetUser(ctx, uid)
 	require.NoError(t, err, "adding to the wishlist must materialize the user")
 
-	entries, err := wishlistpg.New(dbStore.WishlistStore()).GetUserCharacterWishlist(ctx, uid)
+	entries, err := wishlistpg.New(dbStore.Querier()).GetUserCharacterWishlist(ctx, uid)
 	require.NoError(t, err)
 	require.Len(t, entries, 1)
 	assert.Equal(t, catalog.CharacterID(4002), entries[0].ID)
@@ -365,7 +364,7 @@ func TestIntegration_WishlistSkipsOwnedCharacters(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), added, "only the unowned character may be added")
 
-	entries, err := wishlistpg.New(dbStore.WishlistStore()).GetUserCharacterWishlist(ctx, uid)
+	entries, err := wishlistpg.New(dbStore.Querier()).GetUserCharacterWishlist(ctx, uid)
 	require.NoError(t, err)
 	require.Len(t, entries, 1)
 	assert.Equal(t, catalog.CharacterID(4004), entries[0].ID)
@@ -507,7 +506,7 @@ func TestIntegration_RollCooldownIsAtomic(t *testing.T) {
 
 	store1, store2 := buildTx(tx1), buildTx(tx2)
 
-	require.NoError(t, dbStore.UserStore().Create(ctx, uint64(uid)))
+	require.NoError(t, dbStore.Querier().Create(ctx, uint64(uid)))
 
 	// Both transactions read the same pre-roll state, so both pass the
 	// cooldown check.
@@ -545,7 +544,7 @@ func TestIntegration_TransactionsAreScoped(t *testing.T) {
 	require.NoError(t, tx.CreateUser(ctx, uid))
 	require.NoError(t, tx.Rollback(ctx))
 
-	_, err = dbStore.UserStore().Get(ctx, uint64(uid))
+	_, err = dbStore.Querier().GetUser(ctx, uint64(uid))
 	require.ErrorIs(t, err, pgx.ErrNoRows, "write escaped the transaction")
 }
 

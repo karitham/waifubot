@@ -8,14 +8,14 @@ import (
 
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
-	"github.com/karitham/waifubot/storage/dropstore"
+	"github.com/karitham/waifubot/storage"
 )
 
 type Pg struct {
-	Q dropstore.Querier
+	Q storage.Querier
 }
 
-func New(q dropstore.Querier) *Pg {
+func New(q storage.Querier) *Pg {
 	return &Pg{Q: q}
 }
 
@@ -41,7 +41,7 @@ func (p *Pg) DeleteDrop(ctx context.Context, channelID collection.ChannelID) err
 }
 
 func (p *Pg) SetDrop(ctx context.Context, channelID collection.ChannelID, char catalog.Character) error {
-	return p.Q.SetDrop(ctx, dropstore.SetDropParams{
+	return p.Q.SetDrop(ctx, storage.SetDropParams{
 		ChannelID:   uint64(channelID),
 		CharacterID: int64(char.ID),
 	})

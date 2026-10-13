@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/karitham/waifubot/catalog"
+	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/wishlistpg"
-	"github.com/karitham/waifubot/storage/wishliststore"
 	"github.com/karitham/waifubot/storage/wishlisttest"
 )
 
@@ -24,8 +24,8 @@ func TestWishlist(t *testing.T) {
 		{
 			name: "get_user_character_wishlist",
 			setup: func(m *wishlisttest.MockQuerier) {
-				m.GetUserCharacterWishlistFunc = func(_ context.Context, _ uint64) ([]wishliststore.GetUserCharacterWishlistRow, error) {
-					return []wishliststore.GetUserCharacterWishlistRow{
+				m.GetUserCharacterWishlistFunc = func(_ context.Context, _ uint64) ([]storage.GetUserCharacterWishlistRow, error) {
+					return []storage.GetUserCharacterWishlistRow{
 						{
 							ID:    456,
 							Name:  "Test Character",

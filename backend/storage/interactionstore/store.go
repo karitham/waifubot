@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/Karitham/corde"
+
+	"github.com/karitham/waifubot/storage"
 )
 
 type Store interface {
@@ -13,10 +15,10 @@ type Store interface {
 }
 
 type PostgresStore struct {
-	q Querier
+	q storage.Querier
 }
 
-func NewPostgresStore(q Querier) *PostgresStore {
+func NewPostgresStore(q storage.Querier) *PostgresStore {
 	return &PostgresStore{q: q}
 }
 
@@ -25,7 +27,7 @@ func (p *PostgresStore) Increment(ctx context.Context, channelID corde.Snowflake
 }
 
 func (p *PostgresStore) Get(ctx context.Context, channelID corde.Snowflake) (int64, error) {
-	count, err := p.q.Get(ctx, uint64(channelID))
+	count, err := p.q.GetInteraction(ctx, uint64(channelID))
 	if err != nil {
 		return 0, err
 	}

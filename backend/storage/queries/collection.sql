@@ -48,7 +48,7 @@ LIMIT
 OFFSET
   sqlc.arg (off);
 
--- name: Get :one
+-- name: GetCollection :one
 SELECT
   c.id,
   c.name,

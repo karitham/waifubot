@@ -5,7 +5,7 @@ VALUES
   ($1)
 ON CONFLICT (user_id) DO NOTHING;
 
--- name: Get :one
+-- name: GetUser :one
 SELECT
   *
 FROM

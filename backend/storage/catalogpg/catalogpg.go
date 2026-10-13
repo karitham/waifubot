@@ -7,19 +7,19 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/karitham/waifubot/catalog"
-	"github.com/karitham/waifubot/storage/collectionstore"
+	"github.com/karitham/waifubot/storage"
 )
 
 type Pg struct {
-	C collectionstore.Querier
+	C storage.Querier
 }
 
-func New(c collectionstore.Querier) *Pg {
+func New(c storage.Querier) *Pg {
 	return &Pg{C: c}
 }
 
 func (p *Pg) UpsertCharacter(ctx context.Context, char catalog.Character) error {
-	_, err := p.C.UpsertCharacter(ctx, collectionstore.UpsertCharacterParams{
+	_, err := p.C.UpsertCharacter(ctx, storage.UpsertCharacterParams{
 		ID:         int64(char.ID),
 		Name:       char.Name,
 		Image:      char.Image,
@@ -48,7 +48,7 @@ func (p *Pg) GetCharacterByID(ctx context.Context, charID catalog.CharacterID) (
 }
 
 func (p *Pg) SearchGlobalCharacters(ctx context.Context, term string) ([]catalog.Character, error) {
-	rows, err := p.C.SearchGlobalCharacters(ctx, collectionstore.SearchGlobalCharactersParams{Term: term, Lim: 25})
+	rows, err := p.C.SearchGlobalCharacters(ctx, storage.SearchGlobalCharactersParams{Term: term, Lim: 25})
 	if err != nil {
 		return nil, err
 	}

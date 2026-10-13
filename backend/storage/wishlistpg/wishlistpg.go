@@ -6,17 +6,17 @@ import (
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/guild"
-	"github.com/karitham/waifubot/storage/wishliststore"
+	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/wishlist"
 )
 
 // Pg implements wishlist.Store over the generated wishlist queries.
 type Pg struct {
-	Q wishliststore.Querier
+	Q storage.Querier
 }
 
 // New creates the wishlist store.
-func New(q wishliststore.Querier) *Pg {
+func New(q storage.Querier) *Pg {
 	return &Pg{Q: q}
 }
 
@@ -55,7 +55,7 @@ func (p *Pg) GetWishlistHolders(ctx context.Context, ids []catalog.CharacterID, 
 		return []wishlist.UserCharacterSet{}, nil
 	}
 
-	rows, err := p.Q.GetWishlistHolders(ctx, wishliststore.GetWishlistHoldersParams{
+	rows, err := p.Q.GetWishlistHolders(ctx, storage.GetWishlistHoldersParams{
 		Column1: storageIDs(ids),
 		UserID:  uint64(userID),
 		GuildID: uint64(guildID),
@@ -68,7 +68,7 @@ func (p *Pg) GetWishlistHolders(ctx context.Context, ids []catalog.CharacterID, 
 }
 
 func (p *Pg) GetWantedCharacters(ctx context.Context, userID collection.UserID, guildID guild.ID) ([]wishlist.UserCharacterSet, error) {
-	rows, err := p.Q.GetWantedCharacters(ctx, wishliststore.GetWantedCharactersParams{
+	rows, err := p.Q.GetWantedCharacters(ctx, storage.GetWantedCharactersParams{
 		UserID:  uint64(userID),
 		GuildID: uint64(guildID),
 	})
@@ -79,7 +79,7 @@ func (p *Pg) GetWantedCharacters(ctx context.Context, userID collection.UserID, 
 	return groupByUserWanted(rows), nil
 }
 
-func groupByUser(rows []wishliststore.GetWishlistHoldersRow) []wishlist.UserCharacterSet {
+func groupByUser(rows []storage.GetWishlistHoldersRow) []wishlist.UserCharacterSet {
 	m := make(map[collection.UserID]*wishlist.UserCharacterSet)
 	for _, r := range rows {
 		id := collection.UserID(r.UserID)
@@ -99,7 +99,7 @@ func groupByUser(rows []wishliststore.GetWishlistHoldersRow) []wishlist.UserChar
 	return result
 }
 
-func groupByUserWanted(rows []wishliststore.GetWantedCharactersRow) []wishlist.UserCharacterSet {
+func groupByUserWanted(rows []storage.GetWantedCharactersRow) []wishlist.UserCharacterSet {
 	m := make(map[collection.UserID]*wishlist.UserCharacterSet)
 	for _, r := range rows {
 		id := collection.UserID(r.UserID)
@@ -120,7 +120,7 @@ func groupByUserWanted(rows []wishliststore.GetWantedCharactersRow) []wishlist.U
 }
 
 func (p *Pg) CompareWithUser(ctx context.Context, userID1, userID2 collection.UserID) (wishlist.WishlistComparison, error) {
-	rows, err := p.Q.CompareWithUser(ctx, wishliststore.CompareWithUserParams{
+	rows, err := p.Q.CompareWithUser(ctx, storage.CompareWithUserParams{
 		UserID:   uint64(userID1),
 		UserID_2: uint64(userID2),
 	})
@@ -167,7 +167,7 @@ func (p *Pg) CompareWithUser(ctx context.Context, userID1, userID2 collection.Us
 }
 
 func (p *Pg) GetUsersWantingCharacter(ctx context.Context, charID catalog.CharacterID, guildID guild.ID, excludeUserID collection.UserID) ([]guild.MemberID, error) {
-	ids, err := p.Q.GetUsersWantingCharacter(ctx, wishliststore.GetUsersWantingCharacterParams{
+	ids, err := p.Q.GetUsersWantingCharacter(ctx, storage.GetUsersWantingCharacterParams{
 		CharacterID: int64(charID),
 		GuildID:     uint64(guildID),
 		UserID:      uint64(excludeUserID),

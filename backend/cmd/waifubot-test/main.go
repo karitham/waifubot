@@ -193,9 +193,9 @@ func runTestHarness(c *cli.Context) error {
 	}
 
 	// Create stores (mirroring run.go)
-	interStore := interactionstore.NewPostgresStore(store.InteractionStore())
+	interStore := interactionstore.NewPostgresStore(store.Querier())
 	collStore := collectionwire.NewDB(store)
-	wishStore := wishlistpg.New(store.WishlistStore())
+	wishStore := wishlistpg.New(store.Querier())
 
 	// Get bot token for command registration
 	botToken := c.String(flags.BotTokenFlag.Name)
@@ -223,7 +223,7 @@ func runTestHarness(c *cli.Context) error {
 	router := discord.New(&discord.Router{
 		Store:             collStore,
 		Catalog:           collectionwire.NewCatalog(store),
-		CommandStore:      commandpg.New(store.CommandStore()),
+		CommandStore:      commandpg.New(store.Querier()),
 		WishlistStore:     wishStore,
 		AnimeService:      fakeService,
 		InterStore:        interStore,

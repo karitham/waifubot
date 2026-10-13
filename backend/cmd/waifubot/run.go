@@ -91,9 +91,9 @@ var RunCommand = &cli.Command{
 			guildID = &id
 		}
 
-		interStore := interactionstore.NewPostgresStore(store.InteractionStore())
+		interStore := interactionstore.NewPostgresStore(store.Querier())
 		collStore := newCollectionStore(store)
-		wishStore := wishlistpg.New(store.WishlistStore())
+		wishStore := wishlistpg.New(store.Querier())
 		catalogStore := newCatalogStore(store)
 
 		anilistClient := anilist.New(version)
@@ -107,7 +107,7 @@ var RunCommand = &cli.Command{
 		router := discord.New(&discord.Router{
 			Store:             collStore,
 			Catalog:           catalogStore,
-			CommandStore:      commandpg.New(store.CommandStore()),
+			CommandStore:      commandpg.New(store.Querier()),
 			WishlistStore:     wishStore,
 			AnimeService:      anilistClient,
 			InterStore:        interStore,

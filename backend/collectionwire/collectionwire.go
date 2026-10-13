@@ -41,25 +41,25 @@ func NewDB(s storage.Store) collection.DB {
 // QueryStore composes the storage adapters into a read-only collection.Store.
 func QueryStore(s storage.Store) collection.Store {
 	return collection.NewStore(
-		userpg.New(s.UserStore()),
-		collectionpg.New(s.CollectionStore(), s.WishlistStore(), s.UserStore()),
-		guildpg.New(s.GuildStore()),
-		catalogpg.New(s.CollectionStore()),
+		userpg.New(s.Querier()),
+		collectionpg.New(s.Querier()),
+		guildpg.New(s.Querier()),
+		catalogpg.New(s.Querier()),
 	)
 }
 
 // QueryTx composes the storage adapters into a transaction-scoped
 // collection.Tx. The storage transaction controls commit and rollback.
 func QueryTx(s storage.Store) collection.Tx {
-	user := userpg.New(s.UserStore())
-	coll := collectionpg.New(s.CollectionStore(), s.WishlistStore(), s.UserStore())
-	guildStore := guildpg.New(s.GuildStore())
+	user := userpg.New(s.Querier())
+	coll := collectionpg.New(s.Querier())
+	guildStore := guildpg.New(s.Querier())
 	return collection.NewTx(
 		s,
-		collection.NewStore(user, coll, guildStore, catalogpg.New(s.CollectionStore())),
+		collection.NewStore(user, coll, guildStore, catalogpg.New(s.Querier())),
 		user,
 		coll,
-		droppg.New(s.DropStore()),
+		droppg.New(s.Querier()),
 		guildStore,
 	)
 }
@@ -86,5 +86,5 @@ func (g guildDB) Begin(ctx context.Context) (guild.Tx, error) {
 
 // NewCatalog composes the character catalog adapter.
 func NewCatalog(s storage.Store) catalog.Store {
-	return catalogpg.New(s.CollectionStore())
+	return catalogpg.New(s.Querier())
 }

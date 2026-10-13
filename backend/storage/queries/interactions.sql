@@ -7,7 +7,7 @@ ON CONFLICT (channel_id) DO UPDATE
 SET
   interaction_count = channel_interactions.interaction_count + 1;
 
--- name: Get :one
+-- name: GetInteraction :one
 SELECT
   interaction_count
 FROM

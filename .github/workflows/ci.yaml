@@ -43,6 +43,9 @@ jobs:
           primary-key: nix-${{ runner.os }}-${{ hashFiles('**/flake.lock') }}
           restore-prefixes-first-match: nix-${{ runner.os }}-
 
+      - name: Check generated sqlc is current
+        run: nix develop -c bash -euo pipefail -c 'cd backend/storage && sqlc generate && git diff --exit-code'
+
       - name: Build, vet, test
         run: nix develop -c bash -euo pipefail -c 'cd backend && go build ./... && go vet ./... && go test -race ./...'
 

@@ -8,7 +8,6 @@ import (
 
 	"github.com/karitham/waifubot/anilist"
 	"github.com/karitham/waifubot/storage"
-	"github.com/karitham/waifubot/storage/collectionstore"
 )
 
 var UpdateCharacterCommand = &cli.Command{
@@ -37,7 +36,7 @@ var UpdateCharacterCommand = &cli.Command{
 			return fmt.Errorf("character not found")
 		}
 
-		if _, err := s.CollectionStore().UpdateImageName(c.Context, collectionstore.UpdateImageNameParams{
+		if _, err := s.Querier().UpdateImageName(c.Context, storage.UpdateImageNameParams{
 			Image: char[0].ImageURL,
 			Name:  strings.Join(strings.Fields(char[0].Name), " "),
 			ID:    int64(char[0].ID),

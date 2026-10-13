@@ -1,11 +1,3 @@
--- name: GetGuildMembers :many
-SELECT
-  user_id
-FROM
-  guild_members
-WHERE
-  guild_id = $1;
-
 -- name: UsersOwningCharInGuild :many
 SELECT DISTINCT
   col.user_id
@@ -26,15 +18,6 @@ WHERE
   guild_id = $1
 FOR UPDATE;
 
--- name: GetIndexingStatus :one
-SELECT
-  status,
-  updated_at
-FROM
-  guild_indexing_jobs
-WHERE
-  guild_id = $1;
-
 -- name: StartIndexingJob :exec
 INSERT INTO
   guild_indexing_jobs (guild_id, status, updated_at)
@@ -50,11 +33,6 @@ UPDATE guild_indexing_jobs
 SET
   status = 'completed',
   updated_at = NOW()
-WHERE
-  guild_id = $1;
-
--- name: DeleteGuildMembers :exec
-DELETE FROM guild_members
 WHERE
   guild_id = $1;
 
