@@ -26,7 +26,7 @@ import (
 func TestSchemaSnapshotMatchesMigrations(t *testing.T) {
 	ctx := t.Context()
 
-	pgContainer, err := postgres.Run(ctx, "postgres:17-alpine",
+	pgContainer, err := postgres.Run(ctx, "postgres:18-alpine",
 		postgres.WithDatabase("waifubot_schema"),
 		testcontainers.WithWaitStrategy(
 			wait.ForLog("database system is ready to accept connections").
