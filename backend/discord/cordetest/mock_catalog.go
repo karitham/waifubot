@@ -12,6 +12,7 @@ type MockCatalogStore struct {
 	GetCharacterByIDFunc       func(ctx context.Context, charID catalog.CharacterID) (catalog.Character, error)
 	SearchGlobalCharactersFunc func(ctx context.Context, term string) ([]catalog.Character, error)
 	GetActiveIDsFunc           func(ctx context.Context) ([]catalog.CharacterID, error)
+	KnownCharacterIDsFunc      func(ctx context.Context, ids []catalog.CharacterID) ([]catalog.CharacterID, error)
 	MarkCharactersInactiveFunc func(ctx context.Context, charIDs []catalog.CharacterID) error
 }
 
@@ -36,6 +37,13 @@ func (m *MockCatalogStore) SearchGlobalCharacters(ctx context.Context, term stri
 		return m.SearchGlobalCharactersFunc(ctx, term)
 	}
 	return nil, nil
+}
+
+func (m *MockCatalogStore) KnownCharacterIDs(ctx context.Context, ids []catalog.CharacterID) ([]catalog.CharacterID, error) {
+	if m.KnownCharacterIDsFunc != nil {
+		return m.KnownCharacterIDsFunc(ctx, ids)
+	}
+	return ids, nil
 }
 
 func (m *MockCatalogStore) MarkCharactersInactive(ctx context.Context, charIDs []catalog.CharacterID) error {

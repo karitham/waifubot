@@ -29,8 +29,8 @@ func SeriesRoll(ctx context.Context, store DB, anime AnimeService, userID UserID
 	})
 }
 
-// pickSeriesCharacter selects a random unowned character from a series,
-// upserting it into the catalog.
+// pickSeriesCharacter selects a random unowned character from a series among
+// the characters the catalog knows.
 func pickSeriesCharacter(ctx context.Context, store Store, userID UserID, mediaID tracker.MediaID, anime AnimeService) (catalog.Character, error) {
 	ownedIDs, err := store.GetCollectionIDs(ctx, userID)
 	if err != nil {
@@ -62,11 +62,33 @@ func pickSeriesCharacter(ctx context.Context, store Store, userID UserID, mediaI
 		return catalog.Character{}, ErrNoUnownedCharacters
 	}
 
-	char := unowned[rand.IntN(len(unowned))].ToCatalog()
+	// Characters enter the catalog only through the hydrator; a tracker
+	// character it has not reached yet is not ownable.
+	ids := make([]catalog.CharacterID, len(unowned))
+	for i, c := range unowned {
+		ids[i] = c.ID
+	}
 
-	if err := store.UpsertCharacter(ctx, char); err != nil {
+	known, err := store.KnownCharacterIDs(ctx, ids)
+	if err != nil {
 		return catalog.Character{}, err
 	}
 
-	return char, nil
+	knownSet := make(map[catalog.CharacterID]struct{}, len(known))
+	for _, id := range known {
+		knownSet[id] = struct{}{}
+	}
+
+	var pickable []tracker.Character
+	for _, c := range unowned {
+		if _, ok := knownSet[c.ID]; ok {
+			pickable = append(pickable, c)
+		}
+	}
+
+	if len(pickable) == 0 {
+		return catalog.Character{}, ErrCharactersNotSynced
+	}
+
+	return pickable[rand.IntN(len(pickable))].ToCatalog(), nil
 }

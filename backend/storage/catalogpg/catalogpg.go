@@ -78,6 +78,25 @@ func (p *Pg) GetActiveIDs(ctx context.Context) ([]catalog.CharacterID, error) {
 	return charIDs, nil
 }
 
+// KnownCharacterIDs returns the subset of the given IDs present in the catalog.
+func (p *Pg) KnownCharacterIDs(ctx context.Context, ids []catalog.CharacterID) ([]catalog.CharacterID, error) {
+	dbIDs := make([]int64, len(ids))
+	for i, id := range ids {
+		dbIDs[i] = int64(id)
+	}
+
+	rows, err := p.C.KnownCharacterIDs(ctx, dbIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]catalog.CharacterID, len(rows))
+	for i, id := range rows {
+		out[i] = catalog.CharacterID(id)
+	}
+	return out, nil
+}
+
 func (p *Pg) MarkCharactersInactive(ctx context.Context, charIDs []catalog.CharacterID) error {
 	ids := make([]int64, len(charIDs))
 	for i, id := range charIDs {

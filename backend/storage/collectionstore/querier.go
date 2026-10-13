@@ -16,6 +16,7 @@ type Querier interface {
 	GetByID(ctx context.Context, id int64) (GetByIDRow, error)
 	Give(ctx context.Context, arg GiveParams) (Collection, error)
 	Insert(ctx context.Context, arg InsertParams) (Collection, error)
+	KnownCharacterIDs(ctx context.Context, ids []int64) ([]int64, error)
 	List(ctx context.Context, userID uint64) ([]ListRow, error)
 	ListIDs(ctx context.Context, userID uint64) ([]int64, error)
 	MarkCharactersInactive(ctx context.Context, ids []int64) error

@@ -215,3 +215,6 @@ UPDATE characters SET is_active = false WHERE id = ANY(sqlc.arg(ids)::BIGINT[]) 
 
 -- name: GetActiveIDs :many
 SELECT id FROM characters WHERE is_active = true;
+
+-- name: KnownCharacterIDs :many
+SELECT id FROM characters WHERE id = ANY(sqlc.arg(ids)::BIGINT[]);

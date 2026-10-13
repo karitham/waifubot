@@ -19,8 +19,8 @@ type acquisition struct {
 	// picking and again inside the transaction, both with the acquisition's
 	// single timestamp.
 	check func(user User, now time.Time) error
-	// pick selects an unowned character, adding it to the catalog first
-	// when it comes from an external source.
+	// pick selects an unowned character the catalog knows, so the write
+	// transaction only touches existing character rows.
 	pick func(ctx context.Context, store Store, userID UserID) (catalog.Character, error)
 	// charge applies the cost of the acquisition inside the transaction:
 	// tokens for a paid roll, the next cooldown for a free one. It is the

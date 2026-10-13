@@ -192,6 +192,10 @@ func (h *TokenHandler) Roll(ctx context.Context, w corde.ResponseWriter, cmd Com
 			w.Respond(rspErr("No characters found for this series"))
 			return
 		}
+		if errors.Is(err, collection.ErrCharactersNotSynced) {
+			w.Respond(rspErr("Characters from this series aren't in the catalog yet, please try again later"))
+			return
+		}
 		logger.Error("error performing series roll", "error", err, "media_id", opts.mediaID)
 		w.Respond(rspErr("An error occurred, please try again later"))
 		return

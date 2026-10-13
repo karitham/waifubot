@@ -116,8 +116,62 @@ func TestSeriesRoll(t *testing.T) {
 						{ID: 30, Name: "Char30", ImageURL: "img30"},
 					}, nil
 				}
-				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
+				m.KnownCharacterIDsFunc = func(_ context.Context, ids []catalog.CharacterID) ([]catalog.CharacterID, error) {
+					return ids, nil
+				}
 				m.AddToCollectionFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID, _ collection.Source, _ time.Time) error {
+					return nil
+				}
+				m.RemoveFromWishlistFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) error { return nil }
+				m.SpendTokensFunc = func(_ context.Context, _ collection.UserID, _ collection.TokenAmount) (collection.User, error) {
+					return collection.User{}, nil
+				}
+			},
+			userID:  123,
+			mediaID: 1,
+		},
+		{
+			name: "none_synced",
+			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockAnimeService) {
+				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
+					return collection.User{UserID: userID, Tokens: 50}, nil
+				}
+				m.GetCollectionIDsFunc = func(_ context.Context, _ collection.UserID) ([]catalog.CharacterID, error) { return nil, nil }
+				anime.GetMediaCharactersFunc = func(_ context.Context, _ tracker.MediaID) ([]tracker.Character, error) {
+					return []tracker.Character{
+						{ID: 10, Name: "Char10", ImageURL: "img10"},
+						{ID: 20, Name: "Char20", ImageURL: "img20"},
+					}, nil
+				}
+				m.KnownCharacterIDsFunc = func(_ context.Context, _ []catalog.CharacterID) ([]catalog.CharacterID, error) {
+					return nil, nil
+				}
+			},
+			userID:  123,
+			mediaID: 1,
+			wantErr: true,
+			errAs:   collection.ErrCharactersNotSynced,
+		},
+		{
+			name: "partially_synced",
+			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockAnimeService) {
+				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
+					return collection.User{UserID: userID, Tokens: 50}, nil
+				}
+				m.GetCollectionIDsFunc = func(_ context.Context, _ collection.UserID) ([]catalog.CharacterID, error) { return nil, nil }
+				anime.GetMediaCharactersFunc = func(_ context.Context, _ tracker.MediaID) ([]tracker.Character, error) {
+					return []tracker.Character{
+						{ID: 10, Name: "Char10", ImageURL: "img10"},
+						{ID: 20, Name: "Char20", ImageURL: "img20"},
+					}, nil
+				}
+				m.KnownCharacterIDsFunc = func(_ context.Context, ids []catalog.CharacterID) ([]catalog.CharacterID, error) {
+					assert.Contains(t, ids, catalog.CharacterID(10))
+					assert.Contains(t, ids, catalog.CharacterID(20))
+					return []catalog.CharacterID{20}, nil
+				}
+				m.AddToCollectionFunc = func(_ context.Context, _ collection.UserID, charID catalog.CharacterID, _ collection.Source, _ time.Time) error {
+					assert.Equal(t, catalog.CharacterID(20), charID)
 					return nil
 				}
 				m.RemoveFromWishlistFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) error { return nil }
@@ -157,7 +211,9 @@ func TestSeriesRoll(t *testing.T) {
 						{ID: 10, Name: "Char10", ImageURL: "img10"},
 					}, nil
 				}
-				m.UpsertCharacterFunc = func(_ context.Context, _ catalog.Character) error { return nil }
+				m.KnownCharacterIDsFunc = func(_ context.Context, ids []catalog.CharacterID) ([]catalog.CharacterID, error) {
+					return ids, nil
+				}
 				m.AddToCollectionFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID, _ collection.Source, _ time.Time) error {
 					return nil
 				}

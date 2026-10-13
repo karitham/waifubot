@@ -16,3 +16,7 @@ var ErrNoUnownedCharacters = errors.New("no unowned characters remaining")
 
 // ErrMediaNotFound is returned when the media has no characters.
 var ErrMediaNotFound = errors.New("no characters found for this series")
+
+// ErrCharactersNotSynced is returned when none of a series' unowned
+// characters are in the catalog yet.
+var ErrCharactersNotSynced = errors.New("characters not in the catalog yet")

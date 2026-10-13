@@ -242,6 +242,30 @@ func (q *Queries) Insert(ctx context.Context, arg InsertParams) (Collection, err
 	return i, err
 }
 
+const knownCharacterIDs = `-- name: KnownCharacterIDs :many
+SELECT id FROM characters WHERE id = ANY($1::BIGINT[])
+`
+
+func (q *Queries) KnownCharacterIDs(ctx context.Context, ids []int64) ([]int64, error) {
+	rows, err := q.db.Query(ctx, knownCharacterIDs, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const list = `-- name: List :many
 SELECT
   c.id,

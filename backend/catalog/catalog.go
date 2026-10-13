@@ -27,5 +27,10 @@ type Store interface {
 	GetCharacterByID(ctx context.Context, charID CharacterID) (Character, error)
 	SearchGlobalCharacters(ctx context.Context, term string) ([]Character, error)
 	GetActiveIDs(ctx context.Context) ([]CharacterID, error)
+	// KnownCharacterIDs returns the subset of the given IDs present in the
+	// catalog. It does not filter on is_active: the flag reflects the
+	// hydrator's last pass and can be stale for characters a live tracker
+	// fetch just returned.
+	KnownCharacterIDs(ctx context.Context, ids []CharacterID) ([]CharacterID, error)
 	MarkCharactersInactive(ctx context.Context, charIDs []CharacterID) error
 }
