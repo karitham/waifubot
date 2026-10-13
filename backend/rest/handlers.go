@@ -16,17 +16,16 @@ import (
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/discord"
-	"github.com/karitham/waifubot/services"
 
 	"github.com/karitham/waifubot/rest/api"
 )
 
 type Server struct {
 	db             collection.DB
-	discordService *services.DiscordService
+	discordService *discord.DiscordService
 }
 
-func New(db collection.DB, discordService *services.DiscordService) *Server {
+func New(db collection.DB, discordService *discord.DiscordService) *Server {
 	return &Server{
 		db:             db,
 		discordService: discordService,

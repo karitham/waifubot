@@ -21,7 +21,6 @@ import (
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/rest"
 	"github.com/karitham/waifubot/rest/api"
-	"github.com/karitham/waifubot/services"
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/pg"
 	"github.com/karitham/waifubot/sync"
@@ -146,9 +145,9 @@ var RunCommand = &cli.Command{
 
 		if c.Bool(apiFlag.Name) {
 			discordToken := c.String(botTokenFlag.Name)
-			var discordService *services.DiscordService
+			var discordService *discord.DiscordService
 			if discordToken != "" {
-				discordService = services.NewDiscordService(discordToken)
+				discordService = discord.NewDiscordService(discordToken)
 			}
 
 			restServer := rest.New(db, discordService)
