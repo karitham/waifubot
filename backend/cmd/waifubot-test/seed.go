@@ -8,8 +8,8 @@ import (
 
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
-	"github.com/karitham/waifubot/collectionwire"
 	"github.com/karitham/waifubot/storage"
+	"github.com/karitham/waifubot/storage/pg"
 )
 
 // seedCharacter inserts a character into the characters table using raw SQL.
@@ -24,7 +24,7 @@ func seedCharacter(ctx context.Context, store storage.Store, charID int64, charN
 
 // seedWishlistUsers adds characters to the wishlist for the specified user IDs.
 func seedWishlistUsers(ctx context.Context, store storage.Store, userIDs []uint64, charID int64) error {
-	db := collectionwire.NewDB(store)
+	db := pg.NewPool(store)
 	for _, userID := range userIDs {
 		_, err := collection.AddToWishlist(ctx, db, collection.UserID(userID), []catalog.CharacterID{catalog.CharacterID(charID)})
 		if err != nil {

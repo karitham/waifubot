@@ -1,4 +1,4 @@
-package guildpg
+package pg
 
 import (
 	"context"
@@ -13,16 +13,8 @@ import (
 	"github.com/karitham/waifubot/storage"
 )
 
-type Pg struct {
-	Q storage.Querier
-}
-
-func New(q storage.Querier) *Pg {
-	return &Pg{Q: q}
-}
-
-func (p *Pg) IsGuildIndexed(ctx context.Context, guildID guild.ID) (guild.IndexStatus, error) {
-	row, err := p.Q.IsGuildIndexed(ctx, uint64(guildID))
+func (b *base) IsGuildIndexed(ctx context.Context, guildID guild.ID) (guild.IndexStatus, error) {
+	row, err := b.q.IsGuildIndexed(ctx, uint64(guildID))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			// A guild with no job row is simply not indexed yet.
@@ -48,39 +40,39 @@ func toIndexingStatus(status storage.IndexingStatus) guild.IndexingStatus {
 	}
 }
 
-func (p *Pg) StartIndexingJob(ctx context.Context, guildID guild.ID) error {
-	return p.Q.StartIndexingJob(ctx, uint64(guildID))
+func (t *Tx) StartIndexingJob(ctx context.Context, guildID guild.ID) error {
+	return t.q.StartIndexingJob(ctx, uint64(guildID))
 }
 
-func (p *Pg) CompleteIndexingJob(ctx context.Context, guildID guild.ID) error {
-	return p.Q.CompleteIndexingJob(ctx, uint64(guildID))
+func (t *Tx) CompleteIndexingJob(ctx context.Context, guildID guild.ID) error {
+	return t.q.CompleteIndexingJob(ctx, uint64(guildID))
 }
 
-func (p *Pg) UpsertGuildMembers(ctx context.Context, guildID guild.ID, memberIDs []guild.MemberID, indexedAt time.Time) error {
+func (t *Tx) UpsertGuildMembers(ctx context.Context, guildID guild.ID, memberIDs []guild.MemberID, indexedAt time.Time) error {
 	ids := make([]int64, len(memberIDs))
 	for i, id := range memberIDs {
 		ids[i] = int64(id)
 	}
-	return p.Q.UpsertGuildMembers(ctx, storage.UpsertGuildMembersParams{
+	return t.q.UpsertGuildMembers(ctx, storage.UpsertGuildMembersParams{
 		GuildID:   uint64(guildID),
 		Column2:   ids,
 		IndexedAt: pgtype.Timestamp{Time: indexedAt.UTC(), Valid: true},
 	})
 }
 
-func (p *Pg) DeleteGuildMembersNotIn(ctx context.Context, guildID guild.ID, memberIDs []guild.MemberID) error {
+func (t *Tx) DeleteGuildMembersNotIn(ctx context.Context, guildID guild.ID, memberIDs []guild.MemberID) error {
 	ids := make([]int64, len(memberIDs))
 	for i, id := range memberIDs {
 		ids[i] = int64(id)
 	}
-	return p.Q.DeleteGuildMembersNotIn(ctx, storage.DeleteGuildMembersNotInParams{
+	return t.q.DeleteGuildMembersNotIn(ctx, storage.DeleteGuildMembersNotInParams{
 		GuildID: uint64(guildID),
 		Column2: ids,
 	})
 }
 
-func (p *Pg) GetCharacterHoldersInGuild(ctx context.Context, guildID guild.ID, charID catalog.CharacterID) ([]guild.MemberID, error) {
-	holders, err := p.Q.UsersOwningCharInGuild(ctx, storage.UsersOwningCharInGuildParams{
+func (b *base) GetCharacterHoldersInGuild(ctx context.Context, guildID guild.ID, charID catalog.CharacterID) ([]guild.MemberID, error) {
+	holders, err := b.q.UsersOwningCharInGuild(ctx, storage.UsersOwningCharInGuildParams{
 		CharacterID: int64(charID),
 		GuildID:     uint64(guildID),
 	})

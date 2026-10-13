@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/karitham/waifubot/catalog"
-	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/storage"
 )
 
 type mockRedis struct {
@@ -36,12 +36,13 @@ func (m *mockDB) Exec(ctx context.Context, sql string, args ...any) (pgconn.Comm
 	return m.execFunc(ctx, sql, args...)
 }
 
-type mockDropStore struct {
-	setFunc func(ctx context.Context, id collection.ChannelID, data catalog.Character) error
+type mockQuerier struct {
+	storage.Querier
+	setDropFunc func(ctx context.Context, arg storage.SetDropParams) error
 }
 
-func (m *mockDropStore) SetDrop(ctx context.Context, id collection.ChannelID, data catalog.Character) error {
-	return m.setFunc(ctx, id, data)
+func (m *mockQuerier) SetDrop(ctx context.Context, arg storage.SetDropParams) error {
+	return m.setDropFunc(ctx, arg)
 }
 
 type mockMaterializer struct {
@@ -136,11 +137,11 @@ func TestMigrateDrops(t *testing.T) {
 		},
 	}
 
-	var capturedDrop catalog.Character
+	var capturedDrop storage.SetDropParams
 	var materialized catalog.Character
-	ds := &mockDropStore{
-		setFunc: func(ctx context.Context, id collection.ChannelID, data catalog.Character) error {
-			capturedDrop = data
+	ds := &mockQuerier{
+		setDropFunc: func(ctx context.Context, arg storage.SetDropParams) error {
+			capturedDrop = arg
 			return nil
 		},
 	}
@@ -152,17 +153,18 @@ func TestMigrateDrops(t *testing.T) {
 	}
 
 	m := &Migrator{
-		Redis:     mr,
-		DropStore: ds,
-		Catalog:   cat,
-		DB:        &mockDB{},
+		Redis:   mr,
+		Querier: ds,
+		Catalog: cat,
+		DB:      &mockDB{},
 	}
 
 	err := m.MigrateDrops(ctx)
 	assert.NoError(t, err)
 
-	assert.Equal(t, int64(1), int64(capturedDrop.ID))
-	assert.Equal(t, "Test Char", capturedDrop.Name)
-	assert.Equal(t, 4242, capturedDrop.Popularity)
-	assert.Equal(t, capturedDrop, materialized, "the character must be materialized before the drop is stored")
+	assert.Equal(t, int64(1), capturedDrop.CharacterID)
+	assert.Equal(t, uint64(123), capturedDrop.ChannelID)
+	assert.Equal(t, "Test Char", materialized.Name)
+	assert.Equal(t, 4242, materialized.Popularity)
+	assert.Equal(t, int64(materialized.ID), capturedDrop.CharacterID, "the drop must reference the materialized character")
 }

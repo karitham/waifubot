@@ -10,6 +10,7 @@ import (
 
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage"
+	"github.com/karitham/waifubot/storage/pg"
 )
 
 var ListCommand = &cli.Command{
@@ -34,7 +35,7 @@ var ListCommand = &cli.Command{
 			return fmt.Errorf("invalid user ID: %s", userIDStr)
 		}
 
-		characters, err := collection.Characters(ctx, newCollectionStore(store), collection.UserID(userID))
+		characters, err := collection.Characters(ctx, pg.NewPool(store), collection.UserID(userID))
 		if err != nil {
 			return fmt.Errorf("error listing characters: %w", err)
 		}

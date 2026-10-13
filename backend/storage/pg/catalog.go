@@ -1,4 +1,4 @@
-package catalogpg
+package pg
 
 import (
 	"context"
@@ -10,16 +10,8 @@ import (
 	"github.com/karitham/waifubot/storage"
 )
 
-type Pg struct {
-	C storage.Querier
-}
-
-func New(c storage.Querier) *Pg {
-	return &Pg{C: c}
-}
-
-func (p *Pg) UpsertCharacter(ctx context.Context, char catalog.Character) error {
-	_, err := p.C.UpsertCharacter(ctx, storage.UpsertCharacterParams{
+func (b *base) UpsertCharacter(ctx context.Context, char catalog.Character) error {
+	_, err := b.q.UpsertCharacter(ctx, storage.UpsertCharacterParams{
 		ID:         int64(char.ID),
 		Name:       char.Name,
 		Image:      char.Image,
@@ -29,8 +21,8 @@ func (p *Pg) UpsertCharacter(ctx context.Context, char catalog.Character) error 
 	return err
 }
 
-func (p *Pg) GetCharacterByID(ctx context.Context, charID catalog.CharacterID) (catalog.Character, error) {
-	c, err := p.C.GetByID(ctx, int64(charID))
+func (b *base) GetCharacterByID(ctx context.Context, charID catalog.CharacterID) (catalog.Character, error) {
+	c, err := b.q.GetByID(ctx, int64(charID))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return catalog.Character{}, catalog.ErrNotFound
@@ -47,8 +39,8 @@ func (p *Pg) GetCharacterByID(ctx context.Context, charID catalog.CharacterID) (
 	}, nil
 }
 
-func (p *Pg) SearchGlobalCharacters(ctx context.Context, term string) ([]catalog.Character, error) {
-	rows, err := p.C.SearchGlobalCharacters(ctx, storage.SearchGlobalCharactersParams{Term: term, Lim: 25})
+func (b *base) SearchGlobalCharacters(ctx context.Context, term string) ([]catalog.Character, error) {
+	rows, err := b.q.SearchGlobalCharacters(ctx, storage.SearchGlobalCharactersParams{Term: term, Lim: 25})
 	if err != nil {
 		return nil, err
 	}
@@ -65,8 +57,8 @@ func (p *Pg) SearchGlobalCharacters(ctx context.Context, term string) ([]catalog
 	return chars, nil
 }
 
-func (p *Pg) GetActiveIDs(ctx context.Context) ([]catalog.CharacterID, error) {
-	ids, err := p.C.GetActiveIDs(ctx)
+func (b *base) GetActiveIDs(ctx context.Context) ([]catalog.CharacterID, error) {
+	ids, err := b.q.GetActiveIDs(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -79,13 +71,13 @@ func (p *Pg) GetActiveIDs(ctx context.Context) ([]catalog.CharacterID, error) {
 }
 
 // KnownCharacterIDs returns the subset of the given IDs present in the catalog.
-func (p *Pg) KnownCharacterIDs(ctx context.Context, ids []catalog.CharacterID) ([]catalog.CharacterID, error) {
+func (b *base) KnownCharacterIDs(ctx context.Context, ids []catalog.CharacterID) ([]catalog.CharacterID, error) {
 	dbIDs := make([]int64, len(ids))
 	for i, id := range ids {
 		dbIDs[i] = int64(id)
 	}
 
-	rows, err := p.C.KnownCharacterIDs(ctx, dbIDs)
+	rows, err := b.q.KnownCharacterIDs(ctx, dbIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -97,10 +89,10 @@ func (p *Pg) KnownCharacterIDs(ctx context.Context, ids []catalog.CharacterID) (
 	return out, nil
 }
 
-func (p *Pg) MarkCharactersInactive(ctx context.Context, charIDs []catalog.CharacterID) error {
+func (b *base) MarkCharactersInactive(ctx context.Context, charIDs []catalog.CharacterID) error {
 	ids := make([]int64, len(charIDs))
 	for i, id := range charIDs {
 		ids[i] = int64(id)
 	}
-	return p.C.MarkCharactersInactive(ctx, ids)
+	return b.q.MarkCharactersInactive(ctx, ids)
 }

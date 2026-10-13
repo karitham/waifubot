@@ -11,7 +11,7 @@ import (
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage"
-	"github.com/karitham/waifubot/storage/wishlistpg"
+	"github.com/karitham/waifubot/storage/pg"
 )
 
 var WishlistCommand = &cli.Command{
@@ -41,7 +41,7 @@ var WishlistCommand = &cli.Command{
 					return fmt.Errorf("error connecting to db: %w", err)
 				}
 
-				_, err = collection.AddToWishlist(ctx, newCollectionStore(store), collection.UserID(userID), []catalog.CharacterID{catalog.CharacterID(charID)})
+				_, err = collection.AddToWishlist(ctx, pg.NewPool(store), collection.UserID(userID), []catalog.CharacterID{catalog.CharacterID(charID)})
 				if err != nil {
 					return fmt.Errorf("error adding character to wishlist: %w", err)
 				}
@@ -78,7 +78,7 @@ var WishlistCommand = &cli.Command{
 					return fmt.Errorf("error connecting to db: %w", err)
 				}
 
-				err = collection.RemoveFromWishlist(ctx, newCollectionStore(store), collection.UserID(userID), catalog.CharacterID(charID))
+				err = collection.RemoveFromWishlist(ctx, pg.NewPool(store), collection.UserID(userID), catalog.CharacterID(charID))
 				if err != nil {
 					return fmt.Errorf("error removing character from wishlist: %w", err)
 				}
@@ -113,7 +113,7 @@ var WishlistCommand = &cli.Command{
 					return fmt.Errorf("error connecting to db: %w", err)
 				}
 
-				wishlistStore := wishlistpg.New(store.Querier())
+				wishlistStore := pg.NewPool(store)
 				chars, err := wishlistStore.GetUserCharacterWishlist(ctx, collection.UserID(userID))
 				if err != nil {
 					return fmt.Errorf("error getting user wishlist: %w", err)
@@ -151,7 +151,7 @@ var WishlistCommand = &cli.Command{
 					return fmt.Errorf("error connecting to db: %w", err)
 				}
 
-				wishlistStore := wishlistpg.New(store.Querier())
+				wishlistStore := pg.NewPool(store)
 				wishlist, err := wishlistStore.GetUserCharacterWishlist(ctx, collection.UserID(userID))
 				if err != nil {
 					return fmt.Errorf("error getting wishlist: %w", err)
@@ -198,7 +198,7 @@ var WishlistCommand = &cli.Command{
 					return fmt.Errorf("error connecting to db: %w", err)
 				}
 
-				wishlistStore := wishlistpg.New(store.Querier())
+				wishlistStore := pg.NewPool(store)
 				wanted, err := wishlistStore.GetWantedCharacters(ctx, collection.UserID(userID), 0)
 				if err != nil {
 					return fmt.Errorf("error getting wanted characters: %w", err)
@@ -235,7 +235,7 @@ var WishlistCommand = &cli.Command{
 					return fmt.Errorf("error connecting to db: %w", err)
 				}
 
-				err = collection.RemoveAllFromWishlist(ctx, newCollectionStore(store), collection.UserID(userID))
+				err = collection.RemoveAllFromWishlist(ctx, pg.NewPool(store), collection.UserID(userID))
 				if err != nil {
 					return fmt.Errorf("error removing all from wishlist: %w", err)
 				}

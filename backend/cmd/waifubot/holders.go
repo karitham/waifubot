@@ -10,6 +10,7 @@ import (
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/storage"
+	"github.com/karitham/waifubot/storage/pg"
 )
 
 var HoldersCommand = &cli.Command{
@@ -35,7 +36,7 @@ var HoldersCommand = &cli.Command{
 			return fmt.Errorf("invalid guild ID: %d", guildID)
 		}
 
-		collStore := newCollectionStore(store)
+		collStore := pg.NewPool(store)
 		charName, holderIDs, err := guild.CharacterHolders(ctx, collStore, collStore, guild.ID(guildID), catalog.CharacterID(charID))
 		if err != nil {
 			return fmt.Errorf("failed to get character holders: %w", err)

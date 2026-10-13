@@ -8,6 +8,7 @@ import (
 
 	"github.com/karitham/waifubot/anilist"
 	"github.com/karitham/waifubot/storage"
+	"github.com/karitham/waifubot/storage/pg"
 	"github.com/karitham/waifubot/sync"
 )
 
@@ -33,7 +34,7 @@ full character set over time.`,
 
 		anilistClient := anilist.New(version)
 
-		catalogStore := newCatalogStore(store)
+		catalogStore := pg.NewPool(store)
 		svc := sync.NewService(catalogStore, anilistClient, anilistClient)
 
 		slog.Info("starting character sync")

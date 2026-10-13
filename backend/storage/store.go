@@ -16,12 +16,17 @@ type TXer interface {
 	DBTX
 }
 
-// Store is the database handle: queries, the raw connection, and transaction
-// creation. A Store returned by Tx is scoped to that transaction.
+// Store is the pool-level database handle: queries, the raw connection, and
+// transaction creation.
 type Store interface {
 	Querier() Querier
 	DB() TXer
-	Tx(ctx context.Context) (Store, error)
+	Tx(ctx context.Context) (TxStore, error)
+}
+
+// TxStore is a database handle scoped to a transaction.
+type TxStore interface {
+	Querier() Querier
 	Commit(ctx context.Context) error
 	Rollback(ctx context.Context) error
 }
@@ -29,6 +34,10 @@ type Store interface {
 type DBStore struct {
 	q  *Queries
 	db TXer
+}
+
+type txStore struct {
+	q  *Queries
 	tx pgx.Tx
 }
 
@@ -54,14 +63,6 @@ func NewStore(ctx context.Context, url string) (Store, error) {
 	}
 
 	return &DBStore{q: New(conn), db: conn}, nil
-}
-
-func (s *DBStore) withTx(tx pgx.Tx) *DBStore {
-	return &DBStore{
-		q:  s.q.WithTx(tx),
-		db: tx,
-		tx: tx,
-	}
 }
 
 type Logger struct {
@@ -111,19 +112,23 @@ func (s *DBStore) DB() TXer {
 	return s.db
 }
 
-func (s *DBStore) Tx(ctx context.Context) (Store, error) {
+func (s *DBStore) Tx(ctx context.Context) (TxStore, error) {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.withTx(tx), nil
+	return &txStore{q: s.q.WithTx(tx), tx: tx}, nil
 }
 
-func (s *DBStore) Commit(ctx context.Context) error {
+func (s *txStore) Querier() Querier {
+	return s.q
+}
+
+func (s *txStore) Commit(ctx context.Context) error {
 	return s.tx.Commit(ctx)
 }
 
-func (s *DBStore) Rollback(ctx context.Context) error {
+func (s *txStore) Rollback(ctx context.Context) error {
 	return s.tx.Rollback(ctx)
 }

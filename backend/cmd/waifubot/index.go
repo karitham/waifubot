@@ -10,6 +10,7 @@ import (
 
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/storage"
+	"github.com/karitham/waifubot/storage/pg"
 )
 
 var IndexCommand = &cli.Command{
@@ -35,9 +36,8 @@ var IndexCommand = &cli.Command{
 			return fmt.Errorf("invalid guild ID: %d", guildID)
 		}
 
-		collStore := newCollectionStore(store)
 		fetcher := guild.NewDiscordFetcher(botToken)
-		indexer := guild.NewIndexer(newGuildDB(collStore), fetcher)
+		indexer := guild.NewIndexer(pg.NewGuildDB(store), fetcher)
 		err = indexer.IndexGuild(ctx, guildID)
 		if err != nil {
 			return fmt.Errorf("failed to index guild: %w", err)

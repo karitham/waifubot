@@ -11,6 +11,7 @@ import (
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage"
+	"github.com/karitham/waifubot/storage/pg"
 )
 
 var VerifyCommand = &cli.Command{
@@ -37,7 +38,7 @@ var VerifyCommand = &cli.Command{
 			return fmt.Errorf("invalid user ID: %s", userIDStr)
 		}
 
-		has, char, err := collection.CheckOwnership(ctx, newCollectionStore(store), collection.UserID(userID), catalog.CharacterID(charID))
+		has, char, err := collection.CheckOwnership(ctx, pg.NewPool(store), collection.UserID(userID), catalog.CharacterID(charID))
 		if err != nil {
 			return fmt.Errorf("error checking ownership: %w", err)
 		}

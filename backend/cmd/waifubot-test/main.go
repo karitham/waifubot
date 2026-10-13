@@ -17,13 +17,10 @@ import (
 
 	"github.com/karitham/waifubot/cmd/waifubot/flags"
 	"github.com/karitham/waifubot/collection"
-	"github.com/karitham/waifubot/collectionwire"
 	"github.com/karitham/waifubot/discord"
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/storage"
-	"github.com/karitham/waifubot/storage/commandpg"
-	"github.com/karitham/waifubot/storage/interactionstore"
-	"github.com/karitham/waifubot/storage/wishlistpg"
+	"github.com/karitham/waifubot/storage/pg"
 )
 
 // Test-specific flags
@@ -193,9 +190,7 @@ func runTestHarness(c *cli.Context) error {
 	}
 
 	// Create stores (mirroring run.go)
-	interStore := interactionstore.NewPostgresStore(store.Querier())
-	collStore := collectionwire.NewDB(store)
-	wishStore := wishlistpg.New(store.Querier())
+	db := pg.NewPool(store)
 
 	// Get bot token for command registration
 	botToken := c.String(flags.BotTokenFlag.Name)
@@ -221,14 +216,14 @@ func runTestHarness(c *cli.Context) error {
 
 	// Create bot with fake AnimeService
 	router := discord.New(&discord.Router{
-		Store:             collStore,
-		Catalog:           collectionwire.NewCatalog(store),
-		CommandStore:      commandpg.New(store.Querier()),
-		WishlistStore:     wishStore,
+		Store:             db,
+		Catalog:           db,
+		CommandStore:      db,
+		WishlistStore:     db,
 		AnimeService:      fakeService,
-		InterStore:        interStore,
-		GuildIndexer:      guild.NewIndexer(collectionwire.NewGuildDB(collStore), guild.NewDiscordFetcher(botToken)),
-		GuildOps:          collStore,
+		InterStore:        db,
+		GuildIndexer:      guild.NewIndexer(pg.NewGuildDB(store), guild.NewDiscordFetcher(botToken)),
+		GuildOps:          db,
 		AppID:             corde.Snowflake(appID),
 		GuildID:           nil,
 		BotToken:          botToken,

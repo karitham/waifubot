@@ -10,6 +10,7 @@ import (
 
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage"
+	"github.com/karitham/waifubot/storage/pg"
 )
 
 var RollCommand = &cli.Command{
@@ -39,7 +40,7 @@ var RollCommand = &cli.Command{
 		config := collection.Config{
 			RollCooldown: rollCooldown,
 		}
-		char, err := collection.Roll(ctx, newCollectionStore(store), collection.UserID(userID), config)
+		char, err := collection.Roll(ctx, pg.NewPool(store), collection.UserID(userID), config)
 		if err != nil {
 			return fmt.Errorf("error rolling: %w", err)
 		}

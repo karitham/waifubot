@@ -1,4 +1,4 @@
-package userpg
+package pg
 
 import (
 	"context"
@@ -13,16 +13,8 @@ import (
 	"github.com/karitham/waifubot/storage"
 )
 
-type Pg struct {
-	Q storage.Querier
-}
-
-func New(q storage.Querier) *Pg {
-	return &Pg{Q: q}
-}
-
-func (p *Pg) GetUser(ctx context.Context, userID collection.UserID) (collection.User, error) {
-	u, err := p.Q.GetUser(ctx, uint64(userID))
+func (b *base) GetUser(ctx context.Context, userID collection.UserID) (collection.User, error) {
+	u, err := b.q.GetUser(ctx, uint64(userID))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return collection.User{}, collection.ErrNotFound
@@ -33,14 +25,14 @@ func (p *Pg) GetUser(ctx context.Context, userID collection.UserID) (collection.
 }
 
 // CreateUser creates the user when it is absent. It is idempotent.
-func (p *Pg) CreateUser(ctx context.Context, userID collection.UserID) error {
-	return p.Q.Create(ctx, uint64(userID))
+func (t *Tx) CreateUser(ctx context.Context, userID collection.UserID) error {
+	return t.q.Create(ctx, uint64(userID))
 }
 
 // LockUser locks the user's row for the rest of the transaction. It returns
 // ErrNotFound when the user does not exist.
-func (p *Pg) LockUser(ctx context.Context, userID collection.UserID) error {
-	_, err := p.Q.LockUser(ctx, uint64(userID))
+func (t *Tx) LockUser(ctx context.Context, userID collection.UserID) error {
+	_, err := t.q.LockUser(ctx, uint64(userID))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return collection.ErrNotFound
@@ -50,8 +42,8 @@ func (p *Pg) LockUser(ctx context.Context, userID collection.UserID) error {
 	return nil
 }
 
-func (p *Pg) GetUserByAnilist(ctx context.Context, anilistURL string) (collection.User, error) {
-	u, err := p.Q.GetByAnilist(ctx, anilistURL)
+func (b *base) GetUserByAnilist(ctx context.Context, anilistURL string) (collection.User, error) {
+	u, err := b.q.GetByAnilist(ctx, anilistURL)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return collection.User{}, collection.ErrNotFound
@@ -61,8 +53,8 @@ func (p *Pg) GetUserByAnilist(ctx context.Context, anilistURL string) (collectio
 	return toUser(u), nil
 }
 
-func (p *Pg) GetUserByDiscordUsername(ctx context.Context, username string) (collection.User, error) {
-	u, err := p.Q.GetByDiscordUsername(ctx, username)
+func (b *base) GetUserByDiscordUsername(ctx context.Context, username string) (collection.User, error) {
+	u, err := b.q.GetByDiscordUsername(ctx, username)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return collection.User{}, collection.ErrNotFound
@@ -72,8 +64,8 @@ func (p *Pg) GetUserByDiscordUsername(ctx context.Context, username string) (col
 	return toUser(u), nil
 }
 
-func (p *Pg) RecordRoll(ctx context.Context, userID collection.UserID, now time.Time, cooldown time.Duration) error {
-	rows, err := p.Q.RecordRoll(ctx, storage.RecordRollParams{
+func (t *Tx) RecordRoll(ctx context.Context, userID collection.UserID, now time.Time, cooldown time.Duration) error {
+	rows, err := t.q.RecordRoll(ctx, storage.RecordRollParams{
 		Date:      pgtype.Timestamp{Time: now.UTC(), Valid: true},
 		UserID:    uint64(userID),
 		Threshold: pgtype.Timestamp{Time: now.Add(-cooldown).UTC(), Valid: true},
@@ -88,7 +80,7 @@ func (p *Pg) RecordRoll(ctx context.Context, userID collection.UserID, now time.
 	// The cooldown is still active. The user row exists (the acquisition
 	// ensures it inside the transaction), and this read sees the winner's
 	// committed timestamp.
-	u, err := p.Q.GetUser(ctx, uint64(userID))
+	u, err := t.q.GetUser(ctx, uint64(userID))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return collection.ErrNotFound
@@ -98,12 +90,12 @@ func (p *Pg) RecordRoll(ctx context.Context, userID collection.UserID, now time.
 	return collection.ErrRollCooldown{Until: u.Date.Time.Add(cooldown)}
 }
 
-func (p *Pg) SpendTokens(ctx context.Context, userID collection.UserID, amount collection.TokenAmount) (collection.User, error) {
+func (t *Tx) SpendTokens(ctx context.Context, userID collection.UserID, amount collection.TokenAmount) (collection.User, error) {
 	if !amount.Valid() {
 		return collection.User{}, collection.ErrInvalidAmount
 	}
 
-	u, err := p.Q.SpendTokens(ctx, storage.SpendTokensParams{
+	u, err := t.q.SpendTokens(ctx, storage.SpendTokensParams{
 		Tokens: amount.Int32(),
 		UserID: uint64(userID),
 	})
@@ -114,7 +106,7 @@ func (p *Pg) SpendTokens(ctx context.Context, userID collection.UserID, amount c
 
 		// No row updated: either the user does not exist or the balance
 		// is too low. Distinguish so callers can report the right thing.
-		if _, getErr := p.Q.GetUser(ctx, uint64(userID)); getErr != nil {
+		if _, getErr := t.q.GetUser(ctx, uint64(userID)); getErr != nil {
 			if errors.Is(getErr, pgx.ErrNoRows) {
 				return collection.User{}, collection.ErrNotFound
 			}
@@ -125,12 +117,12 @@ func (p *Pg) SpendTokens(ctx context.Context, userID collection.UserID, amount c
 	return toUser(u), nil
 }
 
-func (p *Pg) AddTokens(ctx context.Context, userID collection.UserID, amount collection.TokenAmount) (collection.User, error) {
+func (t *Tx) AddTokens(ctx context.Context, userID collection.UserID, amount collection.TokenAmount) (collection.User, error) {
 	if !amount.Valid() {
 		return collection.User{}, collection.ErrInvalidAmount
 	}
 
-	u, err := p.Q.UpdateTokens(ctx, storage.UpdateTokensParams{
+	u, err := t.q.UpdateTokens(ctx, storage.UpdateTokensParams{
 		Tokens: amount.Int32(),
 		UserID: uint64(userID),
 	})
@@ -140,22 +132,22 @@ func (p *Pg) AddTokens(ctx context.Context, userID collection.UserID, amount col
 	return toUser(u), nil
 }
 
-func (p *Pg) UpdateQuote(ctx context.Context, userID collection.UserID, quote string) error {
-	return p.Q.UpdateQuote(ctx, storage.UpdateQuoteParams{
+func (t *Tx) UpdateQuote(ctx context.Context, userID collection.UserID, quote string) error {
+	return t.q.UpdateQuote(ctx, storage.UpdateQuoteParams{
 		Quote:  quote,
 		UserID: uint64(userID),
 	})
 }
 
-func (p *Pg) UpdateAnilistURL(ctx context.Context, userID collection.UserID, url string) error {
-	return p.Q.UpdateAnilistURL(ctx, storage.UpdateAnilistURLParams{
+func (t *Tx) UpdateAnilistURL(ctx context.Context, userID collection.UserID, url string) error {
+	return t.q.UpdateAnilistURL(ctx, storage.UpdateAnilistURLParams{
 		AnilistUrl: url,
 		UserID:     uint64(userID),
 	})
 }
 
-func (p *Pg) UpdateDiscordInfo(ctx context.Context, userID collection.UserID, username, avatar string, lastUpdated time.Time) error {
-	return p.Q.UpdateDiscordInfo(ctx, storage.UpdateDiscordInfoParams{
+func (t *Tx) UpdateDiscordInfo(ctx context.Context, userID collection.UserID, username, avatar string, lastUpdated time.Time) error {
+	return t.q.UpdateDiscordInfo(ctx, storage.UpdateDiscordInfoParams{
 		DiscordUsername: username,
 		DiscordAvatar:   avatar,
 		LastUpdated:     pgtype.Timestamp{Time: lastUpdated.UTC(), Valid: true},

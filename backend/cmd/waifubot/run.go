@@ -23,9 +23,7 @@ import (
 	"github.com/karitham/waifubot/rest/api"
 	"github.com/karitham/waifubot/services"
 	"github.com/karitham/waifubot/storage"
-	"github.com/karitham/waifubot/storage/commandpg"
-	"github.com/karitham/waifubot/storage/interactionstore"
-	"github.com/karitham/waifubot/storage/wishlistpg"
+	"github.com/karitham/waifubot/storage/pg"
 	"github.com/karitham/waifubot/sync"
 )
 
@@ -91,10 +89,7 @@ var RunCommand = &cli.Command{
 			guildID = &id
 		}
 
-		interStore := interactionstore.NewPostgresStore(store.Querier())
-		collStore := newCollectionStore(store)
-		wishStore := wishlistpg.New(store.Querier())
-		catalogStore := newCatalogStore(store)
+		db := pg.NewPool(store)
 
 		anilistClient := anilist.New(version)
 
@@ -105,14 +100,14 @@ var RunCommand = &cli.Command{
 
 		slog.Info("Starting WaifuBot", "port", c.String("port"), "app_id", c.String("app-id"), "api_enabled", c.Bool(apiFlag.Name))
 		router := discord.New(&discord.Router{
-			Store:             collStore,
-			Catalog:           catalogStore,
-			CommandStore:      commandpg.New(store.Querier()),
-			WishlistStore:     wishStore,
+			Store:             db,
+			Catalog:           db,
+			CommandStore:      db,
+			WishlistStore:     db,
 			AnimeService:      anilistClient,
-			InterStore:        interStore,
-			GuildIndexer:      guild.NewIndexer(newGuildDB(collStore), guild.NewDiscordFetcher(c.String(botTokenFlag.Name))),
-			GuildOps:          collStore,
+			InterStore:        db,
+			GuildIndexer:      guild.NewIndexer(pg.NewGuildDB(store), guild.NewDiscordFetcher(c.String(botTokenFlag.Name))),
+			GuildOps:          db,
 			AppID:             corde.Snowflake(c.Uint64("app-id")),
 			GuildID:           guildID,
 			BotToken:          c.String(botTokenFlag.Name),
@@ -127,7 +122,7 @@ var RunCommand = &cli.Command{
 		if c.Bool("sync") {
 			go func() {
 				slog.Info("character sync worker started")
-				sync.NewService(catalogStore, anilistClient, anilistClient).Run(ctx)
+				sync.NewService(db, anilistClient, anilistClient).Run(ctx)
 				slog.Info("character sync worker stopped")
 			}()
 		}
@@ -157,7 +152,7 @@ var RunCommand = &cli.Command{
 				discordService = services.NewDiscordService(discordToken)
 			}
 
-			restServer := rest.New(collStore, wishStore, discordService)
+			restServer := rest.New(db, db, discordService)
 
 			telemetry, err := rest.SetupTelemetry(prometheus.DefaultRegisterer)
 			if err != nil {

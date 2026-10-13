@@ -8,14 +8,13 @@ import (
 	"github.com/Karitham/corde"
 
 	"github.com/karitham/waifubot/guild"
-	"github.com/karitham/waifubot/storage/interactionstore"
 	"github.com/karitham/waifubot/tracker"
 )
 
 // SearchHandler handles the /search command and its subcommands.
 type SearchHandler struct {
 	animeService  TrackingService
-	interStore    interactionstore.Store
+	interStore    InteractionStore
 	onInteraction func(context.Context, int64, *corde.Interaction[corde.SlashCommandInteractionData])
 	guildIndexer  *guild.Indexer
 }

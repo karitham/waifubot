@@ -18,10 +18,9 @@ import (
 
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
-	"github.com/karitham/waifubot/collectionwire"
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/storage"
-	"github.com/karitham/waifubot/storage/wishlistpg"
+	"github.com/karitham/waifubot/storage/pg"
 )
 
 var testDBURL string
@@ -59,8 +58,8 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
-func buildTx(s storage.Store) collection.Tx {
-	return collectionwire.QueryTx(s)
+func buildTx(s storage.TxStore) collection.Tx {
+	return pg.NewTx(s)
 }
 
 func setupStore(t *testing.T) (collection.Tx, catalog.Store) {
@@ -76,7 +75,8 @@ func setupStore(t *testing.T) (collection.Tx, catalog.Store) {
 		_ = txStore.Rollback(t.Context())
 	})
 
-	return buildTx(txStore), collectionwire.NewCatalog(txStore)
+	tx := pg.NewTx(txStore)
+	return tx, tx
 }
 
 func setupStoreWithSeed(t *testing.T, userIDs ...collection.UserID) (collection.Tx, catalog.Store) {
@@ -324,8 +324,8 @@ func TestIntegration_AddToWishlistFreshUser(t *testing.T) {
 
 	dbStore, err := storage.NewStore(ctx, testDBURL)
 	require.NoError(t, err)
-	store := collectionwire.NewDB(dbStore)
-	cat := collectionwire.NewCatalog(dbStore)
+	store := pg.NewPool(dbStore)
+	cat := pg.NewPool(dbStore)
 
 	require.NoError(t, cat.UpsertCharacter(ctx, catalog.Character{ID: 4002, Name: "FreshWish"}))
 
@@ -336,7 +336,7 @@ func TestIntegration_AddToWishlistFreshUser(t *testing.T) {
 	_, err = store.GetUser(ctx, uid)
 	require.NoError(t, err, "adding to the wishlist must materialize the user")
 
-	entries, err := wishlistpg.New(dbStore.Querier()).GetUserCharacterWishlist(ctx, uid)
+	entries, err := pg.NewPool(dbStore).GetUserCharacterWishlist(ctx, uid)
 	require.NoError(t, err)
 	require.Len(t, entries, 1)
 	assert.Equal(t, catalog.CharacterID(4002), entries[0].ID)
@@ -348,8 +348,8 @@ func TestIntegration_WishlistSkipsOwnedCharacters(t *testing.T) {
 
 	dbStore, err := storage.NewStore(ctx, testDBURL)
 	require.NoError(t, err)
-	store := collectionwire.NewDB(dbStore)
-	cat := collectionwire.NewCatalog(dbStore)
+	store := pg.NewPool(dbStore)
+	cat := pg.NewPool(dbStore)
 
 	require.NoError(t, cat.UpsertCharacter(ctx, catalog.Character{ID: 4003, Name: "OwnedWish"}))
 	require.NoError(t, cat.UpsertCharacter(ctx, catalog.Character{ID: 4004, Name: "WantedWish"}))
@@ -364,7 +364,7 @@ func TestIntegration_WishlistSkipsOwnedCharacters(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), added, "only the unowned character may be added")
 
-	entries, err := wishlistpg.New(dbStore.Querier()).GetUserCharacterWishlist(ctx, uid)
+	entries, err := pg.NewPool(dbStore).GetUserCharacterWishlist(ctx, uid)
 	require.NoError(t, err)
 	require.Len(t, entries, 1)
 	assert.Equal(t, catalog.CharacterID(4004), entries[0].ID)
@@ -383,8 +383,8 @@ func TestIntegration_CreateDrop(t *testing.T) {
 
 	dbStore, err := storage.NewStore(ctx, testDBURL)
 	require.NoError(t, err)
-	store := collectionwire.NewDB(dbStore)
-	cat := collectionwire.NewCatalog(dbStore)
+	store := pg.NewPool(dbStore)
+	cat := pg.NewPool(dbStore)
 
 	require.NoError(t, cat.UpsertCharacter(ctx, catalog.Character{ID: 7001, Name: "DropChar", Image: "img", Popularity: 100}))
 
@@ -537,7 +537,7 @@ func TestIntegration_TransactionsAreScoped(t *testing.T) {
 
 	// Wire through the same composition the binaries use, so a regression
 	// in the tx factory fails this test.
-	store := collectionwire.NewDB(dbStore)
+	store := pg.NewPool(dbStore)
 
 	tx, err := store.Begin(ctx)
 	require.NoError(t, err)
@@ -554,7 +554,7 @@ func TestIntegration_TransferToFreshUser(t *testing.T) {
 
 	dbStore, err := storage.NewStore(ctx, testDBURL)
 	require.NoError(t, err)
-	store := collectionwire.NewDB(dbStore)
+	store := pg.NewPool(dbStore)
 
 	tx, err := store.Begin(ctx)
 	require.NoError(t, err)
@@ -586,8 +586,8 @@ func TestIntegration_GiveCharacterToFreshUser(t *testing.T) {
 
 	dbStore, err := storage.NewStore(ctx, testDBURL)
 	require.NoError(t, err)
-	store := collectionwire.NewDB(dbStore)
-	cat := collectionwire.NewCatalog(dbStore)
+	store := pg.NewPool(dbStore)
+	cat := pg.NewPool(dbStore)
 
 	require.NoError(t, cat.UpsertCharacter(ctx, catalog.Character{ID: 2002, Name: "FreshChar", Image: "fresh.jpg"}))
 
@@ -616,7 +616,7 @@ func TestIntegration_ConcurrentOppositeTransfers(t *testing.T) {
 
 	dbStore, err := storage.NewStore(ctx, testDBURL)
 	require.NoError(t, err)
-	store := collectionwire.NewDB(dbStore)
+	store := pg.NewPool(dbStore)
 
 	// Both rows exist before the race: concurrent transfers between existing
 	// users must acquire their row locks in the same order, or Postgres

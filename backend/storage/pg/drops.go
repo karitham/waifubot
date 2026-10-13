@@ -1,4 +1,4 @@
-package droppg
+package pg
 
 import (
 	"context"
@@ -11,16 +11,8 @@ import (
 	"github.com/karitham/waifubot/storage"
 )
 
-type Pg struct {
-	Q storage.Querier
-}
-
-func New(q storage.Querier) *Pg {
-	return &Pg{Q: q}
-}
-
-func (p *Pg) GetDropForUpdate(ctx context.Context, channelID collection.ChannelID) (catalog.Character, error) {
-	c, err := p.Q.GetDropForUpdate(ctx, uint64(channelID))
+func (t *Tx) GetDropForUpdate(ctx context.Context, channelID collection.ChannelID) (catalog.Character, error) {
+	c, err := t.q.GetDropForUpdate(ctx, uint64(channelID))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return catalog.Character{}, collection.ErrNotFound
@@ -36,12 +28,12 @@ func (p *Pg) GetDropForUpdate(ctx context.Context, channelID collection.ChannelI
 	}, nil
 }
 
-func (p *Pg) DeleteDrop(ctx context.Context, channelID collection.ChannelID) error {
-	return p.Q.DeleteDrop(ctx, uint64(channelID))
+func (t *Tx) DeleteDrop(ctx context.Context, channelID collection.ChannelID) error {
+	return t.q.DeleteDrop(ctx, uint64(channelID))
 }
 
-func (p *Pg) SetDrop(ctx context.Context, channelID collection.ChannelID, char catalog.Character) error {
-	return p.Q.SetDrop(ctx, storage.SetDropParams{
+func (t *Tx) SetDrop(ctx context.Context, channelID collection.ChannelID, char catalog.Character) error {
+	return t.q.SetDrop(ctx, storage.SetDropParams{
 		ChannelID:   uint64(channelID),
 		CharacterID: int64(char.ID),
 	})

@@ -10,7 +10,6 @@ import (
 
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/guild"
-	"github.com/karitham/waifubot/storage/interactionstore"
 	"github.com/karitham/waifubot/tracker"
 	"github.com/karitham/waifubot/wishlist"
 
@@ -57,6 +56,13 @@ type CommandStore interface {
 	UpdateCommandHash(ctx context.Context, hash string) error
 }
 
+// InteractionStore tracks per-channel interaction counts.
+type InteractionStore interface {
+	Increment(ctx context.Context, channelID corde.Snowflake) error
+	Get(ctx context.Context, channelID corde.Snowflake) (int64, error)
+	Reset(ctx context.Context, channelID corde.Snowflake) error
+}
+
 // Router holds the infrastructure needed to wire command handlers.
 type Router struct {
 	mux               *corde.Mux
@@ -65,7 +71,7 @@ type Router struct {
 	CommandStore      CommandStore
 	WishlistStore     wishlist.Store
 	AnimeService      TrackingService
-	InterStore        interactionstore.Store
+	InterStore        InteractionStore
 	GuildIndexer      *guild.Indexer
 	GuildOps          guild.Reader
 	AppID             corde.Snowflake

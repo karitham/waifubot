@@ -10,6 +10,7 @@ import (
 
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage"
+	"github.com/karitham/waifubot/storage/pg"
 )
 
 var ProfileCommand = &cli.Command{
@@ -34,7 +35,7 @@ var ProfileCommand = &cli.Command{
 			return fmt.Errorf("invalid user ID: %s", userIDStr)
 		}
 
-		profile, err := collection.UserProfile(ctx, newCollectionStore(store), collection.UserID(userID))
+		profile, err := collection.UserProfile(ctx, pg.NewPool(store), collection.UserID(userID))
 		if err != nil {
 			return fmt.Errorf("error getting profile: %w", err)
 		}

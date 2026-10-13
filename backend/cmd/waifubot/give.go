@@ -11,6 +11,7 @@ import (
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage"
+	"github.com/karitham/waifubot/storage/pg"
 )
 
 var GiveCommand = &cli.Command{
@@ -50,7 +51,7 @@ var GiveCommand = &cli.Command{
 			return fmt.Errorf("invalid to user ID: %s", toStr)
 		}
 
-		char, err := collection.Give(ctx, newCollectionStore(store), collection.UserID(from), collection.UserID(to), catalog.CharacterID(charID))
+		char, err := collection.Give(ctx, pg.NewPool(store), collection.UserID(from), collection.UserID(to), catalog.CharacterID(charID))
 		if err != nil {
 			return fmt.Errorf("error giving: %w", err)
 		}

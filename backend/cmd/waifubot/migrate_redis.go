@@ -13,9 +13,8 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/karitham/waifubot/catalog"
-	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage"
-	"github.com/karitham/waifubot/storage/droppg"
+	"github.com/karitham/waifubot/storage/pg"
 )
 
 type InteractionDB interface {
@@ -27,22 +26,16 @@ type RedisClient interface {
 	Get(ctx context.Context, key string) *redis.StringCmd
 }
 
-// DropSetter persists a channel drop; defined here so the migration can be
-// tested without a database.
-type DropSetter interface {
-	SetDrop(ctx context.Context, channelID collection.ChannelID, char catalog.Character) error
-}
-
 // CharacterMaterializer upserts characters into the catalog.
 type CharacterMaterializer interface {
 	UpsertCharacter(ctx context.Context, char catalog.Character) error
 }
 
 type Migrator struct {
-	Redis     RedisClient
-	DropStore DropSetter
-	Catalog   CharacterMaterializer
-	DB        InteractionDB
+	Redis   RedisClient
+	Querier storage.Querier
+	Catalog CharacterMaterializer
+	DB      InteractionDB
 }
 
 var MigrateRedisCommand = &cli.Command{
@@ -77,10 +70,10 @@ var MigrateRedisCommand = &cli.Command{
 		}
 
 		m := &Migrator{
-			Redis:     rdb,
-			DropStore: droppg.New(store.Querier()),
-			Catalog:   newCatalogStore(store),
-			DB:        store.DB(),
+			Redis:   rdb,
+			Querier: store.Querier(),
+			Catalog: pg.NewPool(store),
+			DB:      store.DB(),
 		}
 
 		if err := m.MigrateInteractions(ctx); err != nil {
@@ -192,8 +185,12 @@ func (m *Migrator) migrateDrop(ctx context.Context, key string) error {
 		return fmt.Errorf("failed to materialize character for channel %s: %w", sf, err)
 	}
 
-	err = m.DropStore.SetDrop(ctx, collection.ChannelID(sf), char)
-	if err != nil {
+	// Maintenance writes bypass the domain adapters: the drop row is a
+	// single statement with no transaction-scoped invariant.
+	if err := m.Querier.SetDrop(ctx, storage.SetDropParams{
+		ChannelID:   uint64(sf),
+		CharacterID: int64(char.ID),
+	}); err != nil {
 		return fmt.Errorf("failed to migrate drop for channel %s: %w", sf, err)
 	}
 	return nil

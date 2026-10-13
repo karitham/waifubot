@@ -1,4 +1,4 @@
-package guildpg
+package pg
 
 import (
 	"testing"
