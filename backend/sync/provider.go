@@ -1,12 +1,5 @@
 package sync
 
-// Provider supplies batches of character IDs to the sync worker.
-//
-// It builds a full shuffled pool of IDs [1, maxID], then serves them in
-// batches. When the pool is exhausted, the caller must call SetMaxID to
-// rebuild. The type is a pure data structure: no I/O, no errors, simple
-// interface, testable without mocks.
-
 import (
 	"math/rand"
 	"sync"
