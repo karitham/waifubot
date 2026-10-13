@@ -41,5 +41,8 @@ func (p *Pg) DeleteDrop(ctx context.Context, channelID collection.ChannelID) err
 }
 
 func (p *Pg) SetDrop(ctx context.Context, channelID collection.ChannelID, char catalog.Character) error {
-	return dropstore.Set(ctx, p.Q, channelID, char)
+	return p.Q.SetDrop(ctx, dropstore.SetDropParams{
+		ChannelID:   uint64(channelID),
+		CharacterID: int64(char.ID),
+	})
 }

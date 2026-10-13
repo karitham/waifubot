@@ -27,9 +27,21 @@ type RedisClient interface {
 	Get(ctx context.Context, key string) *redis.StringCmd
 }
 
+// DropSetter persists a channel drop; defined here so the migration can be
+// tested without a database.
+type DropSetter interface {
+	Set(ctx context.Context, id collection.ChannelID, data catalog.Character) error
+}
+
+// CharacterMaterializer upserts characters into the catalog.
+type CharacterMaterializer interface {
+	UpsertCharacter(ctx context.Context, char catalog.Character) error
+}
+
 type Migrator struct {
 	Redis     RedisClient
-	DropStore dropstore.Store
+	DropStore DropSetter
+	Catalog   CharacterMaterializer
 	DB        InteractionDB
 }
 
@@ -67,6 +79,7 @@ var MigrateRedisCommand = &cli.Command{
 		m := &Migrator{
 			Redis:     rdb,
 			DropStore: dropstore.NewPostgresStore(store.DropStore()),
+			Catalog:   newCatalogStore(store),
 			DB:        store.DB(),
 		}
 
@@ -165,13 +178,21 @@ func (m *Migrator) migrateDrop(ctx context.Context, key string) error {
 	}
 
 	sf := corde.SnowflakeFromString(idStr)
-	err = m.DropStore.Set(ctx, collection.ChannelID(sf), catalog.Character{
+	char := catalog.Character{
 		ID:         catalog.CharacterID(data.ID),
 		Name:       data.Name,
 		Image:      data.ImageURL,
 		MediaTitle: data.MediaTitle,
 		Popularity: data.Favorites,
-	})
+	}
+
+	// Characters enter the catalog only through the hydrator; the legacy
+	// Redis payload carries the data, so the migration materializes it.
+	if err := m.Catalog.UpsertCharacter(ctx, char); err != nil {
+		return fmt.Errorf("failed to materialize character for channel %s: %w", sf, err)
+	}
+
+	err = m.DropStore.Set(ctx, collection.ChannelID(sf), char)
 	if err != nil {
 		return fmt.Errorf("failed to migrate drop for channel %s: %w", sf, err)
 	}

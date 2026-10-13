@@ -20,33 +20,6 @@ func (q *Queries) DeleteDrop(ctx context.Context, channelID uint64) error {
 	return err
 }
 
-const getDrop = `-- name: GetDrop :one
-SELECT
-  c.id,
-  c.name,
-  c.image,
-  c.media_title,
-  c.favorites
-FROM
-  channel_drops cd
-  JOIN characters c ON cd.character_id = c.id
-WHERE
-  cd.channel_id = $1
-`
-
-func (q *Queries) GetDrop(ctx context.Context, channelID uint64) (Character, error) {
-	row := q.db.QueryRow(ctx, getDrop, channelID)
-	var i Character
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Image,
-		&i.MediaTitle,
-		&i.Favorites,
-	)
-	return i, err
-}
-
 const getDropForUpdate = `-- name: GetDropForUpdate :one
 SELECT
   c.id,
@@ -94,37 +67,5 @@ type SetDropParams struct {
 
 func (q *Queries) SetDrop(ctx context.Context, arg SetDropParams) error {
 	_, err := q.db.Exec(ctx, setDrop, arg.ChannelID, arg.CharacterID)
-	return err
-}
-
-const upsertCharacter = `-- name: UpsertCharacter :exec
-INSERT INTO
-  characters (id, name, image, media_title, favorites)
-VALUES
-  ($1, $2, $3, $4, $5)
-ON CONFLICT (id) DO UPDATE
-SET
-  name = excluded.name,
-  image = excluded.image,
-  media_title = excluded.media_title,
-  favorites = excluded.favorites
-`
-
-type UpsertCharacterParams struct {
-	ID         int64
-	Name       string
-	Image      string
-	MediaTitle string
-	Favorites  int32
-}
-
-func (q *Queries) UpsertCharacter(ctx context.Context, arg UpsertCharacterParams) error {
-	_, err := q.db.Exec(ctx, upsertCharacter,
-		arg.ID,
-		arg.Name,
-		arg.Image,
-		arg.MediaTitle,
-		arg.Favorites,
-	)
 	return err
 }

@@ -12,7 +12,6 @@ import (
 
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
-	"github.com/karitham/waifubot/storage/dropstore"
 )
 
 type mockRedis struct {
@@ -38,12 +37,19 @@ func (m *mockDB) Exec(ctx context.Context, sql string, args ...any) (pgconn.Comm
 }
 
 type mockDropStore struct {
-	dropstore.Store
 	setFunc func(ctx context.Context, id collection.ChannelID, data catalog.Character) error
 }
 
 func (m *mockDropStore) Set(ctx context.Context, id collection.ChannelID, data catalog.Character) error {
 	return m.setFunc(ctx, id, data)
+}
+
+type mockMaterializer struct {
+	upsertFunc func(ctx context.Context, char catalog.Character) error
+}
+
+func (m *mockMaterializer) UpsertCharacter(ctx context.Context, char catalog.Character) error {
+	return m.upsertFunc(ctx, char)
 }
 
 func TestMigrateInteractions(t *testing.T) {
@@ -131,9 +137,16 @@ func TestMigrateDrops(t *testing.T) {
 	}
 
 	var capturedDrop catalog.Character
+	var materialized catalog.Character
 	ds := &mockDropStore{
 		setFunc: func(ctx context.Context, id collection.ChannelID, data catalog.Character) error {
 			capturedDrop = data
+			return nil
+		},
+	}
+	cat := &mockMaterializer{
+		upsertFunc: func(ctx context.Context, char catalog.Character) error {
+			materialized = char
 			return nil
 		},
 	}
@@ -141,6 +154,7 @@ func TestMigrateDrops(t *testing.T) {
 	m := &Migrator{
 		Redis:     mr,
 		DropStore: ds,
+		Catalog:   cat,
 		DB:        &mockDB{},
 	}
 
@@ -150,4 +164,5 @@ func TestMigrateDrops(t *testing.T) {
 	assert.Equal(t, int64(1), int64(capturedDrop.ID))
 	assert.Equal(t, "Test Char", capturedDrop.Name)
 	assert.Equal(t, 4242, capturedDrop.Popularity)
+	assert.Equal(t, capturedDrop, materialized, "the character must be materialized before the drop is stored")
 }

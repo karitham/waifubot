@@ -110,8 +110,8 @@ type CollectionRepository interface {
 
 // DropRepository handles the channel drop lifecycle.
 type DropRepository interface {
-	// SetDrop stores the character as the channel's drop, upserting it into
-	// the catalog first.
+	// SetDrop stores the character as the channel's drop. The character must
+	// already be in the catalog; the FK enforces it.
 	SetDrop(ctx context.Context, channelID ChannelID, char catalog.Character) error
 	GetDropForUpdate(ctx context.Context, channelID ChannelID) (catalog.Character, error)
 	DeleteDrop(ctx context.Context, channelID ChannelID) error

@@ -2,20 +2,10 @@ package dropstore
 
 import (
 	"context"
-	"fmt"
-
-	"github.com/jackc/pgx/v5"
 
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 )
-
-// Store persists the character currently dropped in a channel.
-type Store interface {
-	Delete(ctx context.Context, id collection.ChannelID) error
-	Get(ctx context.Context, id collection.ChannelID) (*catalog.Character, error)
-	Set(ctx context.Context, id collection.ChannelID, data catalog.Character) error
-}
 
 type PostgresStore struct {
 	q Querier
@@ -27,49 +17,12 @@ func NewPostgresStore(q Querier) *PostgresStore {
 	}
 }
 
-// Set stores the drop for a channel, upserting the character first: a drop
-// implies its character row exists, and the claim relies on that.
-func Set(ctx context.Context, q Querier, id collection.ChannelID, data catalog.Character) error {
-	err := q.UpsertCharacter(ctx, UpsertCharacterParams{
-		ID:         int64(data.ID),
-		Name:       data.Name,
-		Image:      data.Image,
-		MediaTitle: data.MediaTitle,
-		Favorites:  int32(data.Popularity),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to upsert character: %w", err)
-	}
-
-	return q.SetDrop(ctx, SetDropParams{
+// Set stores the drop for a channel. The character must already be in the
+// catalog; characters enter it only through the hydrator, and the Redis
+// migration materializes them explicitly. The channel_drops FK enforces it.
+func (p *PostgresStore) Set(ctx context.Context, id collection.ChannelID, data catalog.Character) error {
+	return p.q.SetDrop(ctx, SetDropParams{
 		ChannelID:   uint64(id),
 		CharacterID: int64(data.ID),
 	})
-}
-
-// Set stores the drop for a channel.
-func (p *PostgresStore) Set(ctx context.Context, id collection.ChannelID, data catalog.Character) error {
-	return Set(ctx, p.q, id, data)
-}
-
-func (p *PostgresStore) Get(ctx context.Context, id collection.ChannelID) (*catalog.Character, error) {
-	row, err := p.q.GetDrop(ctx, uint64(id))
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, fmt.Errorf("no drop found")
-		}
-		return nil, fmt.Errorf("failed to get channel char: %w", err)
-	}
-
-	return &catalog.Character{
-		ID:         catalog.CharacterID(row.ID),
-		Name:       row.Name,
-		Image:      row.Image,
-		MediaTitle: row.MediaTitle,
-		Popularity: int(row.Favorites),
-	}, nil
-}
-
-func (p *PostgresStore) Delete(ctx context.Context, id collection.ChannelID) error {
-	return p.q.DeleteDrop(ctx, uint64(id))
 }
