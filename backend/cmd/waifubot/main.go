@@ -49,7 +49,6 @@ func main() {
 			RollCommand,
 			GiveCommand,
 			WishlistCommand,
-			UpdateCharacterCommand,
 			BackfillCommand,
 		},
 		DefaultCommand: "run",

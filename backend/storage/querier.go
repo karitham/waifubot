@@ -66,7 +66,6 @@ type Querier interface {
 	UpdateAnilistURL(ctx context.Context, arg UpdateAnilistURLParams) error
 	UpdateCommandHash(ctx context.Context, hash string) error
 	UpdateDiscordInfo(ctx context.Context, arg UpdateDiscordInfoParams) error
-	UpdateImageName(ctx context.Context, arg UpdateImageNameParams) (Character, error)
 	UpdateQuote(ctx context.Context, arg UpdateQuoteParams) error
 	UpdateTokens(ctx context.Context, arg UpdateTokensParams) (User, error)
 	UpsertCharacter(ctx context.Context, arg UpsertCharacterParams) (Character, error)

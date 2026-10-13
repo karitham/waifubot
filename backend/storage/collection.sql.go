@@ -636,38 +636,6 @@ func (q *Queries) SetFavoriteIfOwned(ctx context.Context, arg SetFavoriteIfOwned
 	return result.RowsAffected(), nil
 }
 
-const updateImageName = `-- name: UpdateImageName :one
-UPDATE characters c
-SET
-  image = $1,
-  name = $2
-WHERE
-  c.id = $3
-RETURNING
-  id, name, image, media_title, favorites, updated_at, is_active
-`
-
-type UpdateImageNameParams struct {
-	Image string
-	Name  string
-	ID    int64
-}
-
-func (q *Queries) UpdateImageName(ctx context.Context, arg UpdateImageNameParams) (Character, error) {
-	row := q.db.QueryRow(ctx, updateImageName, arg.Image, arg.Name, arg.ID)
-	var i Character
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Image,
-		&i.MediaTitle,
-		&i.Favorites,
-		&i.UpdatedAt,
-		&i.IsActive,
-	)
-	return i, err
-}
-
 const upsertCharacter = `-- name: UpsertCharacter :one
 INSERT INTO
   characters (id, name, image, media_title, favorites)

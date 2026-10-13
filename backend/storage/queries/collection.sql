@@ -145,16 +145,6 @@ RETURNING
   source,
   acquired_at;
 
--- name: UpdateImageName :one
-UPDATE characters c
-SET
-  image = $1,
-  name = $2
-WHERE
-  c.id = $3
-RETURNING
-  *;
-
 -- name: SearchGlobalCharacters :many
 SELECT DISTINCT
   *
