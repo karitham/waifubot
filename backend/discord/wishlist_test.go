@@ -93,7 +93,7 @@ func TestWishlistHandler_CharacterAdd(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
 			h := &WishlistHandler{
 				store:   tt.collStore,
-				catalog: &cordetest.MockCatalogStore{},
+				catalog: &collectiontest.MockStore{},
 			}
 
 			h.CharacterAdd(t.Context(), w, tt.cmd)
@@ -629,7 +629,7 @@ func TestWishlistHandler_CharacterAutocomplete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var searchCalled bool
-			mockCatalog := &cordetest.MockCatalogStore{
+			mockCatalog := &collectiontest.MockStore{
 				SearchGlobalCharactersFunc: func(ctx context.Context, term string) ([]catalog.Character, error) {
 					searchCalled = true
 					return tt.searchResult, tt.searchErr

@@ -15,7 +15,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/urfave/cli/v2"
 
-	"github.com/karitham/waifubot/cmd/waifubot/flags"
+	"github.com/karitham/waifubot/cmd/internal/flags"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/discord"
 	"github.com/karitham/waifubot/guild"

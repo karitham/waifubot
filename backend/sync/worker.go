@@ -13,7 +13,6 @@ import (
 	"github.com/failsafe-go/failsafe-go/retrypolicy"
 
 	"github.com/karitham/waifubot/catalog"
-	"github.com/karitham/waifubot/sync/idprovider"
 	"github.com/karitham/waifubot/tracker"
 )
 
@@ -73,7 +72,7 @@ const discoveryWindow = 10_000
 // Sync fetches one batch of character IDs and processes them.
 // Used by the CLI backfill command.
 func (s *Service) Sync(ctx context.Context) error {
-	provider := idprovider.New(s.maxID.Load(), idprovider.Config{BatchSize: 50})
+	provider := New(s.maxID.Load(), Config{BatchSize: 50})
 	batch := provider.NextBatch()
 	if batch == nil {
 		return nil
@@ -183,7 +182,7 @@ func (s *Service) fetchCharacters(ctx context.Context, ids []int64) ([]tracker.C
 
 // nextBatch returns the next batch of IDs to process, rebuilding the pool
 // when exhausted. Returns nil when the context is cancelled.
-func (s *Service) nextBatch(ctx context.Context, provider *idprovider.Provider) []int64 {
+func (s *Service) nextBatch(ctx context.Context, provider *Provider) []int64 {
 	for {
 		select {
 		case <-ctx.Done():
@@ -249,7 +248,7 @@ func (s *Service) Run(ctx context.Context) {
 		s.refreshMaxID(ctx) // first refresh at startup
 	}
 
-	provider := idprovider.New(1, idprovider.Config{BatchSize: 50})
+	provider := New(1, Config{BatchSize: 50})
 	if pool := s.buildDiscoveryPool(ctx); pool != nil {
 		provider.SetPool(pool)
 	}

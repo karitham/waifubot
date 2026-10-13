@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/karitham/waifubot/catalog"
+	"github.com/karitham/waifubot/collection/collectiontest"
 	"github.com/karitham/waifubot/discord/cordetest"
 	"github.com/karitham/waifubot/guild"
 )
@@ -19,7 +20,7 @@ func TestHoldersHandler_Holders(t *testing.T) {
 		name           string
 		cmd            CommandContext
 		guildOps       *mockGuildQuerier
-		catalog        *cordetest.MockCatalogStore
+		catalog        *collectiontest.MockStore
 		wantContent    string
 		wantNotContent string
 	}{
@@ -46,7 +47,7 @@ func TestHoldersHandler_Holders(t *testing.T) {
 					return nil, nil
 				},
 			},
-			catalog: &cordetest.MockCatalogStore{
+			catalog: &collectiontest.MockStore{
 				GetCharacterByIDFunc: func(ctx context.Context, charID catalog.CharacterID) (catalog.Character, error) {
 					return catalog.Character{ID: 42, Name: "Sakura"}, nil
 				},
@@ -67,7 +68,7 @@ func TestHoldersHandler_Holders(t *testing.T) {
 					return []guild.MemberID{123, 456}, nil
 				},
 			},
-			catalog: &cordetest.MockCatalogStore{
+			catalog: &collectiontest.MockStore{
 				GetCharacterByIDFunc: func(ctx context.Context, charID catalog.CharacterID) (catalog.Character, error) {
 					return catalog.Character{ID: 42, Name: "Sakura"}, nil
 				},
@@ -118,7 +119,7 @@ func TestHoldersHandler_Holders(t *testing.T) {
 					return guild.IndexStatus{Status: guild.IndexingCompleted}, nil
 				},
 			},
-			catalog: &cordetest.MockCatalogStore{
+			catalog: &collectiontest.MockStore{
 				GetCharacterByIDFunc: func(ctx context.Context, charID catalog.CharacterID) (catalog.Character, error) {
 					return catalog.Character{}, catalog.ErrNotFound
 				},
@@ -187,7 +188,7 @@ func TestHoldersHandler_Autocomplete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var searchCalled bool
-			mockStore := &cordetest.MockCatalogStore{
+			mockStore := &collectiontest.MockStore{
 				SearchGlobalCharactersFunc: func(ctx context.Context, term string) ([]catalog.Character, error) {
 					searchCalled = true
 					return tt.searchResult, tt.searchErr

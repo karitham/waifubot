@@ -1,4 +1,4 @@
-package idprovider
+package sync
 
 import (
 	"sync"

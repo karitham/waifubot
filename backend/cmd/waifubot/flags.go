@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/karitham/waifubot/cmd/waifubot/flags"
+	"github.com/karitham/waifubot/cmd/internal/flags"
 )
 
 // Re-export flags from shared package with original names for backwards compatibility
