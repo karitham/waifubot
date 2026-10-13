@@ -69,11 +69,6 @@ func (m *MockResponseWriter) Choices() []corde.Choice[any] {
 	return data.Choices
 }
 
-// Responded is a shorthand for RespondCalled || DeferedRespondCalled.
-func (m *MockResponseWriter) Responded() bool {
-	return m.RespondCalled || m.DeferedRespondCalled
-}
-
 var _ corde.ResponseWriter = (*MockResponseWriter)(nil)
 
 // AssertContains checks if the response contains the expected string.

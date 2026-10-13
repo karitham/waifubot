@@ -7,10 +7,6 @@ import (
 	"net/http"
 )
 
-type ImageFetcher interface {
-	Fetch(ctx context.Context, url string) (io.ReadCloser, error)
-}
-
 type httpImageFetcher struct {
 	doer doer
 }

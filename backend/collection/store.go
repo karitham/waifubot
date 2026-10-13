@@ -15,11 +15,6 @@ var (
 	ErrUserDoesNotOwnCharacter = errors.New("user does not own character")
 )
 
-// DefaultAnilistCharImage is the fallback image URL AniList returns when a
-// character has no custom artwork. Characters with this image are excluded
-// from drops (the image is embedded publicly in the drop message).
-const DefaultAnilistCharImage = "https://s4.anilist.co/file/anilistcdn/character/large/default.jpg"
-
 // DropWeightExponent controls how much favorites skew drop probability in the
 // weighted-random formula. Higher values amplify the advantage of high-favorites
 // (rarer) characters. 0 = uniform random, 1 = linear, 2 = quadratic.
@@ -97,8 +92,8 @@ type CollectionReader interface {
 	// (rolls/direct rolls use this path and the image isn't publicly embedded).
 	RandomCharNotOwned(ctx context.Context, userID UserID, weightExponent float64) (catalog.Character, error)
 	// RandomActiveChar returns a random active character for a channel drop,
-	// weighted by favorites^weightExponent. Excludes characters with the default
-	// AniList image (DefaultAnilistCharImage) since the image is embedded publicly.
+	// weighted by favorites^weightExponent. Excludes characters with the
+	// default AniList placeholder image since the image is embedded publicly.
 	RandomActiveChar(ctx context.Context, weightExponent float64) (catalog.Character, error)
 }
 
