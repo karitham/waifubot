@@ -63,11 +63,30 @@ func buildTx(s storage.TxStore) collection.Tx {
 	return pg.NewTx(s)
 }
 
-func setupStore(t *testing.T) (collection.Tx, catalog.Store) {
+// newStore opens a pool for one test, closes it when the test ends, and
+// resets the tables the tests write so repeated runs start from the same
+// state.
+func newStore(t *testing.T) storage.Store {
 	t.Helper()
 
 	dbStore, err := storage.NewStore(t.Context(), testDBURL)
 	require.NoError(t, err)
+	t.Cleanup(dbStore.Close)
+
+	_, err = dbStore.DB().Exec(t.Context(), `
+		TRUNCATE collection, character_wishlist, users, guild_members,
+			guild_indexing_jobs, channel_drops, channel_interactions,
+			characters CASCADE
+	`)
+	require.NoError(t, err)
+
+	return dbStore
+}
+
+func setupStore(t *testing.T) (collection.Tx, catalog.Store) {
+	t.Helper()
+
+	dbStore := newStore(t)
 
 	txStore, err := dbStore.Tx(t.Context())
 	require.NoError(t, err)
@@ -220,14 +239,14 @@ func TestIntegration_SearchCharacters(t *testing.T) {
 func TestIntegration_Transaction(t *testing.T) {
 	const uid collection.UserID = 900006
 
-	dbStore, err := storage.NewStore(t.Context(), testDBURL)
-	require.NoError(t, err)
+	dbStore := newStore(t)
 	ctx := t.Context()
 
 	require.NoError(t, dbStore.Querier().CreateUser(ctx, uint64(uid)))
 
 	txStore, err := dbStore.Tx(ctx)
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = txStore.Rollback(ctx) })
 	require.NoError(t, txStore.Querier().UpdateQuote(ctx, storage.UpdateQuoteParams{
 		Quote:  "committed",
 		UserID: uint64(uid),
@@ -240,6 +259,7 @@ func TestIntegration_Transaction(t *testing.T) {
 
 	txStore, err = dbStore.Tx(ctx)
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = txStore.Rollback(ctx) })
 	require.NoError(t, txStore.Querier().UpdateQuote(ctx, storage.UpdateQuoteParams{
 		Quote:  "rolled back",
 		UserID: uint64(uid),
@@ -323,8 +343,7 @@ func TestIntegration_AddToWishlistFreshUser(t *testing.T) {
 	const uid collection.UserID = 900026
 	ctx := t.Context()
 
-	dbStore, err := storage.NewStore(ctx, testDBURL)
-	require.NoError(t, err)
+	dbStore := newStore(t)
 	store := pg.NewPool(dbStore)
 	cat := pg.NewPool(dbStore)
 
@@ -347,8 +366,7 @@ func TestIntegration_WishlistSkipsOwnedCharacters(t *testing.T) {
 	const uid collection.UserID = 900032
 	ctx := t.Context()
 
-	dbStore, err := storage.NewStore(ctx, testDBURL)
-	require.NoError(t, err)
+	dbStore := newStore(t)
 	store := pg.NewPool(dbStore)
 	cat := pg.NewPool(dbStore)
 
@@ -357,6 +375,7 @@ func TestIntegration_WishlistSkipsOwnedCharacters(t *testing.T) {
 
 	tx, err := store.Begin(ctx)
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tx.Rollback(ctx) })
 	require.NoError(t, tx.CreateUser(ctx, uid))
 	require.NoError(t, tx.AddToCollection(ctx, uid, 4003, collection.SourceRoll, time.Now()))
 	require.NoError(t, tx.Commit(ctx))
@@ -382,8 +401,7 @@ func TestIntegration_DropOperations(t *testing.T) {
 func TestIntegration_Trigger(t *testing.T) {
 	ctx := t.Context()
 
-	dbStore, err := storage.NewStore(ctx, testDBURL)
-	require.NoError(t, err)
+	dbStore := newStore(t)
 	cat := pg.NewPool(dbStore)
 
 	require.NoError(t, cat.UpsertCharacter(ctx, catalog.Character{ID: 7001, Name: "DropChar", Image: "img", Popularity: 100}))
@@ -394,6 +412,7 @@ func TestIntegration_Trigger(t *testing.T) {
 
 	txStore, err := dbStore.Tx(ctx)
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = txStore.Rollback(ctx) })
 	tx := pg.NewTx(txStore)
 	got, err := tx.GetDropForUpdate(ctx, 888002)
 	require.NoError(t, err)
@@ -407,8 +426,7 @@ func TestIntegration_Trigger(t *testing.T) {
 func TestIntegration_TriggerSerializes(t *testing.T) {
 	ctx := t.Context()
 
-	dbStore, err := storage.NewStore(ctx, testDBURL)
-	require.NoError(t, err)
+	dbStore := newStore(t)
 	cat := pg.NewPool(dbStore)
 
 	require.NoError(t, cat.UpsertCharacter(ctx, catalog.Character{ID: 7002, Name: "ConcurrentChar", Image: "img", Popularity: 100}))
@@ -544,18 +562,15 @@ func TestIntegration_RollCooldownIsAtomic(t *testing.T) {
 	const uid collection.UserID = 900015
 	const cooldown = time.Hour
 
-	dbStore, err := storage.NewStore(ctx, testDBURL)
-	require.NoError(t, err)
+	dbStore := newStore(t)
 
 	tx1, err := dbStore.Tx(ctx)
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tx1.Rollback(ctx) })
+
 	tx2, err := dbStore.Tx(ctx)
 	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		_ = tx1.Rollback(ctx)
-		_ = tx2.Rollback(ctx)
-	})
+	t.Cleanup(func() { _ = tx2.Rollback(ctx) })
 
 	store1, store2 := buildTx(tx1), buildTx(tx2)
 
@@ -585,8 +600,7 @@ func TestIntegration_TransactionsAreScoped(t *testing.T) {
 	ctx := t.Context()
 	const uid collection.UserID = 900016
 
-	dbStore, err := storage.NewStore(ctx, testDBURL)
-	require.NoError(t, err)
+	dbStore := newStore(t)
 
 	// Wire through the same composition the binaries use, so a regression
 	// in the tx factory fails this test.
@@ -594,6 +608,7 @@ func TestIntegration_TransactionsAreScoped(t *testing.T) {
 
 	tx, err := store.Begin(ctx)
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tx.Rollback(ctx) })
 	require.NoError(t, tx.CreateUser(ctx, uid))
 	require.NoError(t, tx.Rollback(ctx))
 
@@ -605,12 +620,12 @@ func TestIntegration_TransferToFreshUser(t *testing.T) {
 	const giver, recipient, other collection.UserID = 900021, 900022, 900023
 	ctx := t.Context()
 
-	dbStore, err := storage.NewStore(ctx, testDBURL)
-	require.NoError(t, err)
+	dbStore := newStore(t)
 	store := pg.NewPool(dbStore)
 
 	tx, err := store.Begin(ctx)
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tx.Rollback(ctx) })
 	require.NoError(t, tx.CreateUser(ctx, giver))
 	_, err = tx.AddTokens(ctx, giver, tokenAmount(t, 5))
 	require.NoError(t, err)
@@ -637,8 +652,7 @@ func TestIntegration_GiveCharacterToFreshUser(t *testing.T) {
 	const giver, recipient collection.UserID = 900024, 900025
 	ctx := t.Context()
 
-	dbStore, err := storage.NewStore(ctx, testDBURL)
-	require.NoError(t, err)
+	dbStore := newStore(t)
 	store := pg.NewPool(dbStore)
 	cat := pg.NewPool(dbStore)
 
@@ -646,6 +660,7 @@ func TestIntegration_GiveCharacterToFreshUser(t *testing.T) {
 
 	tx, err := store.Begin(ctx)
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tx.Rollback(ctx) })
 	require.NoError(t, tx.CreateUser(ctx, giver))
 	require.NoError(t, tx.AddToCollection(ctx, giver, catalog.CharacterID(2002), collection.SourceRoll, time.Now()))
 	require.NoError(t, tx.Commit(ctx))
@@ -667,8 +682,7 @@ func TestIntegration_ConcurrentOppositeTransfers(t *testing.T) {
 	const a, b collection.UserID = 900030, 900031
 	ctx := t.Context()
 
-	dbStore, err := storage.NewStore(ctx, testDBURL)
-	require.NoError(t, err)
+	dbStore := newStore(t)
 	store := pg.NewPool(dbStore)
 
 	// Both rows exist before the race: concurrent transfers between existing
@@ -676,6 +690,7 @@ func TestIntegration_ConcurrentOppositeTransfers(t *testing.T) {
 	// aborts one with a deadlock error.
 	tx, err := store.Begin(ctx)
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tx.Rollback(ctx) })
 	for _, uid := range []collection.UserID{a, b} {
 		require.NoError(t, tx.CreateUser(ctx, uid))
 		_, err := tx.AddTokens(ctx, uid, tokenAmount(t, 1000))

@@ -16,12 +16,13 @@ type TXer interface {
 	DBTX
 }
 
-// Store is the pool-level database handle: queries, the raw connection, and
-// transaction creation.
+// Store is the pool-level database handle: queries, the raw connection,
+// transaction creation, and pool shutdown.
 type Store interface {
 	Querier() Querier
 	DB() TXer
 	Tx(ctx context.Context) (TxStore, error)
+	Close()
 }
 
 // TxStore is a database handle scoped to a transaction.
@@ -32,8 +33,8 @@ type TxStore interface {
 }
 
 type DBStore struct {
-	q  *Queries
-	db TXer
+	q    *Queries
+	pool *pgxpool.Pool
 }
 
 type txStore struct {
@@ -62,7 +63,7 @@ func NewStore(ctx context.Context, url string) (Store, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	return &DBStore{q: New(conn), db: conn}, nil
+	return &DBStore{q: New(conn), pool: conn}, nil
 }
 
 type Logger struct {
@@ -110,11 +111,15 @@ func (s *DBStore) Querier() Querier {
 }
 
 func (s *DBStore) DB() TXer {
-	return s.db
+	return s.pool
+}
+
+func (s *DBStore) Close() {
+	s.pool.Close()
 }
 
 func (s *DBStore) Tx(ctx context.Context) (TxStore, error) {
-	tx, err := s.db.Begin(ctx)
+	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
