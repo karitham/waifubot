@@ -49,22 +49,47 @@ func TestGetUserCharacterWishlist(t *testing.T) {
 }
 
 func TestGroupByUser(t *testing.T) {
-	rows := []wishlistRow{
-		{userID: 1, characterID: 10, name: "A", image: "a"},
-		{userID: 2, characterID: 20, name: "B", image: "b"},
-		{userID: 1, characterID: 30, name: "C", image: "c"},
+	tests := []struct {
+		name       string
+		rows       []wishlistRow
+		wantByUser map[collection.UserID][]catalog.CharacterID
+	}{
+		{
+			name:       "no rows",
+			rows:       nil,
+			wantByUser: map[collection.UserID][]catalog.CharacterID{},
+		},
+		{
+			name: "single user keeps insertion order",
+			rows: []wishlistRow{
+				{userID: 1, characterID: 10, name: "A", image: "a"},
+				{userID: 1, characterID: 30, name: "C", image: "c"},
+			},
+			wantByUser: map[collection.UserID][]catalog.CharacterID{1: {10, 30}},
+		},
+		{
+			name: "several users group and keep order",
+			rows: []wishlistRow{
+				{userID: 1, characterID: 10, name: "A", image: "a"},
+				{userID: 2, characterID: 20, name: "B", image: "b"},
+				{userID: 1, characterID: 30, name: "C", image: "c"},
+			},
+			wantByUser: map[collection.UserID][]catalog.CharacterID{1: {10, 30}, 2: {20}},
+		},
 	}
 
-	groups := groupByUser(rows, func(r wishlistRow) wishlistRow { return r })
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			groups := groupByUser(tt.rows, func(r wishlistRow) wishlistRow { return r })
 
-	require.Len(t, groups, 2)
-	byUser := make(map[collection.UserID]collection.WishlistUserSet, len(groups))
-	for _, g := range groups {
-		byUser[g.UserID] = g
+			require.Len(t, groups, len(tt.wantByUser))
+			for _, g := range groups {
+				var ids []catalog.CharacterID
+				for _, c := range g.Characters {
+					ids = append(ids, c.ID)
+				}
+				assert.Equal(t, tt.wantByUser[g.UserID], ids)
+			}
+		})
 	}
-	require.Len(t, byUser[1].Characters, 2)
-	require.Len(t, byUser[2].Characters, 1)
-	assert.Equal(t, catalog.CharacterID(10), byUser[1].Characters[0].ID)
-	assert.Equal(t, catalog.CharacterID(30), byUser[1].Characters[1].ID)
-	assert.Equal(t, catalog.CharacterID(20), byUser[2].Characters[0].ID)
 }
