@@ -2,10 +2,9 @@
 
 Discord bot for collecting and trading anime/manga characters, with a REST API.
 
-## Binaries
+## Binary
 
-The `waifubot` binary runs the Discord bot and the REST API in one process;
-its subcommands expose maintenance tools (`waifubot --help` lists them).
+The `waifubot` binary runs the Discord bot and the REST API in one process; its subcommands expose maintenance tools (`waifubot --help` lists them).
 
 Build with: `nix build .#waifubot`
 
