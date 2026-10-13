@@ -16,7 +16,7 @@ import (
 // TokenHandler handles the /token command and its subcommands.
 type TokenHandler struct {
 	store        collection.DB
-	animeService TrackingService
+	animeService tracker.Service
 	config       collection.Config
 }
 

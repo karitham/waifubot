@@ -182,7 +182,7 @@ func runTestHarness(c *cli.Context) error {
 	}
 
 	// Create fake tracking service
-	fakeService := &FakeTrackingService{
+	fakeService := &FakeTrackerService{
 		CharID:     testCharID,
 		CharName:   testCharName,
 		CharImage:  testCharImage,

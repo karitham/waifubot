@@ -19,7 +19,7 @@ func TestSeriesRoll(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		setup      func(m *collectiontest.MockStore, anime *collectiontest.MockAnimeService)
+		setup      func(m *collectiontest.MockStore, anime *collectiontest.MockTrackerService)
 		userID     collection.UserID
 		mediaID    tracker.MediaID
 		wantErr    bool
@@ -28,7 +28,7 @@ func TestSeriesRoll(t *testing.T) {
 	}{
 		{
 			name: "success",
-			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockAnimeService) {
+			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockTrackerService) {
 				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID, Tokens: 50}, nil
 				}
@@ -53,7 +53,7 @@ func TestSeriesRoll(t *testing.T) {
 		},
 		{
 			name: "insufficient_tokens",
-			setup: func(m *collectiontest.MockStore, _ *collectiontest.MockAnimeService) {
+			setup: func(m *collectiontest.MockStore, _ *collectiontest.MockTrackerService) {
 				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID, Tokens: 5}, nil
 				}
@@ -65,7 +65,7 @@ func TestSeriesRoll(t *testing.T) {
 		},
 		{
 			name: "media_not_found",
-			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockAnimeService) {
+			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockTrackerService) {
 				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID, Tokens: 50}, nil
 				}
@@ -81,7 +81,7 @@ func TestSeriesRoll(t *testing.T) {
 		},
 		{
 			name: "all_owned",
-			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockAnimeService) {
+			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockTrackerService) {
 				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID, Tokens: 50}, nil
 				}
@@ -102,7 +102,7 @@ func TestSeriesRoll(t *testing.T) {
 		},
 		{
 			name: "partial_owned",
-			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockAnimeService) {
+			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockTrackerService) {
 				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID, Tokens: 50}, nil
 				}
@@ -132,7 +132,7 @@ func TestSeriesRoll(t *testing.T) {
 		},
 		{
 			name: "none_synced",
-			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockAnimeService) {
+			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockTrackerService) {
 				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID, Tokens: 50}, nil
 				}
@@ -154,7 +154,7 @@ func TestSeriesRoll(t *testing.T) {
 		},
 		{
 			name: "partially_synced",
-			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockAnimeService) {
+			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockTrackerService) {
 				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID, Tokens: 50}, nil
 				}
@@ -184,7 +184,7 @@ func TestSeriesRoll(t *testing.T) {
 		},
 		{
 			name: "new_user_insufficient_tokens",
-			setup: func(m *collectiontest.MockStore, _ *collectiontest.MockAnimeService) {
+			setup: func(m *collectiontest.MockStore, _ *collectiontest.MockTrackerService) {
 				m.GetUserFunc = func(_ context.Context, _ collection.UserID) (collection.User, error) {
 					return collection.User{}, collection.ErrNotFound
 				}
@@ -201,7 +201,7 @@ func TestSeriesRoll(t *testing.T) {
 		},
 		{
 			name: "remove_from_wishlist_fails_roll",
-			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockAnimeService) {
+			setup: func(m *collectiontest.MockStore, anime *collectiontest.MockTrackerService) {
 				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID, Tokens: 50}, nil
 				}
@@ -233,7 +233,7 @@ func TestSeriesRoll(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store := &collectiontest.MockStore{}
-			anime := &collectiontest.MockAnimeService{}
+			anime := &collectiontest.MockTrackerService{}
 			if tt.setup != nil {
 				tt.setup(store, anime)
 			}

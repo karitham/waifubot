@@ -7,17 +7,7 @@ import (
 	"time"
 
 	"github.com/karitham/waifubot/catalog"
-	"github.com/karitham/waifubot/tracker"
 )
-
-// AnimeService defines the interface for anime operations.
-type AnimeService interface {
-	GetMediaCharacters(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error)
-	Anime(ctx context.Context, name string) ([]tracker.Media, error)
-	Manga(ctx context.Context, name string) ([]tracker.Media, error)
-	User(ctx context.Context, name string) ([]tracker.User, error)
-	Character(ctx context.Context, name string) ([]tracker.Character, error)
-}
 
 // Config holds configuration values.
 type Config struct {

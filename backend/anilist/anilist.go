@@ -12,7 +12,6 @@ import (
 	"github.com/Khan/genqlient/graphql"
 
 	"github.com/karitham/waifubot/catalog"
-	"github.com/karitham/waifubot/discord"
 	"github.com/karitham/waifubot/tracker"
 )
 
@@ -40,16 +39,8 @@ type Anilist struct {
 	c graphql.Client
 }
 
-// CharacterFetcher fetches character data from AniList by ID.
-type CharacterFetcher interface {
-	CharactersByIDs(ctx context.Context, ids []int64) ([]tracker.Character, error)
-}
-
-// Check that anilist actually implements the interfaces
-var (
-	_ CharacterFetcher        = (*Anilist)(nil)
-	_ discord.TrackingService = (*Anilist)(nil)
-)
+// Check that anilist actually implements the tracker service.
+var _ tracker.Service = (*Anilist)(nil)
 
 // New returns a new anilist client, identifying itself as
 // waifubot/<version> (https://github.com/karitham/waifubot).

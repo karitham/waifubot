@@ -38,16 +38,6 @@ var (
 	)
 )
 
-// TrackingService is the interface for the anilist service.
-type TrackingService interface {
-	Anime(ctx context.Context, name string) ([]tracker.Media, error)
-	Manga(ctx context.Context, name string) ([]tracker.Media, error)
-	User(ctx context.Context, name string) ([]tracker.User, error)
-	Character(ctx context.Context, name string) ([]tracker.Character, error)
-	SearchMedia(ctx context.Context, search string) ([]tracker.Media, error)
-	GetMediaCharacters(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error)
-}
-
 // CommandStore handles discord command hash persistence.
 type CommandStore interface {
 	GetCommandHash(ctx context.Context) (string, error)
@@ -68,7 +58,7 @@ type Router struct {
 	Store             collection.DB
 	Catalog           catalog.Reader
 	CommandStore      CommandStore
-	AnimeService      TrackingService
+	AnimeService      tracker.Service
 	InterStore        InteractionStore
 	GuildIndexer      *guild.Indexer
 	GuildOps          guild.Reader

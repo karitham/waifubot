@@ -13,7 +13,7 @@ import (
 
 // SearchHandler handles the /search command and its subcommands.
 type SearchHandler struct {
-	animeService  TrackingService
+	animeService  tracker.Service
 	interStore    InteractionStore
 	onInteraction func(context.Context, int64, *corde.Interaction[corde.SlashCommandInteractionData])
 	guildIndexer  *guild.Indexer

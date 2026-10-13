@@ -12,11 +12,15 @@ import (
 	"github.com/failsafe-go/failsafe-go/ratelimiter"
 	"github.com/failsafe-go/failsafe-go/retrypolicy"
 
-	"github.com/karitham/waifubot/anilist"
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/sync/idprovider"
 	"github.com/karitham/waifubot/tracker"
 )
+
+// CharacterFetcher fetches character data from the tracker by ID.
+type CharacterFetcher interface {
+	CharactersByIDs(ctx context.Context, ids []int64) ([]tracker.Character, error)
+}
 
 // MaxIDProvider optionally provides the maximum character ID.
 // Implemented by *anilist.Anilist. When nil, the sync service uses a default bound.
@@ -27,7 +31,7 @@ type MaxIDProvider interface {
 // Service handles background synchronization of character data with AniList.
 type Service struct {
 	store         catalog.Store
-	anilist       anilist.CharacterFetcher
+	anilist       CharacterFetcher
 	maxIDProvider MaxIDProvider // nil → use default bound
 	executor      failsafe.Executor[[]tracker.Character]
 	maxID         atomic.Int64
@@ -35,7 +39,7 @@ type Service struct {
 
 // NewService creates a sync Service with rate-limiting (5 req/min) and retry
 // policies (3 retries, exponential backoff) for AniList calls.
-func NewService(store catalog.Store, fetcher anilist.CharacterFetcher, maxIDProvider MaxIDProvider) *Service {
+func NewService(store catalog.Store, fetcher CharacterFetcher, maxIDProvider MaxIDProvider) *Service {
 	rl := ratelimiter.NewSmoothBuilder[[]tracker.Character](5, time.Minute).
 		WithMaxWaitTime(2 * time.Minute).
 		Build()

@@ -102,6 +102,8 @@ func (s mediaStub) GetMediaCharacters(context.Context, tracker.MediaID) ([]track
 	return s.characters, nil
 }
 
+func (s mediaStub) SearchMedia(context.Context, string) ([]tracker.Media, error) { return nil, nil }
+
 func (s mediaStub) Anime(context.Context, string) ([]tracker.Media, error) { return nil, nil }
 
 func (s mediaStub) Manga(context.Context, string) ([]tracker.Media, error) { return nil, nil }

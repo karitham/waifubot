@@ -275,7 +275,7 @@ func TestTokenHandler_Roll(t *testing.T) {
 		name         string
 		cmd          CommandContext
 		store        *collectiontest.MockStore
-		animeService *collectiontest.MockAnimeService
+		animeService *collectiontest.MockTrackerService
 		wantContent  string
 		wantEmbed    bool
 	}{
@@ -286,7 +286,7 @@ func TestTokenHandler_Roll(t *testing.T) {
 				ErrVal:    errors.New("option not found"),
 			},
 			store:        &collectiontest.MockStore{},
-			animeService: &collectiontest.MockAnimeService{},
+			animeService: &collectiontest.MockTrackerService{},
 			wantContent:  "select a series",
 		},
 		{
@@ -300,7 +300,7 @@ func TestTokenHandler_Roll(t *testing.T) {
 					return collection.User{UserID: userID, Tokens: 2}, nil
 				},
 			},
-			animeService: &collectiontest.MockAnimeService{},
+			animeService: &collectiontest.MockTrackerService{},
 			wantContent:  "need 5 tokens",
 		},
 		{
@@ -317,7 +317,7 @@ func TestTokenHandler_Roll(t *testing.T) {
 					return []catalog.CharacterID{1, 2, 3}, nil
 				},
 			},
-			animeService: &collectiontest.MockAnimeService{
+			animeService: &collectiontest.MockTrackerService{
 				GetMediaCharactersFunc: func(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error) {
 					return []tracker.Character{
 						{ID: 1, Name: "Char1"},
@@ -339,7 +339,7 @@ func TestTokenHandler_Roll(t *testing.T) {
 					return collection.User{UserID: userID, Tokens: 10}, nil
 				},
 			},
-			animeService: &collectiontest.MockAnimeService{
+			animeService: &collectiontest.MockTrackerService{
 				GetMediaCharactersFunc: func(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error) {
 					return nil, nil
 				},
@@ -357,7 +357,7 @@ func TestTokenHandler_Roll(t *testing.T) {
 					return collection.User{UserID: userID, Tokens: 10}, nil
 				},
 			},
-			animeService: &collectiontest.MockAnimeService{
+			animeService: &collectiontest.MockTrackerService{
 				GetMediaCharactersFunc: func(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error) {
 					return nil, errors.New("database on fire")
 				},
@@ -390,7 +390,7 @@ func TestTokenHandler_Roll(t *testing.T) {
 					return collection.User{UserID: userID}, nil
 				},
 			},
-			animeService: &collectiontest.MockAnimeService{
+			animeService: &collectiontest.MockTrackerService{
 				GetMediaCharactersFunc: func(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error) {
 					return []tracker.Character{
 						{ID: 10, Name: "Sakura", MediaTitle: "Naruto", Popularity: 5000},
@@ -424,7 +424,7 @@ func TestTokenHandler_SeriesAutocomplete(t *testing.T) {
 	tests := []struct {
 		name            string
 		interaction     *corde.Interaction[corde.AutocompleteInteractionData]
-		animeService    *collectiontest.MockAnimeService
+		animeService    *collectiontest.MockTrackerService
 		wantCalled      bool
 		wantChoiceCount int
 	}{
@@ -434,7 +434,7 @@ func TestTokenHandler_SeriesAutocomplete(t *testing.T) {
 				1, 2, 3, "testuser",
 				corde.OptionsInteractions{"series": corde.JsonRaw(`"nar"`)},
 			),
-			animeService: &collectiontest.MockAnimeService{
+			animeService: &collectiontest.MockTrackerService{
 				SearchMediaFunc: func(ctx context.Context, search string) ([]tracker.Media, error) {
 					return []tracker.Media{
 						{ID: 10, Title: "Naruto", Type: "ANIME"},
@@ -451,7 +451,7 @@ func TestTokenHandler_SeriesAutocomplete(t *testing.T) {
 				1, 2, 3, "testuser",
 				corde.OptionsInteractions{},
 			),
-			animeService:    &collectiontest.MockAnimeService{},
+			animeService:    &collectiontest.MockTrackerService{},
 			wantCalled:      true,
 			wantChoiceCount: 0,
 		},
@@ -461,7 +461,7 @@ func TestTokenHandler_SeriesAutocomplete(t *testing.T) {
 				1, 2, 3, "testuser",
 				corde.OptionsInteractions{"series": corde.JsonRaw(`"nar"`)},
 			),
-			animeService: &collectiontest.MockAnimeService{
+			animeService: &collectiontest.MockTrackerService{
 				SearchMediaFunc: func(ctx context.Context, search string) ([]tracker.Media, error) {
 					return nil, errors.New("api error")
 				},

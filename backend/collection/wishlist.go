@@ -48,7 +48,7 @@ func RemoveAllFromWishlist(ctx context.Context, store DB, userID UserID) error {
 // filtering out characters the catalog does not know and ones the user
 // already owns. The user is materialized and the list is added in one
 // transaction.
-func AddMediaToWishlist(ctx context.Context, store DB, anime AnimeService, userID UserID, mediaID tracker.MediaID) (int, error) {
+func AddMediaToWishlist(ctx context.Context, store DB, anime tracker.Service, userID UserID, mediaID tracker.MediaID) (int, error) {
 	characters, err := anime.GetMediaCharacters(ctx, mediaID)
 	if err != nil {
 		return 0, err

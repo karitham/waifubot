@@ -10,7 +10,7 @@ import (
 )
 
 // SeriesRoll executes a paid, series-specific roll for a user, deducting tokens.
-func SeriesRoll(ctx context.Context, store DB, anime AnimeService, userID UserID, mediaID tracker.MediaID, config Config) (catalog.Character, error) {
+func SeriesRoll(ctx context.Context, store DB, anime tracker.Service, userID UserID, mediaID tracker.MediaID, config Config) (catalog.Character, error) {
 	return acquire(ctx, store, userID, acquisition{
 		source: SourceSeriesRoll,
 		check: func(user User, _ time.Time) error {
@@ -31,7 +31,7 @@ func SeriesRoll(ctx context.Context, store DB, anime AnimeService, userID UserID
 
 // pickSeriesCharacter selects a random unowned character from a series among
 // those present in the catalog.
-func pickSeriesCharacter(ctx context.Context, store Store, userID UserID, mediaID tracker.MediaID, anime AnimeService) (catalog.Character, error) {
+func pickSeriesCharacter(ctx context.Context, store Store, userID UserID, mediaID tracker.MediaID, anime tracker.Service) (catalog.Character, error) {
 	ownedIDs, err := store.GetCollectionIDs(ctx, userID)
 	if err != nil {
 		return catalog.Character{}, err

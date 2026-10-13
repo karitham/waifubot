@@ -64,7 +64,7 @@ func TestSearchHandler_SearchAnime(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
 			h := &SearchHandler{
-				animeService: &collectiontest.MockAnimeService{AnimeFunc: tt.animeFunc},
+				animeService: &collectiontest.MockTrackerService{AnimeFunc: tt.animeFunc},
 			}
 
 			h.SearchAnime(t.Context(), w, tt.cmd)
@@ -136,7 +136,7 @@ func TestSearchHandler_SearchManga(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
 			h := &SearchHandler{
-				animeService: &collectiontest.MockAnimeService{MangaFunc: tt.mangaFunc},
+				animeService: &collectiontest.MockTrackerService{MangaFunc: tt.mangaFunc},
 			}
 
 			h.SearchManga(t.Context(), w, tt.cmd)
@@ -208,7 +208,7 @@ func TestSearchHandler_SearchUser(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
 			h := &SearchHandler{
-				animeService: &collectiontest.MockAnimeService{UserFunc: tt.userFunc},
+				animeService: &collectiontest.MockTrackerService{UserFunc: tt.userFunc},
 			}
 
 			h.SearchUser(t.Context(), w, tt.cmd)
@@ -280,7 +280,7 @@ func TestSearchHandler_SearchChar(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
 			h := &SearchHandler{
-				animeService: &collectiontest.MockAnimeService{CharacterFunc: tt.charFunc},
+				animeService: &collectiontest.MockTrackerService{CharacterFunc: tt.charFunc},
 			}
 
 			h.SearchChar(t.Context(), w, tt.cmd)

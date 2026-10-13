@@ -286,7 +286,7 @@ func TestWishlistHandler_MediaAdd(t *testing.T) {
 	tests := []struct {
 		name         string
 		cmd          CommandContext
-		animeService *collectiontest.MockAnimeService
+		animeService *collectiontest.MockTrackerService
 		collStore    *collectiontest.MockStore
 		wantContent  string
 	}{
@@ -306,7 +306,7 @@ func TestWishlistHandler_MediaAdd(t *testing.T) {
 					return int64(len(characterIDs)), nil
 				},
 			},
-			animeService: &collectiontest.MockAnimeService{
+			animeService: &collectiontest.MockTrackerService{
 				GetMediaCharactersFunc: func(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error) {
 					return []tracker.Character{
 						{ID: 1, Name: "Char1", ImageURL: "http://img1", MediaTitle: "Anime1"},
@@ -329,7 +329,7 @@ func TestWishlistHandler_MediaAdd(t *testing.T) {
 					return nil, nil
 				},
 			},
-			animeService: &collectiontest.MockAnimeService{
+			animeService: &collectiontest.MockTrackerService{
 				GetMediaCharactersFunc: func(ctx context.Context, mediaID tracker.MediaID) ([]tracker.Character, error) {
 					return nil, nil
 				},
@@ -691,7 +691,7 @@ func TestWishlistHandler_MediaAutocomplete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var searchCalled bool
-			mockAnime := &collectiontest.MockAnimeService{
+			mockAnime := &collectiontest.MockTrackerService{
 				SearchMediaFunc: func(ctx context.Context, search string) ([]tracker.Media, error) {
 					searchCalled = true
 					return tt.searchResult, tt.searchErr

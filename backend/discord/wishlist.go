@@ -56,7 +56,7 @@ func formatUser(userID collection.UserID) string {
 // WishlistHandler handles the /wishlist command and its subcommands.
 type WishlistHandler struct {
 	store        collection.DB
-	animeService TrackingService
+	animeService tracker.Service
 	catalog      catalog.Reader
 	guildIndexer *guild.Indexer
 }
