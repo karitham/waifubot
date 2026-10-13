@@ -1,8 +1,6 @@
 package collection
 
 import (
-	"context"
-
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/guild"
 )
@@ -22,16 +20,13 @@ type composedStore struct {
 // composedTx adds the transaction-scoped writers and control to the read
 // surface.
 type composedTx struct {
-	composedStore
+	Store
 	UserWriter
 	CollectionWriter
 	DropWriter
 	guild.Writer
-	control TxControl
+	TxControl
 }
-
-func (t composedTx) Commit(ctx context.Context) error   { return t.control.Commit(ctx) }
-func (t composedTx) Rollback(ctx context.Context) error { return t.control.Rollback(ctx) }
 
 // NewStore composes the reader adapters into a query Store.
 func NewStore(
@@ -59,16 +54,11 @@ func NewTx(
 	guild guild.Writer,
 ) Tx {
 	return composedTx{
-		composedStore: composedStore{
-			UserReader:       store,
-			CollectionReader: store,
-			guildReader:      store,
-			Reader:           store,
-		},
+		Store:            store,
 		UserWriter:       user,
 		CollectionWriter: coll,
 		DropWriter:       drop,
 		Writer:           guild,
-		control:          control,
+		TxControl:        control,
 	}
 }

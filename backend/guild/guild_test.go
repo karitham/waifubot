@@ -17,14 +17,14 @@ import (
 type mockQuerier struct {
 	status guild.IndexStatus
 	err    error
-	tx     guild.TxQuerier
+	tx     guild.Tx
 
 	deleteCalls   int
 	upsertCalls   int
 	completeCalls int
 }
 
-func (m *mockQuerier) Begin(ctx context.Context) (guild.TxQuerier, error) {
+func (m *mockQuerier) Begin(ctx context.Context) (guild.Tx, error) {
 	if m.tx != nil {
 		return m.tx, nil
 	}

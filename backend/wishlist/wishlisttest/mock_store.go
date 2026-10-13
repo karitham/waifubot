@@ -11,7 +11,6 @@ import (
 
 // MockStore implements wishlist.Store for testing.
 type MockStore struct {
-	RemoveAllFromWishlistFunc    func(ctx context.Context, userID collection.UserID) error
 	GetUserCharacterWishlistFunc func(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error)
 	GetWishlistHoldersFunc       func(ctx context.Context, characterIDs []catalog.CharacterID, userID collection.UserID, guildID guild.ID) ([]wishlist.UserCharacterSet, error)
 	GetWantedCharactersFunc      func(ctx context.Context, userID collection.UserID, guildID guild.ID) ([]wishlist.UserCharacterSet, error)
@@ -20,13 +19,6 @@ type MockStore struct {
 }
 
 var _ wishlist.Store = (*MockStore)(nil)
-
-func (m *MockStore) RemoveAllFromWishlist(ctx context.Context, userID collection.UserID) error {
-	if m.RemoveAllFromWishlistFunc != nil {
-		return m.RemoveAllFromWishlistFunc(ctx, userID)
-	}
-	return nil
-}
 
 func (m *MockStore) GetUserCharacterWishlist(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error) {
 	if m.GetUserCharacterWishlistFunc != nil {

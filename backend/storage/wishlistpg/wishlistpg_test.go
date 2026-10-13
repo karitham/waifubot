@@ -43,19 +43,6 @@ func TestWishlist(t *testing.T) {
 				assert.Equal(t, "Test Character", chars[0].Name)
 			},
 		},
-		{
-			name: "remove_all_from_wishlist",
-			setup: func(m *wishlisttest.MockQuerier) {
-				m.RemoveAllFromWishlistFunc = func(_ context.Context, userID uint64) error {
-					assert.Equal(t, uint64(123), userID)
-					return nil
-				}
-			},
-			run: func(t *testing.T, s *wishlistpg.Pg) {
-				err := s.RemoveAllFromWishlist(t.Context(), 123)
-				require.NoError(t, err)
-			},
-		},
 	}
 
 	for _, tt := range tests {

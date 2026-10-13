@@ -40,7 +40,7 @@ type mockDropStore struct {
 	setFunc func(ctx context.Context, id collection.ChannelID, data catalog.Character) error
 }
 
-func (m *mockDropStore) Set(ctx context.Context, id collection.ChannelID, data catalog.Character) error {
+func (m *mockDropStore) SetDrop(ctx context.Context, id collection.ChannelID, data catalog.Character) error {
 	return m.setFunc(ctx, id, data)
 }
 

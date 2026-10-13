@@ -109,9 +109,6 @@ func (s *Server) GetProfileV1(ctx context.Context, params api.GetProfileV1Params
 	var fav api.OptCharacter
 	if u.FavoriteCharacterID != 0 {
 		favChar, err := s.db.GetCharacterByID(ctx, u.FavoriteCharacterID)
-		if err != nil && !errors.Is(err, catalog.ErrNotFound) {
-			return nil, fmt.Errorf("failed to get favorite character: %w", err)
-		}
 		if err == nil {
 			fav = api.NewOptCharacter(api.Character{
 				ID:        int64(favChar.ID),
@@ -120,6 +117,8 @@ func (s *Server) GetProfileV1(ctx context.Context, params api.GetProfileV1Params
 				Favorites: favChar.Popularity,
 				// date and type are null — character comes from catalog, not collection
 			})
+		} else if !errors.Is(err, catalog.ErrNotFound) {
+			return nil, fmt.Errorf("failed to get favorite character: %w", err)
 		}
 	}
 

@@ -30,7 +30,7 @@ func SeriesRoll(ctx context.Context, store DB, anime AnimeService, userID UserID
 }
 
 // pickSeriesCharacter selects a random unowned character from a series among
-// the characters the catalog knows.
+// those present in the catalog.
 func pickSeriesCharacter(ctx context.Context, store Store, userID UserID, mediaID tracker.MediaID, anime AnimeService) (catalog.Character, error) {
 	ownedIDs, err := store.GetCollectionIDs(ctx, userID)
 	if err != nil {
@@ -62,8 +62,8 @@ func pickSeriesCharacter(ctx context.Context, store Store, userID UserID, mediaI
 		return catalog.Character{}, ErrNoUnownedCharacters
 	}
 
-	// Characters enter the catalog only through the hydrator; a tracker
-	// character it has not reached yet is not ownable.
+	// Only the hydrator writes characters to the catalog; a tracker
+	// character not yet written is not ownable.
 	ids := make([]catalog.CharacterID, len(unowned))
 	for i, c := range unowned {
 		ids[i] = c.ID

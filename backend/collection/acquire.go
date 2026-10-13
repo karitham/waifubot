@@ -19,7 +19,7 @@ type acquisition struct {
 	// picking and again inside the transaction, both with the acquisition's
 	// single timestamp.
 	check func(user User, now time.Time) error
-	// pick selects an unowned character the catalog knows, so the write
+	// pick selects an unowned character present in the catalog, so the write
 	// transaction only touches existing character rows.
 	pick func(ctx context.Context, store Store, userID UserID) (catalog.Character, error)
 	// charge applies the cost of the acquisition inside the transaction:

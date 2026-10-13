@@ -45,11 +45,10 @@ func UserProfile(ctx context.Context, store Store, userID UserID) (Profile, erro
 	var favorite *catalog.Character
 	if u.FavoriteCharacterID != 0 {
 		fav, err := store.GetCharacterByID(ctx, u.FavoriteCharacterID)
-		if err != nil && !errors.Is(err, ErrNotFound) {
-			return Profile{}, fmt.Errorf("failed to get favorite character: %w", err)
-		}
 		if err == nil {
 			favorite = &fav
+		} else if !errors.Is(err, ErrNotFound) {
+			return Profile{}, fmt.Errorf("failed to get favorite character: %w", err)
 		}
 	}
 

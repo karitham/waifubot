@@ -75,8 +75,8 @@ type guildDB struct {
 	collection.DB
 }
 
-// Begin starts a transaction and returns it as a guild.TxQuerier.
-func (g guildDB) Begin(ctx context.Context) (guild.TxQuerier, error) {
+// Begin starts a transaction and returns it as a guild.Tx.
+func (g guildDB) Begin(ctx context.Context) (guild.Tx, error) {
 	tx, err := g.DB.Begin(ctx)
 	if err != nil {
 		return nil, err

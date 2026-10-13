@@ -75,7 +75,7 @@ func (i *Indexer) IndexGuild(ctx context.Context, guildID corde.Snowflake) error
 // syncMembers replaces the guild's member set and completes the job in one
 // transaction: a failure mid-index must not leave members deleted or the job
 // marked in progress.
-func syncMembers(ctx context.Context, tx TxQuerier, guildID ID, ids []MemberID) error {
+func syncMembers(ctx context.Context, tx Tx, guildID ID, ids []MemberID) error {
 	if err := tx.DeleteGuildMembersNotIn(ctx, guildID, ids); err != nil {
 		return err
 	}

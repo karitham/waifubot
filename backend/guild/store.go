@@ -42,8 +42,8 @@ type Writer interface {
 	DeleteGuildMembersNotIn(ctx context.Context, guildID ID, memberIDs []MemberID) error
 }
 
-// TxQuerier is the full guild surface inside a transaction.
-type TxQuerier interface {
+// Tx is the full guild surface inside a transaction.
+type Tx interface {
 	Reader
 	Writer
 	Commit(ctx context.Context) error
@@ -53,5 +53,5 @@ type TxQuerier interface {
 // DB is the guild read surface plus transaction creation.
 type DB interface {
 	Reader
-	Begin(ctx context.Context) (TxQuerier, error)
+	Begin(ctx context.Context) (Tx, error)
 }

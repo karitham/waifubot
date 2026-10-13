@@ -15,7 +15,7 @@ import (
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/storage"
-	"github.com/karitham/waifubot/storage/dropstore"
+	"github.com/karitham/waifubot/storage/droppg"
 )
 
 type InteractionDB interface {
@@ -30,7 +30,7 @@ type RedisClient interface {
 // DropSetter persists a channel drop; defined here so the migration can be
 // tested without a database.
 type DropSetter interface {
-	Set(ctx context.Context, id collection.ChannelID, data catalog.Character) error
+	SetDrop(ctx context.Context, channelID collection.ChannelID, char catalog.Character) error
 }
 
 // CharacterMaterializer upserts characters into the catalog.
@@ -78,7 +78,7 @@ var MigrateRedisCommand = &cli.Command{
 
 		m := &Migrator{
 			Redis:     rdb,
-			DropStore: dropstore.NewPostgresStore(store.DropStore()),
+			DropStore: droppg.New(store.DropStore()),
 			Catalog:   newCatalogStore(store),
 			DB:        store.DB(),
 		}
@@ -186,13 +186,13 @@ func (m *Migrator) migrateDrop(ctx context.Context, key string) error {
 		Popularity: data.Favorites,
 	}
 
-	// Characters enter the catalog only through the hydrator; the legacy
-	// Redis payload carries the data, so the migration materializes it.
+	// Only the hydrator writes characters to the catalog; the legacy Redis
+	// payload carries the data, so the migration materializes it.
 	if err := m.Catalog.UpsertCharacter(ctx, char); err != nil {
 		return fmt.Errorf("failed to materialize character for channel %s: %w", sf, err)
 	}
 
-	err = m.DropStore.Set(ctx, collection.ChannelID(sf), char)
+	err = m.DropStore.SetDrop(ctx, collection.ChannelID(sf), char)
 	if err != nil {
 		return fmt.Errorf("failed to migrate drop for channel %s: %w", sf, err)
 	}

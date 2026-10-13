@@ -8,31 +8,14 @@ import (
 	"github.com/karitham/waifubot/catalog"
 )
 
-// withUsers runs fn in a transaction after materializing and locking the
-// given users. It is the transaction shape for domain writes: the users an
-// operation acts on exist for the write and roll back with it, and their
-// rows are locked for its duration. IDs are sorted and deduped so concurrent
-// operations acquire the locks in the same order; closures must act only on
-// the users passed here for that order to hold.
-func withUsers(ctx context.Context, store DB, userIDs []UserID, fn func(tx Tx) error) error {
-	users := slices.Clone(userIDs)
-	slices.Sort(users)
-	users = slices.Compact(users)
-
+// withTx runs fn in a transaction, committing on success and rolling back on
+// failure. It is the transaction shape for writes that do not materialize or
+// lock the user; withUsers builds on it. The returned error is the one
+// reported; a rollback failure is not.
+func withTx(ctx context.Context, store DB, fn func(tx Tx) error) error {
 	tx, err := store.Begin(ctx)
 	if err != nil {
 		return err
-	}
-
-	for _, userID := range users {
-		if err := tx.CreateUser(ctx, userID); err != nil {
-			_ = tx.Rollback(ctx)
-			return err
-		}
-		if err := tx.LockUser(ctx, userID); err != nil {
-			_ = tx.Rollback(ctx)
-			return err
-		}
 	}
 
 	if err := fn(tx); err != nil {
@@ -46,6 +29,30 @@ func withUsers(ctx context.Context, store DB, userIDs []UserID, fn func(tx Tx) e
 	}
 
 	return nil
+}
+
+// withUsers runs fn in a transaction after materializing and locking the
+// given users. It is the transaction shape for domain writes: the users an
+// operation acts on exist for the write and roll back with it, and their
+// rows are locked for its duration. IDs are sorted and deduped so concurrent
+// operations acquire the locks in the same order; closures must act only on
+// the users passed here for that order to hold.
+func withUsers(ctx context.Context, store DB, userIDs []UserID, fn func(tx Tx) error) error {
+	users := slices.Clone(userIDs)
+	slices.Sort(users)
+	users = slices.Compact(users)
+
+	return withTx(ctx, store, func(tx Tx) error {
+		for _, userID := range users {
+			if err := tx.CreateUser(ctx, userID); err != nil {
+				return err
+			}
+			if err := tx.LockUser(ctx, userID); err != nil {
+				return err
+			}
+		}
+		return fn(tx)
+	})
 }
 
 // SetQuote sets the user's quote, materializing the user first.

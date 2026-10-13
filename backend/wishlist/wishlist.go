@@ -62,9 +62,9 @@ func AddMediaToWishlist(ctx context.Context, mediaService MediaService, store co
 		ids[i] = char.ID
 	}
 
-	// Characters enter the catalog only through the hydrator; entries for
-	// characters it has not reached would be invisible to the reads that
-	// join characters.
+	// Only the hydrator writes characters to the catalog; entries for
+	// characters not yet written are invisible to the reads that join
+	// characters.
 	known, err := store.KnownCharacterIDs(ctx, ids)
 	if err != nil {
 		return 0, err

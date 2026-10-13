@@ -120,7 +120,8 @@ type CollectionWriter interface {
 	AddCharactersToWishlist(ctx context.Context, userID UserID, characterIDs []catalog.CharacterID) (int64, error)
 }
 
-// DropWriter holds the channel drop operations; all run inside a transaction.
+// DropWriter holds the channel drop operations; all run inside a transaction
+// (GetDropForUpdate is the claim's locking read).
 type DropWriter interface {
 	// SetDrop stores the character as the channel's drop. The character must
 	// already be in the catalog; the FK enforces it.
@@ -146,11 +147,10 @@ type Tx interface {
 	CollectionWriter
 	DropWriter
 	guild.Writer
-	Commit(ctx context.Context) error
-	Rollback(ctx context.Context) error
+	TxControl
 }
 
-// TxControl commits or rolls back a composed Tx. The storage transaction
+// TxControl commits or rolls back a transaction. The storage transaction
 // satisfies it.
 type TxControl interface {
 	Commit(ctx context.Context) error

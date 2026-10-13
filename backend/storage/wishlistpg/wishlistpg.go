@@ -28,10 +28,6 @@ func storageIDs(ids []catalog.CharacterID) []int64 {
 	return out
 }
 
-func (p *Pg) RemoveAllFromWishlist(ctx context.Context, userID collection.UserID) error {
-	return p.Q.RemoveAllFromWishlist(ctx, uint64(userID))
-}
-
 func (p *Pg) GetUserCharacterWishlist(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error) {
 	rows, err := p.Q.GetUserCharacterWishlist(ctx, uint64(userID))
 	if err != nil {

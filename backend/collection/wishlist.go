@@ -9,41 +9,17 @@ import (
 // RemoveFromWishlist removes a character from the user's wishlist. It does
 // not materialize the user: removing from an absent wishlist is a no-op.
 func RemoveFromWishlist(ctx context.Context, store DB, userID UserID, charID catalog.CharacterID) error {
-	tx, err := store.Begin(ctx)
-	if err != nil {
-		return err
-	}
-
-	if err := tx.RemoveFromWishlist(ctx, userID, charID); err != nil {
-		_ = tx.Rollback(ctx)
-		return err
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		_ = tx.Rollback(ctx)
-		return err
-	}
-	return nil
+	return withTx(ctx, store, func(tx Tx) error {
+		return tx.RemoveFromWishlist(ctx, userID, charID)
+	})
 }
 
 // RemoveAllFromWishlist clears the user's wishlist without materializing the
 // user.
 func RemoveAllFromWishlist(ctx context.Context, store DB, userID UserID) error {
-	tx, err := store.Begin(ctx)
-	if err != nil {
-		return err
-	}
-
-	if err := tx.RemoveAllFromWishlist(ctx, userID); err != nil {
-		_ = tx.Rollback(ctx)
-		return err
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		_ = tx.Rollback(ctx)
-		return err
-	}
-	return nil
+	return withTx(ctx, store, func(tx Tx) error {
+		return tx.RemoveAllFromWishlist(ctx, userID)
+	})
 }
 
 // AddToWishlist adds characters to the user's wishlist, materializing the
