@@ -32,6 +32,7 @@ type MockStore struct {
 	SetFavoriteFunc             func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error
 	SearchCharactersFunc        func(ctx context.Context, userID collection.UserID, term string) ([]catalog.Character, error)
 	RemoveFromWishlistFunc      func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error
+	RemoveAllFromWishlistFunc   func(ctx context.Context, userID collection.UserID) error
 	AddCharactersToWishlistFunc func(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) (int64, error)
 
 	SetDropFunc          func(ctx context.Context, channelID collection.ChannelID, char catalog.Character) error
@@ -206,6 +207,13 @@ func (m *MockStore) SearchCharacters(ctx context.Context, userID collection.User
 func (m *MockStore) RemoveFromWishlist(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
 	if m.RemoveFromWishlistFunc != nil {
 		return m.RemoveFromWishlistFunc(ctx, userID, charID)
+	}
+	return nil
+}
+
+func (m *MockStore) RemoveAllFromWishlist(ctx context.Context, userID collection.UserID) error {
+	if m.RemoveAllFromWishlistFunc != nil {
+		return m.RemoveAllFromWishlistFunc(ctx, userID)
 	}
 	return nil
 }

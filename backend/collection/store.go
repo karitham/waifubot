@@ -95,6 +95,8 @@ type CollectionRepository interface {
 	SearchCharacters(ctx context.Context, userID UserID, term string) ([]catalog.Character, error)
 	// RemoveFromWishlist removes a character from the user's wishlist.
 	RemoveFromWishlist(ctx context.Context, userID UserID, charID catalog.CharacterID) error
+	// RemoveAllFromWishlist clears the user's wishlist.
+	RemoveAllFromWishlist(ctx context.Context, userID UserID) error
 	// AddCharactersToWishlist is called inside wishlist-add transactions.
 	// It reports how many characters were actually added.
 	AddCharactersToWishlist(ctx context.Context, userID UserID, characterIDs []catalog.CharacterID) (int64, error)

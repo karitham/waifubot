@@ -13,6 +13,43 @@ import (
 	"github.com/karitham/waifubot/collection/collectiontest"
 )
 
+func TestRemoveFromWishlist(t *testing.T) {
+	created := false
+	store := &collectiontest.MockStore{
+		CreateUserFunc: func(_ context.Context, _ collection.UserID) error {
+			created = true
+			return nil
+		},
+		RemoveFromWishlistFunc: func(_ context.Context, userID collection.UserID, charID catalog.CharacterID) error {
+			assert.Equal(t, collection.UserID(1), userID)
+			assert.Equal(t, catalog.CharacterID(42), charID)
+			return nil
+		},
+	}
+
+	require.NoError(t, collection.RemoveFromWishlist(t.Context(), store, 1, 42))
+	assert.False(t, created, "removal must not materialize the user")
+	assert.Equal(t, 1, store.CommitCalls)
+}
+
+func TestRemoveAllFromWishlist(t *testing.T) {
+	created := false
+	store := &collectiontest.MockStore{
+		CreateUserFunc: func(_ context.Context, _ collection.UserID) error {
+			created = true
+			return nil
+		},
+		RemoveAllFromWishlistFunc: func(_ context.Context, userID collection.UserID) error {
+			assert.Equal(t, collection.UserID(1), userID)
+			return nil
+		},
+	}
+
+	require.NoError(t, collection.RemoveAllFromWishlist(t.Context(), store, 1))
+	assert.False(t, created, "removal must not materialize the user")
+	assert.Equal(t, 1, store.CommitCalls)
+}
+
 func TestAddToWishlist(t *testing.T) {
 	tests := []struct {
 		name         string

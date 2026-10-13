@@ -242,7 +242,7 @@ func TestWishlistHandler_CharacterRemoveAll(t *testing.T) {
 	tests := []struct {
 		name        string
 		cmd         CommandContext
-		wlStore     *wishlisttest.MockStore
+		collStore   *collectiontest.MockStore
 		wantContent string
 	}{
 		{
@@ -252,7 +252,7 @@ func TestWishlistHandler_CharacterRemoveAll(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore:     &wishlisttest.MockStore{},
+			collStore:   &collectiontest.MockStore{},
 			wantContent: "Cleared your wishlist.",
 		},
 		{
@@ -262,7 +262,7 @@ func TestWishlistHandler_CharacterRemoveAll(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &wishlisttest.MockStore{
+			collStore: &collectiontest.MockStore{
 				RemoveAllFromWishlistFunc: func(ctx context.Context, userID collection.UserID) error {
 					return errors.New("db error")
 				},
@@ -275,8 +275,7 @@ func TestWishlistHandler_CharacterRemoveAll(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
 			h := &WishlistHandler{
-				wishlist: tt.wlStore,
-				store:    &collectiontest.MockStore{},
+				store: tt.collStore,
 			}
 
 			h.CharacterRemoveAll(t.Context(), w, tt.cmd)

@@ -28,7 +28,6 @@ type WishlistComparison struct {
 }
 
 type Store interface {
-	RemoveAllFromWishlist(ctx context.Context, userID collection.UserID) error
 	GetUserCharacterWishlist(ctx context.Context, userID collection.UserID) ([]Entry, error)
 
 	// Discovery

@@ -13,14 +13,13 @@ import (
 	"github.com/karitham/waifubot/storage/wishlistpg"
 	"github.com/karitham/waifubot/storage/wishliststore"
 	"github.com/karitham/waifubot/storage/wishlisttest"
-	"github.com/karitham/waifubot/wishlist"
 )
 
 func TestWishlist(t *testing.T) {
 	tests := []struct {
 		name  string
 		setup func(m *wishlisttest.MockQuerier)
-		run   func(t *testing.T, s wishlist.Store)
+		run   func(t *testing.T, s *wishlistpg.Pg)
 	}{
 		{
 			name: "get_user_character_wishlist",
@@ -36,7 +35,7 @@ func TestWishlist(t *testing.T) {
 					}, nil
 				}
 			},
-			run: func(t *testing.T, s wishlist.Store) {
+			run: func(t *testing.T, s *wishlistpg.Pg) {
 				chars, err := s.GetUserCharacterWishlist(t.Context(), 123)
 				require.NoError(t, err)
 				assert.Len(t, chars, 1)
@@ -52,7 +51,7 @@ func TestWishlist(t *testing.T) {
 					return nil
 				}
 			},
-			run: func(t *testing.T, s wishlist.Store) {
+			run: func(t *testing.T, s *wishlistpg.Pg) {
 				err := s.RemoveAllFromWishlist(t.Context(), 123)
 				require.NoError(t, err)
 			},

@@ -208,6 +208,10 @@ func (p *Pg) RemoveFromWishlist(ctx context.Context, userID collection.UserID, c
 	})
 }
 
+func (p *Pg) RemoveAllFromWishlist(ctx context.Context, userID collection.UserID) error {
+	return p.W.RemoveAllFromWishlist(ctx, uint64(userID))
+}
+
 func (p *Pg) AddCharactersToWishlist(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) (int64, error) {
 	ids := make([]int64, len(characterIDs))
 	for i, id := range characterIDs {

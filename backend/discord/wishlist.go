@@ -132,7 +132,7 @@ func (h *WishlistHandler) CharacterRemove(ctx context.Context, w corde.ResponseW
 
 	opts := parseWishlistCharacterOptions(cmd)
 
-	err := h.store.RemoveFromWishlist(ctx, cmd.UserID(), opts.charID)
+	err := collection.RemoveFromWishlist(ctx, h.store, cmd.UserID(), opts.charID)
 	if err != nil {
 		logger.Error("error removing character from wishlist", "error", err, "character_id", opts.charID)
 		w.Respond(rspErr("Unable to remove character from wishlist. Please try again."))
@@ -172,7 +172,7 @@ func (h *WishlistHandler) CharacterList(ctx context.Context, w corde.ResponseWri
 func (h *WishlistHandler) CharacterRemoveAll(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
 	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
 
-	err := h.wishlist.RemoveAllFromWishlist(ctx, cmd.UserID())
+	err := collection.RemoveAllFromWishlist(ctx, h.store, cmd.UserID())
 	if err != nil {
 		logger.Error("error removing all from wishlist", "error", err)
 		w.Respond(rspErr("Unable to clear your wishlist. Please try again."))
