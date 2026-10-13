@@ -21,9 +21,8 @@ type Character struct {
 	IsActive   bool
 }
 
-// Store provides character catalog operations.
-type Store interface {
-	UpsertCharacter(ctx context.Context, char Character) error
+// Reader reads the character catalog.
+type Reader interface {
 	GetCharacterByID(ctx context.Context, charID CharacterID) (Character, error)
 	SearchGlobalCharacters(ctx context.Context, term string) ([]Character, error)
 	GetActiveIDs(ctx context.Context) ([]CharacterID, error)
@@ -32,5 +31,17 @@ type Store interface {
 	// hydrator's last pass and can be stale for characters a live tracker
 	// fetch just returned.
 	KnownCharacterIDs(ctx context.Context, ids []CharacterID) ([]CharacterID, error)
+}
+
+// Writer hydrates the character catalog; the sync service and explicit
+// maintenance tools are its only writers.
+type Writer interface {
+	UpsertCharacter(ctx context.Context, char Character) error
 	MarkCharactersInactive(ctx context.Context, charIDs []CharacterID) error
+}
+
+// Store is the full catalog surface.
+type Store interface {
+	Reader
+	Writer
 }

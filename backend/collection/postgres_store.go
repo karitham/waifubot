@@ -11,7 +11,7 @@ type composedStore struct {
 	CollectionRepository
 	DropRepository
 	guild.Querier
-	catalog.Store
+	catalog.Reader
 }
 
 // NewStore composes repository adapters into a query Store.
@@ -20,13 +20,13 @@ func NewStore(
 	coll CollectionRepository,
 	drop DropRepository,
 	guild guild.Querier,
-	cat catalog.Store,
+	cat catalog.Reader,
 ) Store {
 	return composedStore{
 		UserRepository:       user,
 		CollectionRepository: coll,
 		DropRepository:       drop,
 		Querier:              guild,
-		Store:                cat,
+		Reader:               cat,
 	}
 }

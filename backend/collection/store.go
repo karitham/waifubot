@@ -123,7 +123,7 @@ type Store interface {
 	CollectionRepository
 	DropRepository
 	guild.Querier
-	catalog.Store
+	catalog.Reader
 }
 
 // Tx is a Store scoped to a database transaction.

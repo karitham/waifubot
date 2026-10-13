@@ -61,7 +61,7 @@ type CommandStore interface {
 type Router struct {
 	mux               *corde.Mux
 	Store             collection.DB
-	Catalog           catalog.Store
+	Catalog           catalog.Reader
 	CommandStore      CommandStore
 	WishlistStore     wishlist.Store
 	AnimeService      TrackingService

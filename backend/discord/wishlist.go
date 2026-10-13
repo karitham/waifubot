@@ -59,7 +59,7 @@ type WishlistHandler struct {
 	wishlist     wishlist.Store
 	store        collection.DB
 	animeService TrackingService
-	catalog      catalog.Store
+	catalog      catalog.Reader
 	guildIndexer *guild.Indexer
 }
 
