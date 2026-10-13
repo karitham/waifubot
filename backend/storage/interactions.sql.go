@@ -9,7 +9,7 @@ import (
 	"context"
 )
 
-const incrementActivity = `-- name: IncrementActivity :one
+const incrementInteraction = `-- name: IncrementInteraction :one
 INSERT INTO
   channel_interactions (channel_id, interaction_count)
 VALUES
@@ -21,20 +21,20 @@ RETURNING
   interaction_count
 `
 
-func (q *Queries) IncrementActivity(ctx context.Context, channelID uint64) (int64, error) {
-	row := q.db.QueryRow(ctx, incrementActivity, channelID)
+func (q *Queries) IncrementInteraction(ctx context.Context, channelID uint64) (int64, error) {
+	row := q.db.QueryRow(ctx, incrementInteraction, channelID)
 	var interaction_count int64
 	err := row.Scan(&interaction_count)
 	return interaction_count, err
 }
 
-const resetActivity = `-- name: ResetActivity :exec
+const resetInteraction = `-- name: ResetInteraction :exec
 DELETE FROM channel_interactions
 WHERE
   channel_id = $1
 `
 
-func (q *Queries) ResetActivity(ctx context.Context, channelID uint64) error {
-	_, err := q.db.Exec(ctx, resetActivity, channelID)
+func (q *Queries) ResetInteraction(ctx context.Context, channelID uint64) error {
+	_, err := q.db.Exec(ctx, resetInteraction, channelID)
 	return err
 }

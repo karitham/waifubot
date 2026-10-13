@@ -11,12 +11,12 @@ import (
 	"github.com/karitham/waifubot/storage"
 )
 
-func (b *base) IncrementActivity(ctx context.Context, channelID drops.ChannelID) (int64, error) {
-	return b.q.IncrementActivity(ctx, uint64(channelID))
+func (t *Tx) IncrementInteraction(ctx context.Context, channelID drops.ChannelID) (int64, error) {
+	return t.q.IncrementInteraction(ctx, uint64(channelID))
 }
 
-func (b *base) ResetActivity(ctx context.Context, channelID drops.ChannelID) error {
-	return b.q.ResetActivity(ctx, uint64(channelID))
+func (t *Tx) ResetInteraction(ctx context.Context, channelID drops.ChannelID) error {
+	return t.q.ResetInteraction(ctx, uint64(channelID))
 }
 
 func (b *base) RandomActiveChar(ctx context.Context, weightExponent float64) (catalog.Character, error) {
@@ -38,8 +38,8 @@ func (b *base) RandomActiveChar(ctx context.Context, weightExponent float64) (ca
 	}, nil
 }
 
-func (b *base) SetDrop(ctx context.Context, drop drops.Drop) error {
-	return b.q.SetDrop(ctx, storage.SetDropParams{
+func (t *Tx) SetDrop(ctx context.Context, drop drops.Drop) error {
+	return t.q.SetDrop(ctx, storage.SetDropParams{
 		ChannelID:   uint64(drop.Channel),
 		CharacterID: int64(drop.Character.ID),
 	})

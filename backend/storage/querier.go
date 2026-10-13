@@ -34,7 +34,7 @@ type Querier interface {
 	GetWantedCharacters(ctx context.Context, arg GetWantedCharactersParams) ([]GetWantedCharactersRow, error)
 	GetWishlistHolders(ctx context.Context, arg GetWishlistHoldersParams) ([]GetWishlistHoldersRow, error)
 	GiveCharacter(ctx context.Context, arg GiveCharacterParams) (Collection, error)
-	IncrementActivity(ctx context.Context, channelID uint64) (int64, error)
+	IncrementInteraction(ctx context.Context, channelID uint64) (int64, error)
 	InsertCollection(ctx context.Context, arg InsertCollectionParams) (Collection, error)
 	IsGuildIndexed(ctx context.Context, guildID uint64) (IsGuildIndexedRow, error)
 	KnownCharacterIDs(ctx context.Context, ids []int64) ([]int64, error)
@@ -52,7 +52,7 @@ type Querier interface {
 	RecordRoll(ctx context.Context, arg RecordRollParams) (int64, error)
 	RemoveAllFromWishlist(ctx context.Context, userID uint64) error
 	RemoveCharactersFromWishlist(ctx context.Context, arg RemoveCharactersFromWishlistParams) error
-	ResetActivity(ctx context.Context, channelID uint64) error
+	ResetInteraction(ctx context.Context, channelID uint64) error
 	SearchCharacters(ctx context.Context, arg SearchCharactersParams) ([]SearchCharactersRow, error)
 	SearchGlobalCharacters(ctx context.Context, arg SearchGlobalCharactersParams) ([]Character, error)
 	SetCommandHash(ctx context.Context, hash string) error

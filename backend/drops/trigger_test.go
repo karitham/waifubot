@@ -36,8 +36,9 @@ func TestDropMatches(t *testing.T) {
 	}
 }
 
-// fakeStore records the calls Trigger makes.
-type fakeStore struct {
+// mockStore implements drops.DB and drops.Tx and records the calls Trigger
+// makes.
+type mockStore struct {
 	count        int64
 	incrementErr error
 
@@ -46,32 +47,43 @@ type fakeStore struct {
 	pickErr    error
 	weight     float64
 	stored     drops.Drop
-	storedFlag bool
+	storedSet  bool
 	setDropErr error
+
+	committed bool
 }
 
-func (f *fakeStore) IncrementActivity(ctx context.Context, channel drops.ChannelID) (int64, error) {
-	if f.incrementErr != nil {
-		return 0, f.incrementErr
+func (m *mockStore) Begin(ctx context.Context) (drops.Tx, error) { return m, nil }
+
+func (m *mockStore) IncrementInteraction(ctx context.Context, channel drops.ChannelID) (int64, error) {
+	if m.incrementErr != nil {
+		return 0, m.incrementErr
 	}
-	return f.count, nil
+	return m.count, nil
 }
 
-func (f *fakeStore) ResetActivity(ctx context.Context, channel drops.ChannelID) error {
-	f.resets++
+func (m *mockStore) ResetInteraction(ctx context.Context, channel drops.ChannelID) error {
+	m.resets++
 	return nil
 }
 
-func (f *fakeStore) RandomActiveChar(ctx context.Context, weightExponent float64) (catalog.Character, error) {
-	f.weight = weightExponent
-	return f.picked, f.pickErr
+func (m *mockStore) RandomActiveChar(ctx context.Context, weightExponent float64) (catalog.Character, error) {
+	m.weight = weightExponent
+	return m.picked, m.pickErr
 }
 
-func (f *fakeStore) SetDrop(ctx context.Context, drop drops.Drop) error {
-	f.stored = drop
-	f.storedFlag = true
-	return f.setDropErr
+func (m *mockStore) SetDrop(ctx context.Context, drop drops.Drop) error {
+	m.stored = drop
+	m.storedSet = true
+	return m.setDropErr
 }
+
+func (m *mockStore) Commit(ctx context.Context) error {
+	m.committed = true
+	return nil
+}
+
+func (m *mockStore) Rollback(ctx context.Context) error { return nil }
 
 func TestTrigger(t *testing.T) {
 	const threshold = 3
@@ -86,17 +98,20 @@ func TestTrigger(t *testing.T) {
 		setDropErr    error
 		wantTriggered bool
 		wantErr       bool
+		wantCommitted bool
 		wantResets    int
 		wantStored    bool
 	}{
 		{
-			name:  "below threshold records only",
-			count: threshold - 1,
+			name:          "below threshold records only",
+			count:         threshold - 1,
+			wantCommitted: true,
 		},
 		{
 			name:          "reaches threshold resets and stores",
 			count:         threshold,
 			wantTriggered: true,
+			wantCommitted: true,
 			wantResets:    1,
 			wantStored:    true,
 		},
@@ -125,7 +140,7 @@ func TestTrigger(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := &fakeStore{
+			store := &mockStore{
 				count:        tt.count,
 				incrementErr: tt.incrementErr,
 				picked:       char,
@@ -138,15 +153,17 @@ func TestTrigger(t *testing.T) {
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.False(t, triggered)
+				assert.False(t, store.committed, "a failed trigger must roll back")
 				assert.Equal(t, tt.wantResets, store.resets)
-				assert.Equal(t, tt.wantStored, store.storedFlag)
+				assert.Equal(t, tt.wantStored, store.storedSet)
 				return
 			}
 
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantTriggered, triggered)
+			assert.Equal(t, tt.wantCommitted, store.committed)
 			assert.Equal(t, tt.wantResets, store.resets)
-			assert.Equal(t, tt.wantStored, store.storedFlag)
+			assert.Equal(t, tt.wantStored, store.storedSet)
 
 			if tt.wantTriggered {
 				assert.Equal(t, drops.Drop{Channel: channel, Character: char}, drop)

@@ -42,7 +42,6 @@ type MockStore struct {
 	CompareWithUserFunc          func(ctx context.Context, userID1, userID2 collection.UserID) (collection.WishlistComparison, error)
 	GetUsersWantingCharacterFunc func(ctx context.Context, charID catalog.CharacterID, guildID guild.ID, excludeUserID collection.UserID) ([]guild.MemberID, error)
 
-	SetDropFunc          func(ctx context.Context, drop drops.Drop) error
 	GetDropForUpdateFunc func(ctx context.Context, channelID drops.ChannelID) (drops.Drop, error)
 	DeleteDropFunc       func(ctx context.Context, channelID drops.ChannelID) error
 
@@ -61,11 +60,9 @@ type MockStore struct {
 	MarkCharactersInactiveFunc func(ctx context.Context, charIDs []catalog.CharacterID) error
 
 	RandomCharNotOwnedFunc func(ctx context.Context, userID collection.UserID, weightExponent float64) (catalog.Character, error)
-	RandomActiveCharFunc   func(ctx context.Context, weightExponent float64) (catalog.Character, error)
 
-	BeginFunc    func(ctx context.Context) (collection.Tx, error)
-	CommitFunc   func(ctx context.Context) error
-	RollbackFunc func(ctx context.Context) error
+	BeginFunc  func(ctx context.Context) (collection.Tx, error)
+	CommitFunc func(ctx context.Context) error
 
 	CommitCalls   int
 	RollbackCalls int
@@ -232,13 +229,6 @@ func (m *MockStore) AddCharactersToWishlist(ctx context.Context, userID collecti
 	return 0, nil
 }
 
-func (m *MockStore) SetDrop(ctx context.Context, drop drops.Drop) error {
-	if m.SetDropFunc != nil {
-		return m.SetDropFunc(ctx, drop)
-	}
-	return nil
-}
-
 func (m *MockStore) GetDropForUpdate(ctx context.Context, channelID drops.ChannelID) (drops.Drop, error) {
 	if m.GetDropForUpdateFunc != nil {
 		return m.GetDropForUpdateFunc(ctx, channelID)
@@ -379,13 +369,6 @@ func (m *MockStore) RandomCharNotOwned(ctx context.Context, userID collection.Us
 	return catalog.Character{}, nil
 }
 
-func (m *MockStore) RandomActiveChar(ctx context.Context, weightExponent float64) (catalog.Character, error) {
-	if m.RandomActiveCharFunc != nil {
-		return m.RandomActiveCharFunc(ctx, weightExponent)
-	}
-	return catalog.Character{}, nil
-}
-
 func (m *MockStore) Begin(ctx context.Context) (collection.Tx, error) {
 	if m.BeginFunc != nil {
 		return m.BeginFunc(ctx)
@@ -403,9 +386,6 @@ func (m *MockStore) Commit(ctx context.Context) error {
 
 func (m *MockStore) Rollback(ctx context.Context) error {
 	m.RollbackCalls++
-	if m.RollbackFunc != nil {
-		return m.RollbackFunc(ctx)
-	}
 	return nil
 }
 

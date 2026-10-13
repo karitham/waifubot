@@ -42,15 +42,19 @@ func sanitizeName(name string) string {
 	return strings.Join(strings.Fields(name), " ")
 }
 
-// Store is the pool-level drops surface: the activity counter, the drop
-// write, and the pick a new drop is chosen from. It is implemented by
-// storage/pg.
-type Store interface {
-	// IncrementActivity records an interaction on the channel and returns
-	// the channel's new count.
-	IncrementActivity(ctx context.Context, channel ChannelID) (int64, error)
-	// ResetActivity clears the channel's activity count.
-	ResetActivity(ctx context.Context, channel ChannelID) error
+// DB is the pool-level entry point: transaction creation.
+type DB interface {
+	Begin(ctx context.Context) (Tx, error)
+}
+
+// Tx is the drops surface inside a transaction: the interaction counter, the
+// pick, and the drop write. Trigger runs on it.
+type Tx interface {
+	// IncrementInteraction records an interaction on the channel and
+	// returns the channel's new count.
+	IncrementInteraction(ctx context.Context, channel ChannelID) (int64, error)
+	// ResetInteraction clears the channel's interaction count.
+	ResetInteraction(ctx context.Context, channel ChannelID) error
 	// RandomActiveChar returns a random active character to drop, weighted
 	// by favorites^weightExponent. Excludes the default AniList placeholder
 	// image since drop images are embedded publicly.
@@ -59,10 +63,12 @@ type Store interface {
 	// previous drop. The character must already be in the catalog; the FK
 	// enforces it.
 	SetDrop(ctx context.Context, drop Drop) error
+	Commit(ctx context.Context) error
+	Rollback(ctx context.Context) error
 }
 
-// TxWriter holds the drop writes that run inside the claim transaction.
-type TxWriter interface {
+// ClaimWriter holds the drop writes that run inside the claim transaction.
+type ClaimWriter interface {
 	// GetDropForUpdate locks the channel's drop for the rest of the
 	// transaction. It returns ErrNoDropInChannel when the channel has none.
 	GetDropForUpdate(ctx context.Context, channel ChannelID) (Drop, error)

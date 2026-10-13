@@ -56,7 +56,7 @@ type Config struct {
 // Deps are the adapters the command handlers run against.
 type Deps struct {
 	Store        collection.DB
-	Drops        drops.Store
+	Drops        drops.DB
 	CommandStore CommandStore
 	AnimeService tracker.Service
 	GuildIndexer *guild.Indexer
@@ -82,7 +82,7 @@ func New(ctx context.Context, cfg Config, deps Deps) (*corde.Mux, error) {
 	}
 
 	t := trace[corde.SlashCommandInteractionData]
-	a := activity(trigger.activity)
+	i := onInteraction(trigger.record)
 	idx := indexMiddleware[corde.SlashCommandInteractionData](deps.GuildIndexer)
 
 	infoHandler := &InfoHandler{}
@@ -92,9 +92,9 @@ func New(ctx context.Context, cfg Config, deps Deps) (*corde.Mux, error) {
 	verifyHandler := &VerifyHandler{store: deps.Store, guildIndexer: deps.GuildIndexer}
 	profileHandler := &ProfileHandler{store: deps.Store}
 	searchHandler := &SearchHandler{
-		animeService: deps.AnimeService,
-		activity:     a,
-		guildIndexer: deps.GuildIndexer,
+		animeService:  deps.AnimeService,
+		onInteraction: i,
+		guildIndexer:  deps.GuildIndexer,
 	}
 	holdersHandler := &HoldersHandler{store: deps.Store, guildIndexer: deps.GuildIndexer}
 	rollHandler := &RollHandler{
@@ -114,13 +114,13 @@ func New(ctx context.Context, cfg Config, deps Deps) (*corde.Mux, error) {
 
 	mux.SlashCommand("info", wrap(wrapCtx(infoHandler.Info), t))
 	mux.SlashCommand("claim", wrap(wrapCtx(claimHandler.Claim), t))
-	mux.SlashCommand("list", wrap(wrapCtx(listHandler.List), t, a, idx))
+	mux.SlashCommand("list", wrap(wrapCtx(listHandler.List), t, i, idx))
 	mux.Route("give", giveHandler.Register)
 	mux.Route("verify", verifyHandler.Register)
 	mux.Route("profile", profileHandler.Register)
 	mux.Route("search", searchHandler.Register)
 	mux.Route("holders", holdersHandler.Register)
-	mux.SlashCommand("roll", wrap(wrapCtx(rollHandler.Roll), t, a, idx))
+	mux.SlashCommand("roll", wrap(wrapCtx(rollHandler.Roll), t, i, idx))
 	mux.Route("token", tokenHandler.Register)
 	mux.Route("wishlist", wishlistHandler.Register)
 

@@ -18,6 +18,7 @@ import (
 
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/drops"
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/storage"
 	"github.com/karitham/waifubot/storage/pg"
@@ -375,28 +376,75 @@ func TestIntegration_DropOperations(t *testing.T) {
 	ctx := t.Context()
 
 	_, err := store.GetDropForUpdate(ctx, 888001)
-	require.ErrorIs(t, err, collection.ErrNotFound)
+	require.ErrorIs(t, err, drops.ErrNoDropInChannel)
 }
 
-func TestIntegration_CreateDrop(t *testing.T) {
+func TestIntegration_Trigger(t *testing.T) {
 	ctx := t.Context()
 
 	dbStore, err := storage.NewStore(ctx, testDBURL)
 	require.NoError(t, err)
-	store := pg.NewPool(dbStore)
 	cat := pg.NewPool(dbStore)
 
 	require.NoError(t, cat.UpsertCharacter(ctx, catalog.Character{ID: 7001, Name: "DropChar", Image: "img", Popularity: 100}))
 
-	char, err := collection.CreateDrop(ctx, store, 888002)
+	drop, triggered, err := drops.Trigger(ctx, pg.NewDropsDB(dbStore), 888002, 1)
 	require.NoError(t, err)
+	require.True(t, triggered)
 
-	tx, err := store.Begin(ctx)
+	txStore, err := dbStore.Tx(ctx)
 	require.NoError(t, err)
+	tx := pg.NewTx(txStore)
 	got, err := tx.GetDropForUpdate(ctx, 888002)
 	require.NoError(t, err)
 	require.NoError(t, tx.Rollback(ctx))
-	assert.Equal(t, char.ID, got.ID)
+	assert.Equal(t, drop.Character.ID, got.Character.ID)
+}
+
+// TestIntegration_TriggerSerializes runs concurrent triggers against one
+// channel: the increments serialize on the counter row, so every full
+// threshold window is consumed exactly once.
+func TestIntegration_TriggerSerializes(t *testing.T) {
+	ctx := t.Context()
+
+	dbStore, err := storage.NewStore(ctx, testDBURL)
+	require.NoError(t, err)
+	cat := pg.NewPool(dbStore)
+
+	require.NoError(t, cat.UpsertCharacter(ctx, catalog.Character{ID: 7002, Name: "ConcurrentChar", Image: "img", Popularity: 100}))
+
+	const (
+		channel   drops.ChannelID = 888003
+		threshold int64           = 5
+		callers                   = 10
+	)
+
+	var (
+		wg        sync.WaitGroup
+		mu        sync.Mutex
+		triggered int
+	)
+
+	for range callers {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			_, ok, err := drops.Trigger(ctx, pg.NewDropsDB(dbStore), channel, threshold)
+			if err != nil {
+				t.Errorf("trigger failed: %v", err)
+				return
+			}
+			if ok {
+				mu.Lock()
+				triggered++
+				mu.Unlock()
+			}
+		}()
+	}
+	wg.Wait()
+
+	assert.Equal(t, callers/int(threshold), triggered, "each threshold window must be consumed exactly once")
 }
 
 func TestIntegration_GetUserByAnilist(t *testing.T) {

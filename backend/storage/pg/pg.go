@@ -2,19 +2,20 @@
 //
 // Pool carries what is safe on a pool handle: reads and single-statement
 // writes with no multi-statement invariant. Tx carries the writes that must
-// run inside a transaction, plus control. GuildDB exists because guild.DB's
-// Begin returns guild.Tx while collection.DB's returns collection.Tx, and Go
-// has no covariant returns.
+// run inside a transaction, plus control. GuildDB and DropsDB exist because
+// guild.DB's Begin returns guild.Tx and drops.DB's returns drops.Tx while
+// collection.DB's returns collection.Tx, and Go has no covariant returns.
 //
-// Pool implements collection.DB, catalog.Store, guild.Reader, drops.Store,
-// and the command store. Tx implements collection.Tx, guild.Tx,
-// catalog.Store, and drops.TxWriter.
+// Pool implements collection.DB, catalog.Store, guild.Reader, and the command
+// store. Tx implements collection.Tx, guild.Tx, catalog.Store, drops.Tx, and
+// drops.ClaimWriter.
 package pg
 
 import (
 	"context"
 
 	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/drops"
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/storage"
 )
@@ -26,7 +27,7 @@ type base struct {
 }
 
 // Pool implements the pool-level ports: collection.DB, catalog.Store,
-// guild.Reader, and the command and interaction stores.
+// guild.Reader, and the command store.
 type Pool struct {
 	base
 	s storage.Store
@@ -45,8 +46,8 @@ func (p *Pool) Begin(ctx context.Context) (collection.Tx, error) {
 	return NewTx(scoped), nil
 }
 
-// Tx implements the transaction-scoped ports: collection.Tx, guild.Tx, and
-// catalog.Store.
+// Tx implements the transaction-scoped ports: collection.Tx, guild.Tx,
+// catalog.Store, drops.Tx, and drops.ClaimWriter.
 type Tx struct {
 	base
 	s storage.TxStore
@@ -72,6 +73,24 @@ func NewGuildDB(s storage.Store) *GuildDB {
 // Begin starts a transaction and returns it as the guild surface.
 func (g *GuildDB) Begin(ctx context.Context) (guild.Tx, error) {
 	scoped, err := g.s.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewTx(scoped), nil
+}
+
+// DropsDB adapts a pool store to drops.DB.
+type DropsDB struct {
+	s storage.Store
+}
+
+func NewDropsDB(s storage.Store) *DropsDB {
+	return &DropsDB{s: s}
+}
+
+// Begin starts a transaction and returns it as the drops surface.
+func (d *DropsDB) Begin(ctx context.Context) (drops.Tx, error) {
+	scoped, err := d.s.Tx(ctx)
 	if err != nil {
 		return nil, err
 	}

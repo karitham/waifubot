@@ -13,12 +13,12 @@ type slashHandler = func(ctx context.Context, w corde.ResponseWriter, i *corde.I
 // slashMiddleware wraps a slash command handler with another layer.
 type slashMiddleware = func(next slashHandler) slashHandler
 
-// activity middleware runs onActivity in the background so the interaction
+// onInteraction middleware runs fn in the background so the interaction
 // response is not delayed.
-func activity(onActivity func(ctx context.Context, i *corde.Interaction[corde.SlashCommandInteractionData])) slashMiddleware {
+func onInteraction(fn func(ctx context.Context, i *corde.Interaction[corde.SlashCommandInteractionData])) slashMiddleware {
 	return func(next slashHandler) slashHandler {
 		return func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-			go onActivity(context.Background(), i)
+			go fn(context.Background(), i)
 			next(ctx, w, i)
 		}
 	}

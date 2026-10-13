@@ -10,24 +10,24 @@ import (
 	"github.com/karitham/waifubot/drops"
 )
 
-// dropTrigger posts a channel drop once the channel's activity reaches the
-// threshold.
+// dropTrigger posts a channel drop once the channel's interaction count
+// reaches the threshold.
 type dropTrigger struct {
-	store     drops.Store
+	store     drops.DB
 	mux       *corde.Mux
 	threshold int64
 	guildID   *corde.Snowflake
 }
 
-// activity records a channel interaction and posts the drop it triggers.
-func (d *dropTrigger) activity(ctx context.Context, i *corde.Interaction[corde.SlashCommandInteractionData]) {
+// record records a channel interaction and posts the drop it triggers.
+func (d *dropTrigger) record(ctx context.Context, i *corde.Interaction[corde.SlashCommandInteractionData]) {
 	if d.guildID != nil && *d.guildID != i.GuildID {
 		return
 	}
 
 	drop, triggered, err := drops.Trigger(ctx, d.store, drops.ChannelID(i.ChannelID), d.threshold)
 	if err != nil {
-		slog.Error("failed to record channel activity", "error", err, "channel_id", uint64(i.ChannelID))
+		slog.Error("failed to record interaction", "error", err, "channel_id", uint64(i.ChannelID))
 		return
 	}
 	if !triggered {

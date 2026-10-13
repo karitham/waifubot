@@ -130,7 +130,7 @@ type Tx interface {
 	Store
 	UserWriter
 	CollectionWriter
-	drops.TxWriter
+	drops.ClaimWriter
 	guild.Writer
 	Commit(ctx context.Context) error
 	Rollback(ctx context.Context) error
