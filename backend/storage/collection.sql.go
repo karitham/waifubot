@@ -80,7 +80,7 @@ func (q *Queries) GetActiveIDs(ctx context.Context) ([]int64, error) {
 	return items, nil
 }
 
-const getByID = `-- name: GetByID :one
+const getCharacterByID = `-- name: GetCharacterByID :one
 SELECT
   id,
   name,
@@ -96,7 +96,7 @@ LIMIT
   1
 `
 
-type GetByIDRow struct {
+type GetCharacterByIDRow struct {
 	ID         int64
 	Name       string
 	Image      string
@@ -105,9 +105,9 @@ type GetByIDRow struct {
 	UpdatedAt  pgtype.Timestamp
 }
 
-func (q *Queries) GetByID(ctx context.Context, id int64) (GetByIDRow, error) {
-	row := q.db.QueryRow(ctx, getByID, id)
-	var i GetByIDRow
+func (q *Queries) GetCharacterByID(ctx context.Context, id int64) (GetCharacterByIDRow, error) {
+	row := q.db.QueryRow(ctx, getCharacterByID, id)
+	var i GetCharacterByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,

@@ -22,7 +22,7 @@ func (b *base) UpsertCharacter(ctx context.Context, char catalog.Character) erro
 }
 
 func (b *base) GetCharacterByID(ctx context.Context, charID catalog.CharacterID) (catalog.Character, error) {
-	c, err := b.q.GetByID(ctx, int64(charID))
+	c, err := b.q.GetCharacterByID(ctx, int64(charID))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return catalog.Character{}, catalog.ErrNotFound

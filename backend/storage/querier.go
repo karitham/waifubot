@@ -22,7 +22,7 @@ type Querier interface {
 	GetActiveIDs(ctx context.Context) ([]int64, error)
 	GetByAnilist(ctx context.Context, lower string) (User, error)
 	GetByDiscordUsername(ctx context.Context, discordUsername string) (User, error)
-	GetByID(ctx context.Context, id int64) (GetByIDRow, error)
+	GetCharacterByID(ctx context.Context, id int64) (GetCharacterByIDRow, error)
 	GetCollection(ctx context.Context, arg GetCollectionParams) (GetCollectionRow, error)
 	GetCommandHash(ctx context.Context) (string, error)
 	// Locks only the drop row; locking the joined character row blocks inserts

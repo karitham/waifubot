@@ -112,7 +112,7 @@ func (t *Tx) GiveCharacter(ctx context.Context, from, to collection.UserID, char
 		return collection.OwnedCharacter{}, err
 	}
 
-	charRow, err := t.q.GetByID(ctx, int64(charID))
+	charRow, err := t.q.GetCharacterByID(ctx, int64(charID))
 	if err != nil {
 		return collection.OwnedCharacter{}, err
 	}

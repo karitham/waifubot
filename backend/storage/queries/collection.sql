@@ -64,7 +64,7 @@ WHERE
   c.id = $1
   AND col.user_id = $2;
 
--- name: GetByID :one
+-- name: GetCharacterByID :one
 SELECT
   id,
   name,
