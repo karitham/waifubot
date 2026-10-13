@@ -463,6 +463,18 @@ func TestIntegration_RandomCharNotOwned_ExcludesInactive(t *testing.T) {
 	}
 }
 
+func TestIntegration_KnownCharacterIDs(t *testing.T) {
+	store := setupStore(t)
+	ctx := t.Context()
+
+	require.NoError(t, store.UpsertCharacter(ctx, catalog.Character{ID: 6001, Name: "Known", Image: "img"}))
+	require.NoError(t, store.MarkCharactersInactive(ctx, []catalog.CharacterID{6001}))
+
+	known, err := store.KnownCharacterIDs(ctx, []catalog.CharacterID{6001, 6002})
+	require.NoError(t, err)
+	assert.Equal(t, []catalog.CharacterID{6001}, known, "presence decides, not the active flag")
+}
+
 func TestIntegration_RollCooldownIsAtomic(t *testing.T) {
 	ctx := t.Context()
 	const uid collection.UserID = 900015
