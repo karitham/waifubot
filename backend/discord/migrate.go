@@ -10,7 +10,7 @@ import (
 
 // migrateCommands registers the command definitions when their hash changed
 // and persists the new hash.
-func migrateCommands(ctx context.Context, mux *corde.Mux, cfg Config, store CommandStore) error {
+func migrateCommands(ctx context.Context, mux *corde.Mux, guildID *corde.Snowflake, store CommandStore) error {
 	hash := Hash(commandDefinitions)
 
 	stored, err := store.GetCommandHash(ctx)
@@ -26,8 +26,8 @@ func migrateCommands(ctx context.Context, mux *corde.Mux, cfg Config, store Comm
 	slog.Info("command hash changed, migrating", "old", stored, "new", hash)
 
 	var opts []func(*corde.CommandsOpt)
-	if cfg.GuildID != nil {
-		opts = append(opts, corde.GuildOpt(*cfg.GuildID))
+	if guildID != nil {
+		opts = append(opts, corde.GuildOpt(*guildID))
 	}
 
 	if err := mux.BulkRegisterCommand(ToCorde(commandDefinitions), opts...); err != nil {

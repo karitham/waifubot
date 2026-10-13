@@ -2,8 +2,6 @@ package discord
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"log/slog"
 
 	"github.com/Karitham/corde"
@@ -73,12 +71,10 @@ type Deps struct {
 // New wires the bot: it registers the command definitions when their hash
 // changed, builds every command handler, and returns the mux serving them.
 func New(ctx context.Context, cfg Config, deps Deps) (*corde.Mux, error) {
-	if err := registerMetrics(); err != nil {
-		return nil, err
-	}
+	prometheus.MustRegister(commandCounter, commandDuration)
 
 	mux := corde.NewMux(cfg.PublicKey, cfg.AppID, cfg.BotToken)
-	if err := migrateCommands(ctx, mux, cfg, deps.CommandStore); err != nil {
+	if err := migrateCommands(ctx, mux, cfg.GuildID, deps.CommandStore); err != nil {
 		return nil, err
 	}
 
@@ -136,20 +132,6 @@ func New(ctx context.Context, cfg Config, deps Deps) (*corde.Mux, error) {
 	mux.Route("wishlist", wishlistHandler.Register)
 
 	return mux, nil
-}
-
-// registerMetrics registers the command metrics. A previous bot in the same
-// process finds them already registered and reuses them.
-func registerMetrics() error {
-	for _, c := range []prometheus.Collector{commandCounter, commandDuration} {
-		if err := prometheus.Register(c); err != nil {
-			var already prometheus.AlreadyRegisteredError
-			if !errors.As(err, &already) {
-				return fmt.Errorf("register command metrics: %w", err)
-			}
-		}
-	}
-	return nil
 }
 
 // removeUnknownCommands answers commands Discord sends that the bot no longer
