@@ -4,10 +4,8 @@ Discord bot for collecting and trading anime/manga characters, with a REST API.
 
 ## Binaries
 
-This project produces two binaries:
-
-- **`bot`** - Discord bot with commands for rolling, claiming, trading characters
-- **`api`** - REST API for fetching user profiles and wishlists
+The `waifubot` binary runs the Discord bot and the REST API in one process;
+its subcommands expose maintenance tools (`waifubot --help` lists them).
 
 Build with: `nix build .#waifubot`
 
@@ -22,22 +20,18 @@ Build with: `nix build .#waifubot`
 | `PUBLIC_KEY` | Discord application public key |
 | `DB_URL`     | PostgreSQL connection string   |
 
-### Optional (Bot)
+### Optional
 
-| Variable             | Default | Description                         |
-| -------------------- | ------- | ----------------------------------- |
-| `PORT`               | `8080`  | HTTP server port                    |
-| `ROLL_TIMEOUT`       | `2h`    | Cooldown between rolls              |
-| `TOKENS_NEEDED`      | `3`     | Tokens required to exchange         |
-| `INTERACTION_NEEDED` | `25`    | Interactions needed to get a token  |
-| `SKIP_MIGRATE`       | `false` | Skip database migrations on startup |
+| Variable             | Default | Description                                   |
+| -------------------- | ------- | --------------------------------------------- |
+| `PORT`               | `8080`  | HTTP server port                              |
+| `ROLL_TIMEOUT`       | `2h`    | Cooldown between rolls                        |
+| `SERIES_ROLL_COST`   | `20`    | Token cost of a series roll                   |
+| `INTERACTION_NEEDED` | `25`    | Interactions needed to trigger a channel drop |
+| `SKIP_MIGRATE`       | `false` | Skip database migrations on startup           |
+| `LOG_LEVEL`          | `INFO`  | Log level (DEBUG, INFO, WARN, ERROR)          |
 
-### Optional (API)
-
-| Variable    | Default | Description                          |
-| ----------- | ------- | ------------------------------------ |
-| `PORT`      | `3333`  | HTTP server port                     |
-| `LOG_LEVEL` | `INFO`  | Log level (DEBUG, INFO, WARN, ERROR) |
+See `cmd/waifubot/run.go` for the full list of flags.
 
 ## Deployment
 
@@ -49,10 +43,7 @@ See the [infra repository](https://github.com/karitham/infra/tree/main/apps/waif
 # Enter dev shell
 nix develop
 
-# Run bot
+# Run the bot and API
 cd backend
-go run ./cmd/bot run
-
-# Run API (in another terminal)
-go run ./cmd/api
+go run ./cmd/waifubot run
 ```
