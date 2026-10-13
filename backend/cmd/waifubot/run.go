@@ -45,9 +45,9 @@ var RunCommand = &cli.Command{
 		rollCooldownFlag,
 		seriesRollCostFlag,
 		&cli.Int64Flag{
-			Name:        "interaction-needed",
-			EnvVars:     []string{"INTERACTION_NEEDED"},
-			DefaultText: "25",
+			Name:    "interaction-needed",
+			EnvVars: []string{"INTERACTION_NEEDED"},
+			Value:   25,
 		},
 		&cli.StringFlag{
 			Name:    "port",

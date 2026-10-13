@@ -83,9 +83,9 @@ func main() {
 					flags.RollCooldownFlag,
 					flags.SeriesRollCostFlag,
 					&cli.Int64Flag{
-						Name:        "interaction-needed",
-						EnvVars:     []string{"INTERACTION_NEEDED"},
-						DefaultText: "25",
+						Name:    "interaction-needed",
+						EnvVars: []string{"INTERACTION_NEEDED"},
+						Value:   25,
 					},
 					testCharIDFlag,
 					testCharNameFlag,
