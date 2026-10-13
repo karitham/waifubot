@@ -17,6 +17,7 @@ func Trigger(ctx context.Context, store DB, channel ChannelID, threshold int64) 
 	if err != nil {
 		return Drop{}, false, fmt.Errorf("failed to begin transaction: %w", err)
 	}
+	// The rollback is a no-op after a commit and covers every failure return.
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	count, err := tx.IncrementInteraction(ctx, channel)

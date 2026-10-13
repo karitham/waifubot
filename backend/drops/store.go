@@ -1,5 +1,5 @@
 // Package drops models channel drops: a character waits in a channel to be
-// claimed, and channel activity makes drops appear.
+// claimed, and channel interactions make drops appear.
 package drops
 
 import (

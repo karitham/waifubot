@@ -423,6 +423,7 @@ func TestIntegration_TriggerSerializes(t *testing.T) {
 		wg        sync.WaitGroup
 		mu        sync.Mutex
 		triggered int
+		errs      = make(chan error, callers)
 	)
 
 	for range callers {
@@ -432,7 +433,7 @@ func TestIntegration_TriggerSerializes(t *testing.T) {
 
 			_, ok, err := drops.Trigger(ctx, pg.NewDropsDB(dbStore), channel, threshold)
 			if err != nil {
-				t.Errorf("trigger failed: %v", err)
+				errs <- err
 				return
 			}
 			if ok {
@@ -443,7 +444,11 @@ func TestIntegration_TriggerSerializes(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+	close(errs)
 
+	for err := range errs {
+		require.NoError(t, err)
+	}
 	assert.Equal(t, callers/int(threshold), triggered, "each threshold window must be consumed exactly once")
 }
 
