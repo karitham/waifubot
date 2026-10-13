@@ -100,7 +100,6 @@ var RunCommand = &cli.Command{
 		slog.Info("Starting WaifuBot", "port", c.String("port"), "app_id", c.String("app-id"), "api_enabled", c.Bool(apiFlag.Name))
 		router := discord.New(&discord.Router{
 			Store:             db,
-			Catalog:           db,
 			CommandStore:      db,
 			AnimeService:      anilistClient,
 			InterStore:        db,

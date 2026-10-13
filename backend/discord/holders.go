@@ -10,6 +10,7 @@ import (
 	"github.com/Karitham/corde"
 
 	"github.com/karitham/waifubot/catalog"
+	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/guild"
 )
 
@@ -33,7 +34,7 @@ func indexMiddleware[T corde.InteractionDataConstraint](
 // HoldersHandler handles the /holders command and its autocomplete.
 type HoldersHandler struct {
 	guildOps     guild.Reader
-	catalog      catalog.Reader
+	store        collection.Store
 	guildIndexer *guild.Indexer
 }
 
@@ -68,7 +69,7 @@ func (h *HoldersHandler) Holders(ctx context.Context, w corde.ResponseWriter, cm
 		return
 	}
 
-	charName, holderIDs, err := guild.CharacterHolders(ctx, h.guildOps, h.catalog, cmd.GuildID(), opts.charID)
+	charName, holderIDs, err := guild.CharacterHolders(ctx, h.guildOps, h.store, cmd.GuildID(), opts.charID)
 	if err != nil {
 		switch {
 		case errors.Is(err, guild.ErrNotInGuild):
@@ -100,5 +101,5 @@ func (h *HoldersHandler) Holders(ctx context.Context, w corde.ResponseWriter, cm
 
 // Autocomplete provides character suggestions for the holders command.
 func (h *HoldersHandler) Autocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
-	autocomplete(ctx, w, i, "id", h.catalog.SearchGlobalCharacters, formatCharacterChoice)
+	autocomplete(ctx, w, i, "id", h.store.SearchGlobalCharacters, formatCharacterChoice)
 }

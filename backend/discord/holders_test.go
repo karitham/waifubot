@@ -20,7 +20,7 @@ func TestHoldersHandler_Holders(t *testing.T) {
 		name           string
 		cmd            CommandContext
 		guildOps       *mockGuildQuerier
-		catalog        *collectiontest.MockStore
+		store          *collectiontest.MockStore
 		wantContent    string
 		wantNotContent string
 	}{
@@ -47,7 +47,7 @@ func TestHoldersHandler_Holders(t *testing.T) {
 					return nil, nil
 				},
 			},
-			catalog: &collectiontest.MockStore{
+			store: &collectiontest.MockStore{
 				GetCharacterByIDFunc: func(ctx context.Context, charID catalog.CharacterID) (catalog.Character, error) {
 					return catalog.Character{ID: 42, Name: "Sakura"}, nil
 				},
@@ -68,7 +68,7 @@ func TestHoldersHandler_Holders(t *testing.T) {
 					return []guild.MemberID{123, 456}, nil
 				},
 			},
-			catalog: &collectiontest.MockStore{
+			store: &collectiontest.MockStore{
 				GetCharacterByIDFunc: func(ctx context.Context, charID catalog.CharacterID) (catalog.Character, error) {
 					return catalog.Character{ID: 42, Name: "Sakura"}, nil
 				},
@@ -119,7 +119,7 @@ func TestHoldersHandler_Holders(t *testing.T) {
 					return guild.IndexStatus{Status: guild.IndexingCompleted}, nil
 				},
 			},
-			catalog: &collectiontest.MockStore{
+			store: &collectiontest.MockStore{
 				GetCharacterByIDFunc: func(ctx context.Context, charID catalog.CharacterID) (catalog.Character, error) {
 					return catalog.Character{}, catalog.ErrNotFound
 				},
@@ -133,7 +133,7 @@ func TestHoldersHandler_Holders(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
 			h := &HoldersHandler{
 				guildOps: tt.guildOps,
-				catalog:  tt.catalog,
+				store:    tt.store,
 			}
 
 			h.Holders(t.Context(), w, tt.cmd)
@@ -197,7 +197,7 @@ func TestHoldersHandler_Autocomplete(t *testing.T) {
 
 			w := &cordetest.MockResponseWriter{}
 			i := cordetest.AutocompleteInteraction(1, 1, 1, "test", corde.OptionsInteractions{"id": tt.input})
-			h := &HoldersHandler{catalog: mockStore}
+			h := &HoldersHandler{store: mockStore}
 
 			h.Autocomplete(t.Context(), w, i)
 

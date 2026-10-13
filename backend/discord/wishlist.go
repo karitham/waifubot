@@ -57,7 +57,6 @@ func formatUser(userID collection.UserID) string {
 type WishlistHandler struct {
 	store        collection.DB
 	animeService tracker.Service
-	catalog      catalog.Reader
 	guildIndexer *guild.Indexer
 }
 
@@ -352,7 +351,7 @@ func (h *WishlistHandler) Compare(ctx context.Context, w corde.ResponseWriter, c
 
 // CharacterAutocomplete provides character suggestions for the wishlist character add command.
 func (h *WishlistHandler) CharacterAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
-	autocomplete(ctx, w, i, "character", h.catalog.SearchGlobalCharacters, formatCharacterChoice)
+	autocomplete(ctx, w, i, "character", h.store.SearchGlobalCharacters, formatCharacterChoice)
 }
 
 // WishlistAutocomplete provides character suggestions from the user's wishlist.

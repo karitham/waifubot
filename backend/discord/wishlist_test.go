@@ -92,8 +92,7 @@ func TestWishlistHandler_CharacterAdd(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
 			h := &WishlistHandler{
-				store:   tt.collStore,
-				catalog: &collectiontest.MockStore{},
+				store: tt.collStore,
 			}
 
 			h.CharacterAdd(t.Context(), w, tt.cmd)
@@ -638,7 +637,7 @@ func TestWishlistHandler_CharacterAutocomplete(t *testing.T) {
 
 			w := &cordetest.MockResponseWriter{}
 			i := cordetest.AutocompleteInteraction(1, 1, 1, "test", corde.OptionsInteractions{"character": tt.input})
-			h := &WishlistHandler{catalog: mockCatalog}
+			h := &WishlistHandler{store: mockCatalog}
 
 			h.CharacterAutocomplete(t.Context(), w, i)
 

@@ -11,8 +11,6 @@ import (
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/tracker"
-
-	"github.com/karitham/waifubot/catalog"
 )
 
 const (
@@ -56,7 +54,6 @@ type InteractionStore interface {
 type Router struct {
 	mux               *corde.Mux
 	Store             collection.DB
-	Catalog           catalog.Reader
 	CommandStore      CommandStore
 	AnimeService      tracker.Service
 	InterStore        InteractionStore
@@ -103,7 +100,7 @@ func (r *Router) Register() *corde.Mux {
 		onInteraction: r.onInteraction,
 		guildIndexer:  r.GuildIndexer,
 	}
-	holdersHandler := &HoldersHandler{guildOps: r.GuildOps, catalog: r.Catalog, guildIndexer: r.GuildIndexer}
+	holdersHandler := &HoldersHandler{guildOps: r.GuildOps, store: r.Store, guildIndexer: r.GuildIndexer}
 	rollConfig := collection.Config{RollCooldown: r.RollCooldown, SeriesRollCost: r.SeriesRollCost}
 	rollHandler := &RollHandler{
 		store:  r.Store,
@@ -117,7 +114,6 @@ func (r *Router) Register() *corde.Mux {
 	wishlistHandler := &WishlistHandler{
 		store:        r.Store,
 		animeService: r.AnimeService,
-		catalog:      r.Catalog,
 		guildIndexer: r.GuildIndexer,
 	}
 

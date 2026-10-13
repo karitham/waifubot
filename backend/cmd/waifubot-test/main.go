@@ -217,7 +217,6 @@ func runTestHarness(c *cli.Context) error {
 	// Create bot with fake AnimeService
 	router := discord.New(&discord.Router{
 		Store:             db,
-		Catalog:           db,
 		CommandStore:      db,
 		AnimeService:      fakeService,
 		InterStore:        db,
