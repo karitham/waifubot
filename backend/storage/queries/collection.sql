@@ -1,4 +1,4 @@
--- name: List :many
+-- name: ListCollection :many
 SELECT
   c.id,
   c.name,
@@ -15,7 +15,7 @@ WHERE
 ORDER BY
   col.acquired_at DESC;
 
--- name: ListIDs :many
+-- name: ListCollectionIDs :many
 SELECT
   col.character_id AS id
 FROM
@@ -79,7 +79,7 @@ WHERE
 LIMIT
   1;
 
--- name: Insert :one
+-- name: InsertCollection :one
 INSERT INTO
   collection (user_id, character_id, source, acquired_at)
 VALUES
@@ -90,7 +90,7 @@ RETURNING
   source,
   acquired_at;
 
--- name: Give :one
+-- name: GiveCharacter :one
 UPDATE collection col
 SET
   user_id = $1,
@@ -123,7 +123,7 @@ WHERE
     )
   );
 
--- name: Count :one
+-- name: CountCollection :one
 SELECT
   COUNT(col.character_id)
 FROM
@@ -131,7 +131,7 @@ FROM
 WHERE
   col.user_id = $1;
 
--- name: Delete :one
+-- name: DeleteCollection :one
 DELETE FROM collection col
 WHERE
   col.user_id = $1
@@ -165,15 +165,6 @@ ORDER BY
   c.id
 LIMIT
   sqlc.arg (lim);
-
--- name: UsersOwningCharFiltered :many
-SELECT DISTINCT
-  col.user_id
-FROM
-  collection col
-WHERE
-  col.character_id = $1
-  AND col.user_id = ANY (sqlc.arg (user_ids)::BIGINT[]);
 
 -- name: UpsertCharacter :one
 INSERT INTO

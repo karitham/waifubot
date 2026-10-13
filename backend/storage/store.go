@@ -84,6 +84,7 @@ func (l *Logger) Log(ctx context.Context, level tracelog.LogLevel, msg string, d
 
 	m := strings.ReplaceAll(msg, "\n", " ")
 	formattedMsg := strings.ReplaceAll(m, "\t", " ")
+
 	logger.LogAttrs(ctx, translateLevel(level), formattedMsg, attrs...)
 }
 

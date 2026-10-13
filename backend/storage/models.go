@@ -113,10 +113,6 @@ type GuildMember struct {
 	IndexedAt pgtype.Timestamp
 }
 
-type SchemaMigration struct {
-	Version string
-}
-
 type User struct {
 	ID              int32
 	UserID          uint64

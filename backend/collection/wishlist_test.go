@@ -93,7 +93,7 @@ func TestAddToWishlist(t *testing.T) {
 	}
 }
 
-// mediaStub implements collection.AnimeService for tests.
+// mediaStub implements tracker.Service for tests.
 type mediaStub struct {
 	characters []tracker.Character
 }

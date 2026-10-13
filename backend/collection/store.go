@@ -158,12 +158,6 @@ type Tx interface {
 	CollectionWriter
 	DropWriter
 	guild.Writer
-	TxControl
-}
-
-// TxControl commits or rolls back a transaction. The storage transaction
-// satisfies it.
-type TxControl interface {
 	Commit(ctx context.Context) error
 	Rollback(ctx context.Context) error
 }

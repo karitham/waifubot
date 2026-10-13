@@ -26,7 +26,7 @@ func (b *base) GetUser(ctx context.Context, userID collection.UserID) (collectio
 
 // CreateUser creates the user when it is absent. It is idempotent.
 func (t *Tx) CreateUser(ctx context.Context, userID collection.UserID) error {
-	return t.q.Create(ctx, uint64(userID))
+	return t.q.CreateUser(ctx, uint64(userID))
 }
 
 // LockUser locks the user's row for the rest of the transaction. It returns

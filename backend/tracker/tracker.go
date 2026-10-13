@@ -10,7 +10,7 @@ import (
 	"github.com/karitham/waifubot/catalog"
 )
 
-// Service is the media tracker the bot talks to.
+// Service is the media tracker.
 type Service interface {
 	GetMediaCharacters(ctx context.Context, mediaID MediaID) ([]Character, error)
 	Anime(ctx context.Context, name string) ([]Media, error)

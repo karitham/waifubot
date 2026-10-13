@@ -72,12 +72,7 @@ func (b *base) GetActiveIDs(ctx context.Context) ([]catalog.CharacterID, error) 
 
 // KnownCharacterIDs returns the subset of the given IDs present in the catalog.
 func (b *base) KnownCharacterIDs(ctx context.Context, ids []catalog.CharacterID) ([]catalog.CharacterID, error) {
-	dbIDs := make([]int64, len(ids))
-	for i, id := range ids {
-		dbIDs[i] = int64(id)
-	}
-
-	rows, err := b.q.KnownCharacterIDs(ctx, dbIDs)
+	rows, err := b.q.KnownCharacterIDs(ctx, storageIDs(ids))
 	if err != nil {
 		return nil, err
 	}
@@ -90,9 +85,5 @@ func (b *base) KnownCharacterIDs(ctx context.Context, ids []catalog.CharacterID)
 }
 
 func (b *base) MarkCharactersInactive(ctx context.Context, charIDs []catalog.CharacterID) error {
-	ids := make([]int64, len(charIDs))
-	for i, id := range charIDs {
-		ids[i] = int64(id)
-	}
-	return b.q.MarkCharactersInactive(ctx, ids)
+	return b.q.MarkCharactersInactive(ctx, storageIDs(charIDs))
 }

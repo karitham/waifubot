@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const count = `-- name: Count :one
+const countCollection = `-- name: CountCollection :one
 SELECT
   COUNT(col.character_id)
 FROM
@@ -20,14 +20,14 @@ WHERE
   col.user_id = $1
 `
 
-func (q *Queries) Count(ctx context.Context, userID uint64) (int64, error) {
-	row := q.db.QueryRow(ctx, count, userID)
+func (q *Queries) CountCollection(ctx context.Context, userID uint64) (int64, error) {
+	row := q.db.QueryRow(ctx, countCollection, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
 }
 
-const delete = `-- name: Delete :one
+const deleteCollection = `-- name: DeleteCollection :one
 DELETE FROM collection col
 WHERE
   col.user_id = $1
@@ -39,13 +39,13 @@ RETURNING
   acquired_at
 `
 
-type DeleteParams struct {
+type DeleteCollectionParams struct {
 	UserID      uint64
 	CharacterID int64
 }
 
-func (q *Queries) Delete(ctx context.Context, arg DeleteParams) (Collection, error) {
-	row := q.db.QueryRow(ctx, delete, arg.UserID, arg.CharacterID)
+func (q *Queries) DeleteCollection(ctx context.Context, arg DeleteCollectionParams) (Collection, error) {
+	row := q.db.QueryRow(ctx, deleteCollection, arg.UserID, arg.CharacterID)
 	var i Collection
 	err := row.Scan(
 		&i.UserID,
@@ -166,7 +166,7 @@ func (q *Queries) GetCollection(ctx context.Context, arg GetCollectionParams) (G
 	return i, err
 }
 
-const give = `-- name: Give :one
+const giveCharacter = `-- name: GiveCharacter :one
 UPDATE collection col
 SET
   user_id = $1,
@@ -182,15 +182,15 @@ RETURNING
   acquired_at
 `
 
-type GiveParams struct {
+type GiveCharacterParams struct {
 	UserID      uint64
 	CharacterID int64
 	UserID_2    uint64
 	Source      string
 }
 
-func (q *Queries) Give(ctx context.Context, arg GiveParams) (Collection, error) {
-	row := q.db.QueryRow(ctx, give,
+func (q *Queries) GiveCharacter(ctx context.Context, arg GiveCharacterParams) (Collection, error) {
+	row := q.db.QueryRow(ctx, giveCharacter,
 		arg.UserID,
 		arg.CharacterID,
 		arg.UserID_2,
@@ -206,7 +206,7 @@ func (q *Queries) Give(ctx context.Context, arg GiveParams) (Collection, error) 
 	return i, err
 }
 
-const insert = `-- name: Insert :one
+const insertCollection = `-- name: InsertCollection :one
 INSERT INTO
   collection (user_id, character_id, source, acquired_at)
 VALUES
@@ -218,15 +218,15 @@ RETURNING
   acquired_at
 `
 
-type InsertParams struct {
+type InsertCollectionParams struct {
 	UserID      uint64
 	CharacterID int64
 	Source      string
 	AcquiredAt  pgtype.Timestamp
 }
 
-func (q *Queries) Insert(ctx context.Context, arg InsertParams) (Collection, error) {
-	row := q.db.QueryRow(ctx, insert,
+func (q *Queries) InsertCollection(ctx context.Context, arg InsertCollectionParams) (Collection, error) {
+	row := q.db.QueryRow(ctx, insertCollection,
 		arg.UserID,
 		arg.CharacterID,
 		arg.Source,
@@ -266,7 +266,7 @@ func (q *Queries) KnownCharacterIDs(ctx context.Context, ids []int64) ([]int64, 
 	return items, nil
 }
 
-const list = `-- name: List :many
+const listCollection = `-- name: ListCollection :many
 SELECT
   c.id,
   c.name,
@@ -284,7 +284,7 @@ ORDER BY
   col.acquired_at DESC
 `
 
-type ListRow struct {
+type ListCollectionRow struct {
 	ID         int64
 	Name       string
 	Image      string
@@ -294,15 +294,15 @@ type ListRow struct {
 	Date       pgtype.Timestamp
 }
 
-func (q *Queries) List(ctx context.Context, userID uint64) ([]ListRow, error) {
-	rows, err := q.db.Query(ctx, list, userID)
+func (q *Queries) ListCollection(ctx context.Context, userID uint64) ([]ListCollectionRow, error) {
+	rows, err := q.db.Query(ctx, listCollection, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListRow
+	var items []ListCollectionRow
 	for rows.Next() {
-		var i ListRow
+		var i ListCollectionRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -322,7 +322,7 @@ func (q *Queries) List(ctx context.Context, userID uint64) ([]ListRow, error) {
 	return items, nil
 }
 
-const listIDs = `-- name: ListIDs :many
+const listCollectionIDs = `-- name: ListCollectionIDs :many
 SELECT
   col.character_id AS id
 FROM
@@ -331,8 +331,8 @@ WHERE
   col.user_id = $1
 `
 
-func (q *Queries) ListIDs(ctx context.Context, userID uint64) ([]int64, error) {
-	rows, err := q.db.Query(ctx, listIDs, userID)
+func (q *Queries) ListCollectionIDs(ctx context.Context, userID uint64) ([]int64, error) {
+	rows, err := q.db.Query(ctx, listCollectionIDs, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -665,39 +665,4 @@ func (q *Queries) UpsertCharacter(ctx context.Context, arg UpsertCharacterParams
 		&i.IsActive,
 	)
 	return i, err
-}
-
-const usersOwningCharFiltered = `-- name: UsersOwningCharFiltered :many
-SELECT DISTINCT
-  col.user_id
-FROM
-  collection col
-WHERE
-  col.character_id = $1
-  AND col.user_id = ANY ($2::BIGINT[])
-`
-
-type UsersOwningCharFilteredParams struct {
-	CharacterID int64
-	UserIds     []int64
-}
-
-func (q *Queries) UsersOwningCharFiltered(ctx context.Context, arg UsersOwningCharFilteredParams) ([]uint64, error) {
-	rows, err := q.db.Query(ctx, usersOwningCharFiltered, arg.CharacterID, arg.UserIds)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []uint64
-	for rows.Next() {
-		var user_id uint64
-		if err := rows.Scan(&user_id); err != nil {
-			return nil, err
-		}
-		items = append(items, user_id)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }

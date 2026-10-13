@@ -36,13 +36,12 @@ func (m *mockDB) Exec(ctx context.Context, sql string, args ...any) (pgconn.Comm
 	return m.execFunc(ctx, sql, args...)
 }
 
-type mockQuerier struct {
-	storage.Querier
-	setDropFunc func(ctx context.Context, arg storage.SetDropParams) error
+type mockDropStore struct {
+	setFunc func(ctx context.Context, arg storage.SetDropParams) error
 }
 
-func (m *mockQuerier) SetDrop(ctx context.Context, arg storage.SetDropParams) error {
-	return m.setDropFunc(ctx, arg)
+func (m *mockDropStore) SetDrop(ctx context.Context, arg storage.SetDropParams) error {
+	return m.setFunc(ctx, arg)
 }
 
 type mockMaterializer struct {
@@ -139,8 +138,8 @@ func TestMigrateDrops(t *testing.T) {
 
 	var capturedDrop storage.SetDropParams
 	var materialized catalog.Character
-	ds := &mockQuerier{
-		setDropFunc: func(ctx context.Context, arg storage.SetDropParams) error {
+	ds := &mockDropStore{
+		setFunc: func(ctx context.Context, arg storage.SetDropParams) error {
 			capturedDrop = arg
 			return nil
 		},
@@ -153,10 +152,10 @@ func TestMigrateDrops(t *testing.T) {
 	}
 
 	m := &Migrator{
-		Redis:   mr,
-		Querier: ds,
-		Catalog: cat,
-		DB:      &mockDB{},
+		Redis:     mr,
+		DropStore: ds,
+		Catalog:   cat,
+		DB:        &mockDB{},
 	}
 
 	err := m.MigrateDrops(ctx)

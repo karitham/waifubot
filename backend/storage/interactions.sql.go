@@ -25,7 +25,7 @@ func (q *Queries) GetInteraction(ctx context.Context, channelID uint64) (int64, 
 	return interaction_count, err
 }
 
-const increment = `-- name: Increment :exec
+const incrementInteraction = `-- name: IncrementInteraction :exec
 INSERT INTO
   channel_interactions (channel_id, interaction_count)
 VALUES
@@ -35,18 +35,18 @@ SET
   interaction_count = channel_interactions.interaction_count + 1
 `
 
-func (q *Queries) Increment(ctx context.Context, channelID uint64) error {
-	_, err := q.db.Exec(ctx, increment, channelID)
+func (q *Queries) IncrementInteraction(ctx context.Context, channelID uint64) error {
+	_, err := q.db.Exec(ctx, incrementInteraction, channelID)
 	return err
 }
 
-const reset = `-- name: Reset :exec
+const resetInteraction = `-- name: ResetInteraction :exec
 DELETE FROM channel_interactions
 WHERE
   channel_id = $1
 `
 
-func (q *Queries) Reset(ctx context.Context, channelID uint64) error {
-	_, err := q.db.Exec(ctx, reset, channelID)
+func (q *Queries) ResetInteraction(ctx context.Context, channelID uint64) error {
+	_, err := q.db.Exec(ctx, resetInteraction, channelID)
 	return err
 }

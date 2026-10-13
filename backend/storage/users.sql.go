@@ -30,7 +30,7 @@ func (q *Queries) ClearFavorite(ctx context.Context, arg ClearFavoriteParams) er
 	return err
 }
 
-const create = `-- name: Create :exec
+const createUser = `-- name: CreateUser :exec
 INSERT INTO
   users (user_id)
 VALUES
@@ -38,8 +38,8 @@ VALUES
 ON CONFLICT (user_id) DO NOTHING
 `
 
-func (q *Queries) Create(ctx context.Context, userID uint64) error {
-	_, err := q.db.Exec(ctx, create, userID)
+func (q *Queries) CreateUser(ctx context.Context, userID uint64) error {
+	_, err := q.db.Exec(ctx, createUser, userID)
 	return err
 }
 

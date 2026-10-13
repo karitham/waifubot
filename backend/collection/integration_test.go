@@ -223,7 +223,7 @@ func TestIntegration_Transaction(t *testing.T) {
 	require.NoError(t, err)
 	ctx := t.Context()
 
-	require.NoError(t, dbStore.Querier().Create(ctx, uint64(uid)))
+	require.NoError(t, dbStore.Querier().CreateUser(ctx, uint64(uid)))
 
 	txStore, err := dbStore.Tx(ctx)
 	require.NoError(t, err)
@@ -506,7 +506,7 @@ func TestIntegration_RollCooldownIsAtomic(t *testing.T) {
 
 	store1, store2 := buildTx(tx1), buildTx(tx2)
 
-	require.NoError(t, dbStore.Querier().Create(ctx, uint64(uid)))
+	require.NoError(t, dbStore.Querier().CreateUser(ctx, uint64(uid)))
 
 	// Both transactions read the same pre-roll state, so both pass the
 	// cooldown check.

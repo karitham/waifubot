@@ -45,7 +45,7 @@ func RemoveAllFromWishlist(ctx context.Context, store DB, userID UserID) error {
 }
 
 // AddMediaToWishlist adds all characters from a media to the user's wishlist,
-// filtering out characters the catalog does not know and ones the user
+// filtering out characters absent from the catalog and ones the user
 // already owns. The user is materialized and the list is added in one
 // transaction.
 func AddMediaToWishlist(ctx context.Context, store DB, anime tracker.Service, userID UserID, mediaID tracker.MediaID) (int, error) {

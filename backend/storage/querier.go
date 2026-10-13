@@ -14,9 +14,9 @@ type Querier interface {
 	ClearFavorite(ctx context.Context, arg ClearFavoriteParams) error
 	CompareWithUser(ctx context.Context, arg CompareWithUserParams) ([]CompareWithUserRow, error)
 	CompleteIndexingJob(ctx context.Context, guildID uint64) error
-	Count(ctx context.Context, userID uint64) (int64, error)
-	Create(ctx context.Context, userID uint64) error
-	Delete(ctx context.Context, arg DeleteParams) (Collection, error)
+	CountCollection(ctx context.Context, userID uint64) (int64, error)
+	CreateUser(ctx context.Context, userID uint64) error
+	DeleteCollection(ctx context.Context, arg DeleteCollectionParams) (Collection, error)
 	DeleteDrop(ctx context.Context, channelID uint64) error
 	DeleteGuildMembersNotIn(ctx context.Context, arg DeleteGuildMembersNotInParams) error
 	GetActiveIDs(ctx context.Context) ([]int64, error)
@@ -34,13 +34,13 @@ type Querier interface {
 	GetUsersWantingCharacter(ctx context.Context, arg GetUsersWantingCharacterParams) ([]uint64, error)
 	GetWantedCharacters(ctx context.Context, arg GetWantedCharactersParams) ([]GetWantedCharactersRow, error)
 	GetWishlistHolders(ctx context.Context, arg GetWishlistHoldersParams) ([]GetWishlistHoldersRow, error)
-	Give(ctx context.Context, arg GiveParams) (Collection, error)
-	Increment(ctx context.Context, channelID uint64) error
-	Insert(ctx context.Context, arg InsertParams) (Collection, error)
+	GiveCharacter(ctx context.Context, arg GiveCharacterParams) (Collection, error)
+	IncrementInteraction(ctx context.Context, channelID uint64) error
+	InsertCollection(ctx context.Context, arg InsertCollectionParams) (Collection, error)
 	IsGuildIndexed(ctx context.Context, guildID uint64) (IsGuildIndexedRow, error)
 	KnownCharacterIDs(ctx context.Context, ids []int64) ([]int64, error)
-	List(ctx context.Context, userID uint64) ([]ListRow, error)
-	ListIDs(ctx context.Context, userID uint64) ([]int64, error)
+	ListCollection(ctx context.Context, userID uint64) ([]ListCollectionRow, error)
+	ListCollectionIDs(ctx context.Context, userID uint64) ([]int64, error)
 	// Locks the user's row so concurrent writers serialize; does not block
 	// foreign key checks.
 	LockUser(ctx context.Context, userID uint64) (uint64, error)
@@ -53,7 +53,7 @@ type Querier interface {
 	RecordRoll(ctx context.Context, arg RecordRollParams) (int64, error)
 	RemoveAllFromWishlist(ctx context.Context, userID uint64) error
 	RemoveCharactersFromWishlist(ctx context.Context, arg RemoveCharactersFromWishlistParams) error
-	Reset(ctx context.Context, channelID uint64) error
+	ResetInteraction(ctx context.Context, channelID uint64) error
 	SearchCharacters(ctx context.Context, arg SearchCharactersParams) ([]SearchCharactersRow, error)
 	SearchGlobalCharacters(ctx context.Context, arg SearchGlobalCharactersParams) ([]Character, error)
 	SetCommandHash(ctx context.Context, hash string) error
@@ -71,7 +71,6 @@ type Querier interface {
 	UpdateTokens(ctx context.Context, arg UpdateTokensParams) (User, error)
 	UpsertCharacter(ctx context.Context, arg UpsertCharacterParams) (Character, error)
 	UpsertGuildMembers(ctx context.Context, arg UpsertGuildMembersParams) error
-	UsersOwningCharFiltered(ctx context.Context, arg UsersOwningCharFilteredParams) ([]uint64, error)
 	UsersOwningCharInGuild(ctx context.Context, arg UsersOwningCharInGuildParams) ([]uint64, error)
 }
 

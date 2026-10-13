@@ -31,11 +31,17 @@ type CharacterMaterializer interface {
 	UpsertCharacter(ctx context.Context, char catalog.Character) error
 }
 
+// DropSetter persists a channel drop; defined here so the migration can be
+// tested without a database.
+type DropSetter interface {
+	SetDrop(ctx context.Context, arg storage.SetDropParams) error
+}
+
 type Migrator struct {
-	Redis   RedisClient
-	Querier storage.Querier
-	Catalog CharacterMaterializer
-	DB      InteractionDB
+	Redis     RedisClient
+	DropStore DropSetter
+	Catalog   CharacterMaterializer
+	DB        InteractionDB
 }
 
 var MigrateRedisCommand = &cli.Command{
@@ -70,10 +76,10 @@ var MigrateRedisCommand = &cli.Command{
 		}
 
 		m := &Migrator{
-			Redis:   rdb,
-			Querier: store.Querier(),
-			Catalog: pg.NewPool(store),
-			DB:      store.DB(),
+			Redis:     rdb,
+			DropStore: store.Querier(),
+			Catalog:   pg.NewPool(store),
+			DB:        store.DB(),
 		}
 
 		if err := m.MigrateInteractions(ctx); err != nil {
@@ -187,7 +193,7 @@ func (m *Migrator) migrateDrop(ctx context.Context, key string) error {
 
 	// Maintenance writes bypass the domain adapters: the drop row is a
 	// single statement with no transaction-scoped invariant.
-	if err := m.Querier.SetDrop(ctx, storage.SetDropParams{
+	if err := m.DropStore.SetDrop(ctx, storage.SetDropParams{
 		ChannelID:   uint64(sf),
 		CharacterID: int64(char.ID),
 	}); err != nil {

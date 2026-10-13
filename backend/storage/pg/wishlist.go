@@ -9,10 +9,6 @@ import (
 	"github.com/karitham/waifubot/storage"
 )
 
-// Pg implements wishlist.Store over the generated wishlist queries.
-
-// New creates the wishlist store.
-
 func storageIDs(ids []catalog.CharacterID) []int64 {
 	out := make([]int64, len(ids))
 	for i, id := range ids {

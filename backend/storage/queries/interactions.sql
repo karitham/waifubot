@@ -1,4 +1,4 @@
--- name: Increment :exec
+-- name: IncrementInteraction :exec
 INSERT INTO
   channel_interactions (channel_id, interaction_count)
 VALUES
@@ -15,7 +15,7 @@ FROM
 WHERE
   channel_id = $1;
 
--- name: Reset :exec
+-- name: ResetInteraction :exec
 DELETE FROM channel_interactions
 WHERE
   channel_id = $1;

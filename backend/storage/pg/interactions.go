@@ -7,7 +7,7 @@ import (
 )
 
 func (b *base) Increment(ctx context.Context, channelID corde.Snowflake) error {
-	return b.q.Increment(ctx, uint64(channelID))
+	return b.q.IncrementInteraction(ctx, uint64(channelID))
 }
 
 func (b *base) Get(ctx context.Context, channelID corde.Snowflake) (int64, error) {
@@ -19,5 +19,5 @@ func (b *base) Get(ctx context.Context, channelID corde.Snowflake) (int64, error
 }
 
 func (b *base) Reset(ctx context.Context, channelID corde.Snowflake) error {
-	return b.q.Reset(ctx, uint64(channelID))
+	return b.q.ResetInteraction(ctx, uint64(channelID))
 }

@@ -19,10 +19,10 @@ includes = ["*.go"]
 excludes = [
   "backend/anilist/*.gen.go",        # genqlient
   "backend/rest/api/*.go",           # ogen
-  "backend/storage/*store/*.sql.go", # sqlc
-  "backend/storage/*store/db.go",    # sqlc
-  "backend/storage/*store/models.go", # sqlc
-  "backend/storage/*store/querier.go", # sqlc
+  "backend/storage/*.sql.go",   # sqlc
+  "backend/storage/db.go",      # sqlc
+  "backend/storage/models.go",  # sqlc
+  "backend/storage/querier.go", # sqlc
   "backend/**/mocks/*.go",           # mockgen
 ]
 

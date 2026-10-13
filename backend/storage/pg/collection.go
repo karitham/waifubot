@@ -16,7 +16,7 @@ import (
 )
 
 func (b *base) GetCollection(ctx context.Context, userID collection.UserID) ([]collection.OwnedCharacter, error) {
-	rows, err := b.q.List(ctx, uint64(userID))
+	rows, err := b.q.ListCollection(ctx, uint64(userID))
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (b *base) GetCollection(ctx context.Context, userID collection.UserID) ([]c
 }
 
 func (b *base) GetCollectionIDs(ctx context.Context, userID collection.UserID) ([]catalog.CharacterID, error) {
-	ids, err := b.q.ListIDs(ctx, uint64(userID))
+	ids, err := b.q.ListCollectionIDs(ctx, uint64(userID))
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (b *base) GetOwnedCharacter(ctx context.Context, userID collection.UserID, 
 }
 
 func (t *Tx) AddToCollection(ctx context.Context, userID collection.UserID, charID catalog.CharacterID, source collection.Source, acquiredAt time.Time) error {
-	_, err := t.q.Insert(ctx, storage.InsertParams{
+	_, err := t.q.InsertCollection(ctx, storage.InsertCollectionParams{
 		UserID:      uint64(userID),
 		CharacterID: int64(charID),
 		Source:      string(source),
@@ -79,7 +79,7 @@ func (t *Tx) AddToCollection(ctx context.Context, userID collection.UserID, char
 }
 
 func (t *Tx) RemoveFromCollection(ctx context.Context, userID collection.UserID, charID catalog.CharacterID) error {
-	_, err := t.q.Delete(ctx, storage.DeleteParams{UserID: uint64(userID), CharacterID: int64(charID)})
+	_, err := t.q.DeleteCollection(ctx, storage.DeleteCollectionParams{UserID: uint64(userID), CharacterID: int64(charID)})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return collection.ErrNotFound
@@ -91,7 +91,7 @@ func (t *Tx) RemoveFromCollection(ctx context.Context, userID collection.UserID,
 }
 
 func (t *Tx) GiveCharacter(ctx context.Context, from, to collection.UserID, charID catalog.CharacterID) (collection.OwnedCharacter, error) {
-	col, err := t.q.Give(ctx, storage.GiveParams{
+	col, err := t.q.GiveCharacter(ctx, storage.GiveCharacterParams{
 		UserID:      uint64(to),
 		CharacterID: int64(charID),
 		UserID_2:    uint64(from),
@@ -163,7 +163,7 @@ func (t *Tx) SetFavorite(ctx context.Context, userID collection.UserID, charID c
 }
 
 func (b *base) CountCollection(ctx context.Context, userID collection.UserID) (int64, error) {
-	return b.q.Count(ctx, uint64(userID))
+	return b.q.CountCollection(ctx, uint64(userID))
 }
 
 func (b *base) SearchCharacters(ctx context.Context, userID collection.UserID, term string) ([]catalog.Character, error) {
@@ -201,14 +201,9 @@ func (t *Tx) RemoveAllFromWishlist(ctx context.Context, userID collection.UserID
 }
 
 func (t *Tx) AddCharactersToWishlist(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) (int64, error) {
-	ids := make([]int64, len(characterIDs))
-	for i, id := range characterIDs {
-		ids[i] = int64(id)
-	}
-
 	return t.q.AddCharactersToWishlist(ctx, storage.AddCharactersToWishlistParams{
 		UserID:  uint64(userID),
-		Column2: ids,
+		Column2: storageIDs(characterIDs),
 	})
 }
 

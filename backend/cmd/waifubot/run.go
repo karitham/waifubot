@@ -145,9 +145,9 @@ var RunCommand = &cli.Command{
 
 		if c.Bool(apiFlag.Name) {
 			discordToken := c.String(botTokenFlag.Name)
-			var discordService *discord.DiscordService
+			var discordService *discord.Service
 			if discordToken != "" {
-				discordService = discord.NewDiscordService(discordToken)
+				discordService = discord.NewService(discordToken)
 			}
 
 			restServer := rest.New(db, discordService)
