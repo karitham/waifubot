@@ -53,7 +53,11 @@ func (b *base) GetWishlistHolders(ctx context.Context, ids []catalog.CharacterID
 		return nil, err
 	}
 
-	return groupByUser(rows), nil
+	out := make([]wishlistRow, len(rows))
+	for i, r := range rows {
+		out[i] = wishlistRow{userID: r.UserID, characterID: r.CharacterID, name: r.CharacterName, image: r.CharacterImage}
+	}
+	return groupByUser(out), nil
 }
 
 func (b *base) GetWantedCharacters(ctx context.Context, userID collection.UserID, guildID guild.ID) ([]collection.WishlistUserSet, error) {
@@ -65,40 +69,32 @@ func (b *base) GetWantedCharacters(ctx context.Context, userID collection.UserID
 		return nil, err
 	}
 
-	return groupByUserWanted(rows), nil
+	out := make([]wishlistRow, len(rows))
+	for i, r := range rows {
+		out[i] = wishlistRow{userID: r.UserID, characterID: r.CharacterID, name: r.CharacterName, image: r.CharacterImage}
+	}
+	return groupByUser(out), nil
 }
 
-func groupByUser(rows []storage.GetWishlistHoldersRow) []collection.WishlistUserSet {
+// wishlistRow is the shape both discovery queries return.
+type wishlistRow struct {
+	userID      int64
+	characterID int64
+	name        string
+	image       string
+}
+
+func groupByUser(rows []wishlistRow) []collection.WishlistUserSet {
 	m := make(map[collection.UserID]*collection.WishlistUserSet)
 	for _, r := range rows {
-		id := collection.UserID(r.UserID)
+		id := collection.UserID(r.userID)
 		if _, ok := m[id]; !ok {
 			m[id] = &collection.WishlistUserSet{UserID: id}
 		}
 		m[id].Characters = append(m[id].Characters, collection.WishlistEntry{Character: catalog.Character{
-			ID:    catalog.CharacterID(r.CharacterID),
-			Name:  r.CharacterName,
-			Image: r.CharacterImage,
-		}})
-	}
-	result := make([]collection.WishlistUserSet, 0, len(m))
-	for _, v := range m {
-		result = append(result, *v)
-	}
-	return result
-}
-
-func groupByUserWanted(rows []storage.GetWantedCharactersRow) []collection.WishlistUserSet {
-	m := make(map[collection.UserID]*collection.WishlistUserSet)
-	for _, r := range rows {
-		id := collection.UserID(r.UserID)
-		if _, ok := m[id]; !ok {
-			m[id] = &collection.WishlistUserSet{UserID: id}
-		}
-		m[id].Characters = append(m[id].Characters, collection.WishlistEntry{Character: catalog.Character{
-			ID:    catalog.CharacterID(r.CharacterID),
-			Name:  r.CharacterName,
-			Image: r.CharacterImage,
+			ID:    catalog.CharacterID(r.characterID),
+			Name:  r.name,
+			Image: r.image,
 		}})
 	}
 	result := make([]collection.WishlistUserSet, 0, len(m))
