@@ -63,9 +63,8 @@ func buildTx(s storage.TxStore) collection.Tx {
 	return pg.NewTx(s)
 }
 
-// newStore opens a pool for one test, closes it when the test ends, and
-// resets the tables the tests write so repeated runs start from the same
-// state.
+// newStore returns a store that closes with the test and resets the tables
+// the tests write, so repeated runs start from the same state.
 func newStore(t *testing.T) storage.Store {
 	t.Helper()
 
@@ -73,11 +72,11 @@ func newStore(t *testing.T) storage.Store {
 	require.NoError(t, err)
 	t.Cleanup(dbStore.Close)
 
-	_, err = dbStore.DB().Exec(t.Context(), `
-		TRUNCATE collection, character_wishlist, users, guild_members,
+	_, err = dbStore.DB().Exec(t.Context(),
+		`TRUNCATE collection, character_wishlist, users, guild_members,
 			guild_indexing_jobs, channel_drops, channel_interactions,
-			characters CASCADE
-	`)
+			characters CASCADE`,
+	)
 	require.NoError(t, err)
 
 	return dbStore
@@ -90,10 +89,7 @@ func setupStore(t *testing.T) (collection.Tx, catalog.Store) {
 
 	txStore, err := dbStore.Tx(t.Context())
 	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		_ = txStore.Rollback(t.Context())
-	})
+	t.Cleanup(func() { _ = txStore.Rollback(t.Context()) })
 
 	tx := pg.NewTx(txStore)
 	return tx, tx
