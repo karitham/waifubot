@@ -224,9 +224,9 @@ func runTestHarness(c *cli.Context) error {
 		InteractionNeeded: c.Int64("interaction-needed"),
 	}, discord.Deps{
 		Store:        db,
+		Drops:        db,
 		CommandStore: db,
 		AnimeService: fakeService,
-		Interactions: db,
 		GuildIndexer: guild.NewIndexer(pg.NewGuildDB(store), guild.NewDiscordFetcher(botToken)),
 	})
 	if err != nil {

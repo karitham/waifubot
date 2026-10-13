@@ -226,22 +226,3 @@ func (b *base) RandomCharNotOwned(ctx context.Context, userID collection.UserID,
 		Popularity: int(c.Favorites),
 	}, nil
 }
-
-func (b *base) RandomActiveChar(ctx context.Context, weightExponent float64) (catalog.Character, error) {
-	c, err := b.q.RandomActiveChar(ctx, weightExponent)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return catalog.Character{}, collection.ErrNotFound
-		}
-		return catalog.Character{}, err
-	}
-	return catalog.Character{
-		ID:         catalog.CharacterID(c.ID),
-		Name:       c.Name,
-		Image:      c.Image,
-		MediaTitle: c.MediaTitle,
-		Popularity: int(c.Favorites),
-		UpdatedAt:  c.UpdatedAt.Time,
-		IsActive:   c.IsActive,
-	}, nil
-}

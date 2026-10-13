@@ -107,9 +107,9 @@ var RunCommand = &cli.Command{
 			InteractionNeeded: c.Int64("interaction-needed"),
 		}, discord.Deps{
 			Store:        db,
+			Drops:        db,
 			CommandStore: db,
 			AnimeService: anilistClient,
-			Interactions: db,
 			GuildIndexer: guild.NewIndexer(pg.NewGuildDB(store), guild.NewDiscordFetcher(c.String(botTokenFlag.Name))),
 		})
 		if err != nil {

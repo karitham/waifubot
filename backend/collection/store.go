@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/karitham/waifubot/catalog"
+	"github.com/karitham/waifubot/drops"
 	"github.com/karitham/waifubot/guild"
 )
 
@@ -15,19 +16,11 @@ var (
 	ErrUserDoesNotOwnCharacter = errors.New("user does not own character")
 )
 
-// DropWeightExponent controls how much favorites skew drop probability in the
-// weighted-random formula. Higher values amplify the advantage of high-favorites
-// (rarer) characters. 0 = uniform random, 1 = linear, 2 = quadratic.
-const DropWeightExponent = 2.0
-
 // RollWeightExponent controls the favorites bias for standard rolls (1.0 = linear).
 const RollWeightExponent = 1.0
 
 // UserID identifies a collection user.
 type UserID uint64
-
-// ChannelID identifies a channel that can hold a drop.
-type ChannelID uint64
 
 // User holds user profile data.
 type User struct {
@@ -91,10 +84,6 @@ type CollectionReader interface {
 	// weighted by favorites^weightExponent. Does NOT filter the default AniList image
 	// (rolls/direct rolls use this path and the image isn't publicly embedded).
 	RandomCharNotOwned(ctx context.Context, userID UserID, weightExponent float64) (catalog.Character, error)
-	// RandomActiveChar returns a random active character for a channel drop,
-	// weighted by favorites^weightExponent. Excludes characters with the
-	// default AniList placeholder image since the image is embedded publicly.
-	RandomActiveChar(ctx context.Context, weightExponent float64) (catalog.Character, error)
 }
 
 // WishlistReader reads wishlist membership and discovery views.
@@ -125,16 +114,6 @@ type CollectionWriter interface {
 	AddCharactersToWishlist(ctx context.Context, userID UserID, characterIDs []catalog.CharacterID) (int64, error)
 }
 
-// DropWriter holds the channel drop operations; all run inside a transaction
-// (GetDropForUpdate is the claim's locking read).
-type DropWriter interface {
-	// SetDrop stores the character as the channel's drop. The character must
-	// already be in the catalog; the FK enforces it.
-	SetDrop(ctx context.Context, channelID ChannelID, char catalog.Character) error
-	GetDropForUpdate(ctx context.Context, channelID ChannelID) (catalog.Character, error)
-	DeleteDrop(ctx context.Context, channelID ChannelID) error
-}
-
 // Store is the non-transactional surface: reads over users, collections,
 // wishlists, guilds, and the catalog.
 type Store interface {
@@ -151,7 +130,7 @@ type Tx interface {
 	Store
 	UserWriter
 	CollectionWriter
-	DropWriter
+	drops.TxWriter
 	guild.Writer
 	Commit(ctx context.Context) error
 	Rollback(ctx context.Context) error

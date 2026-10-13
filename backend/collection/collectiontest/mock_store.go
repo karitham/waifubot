@@ -6,6 +6,7 @@ import (
 
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/drops"
 	"github.com/karitham/waifubot/guild"
 )
 
@@ -41,9 +42,9 @@ type MockStore struct {
 	CompareWithUserFunc          func(ctx context.Context, userID1, userID2 collection.UserID) (collection.WishlistComparison, error)
 	GetUsersWantingCharacterFunc func(ctx context.Context, charID catalog.CharacterID, guildID guild.ID, excludeUserID collection.UserID) ([]guild.MemberID, error)
 
-	SetDropFunc          func(ctx context.Context, channelID collection.ChannelID, char catalog.Character) error
-	GetDropForUpdateFunc func(ctx context.Context, channelID collection.ChannelID) (catalog.Character, error)
-	DeleteDropFunc       func(ctx context.Context, channelID collection.ChannelID) error
+	SetDropFunc          func(ctx context.Context, drop drops.Drop) error
+	GetDropForUpdateFunc func(ctx context.Context, channelID drops.ChannelID) (drops.Drop, error)
+	DeleteDropFunc       func(ctx context.Context, channelID drops.ChannelID) error
 
 	IsGuildIndexedFunc             func(ctx context.Context, guildID guild.ID) (guild.IndexStatus, error)
 	StartIndexingJobFunc           func(ctx context.Context, guildID guild.ID) error
@@ -231,21 +232,21 @@ func (m *MockStore) AddCharactersToWishlist(ctx context.Context, userID collecti
 	return 0, nil
 }
 
-func (m *MockStore) SetDrop(ctx context.Context, channelID collection.ChannelID, char catalog.Character) error {
+func (m *MockStore) SetDrop(ctx context.Context, drop drops.Drop) error {
 	if m.SetDropFunc != nil {
-		return m.SetDropFunc(ctx, channelID, char)
+		return m.SetDropFunc(ctx, drop)
 	}
 	return nil
 }
 
-func (m *MockStore) GetDropForUpdate(ctx context.Context, channelID collection.ChannelID) (catalog.Character, error) {
+func (m *MockStore) GetDropForUpdate(ctx context.Context, channelID drops.ChannelID) (drops.Drop, error) {
 	if m.GetDropForUpdateFunc != nil {
 		return m.GetDropForUpdateFunc(ctx, channelID)
 	}
-	return catalog.Character{}, nil
+	return drops.Drop{}, nil
 }
 
-func (m *MockStore) DeleteDrop(ctx context.Context, channelID collection.ChannelID) error {
+func (m *MockStore) DeleteDrop(ctx context.Context, channelID drops.ChannelID) error {
 	if m.DeleteDropFunc != nil {
 		return m.DeleteDropFunc(ctx, channelID)
 	}

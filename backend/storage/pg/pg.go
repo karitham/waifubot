@@ -5,6 +5,10 @@
 // run inside a transaction, plus control. GuildDB exists because guild.DB's
 // Begin returns guild.Tx while collection.DB's returns collection.Tx, and Go
 // has no covariant returns.
+//
+// Pool implements collection.DB, catalog.Store, guild.Reader, drops.Store,
+// and the command store. Tx implements collection.Tx, guild.Tx,
+// catalog.Store, and drops.TxWriter.
 package pg
 
 import (

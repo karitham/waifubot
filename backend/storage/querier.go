@@ -28,14 +28,13 @@ type Querier interface {
 	// Locks only the drop row; locking the joined character row blocks inserts
 	// that reference it.
 	GetDropForUpdate(ctx context.Context, channelID uint64) (GetDropForUpdateRow, error)
-	GetInteraction(ctx context.Context, channelID uint64) (int64, error)
 	GetUser(ctx context.Context, userID uint64) (User, error)
 	GetUserCharacterWishlist(ctx context.Context, userID uint64) ([]GetUserCharacterWishlistRow, error)
 	GetUsersWantingCharacter(ctx context.Context, arg GetUsersWantingCharacterParams) ([]uint64, error)
 	GetWantedCharacters(ctx context.Context, arg GetWantedCharactersParams) ([]GetWantedCharactersRow, error)
 	GetWishlistHolders(ctx context.Context, arg GetWishlistHoldersParams) ([]GetWishlistHoldersRow, error)
 	GiveCharacter(ctx context.Context, arg GiveCharacterParams) (Collection, error)
-	IncrementInteraction(ctx context.Context, channelID uint64) error
+	IncrementActivity(ctx context.Context, channelID uint64) (int64, error)
 	InsertCollection(ctx context.Context, arg InsertCollectionParams) (Collection, error)
 	IsGuildIndexed(ctx context.Context, guildID uint64) (IsGuildIndexedRow, error)
 	KnownCharacterIDs(ctx context.Context, ids []int64) ([]int64, error)
@@ -53,7 +52,7 @@ type Querier interface {
 	RecordRoll(ctx context.Context, arg RecordRollParams) (int64, error)
 	RemoveAllFromWishlist(ctx context.Context, userID uint64) error
 	RemoveCharactersFromWishlist(ctx context.Context, arg RemoveCharactersFromWishlistParams) error
-	ResetInteraction(ctx context.Context, channelID uint64) error
+	ResetActivity(ctx context.Context, channelID uint64) error
 	SearchCharacters(ctx context.Context, arg SearchCharactersParams) ([]SearchCharactersRow, error)
 	SearchGlobalCharacters(ctx context.Context, arg SearchGlobalCharactersParams) ([]Character, error)
 	SetCommandHash(ctx context.Context, hash string) error

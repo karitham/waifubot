@@ -2,7 +2,6 @@ package discord
 
 import (
 	"context"
-	"log/slog"
 	"slices"
 
 	"github.com/Karitham/corde"
@@ -14,27 +13,12 @@ type slashHandler = func(ctx context.Context, w corde.ResponseWriter, i *corde.I
 // slashMiddleware wraps a slash command handler with another layer.
 type slashMiddleware = func(next slashHandler) slashHandler
 
-// interaction middleware — increments interaction count and checks for drop trigger.
-func interact[T corde.InteractionDataConstraint](inter InteractionStore, interact func(ctx context.Context, count int64, i *corde.Interaction[T])) func(func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T])) func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]) {
-	return func(next func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T])) func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]) {
-		return func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[T]) {
-			go func() {
-				ctx := context.Background()
-
-				err := inter.Increment(ctx, i.ChannelID)
-				if err != nil {
-					slog.Debug("failed to increment interaction count", "error", err)
-				}
-
-				count, err := inter.Get(ctx, i.ChannelID)
-				if err != nil {
-					slog.Error("failed to get interaction count", "error", err)
-					return
-				}
-
-				interact(ctx, count, i)
-			}()
-
+// activity middleware runs onActivity in the background so the interaction
+// response is not delayed.
+func activity(onActivity func(ctx context.Context, i *corde.Interaction[corde.SlashCommandInteractionData])) slashMiddleware {
+	return func(next slashHandler) slashHandler {
+		return func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
+			go onActivity(context.Background(), i)
 			next(ctx, w, i)
 		}
 	}

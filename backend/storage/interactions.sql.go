@@ -9,23 +9,7 @@ import (
 	"context"
 )
 
-const getInteraction = `-- name: GetInteraction :one
-SELECT
-  interaction_count
-FROM
-  channel_interactions
-WHERE
-  channel_id = $1
-`
-
-func (q *Queries) GetInteraction(ctx context.Context, channelID uint64) (int64, error) {
-	row := q.db.QueryRow(ctx, getInteraction, channelID)
-	var interaction_count int64
-	err := row.Scan(&interaction_count)
-	return interaction_count, err
-}
-
-const incrementInteraction = `-- name: IncrementInteraction :exec
+const incrementActivity = `-- name: IncrementActivity :one
 INSERT INTO
   channel_interactions (channel_id, interaction_count)
 VALUES
@@ -33,20 +17,24 @@ VALUES
 ON CONFLICT (channel_id) DO UPDATE
 SET
   interaction_count = channel_interactions.interaction_count + 1
+RETURNING
+  interaction_count
 `
 
-func (q *Queries) IncrementInteraction(ctx context.Context, channelID uint64) error {
-	_, err := q.db.Exec(ctx, incrementInteraction, channelID)
-	return err
+func (q *Queries) IncrementActivity(ctx context.Context, channelID uint64) (int64, error) {
+	row := q.db.QueryRow(ctx, incrementActivity, channelID)
+	var interaction_count int64
+	err := row.Scan(&interaction_count)
+	return interaction_count, err
 }
 
-const resetInteraction = `-- name: ResetInteraction :exec
+const resetActivity = `-- name: ResetActivity :exec
 DELETE FROM channel_interactions
 WHERE
   channel_id = $1
 `
 
-func (q *Queries) ResetInteraction(ctx context.Context, channelID uint64) error {
-	_, err := q.db.Exec(ctx, resetInteraction, channelID)
+func (q *Queries) ResetActivity(ctx context.Context, channelID uint64) error {
+	_, err := q.db.Exec(ctx, resetActivity, channelID)
 	return err
 }

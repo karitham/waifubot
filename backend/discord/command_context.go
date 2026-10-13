@@ -6,6 +6,7 @@ import (
 	"github.com/Karitham/corde"
 
 	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/drops"
 	"github.com/karitham/waifubot/guild"
 )
 
@@ -14,7 +15,7 @@ type CommandContext interface {
 	UserID() collection.UserID
 	Username() string
 	GuildID() guild.ID
-	ChannelID() collection.ChannelID
+	ChannelID() drops.ChannelID
 	AvatarPNG() string
 	FirstResolvedUser() (corde.User, bool)
 	OptString(key string) (string, error)
@@ -34,8 +35,8 @@ func newSlashCommandCtx(i *corde.Interaction[corde.SlashCommandInteractionData])
 func (c *slashCommandCtx) UserID() collection.UserID { return collection.UserID(c.i.Member.User.ID) }
 func (c *slashCommandCtx) Username() string          { return c.i.Member.User.Username }
 func (c *slashCommandCtx) GuildID() guild.ID         { return guild.ID(c.i.GuildID) }
-func (c *slashCommandCtx) ChannelID() collection.ChannelID {
-	return collection.ChannelID(c.i.ChannelID)
+func (c *slashCommandCtx) ChannelID() drops.ChannelID {
+	return drops.ChannelID(c.i.ChannelID)
 }
 func (c *slashCommandCtx) AvatarPNG() string { return c.i.Member.User.AvatarPNG() }
 func (c *slashCommandCtx) FirstResolvedUser() (corde.User, bool) {
@@ -67,7 +68,7 @@ type MockCommandContext struct {
 	UserIDVal            collection.UserID
 	UsernameVal          string
 	GuildIDVal           guild.ID
-	ChannelIDVal         collection.ChannelID
+	ChannelIDVal         drops.ChannelID
 	AvatarPNGVal         string
 	FirstResolvedUserVal corde.User
 	HasResolvedUser      bool
@@ -81,7 +82,7 @@ type MockCommandContext struct {
 func (m *MockCommandContext) UserID() collection.UserID { return m.UserIDVal }
 func (m *MockCommandContext) Username() string          { return m.UsernameVal }
 func (m *MockCommandContext) GuildID() guild.ID         { return m.GuildIDVal }
-func (m *MockCommandContext) ChannelID() collection.ChannelID {
+func (m *MockCommandContext) ChannelID() drops.ChannelID {
 	return m.ChannelIDVal
 }
 func (m *MockCommandContext) AvatarPNG() string { return m.AvatarPNGVal }

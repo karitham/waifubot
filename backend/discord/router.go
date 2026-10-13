@@ -8,6 +8,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/drops"
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/tracker"
 )
@@ -42,13 +43,6 @@ type CommandStore interface {
 	UpdateCommandHash(ctx context.Context, hash string) error
 }
 
-// InteractionStore tracks per-channel interaction counts.
-type InteractionStore interface {
-	Increment(ctx context.Context, channelID corde.Snowflake) error
-	Get(ctx context.Context, channelID corde.Snowflake) (int64, error)
-	Reset(ctx context.Context, channelID corde.Snowflake) error
-}
-
 // Config is the bot's Discord identity and command tuning, set from CLI flags.
 type Config struct {
 	AppID             corde.Snowflake
@@ -62,9 +56,9 @@ type Config struct {
 // Deps are the adapters the command handlers run against.
 type Deps struct {
 	Store        collection.DB
+	Drops        drops.Store
 	CommandStore CommandStore
 	AnimeService tracker.Service
-	Interactions InteractionStore
 	GuildIndexer *guild.Indexer
 }
 
@@ -80,16 +74,15 @@ func New(ctx context.Context, cfg Config, deps Deps) (*corde.Mux, error) {
 
 	mux.OnNotFound = removeUnknownCommands(mux, cfg.GuildID)
 
-	drops := &drops{
-		store:        deps.Store,
-		interactions: deps.Interactions,
-		mux:          mux,
-		threshold:    cfg.InteractionNeeded,
-		guildID:      cfg.GuildID,
+	trigger := &dropTrigger{
+		store:     deps.Drops,
+		mux:       mux,
+		threshold: cfg.InteractionNeeded,
+		guildID:   cfg.GuildID,
 	}
 
 	t := trace[corde.SlashCommandInteractionData]
-	i := interact(deps.Interactions, drops.trigger)
+	a := activity(trigger.activity)
 	idx := indexMiddleware[corde.SlashCommandInteractionData](deps.GuildIndexer)
 
 	infoHandler := &InfoHandler{}
@@ -100,7 +93,7 @@ func New(ctx context.Context, cfg Config, deps Deps) (*corde.Mux, error) {
 	profileHandler := &ProfileHandler{store: deps.Store}
 	searchHandler := &SearchHandler{
 		animeService: deps.AnimeService,
-		interact:     i,
+		activity:     a,
 		guildIndexer: deps.GuildIndexer,
 	}
 	holdersHandler := &HoldersHandler{store: deps.Store, guildIndexer: deps.GuildIndexer}
@@ -121,13 +114,13 @@ func New(ctx context.Context, cfg Config, deps Deps) (*corde.Mux, error) {
 
 	mux.SlashCommand("info", wrap(wrapCtx(infoHandler.Info), t))
 	mux.SlashCommand("claim", wrap(wrapCtx(claimHandler.Claim), t))
-	mux.SlashCommand("list", wrap(wrapCtx(listHandler.List), t, i, idx))
+	mux.SlashCommand("list", wrap(wrapCtx(listHandler.List), t, a, idx))
 	mux.Route("give", giveHandler.Register)
 	mux.Route("verify", verifyHandler.Register)
 	mux.Route("profile", profileHandler.Register)
 	mux.Route("search", searchHandler.Register)
 	mux.Route("holders", holdersHandler.Register)
-	mux.SlashCommand("roll", wrap(wrapCtx(rollHandler.Roll), t, i, idx))
+	mux.SlashCommand("roll", wrap(wrapCtx(rollHandler.Roll), t, a, idx))
 	mux.Route("token", tokenHandler.Register)
 	mux.Route("wishlist", wishlistHandler.Register)
 

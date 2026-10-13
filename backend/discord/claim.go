@@ -8,6 +8,7 @@ import (
 	"github.com/Karitham/corde"
 
 	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/drops"
 )
 
 // ClaimHandler handles the /claim command.
@@ -25,7 +26,7 @@ func parseClaimOptions(cmd CommandContext) (claimOptions, error) {
 	if err != nil || name == "" {
 		return claimOptions{}, errors.New("enter a name to claim the character")
 	}
-	return claimOptions{name: collection.SanitizeName(name)}, nil
+	return claimOptions{name: name}, nil
 }
 
 // Claim processes a character claim.
@@ -39,13 +40,13 @@ func (h *ClaimHandler) Claim(ctx context.Context, w corde.ResponseWriter, cmd Co
 		return
 	}
 
-	char, err := collection.Claim(ctx, h.store, cmd.UserID(), cmd.ChannelID(), opts.name)
+	drop, err := collection.Claim(ctx, h.store, cmd.UserID(), cmd.ChannelID(), opts.name)
 	if err != nil {
 		logger.Debug("failed to claim", "error", err)
 		switch {
-		case errors.Is(err, collection.ErrNoDropInChannel):
+		case errors.Is(err, drops.ErrNoDropInChannel):
 			w.Respond(rspErr("No character to claim in this channel. Wait for the next drop!"))
-		case errors.Is(err, collection.ErrWrongCharacterName):
+		case errors.Is(err, drops.ErrWrongCharacterName):
 			w.Respond(rspErr("Wrong name! Check the hint and try again."))
 		case errors.Is(err, collection.ErrAlreadyOwned):
 			w.Respond(rspErr("You already have this character in your collection!"))
@@ -56,10 +57,10 @@ func (h *ClaimHandler) Claim(ctx context.Context, w corde.ResponseWriter, cmd Co
 	}
 
 	logger.Info("user claimed character",
-		"character_id", char.ID,
-		"character_name", char.Name)
+		"character_id", drop.Character.ID,
+		"character_name", drop.Character.Name)
 
-	rarity := collection.RarityFromPopularity(char.Popularity)
+	rarity := collection.RarityFromPopularity(drop.Character.Popularity)
 
-	w.Respond(claimEmbed(char, rarity.String()))
+	w.Respond(claimEmbed(drop.Character, rarity.String()))
 }

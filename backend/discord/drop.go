@@ -7,55 +7,53 @@ import (
 
 	"github.com/Karitham/corde"
 
-	"github.com/karitham/waifubot/collection"
+	"github.com/karitham/waifubot/drops"
 )
 
-// drops posts a channel drop once the channel's activity reaches the threshold.
-type drops struct {
-	store        collection.DB
-	interactions InteractionStore
-	mux          *corde.Mux
-	threshold    int64
-	guildID      *corde.Snowflake
+// dropTrigger posts a channel drop once the channel's activity reaches the
+// threshold.
+type dropTrigger struct {
+	store     drops.Store
+	mux       *corde.Mux
+	threshold int64
+	guildID   *corde.Snowflake
 }
 
-// trigger resets the channel's counter and posts a drop when the channel
-// passed the activity threshold in the scoped guild.
-func (d *drops) trigger(ctx context.Context, count int64, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-	if count < d.threshold {
-		return
-	}
-
+// activity records a channel interaction and posts the drop it triggers.
+func (d *dropTrigger) activity(ctx context.Context, i *corde.Interaction[corde.SlashCommandInteractionData]) {
 	if d.guildID != nil && *d.guildID != i.GuildID {
 		return
 	}
 
-	_ = d.interactions.Reset(ctx, i.ChannelID)
-	d.post(ctx, i.ChannelID)
-}
-
-// post creates a drop for the channel and announces it.
-func (d *drops) post(ctx context.Context, channelID corde.Snowflake) {
-	logger := slog.With("channel_id", uint64(channelID))
-
-	char, err := collection.CreateDrop(ctx, d.store, collection.ChannelID(channelID))
+	drop, triggered, err := drops.Trigger(ctx, d.store, drops.ChannelID(i.ChannelID), d.threshold)
 	if err != nil {
-		logger.Error("failed to create drop", "error", err)
+		slog.Error("failed to record channel activity", "error", err, "channel_id", uint64(i.ChannelID))
+		return
+	}
+	if !triggered {
 		return
 	}
 
-	logger.Debug("dropped character", "character_id", char.ID, "character_name", char.Name)
+	d.post(ctx, drop)
+}
 
-	img, err := httpImageFetcher{doer: http.DefaultClient}.Fetch(ctx, char.Image)
+// post announces the dropped character.
+func (d *dropTrigger) post(ctx context.Context, drop drops.Drop) {
+	logger := slog.With(
+		"channel_id", uint64(drop.Channel),
+		"character_id", drop.Character.ID,
+		"character_name", drop.Character.Name,
+	)
+	logger.Debug("dropped character")
+
+	img, err := httpImageFetcher{doer: http.DefaultClient}.Fetch(ctx, drop.Character.Image)
 	if err != nil {
 		logger.Error("failed to fetch image for drop embed", "error", err)
 		return
 	}
 	defer img.Close()
 
-	_, err = d.mux.CreateMessage(channelID, dropMessage(char, img))
-	if err != nil {
-		logger.Error("failed to create drop message", "error", err, "character_id", char.ID, "character_name", char.Name)
-		return
+	if _, err := d.mux.CreateMessage(corde.Snowflake(drop.Channel), dropMessage(drop.Character, img)); err != nil {
+		logger.Error("failed to create drop message", "error", err)
 	}
 }

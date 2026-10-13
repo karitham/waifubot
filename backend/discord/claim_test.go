@@ -12,6 +12,7 @@ import (
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/collection/collectiontest"
 	"github.com/karitham/waifubot/discord/cordetest"
+	"github.com/karitham/waifubot/drops"
 )
 
 func TestClaimHandler_Claim(t *testing.T) {
@@ -44,8 +45,8 @@ func TestClaimHandler_Claim(t *testing.T) {
 				OptStringVals: map[string]string{"name": "Sakura"},
 			},
 			store: &collectiontest.MockStore{
-				GetDropForUpdateFunc: func(ctx context.Context, channelID collection.ChannelID) (catalog.Character, error) {
-					return catalog.Character{}, collection.ErrNotFound
+				GetDropForUpdateFunc: func(ctx context.Context, channelID drops.ChannelID) (drops.Drop, error) {
+					return drops.Drop{}, drops.ErrNoDropInChannel
 				},
 			},
 			wantContent:       "No character to claim in this channel",
@@ -60,8 +61,8 @@ func TestClaimHandler_Claim(t *testing.T) {
 				OptStringVals: map[string]string{"name": "Sakura"},
 			},
 			store: &collectiontest.MockStore{
-				GetDropForUpdateFunc: func(ctx context.Context, channelID collection.ChannelID) (catalog.Character, error) {
-					return catalog.Character{ID: 42, Name: "Naruto"}, nil
+				GetDropForUpdateFunc: func(ctx context.Context, channelID drops.ChannelID) (drops.Drop, error) {
+					return drops.Drop{Character: catalog.Character{ID: 42, Name: "Naruto"}}, nil
 				},
 			},
 			wantContent:       "Wrong name! Check the hint",
@@ -76,8 +77,8 @@ func TestClaimHandler_Claim(t *testing.T) {
 				OptStringVals: map[string]string{"name": "Sakura"},
 			},
 			store: &collectiontest.MockStore{
-				GetDropForUpdateFunc: func(ctx context.Context, channelID collection.ChannelID) (catalog.Character, error) {
-					return catalog.Character{ID: 42, Name: "Sakura"}, nil
+				GetDropForUpdateFunc: func(ctx context.Context, channelID drops.ChannelID) (drops.Drop, error) {
+					return drops.Drop{Character: catalog.Character{ID: 42, Name: "Sakura"}}, nil
 				},
 				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID, source collection.Source, acquiredAt time.Time) error {
 					return collection.ErrAlreadyOwned
@@ -95,8 +96,8 @@ func TestClaimHandler_Claim(t *testing.T) {
 				OptStringVals: map[string]string{"name": "Sakura"},
 			},
 			store: &collectiontest.MockStore{
-				GetDropForUpdateFunc: func(ctx context.Context, channelID collection.ChannelID) (catalog.Character, error) {
-					return catalog.Character{}, errors.New("database on fire")
+				GetDropForUpdateFunc: func(ctx context.Context, channelID drops.ChannelID) (drops.Drop, error) {
+					return drops.Drop{}, errors.New("database on fire")
 				},
 			},
 			wantContent:       "Failed to claim character",
@@ -111,13 +112,13 @@ func TestClaimHandler_Claim(t *testing.T) {
 				OptStringVals: map[string]string{"name": "Sakura"},
 			},
 			store: &collectiontest.MockStore{
-				GetDropForUpdateFunc: func(ctx context.Context, channelID collection.ChannelID) (catalog.Character, error) {
-					return catalog.Character{ID: 42, Name: "Sakura", Image: "https://example.com/sakura.png", Popularity: 1000}, nil
+				GetDropForUpdateFunc: func(ctx context.Context, channelID drops.ChannelID) (drops.Drop, error) {
+					return drops.Drop{Character: catalog.Character{ID: 42, Name: "Sakura", Image: "https://example.com/sakura.png", Popularity: 1000}}, nil
 				},
 				AddToCollectionFunc: func(ctx context.Context, userID collection.UserID, charID catalog.CharacterID, source collection.Source, acquiredAt time.Time) error {
 					return nil
 				},
-				DeleteDropFunc: func(ctx context.Context, channelID collection.ChannelID) error {
+				DeleteDropFunc: func(ctx context.Context, channelID drops.ChannelID) error {
 					return nil
 				},
 				CommitFunc: func(ctx context.Context) error {

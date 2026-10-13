@@ -12,6 +12,7 @@ import (
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/collection/collectiontest"
+	"github.com/karitham/waifubot/drops"
 )
 
 func TestClaim(t *testing.T) {
@@ -19,18 +20,16 @@ func TestClaim(t *testing.T) {
 		name       string
 		setup      func(m *collectiontest.MockStore)
 		userID     collection.UserID
-		channelID  collection.ChannelID
+		channelID  drops.ChannelID
 		charName   string
 		wantErr    error
 		wantCharID catalog.CharacterID
-		wantSource string
-		wantUserID collection.UserID
 	}{
 		{
 			name: "success",
 			setup: func(m *collectiontest.MockStore) {
-				m.GetDropForUpdateFunc = func(_ context.Context, _ collection.ChannelID) (catalog.Character, error) {
-					return catalog.Character{ID: 1, Name: "Test Character", Image: "test.jpg", MediaTitle: "Test Anime"}, nil
+				m.GetDropForUpdateFunc = func(_ context.Context, _ drops.ChannelID) (drops.Drop, error) {
+					return drops.Drop{Character: catalog.Character{ID: 1, Name: "Test Character", Image: "test.jpg", MediaTitle: "Test Anime"}}, nil
 				}
 				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID}, nil
@@ -39,7 +38,7 @@ func TestClaim(t *testing.T) {
 					return nil
 				}
 				m.RemoveFromWishlistFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) error { return nil }
-				m.DeleteDropFunc = func(_ context.Context, _ collection.ChannelID) error { return nil }
+				m.DeleteDropFunc = func(_ context.Context, _ drops.ChannelID) error { return nil }
 			},
 			userID:     123,
 			channelID:  456,
@@ -49,32 +48,32 @@ func TestClaim(t *testing.T) {
 		{
 			name: "no_drop_in_channel",
 			setup: func(m *collectiontest.MockStore) {
-				m.GetDropForUpdateFunc = func(_ context.Context, _ collection.ChannelID) (catalog.Character, error) {
-					return catalog.Character{}, collection.ErrNotFound
+				m.GetDropForUpdateFunc = func(_ context.Context, _ drops.ChannelID) (drops.Drop, error) {
+					return drops.Drop{}, drops.ErrNoDropInChannel
 				}
 			},
 			userID:    123,
 			channelID: 456,
 			charName:  "Test",
-			wantErr:   collection.ErrNoDropInChannel,
+			wantErr:   drops.ErrNoDropInChannel,
 		},
 		{
 			name: "wrong_name",
 			setup: func(m *collectiontest.MockStore) {
-				m.GetDropForUpdateFunc = func(_ context.Context, _ collection.ChannelID) (catalog.Character, error) {
-					return catalog.Character{ID: 1, Name: "Test Character"}, nil
+				m.GetDropForUpdateFunc = func(_ context.Context, _ drops.ChannelID) (drops.Drop, error) {
+					return drops.Drop{Character: catalog.Character{ID: 1, Name: "Test Character"}}, nil
 				}
 			},
 			userID:    123,
 			channelID: 456,
 			charName:  "Wrong Name",
-			wantErr:   collection.ErrWrongCharacterName,
+			wantErr:   drops.ErrWrongCharacterName,
 		},
 		{
 			name: "already_owned",
 			setup: func(m *collectiontest.MockStore) {
-				m.GetDropForUpdateFunc = func(_ context.Context, _ collection.ChannelID) (catalog.Character, error) {
-					return catalog.Character{ID: 1, Name: "Test Character"}, nil
+				m.GetDropForUpdateFunc = func(_ context.Context, _ drops.ChannelID) (drops.Drop, error) {
+					return drops.Drop{Character: catalog.Character{ID: 1, Name: "Test Character"}}, nil
 				}
 				m.GetUserFunc = func(_ context.Context, userID collection.UserID) (collection.User, error) {
 					return collection.User{UserID: userID}, nil
@@ -91,8 +90,8 @@ func TestClaim(t *testing.T) {
 		{
 			name: "new_user",
 			setup: func(m *collectiontest.MockStore) {
-				m.GetDropForUpdateFunc = func(_ context.Context, _ collection.ChannelID) (catalog.Character, error) {
-					return catalog.Character{ID: 1, Name: "Test Character", Image: "test.jpg"}, nil
+				m.GetDropForUpdateFunc = func(_ context.Context, _ drops.ChannelID) (drops.Drop, error) {
+					return drops.Drop{Character: catalog.Character{ID: 1, Name: "Test Character", Image: "test.jpg"}}, nil
 				}
 				m.GetUserFunc = func(_ context.Context, _ collection.UserID) (collection.User, error) {
 					return collection.User{}, collection.ErrNotFound
@@ -102,7 +101,7 @@ func TestClaim(t *testing.T) {
 					return nil
 				}
 				m.RemoveFromWishlistFunc = func(_ context.Context, _ collection.UserID, _ catalog.CharacterID) error { return nil }
-				m.DeleteDropFunc = func(_ context.Context, _ collection.ChannelID) error { return nil }
+				m.DeleteDropFunc = func(_ context.Context, _ drops.ChannelID) error { return nil }
 			},
 			userID:     123,
 			channelID:  456,
@@ -118,7 +117,7 @@ func TestClaim(t *testing.T) {
 				tt.setup(store)
 			}
 
-			char, err := collection.Claim(t.Context(), store, tt.userID, tt.channelID, tt.charName)
+			drop, err := collection.Claim(t.Context(), store, tt.userID, tt.channelID, tt.charName)
 
 			if tt.wantErr != nil {
 				require.ErrorIs(t, err, tt.wantErr)
@@ -127,7 +126,7 @@ func TestClaim(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			assert.Equal(t, tt.wantCharID, char.ID)
+			assert.Equal(t, tt.wantCharID, drop.Character.ID)
 			assert.Equal(t, 1, store.CommitCalls)
 		})
 	}

@@ -14,7 +14,7 @@ import (
 // SearchHandler handles the /search command and its subcommands.
 type SearchHandler struct {
 	animeService tracker.Service
-	interact     slashMiddleware
+	activity     slashMiddleware
 	guildIndexer *guild.Indexer
 }
 
@@ -23,10 +23,10 @@ func (h *SearchHandler) Register(m *corde.Mux) {
 	t := trace[corde.SlashCommandInteractionData]
 	idx := indexMiddleware[corde.SlashCommandInteractionData](h.guildIndexer)
 
-	m.SlashCommand("char", wrap(wrapCtx(h.SearchChar), t, h.interact, idx))
-	m.SlashCommand("user", wrap(wrapCtx(h.SearchUser), t, h.interact, idx))
-	m.SlashCommand("manga", wrap(wrapCtx(h.SearchManga), t, h.interact, idx))
-	m.SlashCommand("anime", wrap(wrapCtx(h.SearchAnime), t, h.interact, idx))
+	m.SlashCommand("char", wrap(wrapCtx(h.SearchChar), t, h.activity, idx))
+	m.SlashCommand("user", wrap(wrapCtx(h.SearchUser), t, h.activity, idx))
+	m.SlashCommand("manga", wrap(wrapCtx(h.SearchManga), t, h.activity, idx))
+	m.SlashCommand("anime", wrap(wrapCtx(h.SearchAnime), t, h.activity, idx))
 }
 
 // SearchAnime searches for anime by name.
