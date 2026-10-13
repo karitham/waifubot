@@ -3,7 +3,6 @@
 package storage_test
 
 import (
-	"context"
 	"io"
 	"os"
 	"strings"
@@ -25,7 +24,7 @@ import (
 // When it fails after a postgres image bump, regenerate schema.sql with the
 // container's pg_dump.
 func TestSchemaSnapshotMatchesMigrations(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	pgContainer, err := postgres.Run(ctx, "postgres:17-alpine",
 		postgres.WithDatabase("waifubot_schema"),

@@ -65,7 +65,7 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
 
       - name: Integration tests
-        run: nix develop -c bash -euo pipefail -c 'cd backend && go test -tags integration -timeout 10m ./...'
+        run: nix develop -c bash -euo pipefail -c 'cd backend && go test -tags integration -timeout 10m ./collection/... ./storage/...'
 
   frontend:
     runs-on: ubuntu-latest

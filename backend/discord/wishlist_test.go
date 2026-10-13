@@ -628,7 +628,7 @@ func TestWishlistHandler_CharacterAutocomplete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var searchCalled bool
-			mockCatalog := &collectiontest.MockStore{
+			mockStore := &collectiontest.MockStore{
 				SearchGlobalCharactersFunc: func(ctx context.Context, term string) ([]catalog.Character, error) {
 					searchCalled = true
 					return tt.searchResult, tt.searchErr
@@ -637,7 +637,7 @@ func TestWishlistHandler_CharacterAutocomplete(t *testing.T) {
 
 			w := &cordetest.MockResponseWriter{}
 			i := cordetest.AutocompleteInteraction(1, 1, 1, "test", corde.OptionsInteractions{"character": tt.input})
-			h := &WishlistHandler{store: mockCatalog}
+			h := &WishlistHandler{store: mockStore}
 
 			h.CharacterAutocomplete(t.Context(), w, i)
 

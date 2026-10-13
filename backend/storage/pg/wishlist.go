@@ -53,11 +53,9 @@ func (b *base) GetWishlistHolders(ctx context.Context, ids []catalog.CharacterID
 		return nil, err
 	}
 
-	out := make([]wishlistRow, len(rows))
-	for i, r := range rows {
-		out[i] = wishlistRow{userID: r.UserID, characterID: r.CharacterID, name: r.CharacterName, image: r.CharacterImage}
-	}
-	return groupByUser(out), nil
+	return groupByUser(rows, func(r storage.GetWishlistHoldersRow) wishlistRow {
+		return wishlistRow{userID: r.UserID, characterID: r.CharacterID, name: r.CharacterName, image: r.CharacterImage}
+	}), nil
 }
 
 func (b *base) GetWantedCharacters(ctx context.Context, userID collection.UserID, guildID guild.ID) ([]collection.WishlistUserSet, error) {
@@ -69,11 +67,9 @@ func (b *base) GetWantedCharacters(ctx context.Context, userID collection.UserID
 		return nil, err
 	}
 
-	out := make([]wishlistRow, len(rows))
-	for i, r := range rows {
-		out[i] = wishlistRow{userID: r.UserID, characterID: r.CharacterID, name: r.CharacterName, image: r.CharacterImage}
-	}
-	return groupByUser(out), nil
+	return groupByUser(rows, func(r storage.GetWantedCharactersRow) wishlistRow {
+		return wishlistRow{userID: r.UserID, characterID: r.CharacterID, name: r.CharacterName, image: r.CharacterImage}
+	}), nil
 }
 
 // wishlistRow is the shape both discovery queries return.
@@ -84,17 +80,19 @@ type wishlistRow struct {
 	image       string
 }
 
-func groupByUser(rows []wishlistRow) []collection.WishlistUserSet {
+// groupByUser groups discovery rows into per-user character sets.
+func groupByUser[T any](rows []T, toRow func(T) wishlistRow) []collection.WishlistUserSet {
 	m := make(map[collection.UserID]*collection.WishlistUserSet)
 	for _, r := range rows {
-		id := collection.UserID(r.userID)
+		row := toRow(r)
+		id := collection.UserID(row.userID)
 		if _, ok := m[id]; !ok {
 			m[id] = &collection.WishlistUserSet{UserID: id}
 		}
 		m[id].Characters = append(m[id].Characters, collection.WishlistEntry{Character: catalog.Character{
-			ID:    catalog.CharacterID(r.characterID),
-			Name:  r.name,
-			Image: r.image,
+			ID:    catalog.CharacterID(row.characterID),
+			Name:  row.name,
+			Image: row.image,
 		}})
 	}
 	result := make([]collection.WishlistUserSet, 0, len(m))
