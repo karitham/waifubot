@@ -10,7 +10,12 @@ import (
 )
 
 const getCommandHash = `-- name: GetCommandHash :one
-SELECT hash FROM command_migrations LIMIT 1
+SELECT
+  hash
+FROM
+  command_migrations
+LIMIT
+  1
 `
 
 func (q *Queries) GetCommandHash(ctx context.Context) (string, error) {
@@ -21,7 +26,10 @@ func (q *Queries) GetCommandHash(ctx context.Context) (string, error) {
 }
 
 const setCommandHash = `-- name: SetCommandHash :exec
-INSERT INTO command_migrations (hash) VALUES ($1)
+INSERT INTO
+  command_migrations (hash)
+VALUES
+  ($1)
 ON CONFLICT DO NOTHING
 `
 
@@ -31,7 +39,10 @@ func (q *Queries) SetCommandHash(ctx context.Context, hash string) error {
 }
 
 const updateCommandHash = `-- name: UpdateCommandHash :exec
-UPDATE command_migrations SET hash = $1, deployed_at = NOW()
+UPDATE command_migrations
+SET
+  hash = $1,
+  deployed_at = NOW()
 `
 
 func (q *Queries) UpdateCommandHash(ctx context.Context, hash string) error {

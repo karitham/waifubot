@@ -28,7 +28,25 @@ excludes = [
 
 [formatter.md]
 command = "oxfmt"
+options = ["format", "--write"]
 includes = ["*.md"]
+
+[formatter.sql]
+command = "sql-formatter"
+# treefmt passes the file positionally and expects it rewritten in place; the
+# wrapper in flake.nix adapts the CLI (see the comment there).
+options = ["-l", "postgresql", "-c", '{"dataTypeCase":"upper","expressionWidth":80,"functionCase":"upper","identifierCase":"lower","keywordCase":"upper","language":"postgresql","tabWidth":2}']
+# The CLI formats a single file per invocation.
+no-positional-arg-support = true
+includes = ["*.sql"]
+# schema.sql is a pg_dump snapshot, not source: formatting it changes the case
+# of types and keywords and breaks storage/schema_test.go's token comparison.
+excludes = ["backend/storage/schema.sql"]
+
+[formatter.yaml]
+command = "oxfmt"
+options = ["format", "--write"]
+includes = ["*.yaml", "*.yml"]
 
 [formatter.frontend]
 command = "oxfmt"

@@ -12,6 +12,36 @@
         system:
         let
           pkgs = import nixpkgs { inherit system; };
+
+          # The sql-formatter CLI with --fix rewrites the file even when its
+          # content is unchanged, which treefmt's --fail-on-change reports as a
+          # change. Write through a temp file and only replace the target when
+          # the formatted output actually differs.
+          sql-formatter = pkgs.writeShellApplication {
+            name = "sql-formatter";
+            runtimeInputs = [
+              pkgs.coreutils
+              pkgs.diffutils
+            ];
+            text = ''
+              real=${pkgs.sql-formatter}/bin/sql-formatter
+
+              args=("$@")
+              n=''${#args[@]}
+              last="''${args[n-1]-}"
+              if [ "$n" -eq 0 ] || [ ! -f "$last" ]; then
+                exec "$real" "$@"
+              fi
+
+              opts=("''${args[@]:0:n-1}")
+              tmp="$(mktemp)"
+              trap 'rm -f "$tmp"' EXIT
+              "$real" "''${opts[@]}" -o "$tmp" "$last"
+              if ! cmp -s "$tmp" "$last"; then
+                cp "$tmp" "$last"
+              fi
+            '';
+          };
         in
         {
           genqlient = pkgs.buildGoModule {
@@ -27,6 +57,18 @@
             subPackages = [ "." ];
           };
 
+          treefmt = pkgs.writeShellApplication {
+            name = "treefmt";
+            runtimeInputs = [
+              pkgs.oxfmt
+              pkgs.gofumpt
+              pkgs.nixfmt
+              pkgs.treefmt
+              sql-formatter
+            ];
+            text = ''exec treefmt "$@"'';
+          };
+
           waifubot = pkgs.callPackage ./nix/package.nix { };
           default = self.packages.${system}.waifubot;
         }
@@ -37,22 +79,7 @@
         default = self.nixosModules.default;
       };
 
-      formatter = forSystems (
-        system:
-        let
-          pkgs = import nixpkgs { inherit system; };
-        in
-        pkgs.writeShellApplication {
-          name = "treefmt";
-          runtimeInputs = with pkgs; [
-            oxfmt
-            gofumpt
-            nixfmt
-            treefmt
-          ];
-          text = ''exec treefmt "$@"'';
-        }
-      );
+      formatter = forSystems (system: self.packages.${system}.treefmt);
 
       devShells = forSystems (
         system:
@@ -63,7 +90,6 @@
           default = pkgs.mkShell {
             packages = with pkgs; [
               go_latest
-              gofumpt
               mockgen
               golangci-lint
               usql
@@ -71,9 +97,7 @@
               sqlc
               nodejs
               ogen
-              oxfmt
-              nixfmt
-              treefmt
+              self.packages.${system}.treefmt
               self.packages.${system}.genqlient
             ];
           };

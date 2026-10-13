@@ -26,4 +26,5 @@ FROM
   JOIN characters c ON cd.character_id = c.id
 WHERE
   cd.channel_id = $1
-FOR UPDATE OF cd;
+FOR UPDATE OF
+  cd;

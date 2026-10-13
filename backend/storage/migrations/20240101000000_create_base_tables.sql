@@ -33,4 +33,5 @@ CREATE INDEX characters_id_user_id_date_idx ON characters (id, user_id, date);
 
 -- migrate:down
 DROP TABLE IF EXISTS characters;
+
 DROP TABLE IF EXISTS users;

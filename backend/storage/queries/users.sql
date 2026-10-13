@@ -89,7 +89,7 @@ SET
   date = $1
 WHERE
   user_id = $2
-  AND date <= sqlc.arg(threshold);
+  AND date <= sqlc.arg (threshold);
 
 -- name: UpdateDiscordInfo :exec
 UPDATE users

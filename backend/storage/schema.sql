@@ -18,21 +18,21 @@ CREATE TABLE public.character_wishlist (
     created_at timestamp without time zone DEFAULT now()
 );
 CREATE TABLE public.characters (
-    id bigint NOT NULL,
-    name character varying(128) NOT NULL,
-    image character varying(256) NOT NULL,
+    id bigint CONSTRAINT characters_new_id_not_null NOT NULL,
+    name character varying(128) CONSTRAINT characters_new_name_not_null NOT NULL,
+    image character varying(256) CONSTRAINT characters_new_image_not_null NOT NULL,
     media_title text DEFAULT ''::text NOT NULL,
     favorites integer DEFAULT 0 NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
     is_active boolean DEFAULT true NOT NULL
 );
 CREATE TABLE public.characters_backup (
-    user_id bigint NOT NULL,
-    id bigint NOT NULL,
-    image character varying(256) DEFAULT ''::character varying NOT NULL,
-    name character varying(128) DEFAULT ''::character varying NOT NULL,
-    date timestamp without time zone DEFAULT now() NOT NULL,
-    type character varying DEFAULT ''::character varying NOT NULL
+    user_id bigint CONSTRAINT characters_user_id_not_null NOT NULL,
+    id bigint CONSTRAINT characters_id_not_null NOT NULL,
+    image character varying(256) DEFAULT ''::character varying CONSTRAINT characters_image_not_null NOT NULL,
+    name character varying(128) DEFAULT ''::character varying CONSTRAINT characters_name_not_null NOT NULL,
+    date timestamp without time zone DEFAULT now() CONSTRAINT characters_date_not_null NOT NULL,
+    type character varying DEFAULT ''::character varying CONSTRAINT characters_type_not_null NOT NULL
 );
 CREATE TABLE public.collection (
     user_id bigint NOT NULL,

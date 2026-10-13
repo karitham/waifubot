@@ -21,9 +21,13 @@ FROM
   UNNEST($2::BIGINT[]) AS ids (id)
 WHERE
   NOT EXISTS (
-    SELECT 1
-    FROM collection col
-    WHERE col.user_id = $1 AND col.character_id = ids.id
+    SELECT
+      1
+    FROM
+      collection col
+    WHERE
+      col.user_id = $1
+      AND col.character_id = ids.id
   )
 ON CONFLICT (user_id, character_id) DO NOTHING
 `

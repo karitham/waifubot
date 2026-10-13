@@ -57,7 +57,12 @@ func (q *Queries) DeleteCollection(ctx context.Context, arg DeleteCollectionPara
 }
 
 const getActiveIDs = `-- name: GetActiveIDs :many
-SELECT id FROM characters WHERE is_active = true
+SELECT
+  id
+FROM
+  characters
+WHERE
+  is_active = TRUE
 `
 
 func (q *Queries) GetActiveIDs(ctx context.Context) ([]int64, error) {
@@ -243,7 +248,12 @@ func (q *Queries) InsertCollection(ctx context.Context, arg InsertCollectionPara
 }
 
 const knownCharacterIDs = `-- name: KnownCharacterIDs :many
-SELECT id FROM characters WHERE id = ANY($1::BIGINT[])
+SELECT
+  id
+FROM
+  characters
+WHERE
+  id = ANY ($1::BIGINT[])
 `
 
 func (q *Queries) KnownCharacterIDs(ctx context.Context, ids []int64) ([]int64, error) {
@@ -352,7 +362,12 @@ func (q *Queries) ListCollectionIDs(ctx context.Context, userID uint64) ([]int64
 }
 
 const markCharactersInactive = `-- name: MarkCharactersInactive :exec
-UPDATE characters SET is_active = false WHERE id = ANY($1::BIGINT[]) AND is_active = true
+UPDATE characters
+SET
+  is_active = FALSE
+WHERE
+  id = ANY ($1::BIGINT[])
+  AND is_active = TRUE
 `
 
 func (q *Queries) MarkCharactersInactive(ctx context.Context, ids []int64) error {
@@ -361,12 +376,23 @@ func (q *Queries) MarkCharactersInactive(ctx context.Context, ids []int64) error
 }
 
 const randomActiveChar = `-- name: RandomActiveChar :one
-SELECT id, name, image, media_title, favorites, is_active, updated_at
-FROM characters
-WHERE is_active = true
+SELECT
+  id,
+  name,
+  image,
+  media_title,
+  favorites,
+  is_active,
+  updated_at
+FROM
+  characters
+WHERE
+  is_active = TRUE
   AND image != 'https://s4.anilist.co/file/anilistcdn/character/large/default.jpg'
-ORDER BY -ln(random()) / pow(ln(favorites + 10), $1::double precision)
-LIMIT 1
+ORDER BY
+  - LN(RANDOM()) / pow (LN(favorites + 10), $1::DOUBLE PRECISION)
+LIMIT
+  1
 `
 
 type RandomActiveCharRow struct {
@@ -397,15 +423,29 @@ func (q *Queries) RandomActiveChar(ctx context.Context, weightExponent float64) 
 }
 
 const randomCharNotOwned = `-- name: RandomCharNotOwned :one
-SELECT c.id, c.name, c.image, c.media_title, c.favorites
-FROM characters c
-WHERE c.is_active = true
+SELECT
+  c.id,
+  c.name,
+  c.image,
+  c.media_title,
+  c.favorites
+FROM
+  characters c
+WHERE
+  c.is_active = TRUE
   AND NOT EXISTS (
-    SELECT 1 FROM collection col
-    WHERE col.user_id = $1 AND col.character_id = c.id
+    SELECT
+      1
+    FROM
+      collection col
+    WHERE
+      col.user_id = $1
+      AND col.character_id = c.id
   )
-ORDER BY -ln(random()) / pow(ln(c.favorites + 10), $2::double precision)
-LIMIT 1
+ORDER BY
+  - LN(RANDOM()) / pow (LN(c.favorites + 10), $2::DOUBLE PRECISION)
+LIMIT
+  1
 `
 
 type RandomCharNotOwnedParams struct {
@@ -516,9 +556,11 @@ SELECT DISTINCT
 FROM
   characters c
 WHERE
-  c.is_active = true
-  AND (c.id::VARCHAR LIKE $1::VARCHAR || '%'
-    OR c.name ILIKE '%' || $1 || '%')
+  c.is_active = TRUE
+  AND (
+    c.id::VARCHAR LIKE $1::VARCHAR || '%'
+    OR c.name ILIKE '%' || $1 || '%'
+  )
 ORDER BY
   c.id
 LIMIT
@@ -567,9 +609,12 @@ WHERE
   AND (
     $1::BIGINT IS NULL
     OR EXISTS (
-      SELECT 1
-      FROM collection col
-      WHERE col.user_id = $2
+      SELECT
+        1
+      FROM
+        collection col
+      WHERE
+        col.user_id = $2
         AND col.character_id = $3
     )
   )

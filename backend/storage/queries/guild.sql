@@ -38,9 +38,20 @@ WHERE
 
 -- name: DeleteGuildMembersNotIn :exec
 DELETE FROM guild_members
-WHERE guild_id = $1 AND user_id NOT IN (SELECT unnest($2::bigint[]));
+WHERE
+  guild_id = $1
+  AND user_id NOT IN (
+    SELECT
+      UNNEST($2::BIGINT[])
+  );
 
 -- name: UpsertGuildMembers :exec
-INSERT INTO guild_members (guild_id, user_id, indexed_at)
-SELECT $1, unnest($2::bigint[]), $3
-ON CONFLICT (guild_id, user_id) DO UPDATE SET indexed_at = EXCLUDED.indexed_at;
+INSERT INTO
+  guild_members (guild_id, user_id, indexed_at)
+SELECT
+  $1,
+  UNNEST($2::BIGINT[]),
+  $3
+ON CONFLICT (guild_id, user_id) DO UPDATE
+SET
+  indexed_at = excluded.indexed_at;
