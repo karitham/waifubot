@@ -60,11 +60,11 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
-func buildStore(s storage.Store) collection.Store {
-	return collectionwire.QueryStore(s)
+func buildTx(s storage.Store) collection.Tx {
+	return collectionwire.QueryTx(s)
 }
 
-func setupStore(t *testing.T) (collection.Store, catalog.Store) {
+func setupStore(t *testing.T) (collection.Tx, catalog.Store) {
 	t.Helper()
 
 	dbStore, err := storage.NewStore(t.Context(), testDBURL)
@@ -77,10 +77,10 @@ func setupStore(t *testing.T) (collection.Store, catalog.Store) {
 		_ = txStore.Rollback(t.Context())
 	})
 
-	return buildStore(txStore), collectionwire.NewCatalog(txStore)
+	return buildTx(txStore), collectionwire.NewCatalog(txStore)
 }
 
-func setupStoreWithSeed(t *testing.T, userIDs ...collection.UserID) (collection.Store, catalog.Store) {
+func setupStoreWithSeed(t *testing.T, userIDs ...collection.UserID) (collection.Tx, catalog.Store) {
 	t.Helper()
 	store, cat := setupStore(t)
 	ctx := t.Context()
@@ -355,8 +355,11 @@ func TestIntegration_WishlistSkipsOwnedCharacters(t *testing.T) {
 	require.NoError(t, cat.UpsertCharacter(ctx, catalog.Character{ID: 4003, Name: "OwnedWish"}))
 	require.NoError(t, cat.UpsertCharacter(ctx, catalog.Character{ID: 4004, Name: "WantedWish"}))
 
-	require.NoError(t, store.CreateUser(ctx, uid))
-	require.NoError(t, store.AddToCollection(ctx, uid, 4003, collection.SourceRoll, time.Now()))
+	tx, err := store.Begin(ctx)
+	require.NoError(t, err)
+	require.NoError(t, tx.CreateUser(ctx, uid))
+	require.NoError(t, tx.AddToCollection(ctx, uid, 4003, collection.SourceRoll, time.Now()))
+	require.NoError(t, tx.Commit(ctx))
 
 	added, err := collection.AddToWishlist(ctx, store, uid, []catalog.CharacterID{4003, 4004})
 	require.NoError(t, err)
@@ -377,16 +380,23 @@ func TestIntegration_DropOperations(t *testing.T) {
 }
 
 func TestIntegration_CreateDrop(t *testing.T) {
-	store, cat := setupStore(t)
 	ctx := t.Context()
+
+	dbStore, err := storage.NewStore(ctx, testDBURL)
+	require.NoError(t, err)
+	store := collectionwire.NewDB(dbStore)
+	cat := collectionwire.NewCatalog(dbStore)
 
 	require.NoError(t, cat.UpsertCharacter(ctx, catalog.Character{ID: 7001, Name: "DropChar", Image: "img", Popularity: 100}))
 
 	char, err := collection.CreateDrop(ctx, store, 888002)
 	require.NoError(t, err)
 
-	got, err := store.GetDropForUpdate(ctx, 888002)
+	tx, err := store.Begin(ctx)
 	require.NoError(t, err)
+	got, err := tx.GetDropForUpdate(ctx, 888002)
+	require.NoError(t, err)
+	require.NoError(t, tx.Rollback(ctx))
 	assert.Equal(t, char.ID, got.ID)
 }
 
@@ -495,7 +505,7 @@ func TestIntegration_RollCooldownIsAtomic(t *testing.T) {
 		_ = tx2.Rollback(ctx)
 	})
 
-	store1, store2 := buildStore(tx1), buildStore(tx2)
+	store1, store2 := buildTx(tx1), buildTx(tx2)
 
 	require.NoError(t, dbStore.UserStore().Create(ctx, uint64(uid)))
 
@@ -547,9 +557,12 @@ func TestIntegration_TransferToFreshUser(t *testing.T) {
 	require.NoError(t, err)
 	store := collectionwire.NewDB(dbStore)
 
-	require.NoError(t, store.CreateUser(ctx, giver))
-	_, err = store.AddTokens(ctx, giver, tokenAmount(t, 5))
+	tx, err := store.Begin(ctx)
 	require.NoError(t, err)
+	require.NoError(t, tx.CreateUser(ctx, giver))
+	_, err = tx.AddTokens(ctx, giver, tokenAmount(t, 5))
+	require.NoError(t, err)
+	require.NoError(t, tx.Commit(ctx))
 
 	require.NoError(t, collection.TransferTokens(ctx, store, giver, recipient, tokenAmount(t, 3)))
 
@@ -577,9 +590,13 @@ func TestIntegration_GiveCharacterToFreshUser(t *testing.T) {
 	store := collectionwire.NewDB(dbStore)
 	cat := collectionwire.NewCatalog(dbStore)
 
-	require.NoError(t, store.CreateUser(ctx, giver))
 	require.NoError(t, cat.UpsertCharacter(ctx, catalog.Character{ID: 2002, Name: "FreshChar", Image: "fresh.jpg"}))
-	require.NoError(t, store.AddToCollection(ctx, giver, catalog.CharacterID(2002), collection.SourceRoll, time.Now()))
+
+	tx, err := store.Begin(ctx)
+	require.NoError(t, err)
+	require.NoError(t, tx.CreateUser(ctx, giver))
+	require.NoError(t, tx.AddToCollection(ctx, giver, catalog.CharacterID(2002), collection.SourceRoll, time.Now()))
+	require.NoError(t, tx.Commit(ctx))
 
 	given, err := collection.Give(ctx, store, giver, recipient, 2002)
 	require.NoError(t, err)
@@ -605,12 +622,14 @@ func TestIntegration_ConcurrentOppositeTransfers(t *testing.T) {
 	// Both rows exist before the race: concurrent transfers between existing
 	// users must acquire their row locks in the same order, or Postgres
 	// aborts one with a deadlock error.
-	require.NoError(t, store.CreateUser(ctx, a))
-	require.NoError(t, store.CreateUser(ctx, b))
+	tx, err := store.Begin(ctx)
+	require.NoError(t, err)
 	for _, uid := range []collection.UserID{a, b} {
-		_, err := store.AddTokens(ctx, uid, tokenAmount(t, 1000))
+		require.NoError(t, tx.CreateUser(ctx, uid))
+		_, err := tx.AddTokens(ctx, uid, tokenAmount(t, 1000))
 		require.NoError(t, err)
 	}
+	require.NoError(t, tx.Commit(ctx))
 
 	amount := tokenAmount(t, 1)
 

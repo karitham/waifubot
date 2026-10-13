@@ -67,7 +67,7 @@ type Router struct {
 	AnimeService      TrackingService
 	InterStore        interactionstore.Store
 	GuildIndexer      *guild.Indexer
-	GuildOps          guild.Querier
+	GuildOps          guild.Reader
 	AppID             corde.Snowflake
 	GuildID           *corde.Snowflake
 	BotToken          string

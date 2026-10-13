@@ -15,7 +15,7 @@ var ErrNotInGuild = errors.New("not in a guild")
 var ErrNotIndexed = errors.New("guild members not indexed")
 
 // CharacterHolders retrieves users in a guild who own a specific character.
-func CharacterHolders(ctx context.Context, store Querier, charStore catalog.Reader, guildID ID, charID catalog.CharacterID) (string, []MemberID, error) {
+func CharacterHolders(ctx context.Context, store Reader, charStore catalog.Reader, guildID ID, charID catalog.CharacterID) (string, []MemberID, error) {
 	if guildID == 0 {
 		return "", nil, ErrNotInGuild
 	}

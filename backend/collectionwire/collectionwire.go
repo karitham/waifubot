@@ -30,23 +30,7 @@ func (d db) Begin(ctx context.Context) (collection.Tx, error) {
 	if err != nil {
 		return nil, err
 	}
-	return tx{Store: QueryStore(scoped), control: scoped}, nil
-}
-
-// tx pairs tx-scoped adapters with the transaction that scopes them.
-type tx struct {
-	collection.Store
-	control storage.Store
-}
-
-// Commit commits the transaction.
-func (t tx) Commit(ctx context.Context) error {
-	return t.control.Commit(ctx)
-}
-
-// Rollback rolls back the transaction.
-func (t tx) Rollback(ctx context.Context) error {
-	return t.control.Rollback(ctx)
+	return QueryTx(scoped), nil
 }
 
 // NewDB composes the storage adapters into a collection.DB.
@@ -54,14 +38,29 @@ func NewDB(s storage.Store) collection.DB {
 	return db{Store: QueryStore(s), s: s}
 }
 
-// QueryStore composes the storage adapters into a query-only collection.Store.
+// QueryStore composes the storage adapters into a read-only collection.Store.
 func QueryStore(s storage.Store) collection.Store {
 	return collection.NewStore(
 		userpg.New(s.UserStore()),
 		collectionpg.New(s.CollectionStore(), s.WishlistStore(), s.UserStore()),
-		droppg.New(s.DropStore()),
 		guildpg.New(s.GuildStore()),
 		catalogpg.New(s.CollectionStore()),
+	)
+}
+
+// QueryTx composes the storage adapters into a transaction-scoped
+// collection.Tx. The storage transaction controls commit and rollback.
+func QueryTx(s storage.Store) collection.Tx {
+	user := userpg.New(s.UserStore())
+	coll := collectionpg.New(s.CollectionStore(), s.WishlistStore(), s.UserStore())
+	guildStore := guildpg.New(s.GuildStore())
+	return collection.NewTx(
+		s,
+		collection.NewStore(user, coll, guildStore, catalogpg.New(s.CollectionStore())),
+		user,
+		coll,
+		droppg.New(s.DropStore()),
+		guildStore,
 	)
 }
 

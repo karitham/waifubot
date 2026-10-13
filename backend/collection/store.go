@@ -54,17 +54,22 @@ type OwnedCharacter struct {
 	UserID UserID
 }
 
-// UserRepository handles user CRUD and profile fields.
-type UserRepository interface {
+// UserReader reads user profile data.
+type UserReader interface {
 	GetUser(ctx context.Context, userID UserID) (User, error)
+	GetUserByAnilist(ctx context.Context, anilistURL string) (User, error)
+	GetUserByDiscordUsername(ctx context.Context, username string) (User, error)
+}
+
+// UserWriter holds the user writes that run inside withUsers, with the user
+// materialized and locked.
+type UserWriter interface {
 	// CreateUser creates the user when it is absent. It is idempotent and
 	// the only path that creates users.
 	CreateUser(ctx context.Context, userID UserID) error
 	// LockUser locks the user's row for the rest of the transaction,
 	// returning ErrNotFound when the user does not exist.
 	LockUser(ctx context.Context, userID UserID) error
-	GetUserByAnilist(ctx context.Context, anilistURL string) (User, error)
-	GetUserByDiscordUsername(ctx context.Context, username string) (User, error)
 	// RecordRoll atomically records a roll for the user, but only when the
 	// cooldown has elapsed; it is the gate that serializes concurrent free
 	// rolls. When the cooldown is still active it returns ErrRollCooldown
@@ -79,27 +84,14 @@ type UserRepository interface {
 	UpdateDiscordInfo(ctx context.Context, userID UserID, username, avatar string, lastUpdated time.Time) error
 }
 
-// CollectionRepository handles owned character operations.
-type CollectionRepository interface {
+// CollectionReader reads owned characters and wishlist membership.
+type CollectionReader interface {
 	GetCollection(ctx context.Context, userID UserID) ([]OwnedCharacter, error)
 	GetCollectionIDs(ctx context.Context, userID UserID) ([]catalog.CharacterID, error)
 	GetOwnedCharacter(ctx context.Context, userID UserID, charID catalog.CharacterID) (OwnedCharacter, error)
-	AddToCollection(ctx context.Context, userID UserID, charID catalog.CharacterID, source Source, acquiredAt time.Time) error
-	RemoveFromCollection(ctx context.Context, userID UserID, charID catalog.CharacterID) error
-	GiveCharacter(ctx context.Context, from, to UserID, charID catalog.CharacterID) (OwnedCharacter, error)
 	CountCollection(ctx context.Context, userID UserID) (int64, error)
-	// SetFavorite atomically sets the user's favorite character, requiring
-	// ownership when setting; a zero charID clears it.
-	SetFavorite(ctx context.Context, userID UserID, charID catalog.CharacterID) error
 	// SearchCharacters searches the user's collection by name or ID.
 	SearchCharacters(ctx context.Context, userID UserID, term string) ([]catalog.Character, error)
-	// RemoveFromWishlist removes a character from the user's wishlist.
-	RemoveFromWishlist(ctx context.Context, userID UserID, charID catalog.CharacterID) error
-	// RemoveAllFromWishlist clears the user's wishlist.
-	RemoveAllFromWishlist(ctx context.Context, userID UserID) error
-	// AddCharactersToWishlist is called inside wishlist-add transactions.
-	// It reports how many characters were actually added.
-	AddCharactersToWishlist(ctx context.Context, userID UserID, characterIDs []catalog.CharacterID) (int64, error)
 	// RandomCharNotOwned returns a random active character not owned by the user,
 	// weighted by favorites^weightExponent. Does NOT filter the default AniList image
 	// (rolls/direct rolls use this path and the image isn't publicly embedded).
@@ -110,8 +102,26 @@ type CollectionRepository interface {
 	RandomActiveChar(ctx context.Context, weightExponent float64) (catalog.Character, error)
 }
 
-// DropRepository handles the channel drop lifecycle.
-type DropRepository interface {
+// CollectionWriter holds the collection and wishlist writes; all run inside
+// a transaction.
+type CollectionWriter interface {
+	AddToCollection(ctx context.Context, userID UserID, charID catalog.CharacterID, source Source, acquiredAt time.Time) error
+	RemoveFromCollection(ctx context.Context, userID UserID, charID catalog.CharacterID) error
+	GiveCharacter(ctx context.Context, from, to UserID, charID catalog.CharacterID) (OwnedCharacter, error)
+	// SetFavorite atomically sets the user's favorite character, requiring
+	// ownership when setting; a zero charID clears it.
+	SetFavorite(ctx context.Context, userID UserID, charID catalog.CharacterID) error
+	// RemoveFromWishlist removes a character from the user's wishlist.
+	RemoveFromWishlist(ctx context.Context, userID UserID, charID catalog.CharacterID) error
+	// RemoveAllFromWishlist clears the user's wishlist.
+	RemoveAllFromWishlist(ctx context.Context, userID UserID) error
+	// AddCharactersToWishlist is called inside wishlist-add transactions.
+	// It reports how many characters were actually added.
+	AddCharactersToWishlist(ctx context.Context, userID UserID, characterIDs []catalog.CharacterID) (int64, error)
+}
+
+// DropWriter holds the channel drop operations; all run inside a transaction.
+type DropWriter interface {
 	// SetDrop stores the character as the channel's drop. The character must
 	// already be in the catalog; the FK enforces it.
 	SetDrop(ctx context.Context, channelID ChannelID, char catalog.Character) error
@@ -119,18 +129,30 @@ type DropRepository interface {
 	DeleteDrop(ctx context.Context, channelID ChannelID) error
 }
 
-// Store is the query surface over the domain repositories.
+// Store is the non-transactional surface: reads over users, collections,
+// guilds, and the catalog.
 type Store interface {
-	UserRepository
-	CollectionRepository
-	DropRepository
-	guild.Querier
+	UserReader
+	CollectionReader
+	guild.Reader
 	catalog.Reader
 }
 
-// Tx is a Store scoped to a database transaction.
+// Tx is a Store scoped to a database transaction; it adds the writes that
+// must run inside one, plus transaction control.
 type Tx interface {
 	Store
+	UserWriter
+	CollectionWriter
+	DropWriter
+	guild.Writer
+	Commit(ctx context.Context) error
+	Rollback(ctx context.Context) error
+}
+
+// TxControl commits or rolls back a composed Tx. The storage transaction
+// satisfies it.
+type TxControl interface {
 	Commit(ctx context.Context) error
 	Rollback(ctx context.Context) error
 }
