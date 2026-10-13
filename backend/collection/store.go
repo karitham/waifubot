@@ -102,6 +102,16 @@ type CollectionReader interface {
 	RandomActiveChar(ctx context.Context, weightExponent float64) (catalog.Character, error)
 }
 
+// WishlistReader reads wishlist membership and discovery views.
+type WishlistReader interface {
+	GetUserCharacterWishlist(ctx context.Context, userID UserID) ([]WishlistEntry, error)
+	// Discovery
+	GetWishlistHolders(ctx context.Context, characterIDs []catalog.CharacterID, userID UserID, guildID guild.ID) ([]WishlistUserSet, error)
+	GetWantedCharacters(ctx context.Context, userID UserID, guildID guild.ID) ([]WishlistUserSet, error)
+	CompareWithUser(ctx context.Context, userID1, userID2 UserID) (WishlistComparison, error)
+	GetUsersWantingCharacter(ctx context.Context, charID catalog.CharacterID, guildID guild.ID, excludeUserID UserID) ([]guild.MemberID, error)
+}
+
 // CollectionWriter holds the collection and wishlist writes; all run inside
 // a transaction.
 type CollectionWriter interface {
@@ -131,10 +141,11 @@ type DropWriter interface {
 }
 
 // Store is the non-transactional surface: reads over users, collections,
-// guilds, and the catalog.
+// wishlists, guilds, and the catalog.
 type Store interface {
 	UserReader
 	CollectionReader
+	WishlistReader
 	guild.Reader
 	catalog.Reader
 }

@@ -14,8 +14,6 @@ import (
 	"github.com/karitham/waifubot/discord/cordetest"
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/tracker"
-	"github.com/karitham/waifubot/wishlist"
-	"github.com/karitham/waifubot/wishlist/wishlisttest"
 )
 
 func TestWishlistHandler_CharacterAdd(t *testing.T) {
@@ -23,7 +21,6 @@ func TestWishlistHandler_CharacterAdd(t *testing.T) {
 		name        string
 		cmd         CommandContext
 		collStore   *collectiontest.MockStore
-		wlStore     *wishlisttest.MockStore
 		wantContent string
 	}{
 		{
@@ -39,7 +36,6 @@ func TestWishlistHandler_CharacterAdd(t *testing.T) {
 					return collection.OwnedCharacter{}, collection.ErrNotFound
 				},
 			},
-			wlStore:     &wishlisttest.MockStore{},
 			wantContent: "Added  (0) to your wishlist.",
 		},
 		{
@@ -96,9 +92,8 @@ func TestWishlistHandler_CharacterAdd(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
 			h := &WishlistHandler{
-				wishlist: tt.wlStore,
-				store:    tt.collStore,
-				catalog:  &cordetest.MockCatalogStore{},
+				store:   tt.collStore,
+				catalog: &cordetest.MockCatalogStore{},
 			}
 
 			h.CharacterAdd(t.Context(), w, tt.cmd)
@@ -151,8 +146,7 @@ func TestWishlistHandler_CharacterRemove(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
 			h := &WishlistHandler{
-				wishlist: &wishlisttest.MockStore{},
-				store:    tt.collStore,
+				store: tt.collStore,
 			}
 
 			h.CharacterRemove(t.Context(), w, tt.cmd)
@@ -170,7 +164,7 @@ func TestWishlistHandler_CharacterList(t *testing.T) {
 	tests := []struct {
 		name        string
 		cmd         CommandContext
-		wlStore     *wishlisttest.MockStore
+		wlStore     *collectiontest.MockStore
 		wantContent string
 	}{
 		{
@@ -180,9 +174,9 @@ func TestWishlistHandler_CharacterList(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &wishlisttest.MockStore{
-				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error) {
-					return []wishlist.Entry{
+			wlStore: &collectiontest.MockStore{
+				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]collection.WishlistEntry, error) {
+					return []collection.WishlistEntry{
 						{ID: 1, Name: "Sakura"},
 						{ID: 2, Name: "Naruto"},
 					}, nil
@@ -197,9 +191,9 @@ func TestWishlistHandler_CharacterList(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &wishlisttest.MockStore{
-				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error) {
-					return []wishlist.Entry{}, nil
+			wlStore: &collectiontest.MockStore{
+				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]collection.WishlistEntry, error) {
+					return []collection.WishlistEntry{}, nil
 				},
 			},
 			wantContent: "Your wishlist is empty.",
@@ -211,8 +205,8 @@ func TestWishlistHandler_CharacterList(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &wishlisttest.MockStore{
-				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error) {
+			wlStore: &collectiontest.MockStore{
+				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]collection.WishlistEntry, error) {
 					return nil, errors.New("db error")
 				},
 			},
@@ -224,8 +218,7 @@ func TestWishlistHandler_CharacterList(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
 			h := &WishlistHandler{
-				wishlist: tt.wlStore,
-				store:    &collectiontest.MockStore{},
+				store: tt.wlStore,
 			}
 
 			h.CharacterList(t.Context(), w, tt.cmd)
@@ -293,7 +286,6 @@ func TestWishlistHandler_MediaAdd(t *testing.T) {
 	tests := []struct {
 		name         string
 		cmd          CommandContext
-		wlStore      *wishlisttest.MockStore
 		animeService *collectiontest.MockAnimeService
 		collStore    *collectiontest.MockStore
 		wantContent  string
@@ -322,7 +314,6 @@ func TestWishlistHandler_MediaAdd(t *testing.T) {
 					}, nil
 				},
 			},
-			wlStore:     &wishlisttest.MockStore{},
 			wantContent: "Added 2 characters from this media to your wishlist.",
 		},
 		{
@@ -343,7 +334,6 @@ func TestWishlistHandler_MediaAdd(t *testing.T) {
 					return nil, nil
 				},
 			},
-			wlStore:     &wishlisttest.MockStore{},
 			wantContent: "No characters found for this media",
 		},
 	}
@@ -352,7 +342,6 @@ func TestWishlistHandler_MediaAdd(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
 			h := &WishlistHandler{
-				wishlist:     tt.wlStore,
 				store:        tt.collStore,
 				animeService: tt.animeService,
 			}
@@ -371,7 +360,7 @@ func TestWishlistHandler_Holders(t *testing.T) {
 	tests := []struct {
 		name        string
 		cmd         CommandContext
-		wlStore     *wishlisttest.MockStore
+		wlStore     *collectiontest.MockStore
 		wantContent string
 	}{
 		{
@@ -381,13 +370,13 @@ func TestWishlistHandler_Holders(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &wishlisttest.MockStore{
-				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error) {
-					return []wishlist.Entry{{ID: 1, Name: "Sakura"}}, nil
+			wlStore: &collectiontest.MockStore{
+				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]collection.WishlistEntry, error) {
+					return []collection.WishlistEntry{{ID: 1, Name: "Sakura"}}, nil
 				},
-				GetWishlistHoldersFunc: func(ctx context.Context, characterIDs []catalog.CharacterID, userID collection.UserID, guildID guild.ID) ([]wishlist.UserCharacterSet, error) {
-					return []wishlist.UserCharacterSet{
-						{UserID: 100, Characters: []wishlist.Entry{{ID: 1, Name: "Sakura"}}},
+				GetWishlistHoldersFunc: func(ctx context.Context, characterIDs []catalog.CharacterID, userID collection.UserID, guildID guild.ID) ([]collection.WishlistUserSet, error) {
+					return []collection.WishlistUserSet{
+						{UserID: 100, Characters: []collection.WishlistEntry{{ID: 1, Name: "Sakura"}}},
 					}, nil
 				},
 			},
@@ -400,9 +389,9 @@ func TestWishlistHandler_Holders(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &wishlisttest.MockStore{
-				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error) {
-					return []wishlist.Entry{}, nil
+			wlStore: &collectiontest.MockStore{
+				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]collection.WishlistEntry, error) {
+					return []collection.WishlistEntry{}, nil
 				},
 			},
 			wantContent: "Your wishlist is empty.",
@@ -414,12 +403,12 @@ func TestWishlistHandler_Holders(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &wishlisttest.MockStore{
-				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error) {
-					return []wishlist.Entry{{ID: 1, Name: "Sakura"}}, nil
+			wlStore: &collectiontest.MockStore{
+				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]collection.WishlistEntry, error) {
+					return []collection.WishlistEntry{{ID: 1, Name: "Sakura"}}, nil
 				},
-				GetWishlistHoldersFunc: func(ctx context.Context, characterIDs []catalog.CharacterID, userID collection.UserID, guildID guild.ID) ([]wishlist.UserCharacterSet, error) {
-					return []wishlist.UserCharacterSet{}, nil
+				GetWishlistHoldersFunc: func(ctx context.Context, characterIDs []catalog.CharacterID, userID collection.UserID, guildID guild.ID) ([]collection.WishlistUserSet, error) {
+					return []collection.WishlistUserSet{}, nil
 				},
 			},
 			wantContent: "No one has characters from your wishlist.",
@@ -431,8 +420,8 @@ func TestWishlistHandler_Holders(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &wishlisttest.MockStore{
-				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error) {
+			wlStore: &collectiontest.MockStore{
+				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]collection.WishlistEntry, error) {
 					return nil, errors.New("db error")
 				},
 			},
@@ -444,8 +433,7 @@ func TestWishlistHandler_Holders(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
 			h := &WishlistHandler{
-				wishlist: tt.wlStore,
-				store:    &collectiontest.MockStore{},
+				store: tt.wlStore,
 			}
 
 			h.Holders(t.Context(), w, tt.cmd)
@@ -462,7 +450,7 @@ func TestWishlistHandler_Wanted(t *testing.T) {
 	tests := []struct {
 		name        string
 		cmd         CommandContext
-		wlStore     *wishlisttest.MockStore
+		wlStore     *collectiontest.MockStore
 		wantContent string
 	}{
 		{
@@ -472,10 +460,10 @@ func TestWishlistHandler_Wanted(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &wishlisttest.MockStore{
-				GetWantedCharactersFunc: func(ctx context.Context, userID collection.UserID, guildID guild.ID) ([]wishlist.UserCharacterSet, error) {
-					return []wishlist.UserCharacterSet{
-						{UserID: 100, Characters: []wishlist.Entry{{ID: 1, Name: "Sakura"}}},
+			wlStore: &collectiontest.MockStore{
+				GetWantedCharactersFunc: func(ctx context.Context, userID collection.UserID, guildID guild.ID) ([]collection.WishlistUserSet, error) {
+					return []collection.WishlistUserSet{
+						{UserID: 100, Characters: []collection.WishlistEntry{{ID: 1, Name: "Sakura"}}},
 					}, nil
 				},
 			},
@@ -488,9 +476,9 @@ func TestWishlistHandler_Wanted(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &wishlisttest.MockStore{
-				GetWantedCharactersFunc: func(ctx context.Context, userID collection.UserID, guildID guild.ID) ([]wishlist.UserCharacterSet, error) {
-					return []wishlist.UserCharacterSet{}, nil
+			wlStore: &collectiontest.MockStore{
+				GetWantedCharactersFunc: func(ctx context.Context, userID collection.UserID, guildID guild.ID) ([]collection.WishlistUserSet, error) {
+					return []collection.WishlistUserSet{}, nil
 				},
 			},
 			wantContent: "No one wants characters from your collection.",
@@ -502,8 +490,8 @@ func TestWishlistHandler_Wanted(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore: &wishlisttest.MockStore{
-				GetWantedCharactersFunc: func(ctx context.Context, userID collection.UserID, guildID guild.ID) ([]wishlist.UserCharacterSet, error) {
+			wlStore: &collectiontest.MockStore{
+				GetWantedCharactersFunc: func(ctx context.Context, userID collection.UserID, guildID guild.ID) ([]collection.WishlistUserSet, error) {
 					return nil, errors.New("db error")
 				},
 			},
@@ -515,8 +503,7 @@ func TestWishlistHandler_Wanted(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
 			h := &WishlistHandler{
-				wishlist: tt.wlStore,
-				store:    &collectiontest.MockStore{},
+				store: tt.wlStore,
 			}
 
 			h.Wanted(t.Context(), w, tt.cmd)
@@ -533,7 +520,7 @@ func TestWishlistHandler_Compare(t *testing.T) {
 	tests := []struct {
 		name        string
 		cmd         CommandContext
-		wlStore     *wishlisttest.MockStore
+		wlStore     *collectiontest.MockStore
 		wantContent string
 	}{
 		{
@@ -548,10 +535,10 @@ func TestWishlistHandler_Compare(t *testing.T) {
 				},
 				HasResolvedUser: true,
 			},
-			wlStore: &wishlisttest.MockStore{
-				CompareWithUserFunc: func(ctx context.Context, userID1, userID2 collection.UserID) (wishlist.WishlistComparison, error) {
-					return wishlist.WishlistComparison{
-						UserHasCharacters: []wishlist.Entry{{ID: 1, Name: "Sakura"}},
+			wlStore: &collectiontest.MockStore{
+				CompareWithUserFunc: func(ctx context.Context, userID1, userID2 collection.UserID) (collection.WishlistComparison, error) {
+					return collection.WishlistComparison{
+						UserHasCharacters: []collection.WishlistEntry{{ID: 1, Name: "Sakura"}},
 					}, nil
 				},
 			},
@@ -564,7 +551,6 @@ func TestWishlistHandler_Compare(t *testing.T) {
 				UsernameVal: "testuser",
 				GuildIDVal:  1,
 			},
-			wlStore:     &wishlisttest.MockStore{},
 			wantContent: "you must specify a user to compare with",
 		},
 		{
@@ -579,9 +565,9 @@ func TestWishlistHandler_Compare(t *testing.T) {
 				},
 				HasResolvedUser: true,
 			},
-			wlStore: &wishlisttest.MockStore{
-				CompareWithUserFunc: func(ctx context.Context, userID1, userID2 collection.UserID) (wishlist.WishlistComparison, error) {
-					return wishlist.WishlistComparison{}, errors.New("db error")
+			wlStore: &collectiontest.MockStore{
+				CompareWithUserFunc: func(ctx context.Context, userID1, userID2 collection.UserID) (collection.WishlistComparison, error) {
+					return collection.WishlistComparison{}, errors.New("db error")
 				},
 			},
 			wantContent: "Unable to compare wishlists.",
@@ -592,8 +578,7 @@ func TestWishlistHandler_Compare(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
 			h := &WishlistHandler{
-				wishlist: tt.wlStore,
-				store:    &collectiontest.MockStore{},
+				store: tt.wlStore,
 			}
 
 			h.Compare(t.Context(), w, tt.cmd)
@@ -734,7 +719,7 @@ func TestWishlistHandler_WishlistAutocomplete(t *testing.T) {
 	tests := []struct {
 		name             string
 		input            corde.JsonRaw
-		wishlistChars    []wishlist.Entry
+		wishlistChars    []collection.WishlistEntry
 		wishlistErr      error
 		wantAutocomplete bool
 		wantChoices      int
@@ -742,7 +727,7 @@ func TestWishlistHandler_WishlistAutocomplete(t *testing.T) {
 		{
 			name:  "results found with matching input",
 			input: corde.JsonRaw(`"sakura"`),
-			wishlistChars: []wishlist.Entry{
+			wishlistChars: []collection.WishlistEntry{
 				{ID: 1, Name: "Sakura"},
 				{ID: 2, Name: "Sakura Kinomoto"},
 			},
@@ -752,7 +737,7 @@ func TestWishlistHandler_WishlistAutocomplete(t *testing.T) {
 		{
 			name:  "no matching input returns empty",
 			input: corde.JsonRaw(`"xyz"`),
-			wishlistChars: []wishlist.Entry{
+			wishlistChars: []collection.WishlistEntry{
 				{ID: 1, Name: "Sakura"},
 			},
 			wantAutocomplete: true,
@@ -761,7 +746,7 @@ func TestWishlistHandler_WishlistAutocomplete(t *testing.T) {
 		{
 			name:             "empty input returns all",
 			input:            corde.JsonRaw(`""`),
-			wishlistChars:    []wishlist.Entry{{ID: 1, Name: "Sakura"}, {ID: 2, Name: "Naruto"}},
+			wishlistChars:    []collection.WishlistEntry{{ID: 1, Name: "Sakura"}, {ID: 2, Name: "Naruto"}},
 			wantAutocomplete: true,
 			wantChoices:      2,
 		},
@@ -776,15 +761,15 @@ func TestWishlistHandler_WishlistAutocomplete(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			wlStore := &wishlisttest.MockStore{
-				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]wishlist.Entry, error) {
+			wlStore := &collectiontest.MockStore{
+				GetUserCharacterWishlistFunc: func(ctx context.Context, userID collection.UserID) ([]collection.WishlistEntry, error) {
 					return tt.wishlistChars, tt.wishlistErr
 				},
 			}
 
 			w := &cordetest.MockResponseWriter{}
 			i := cordetest.AutocompleteInteraction(1, 1, 1, "test", corde.OptionsInteractions{"character": tt.input})
-			h := &WishlistHandler{wishlist: wlStore}
+			h := &WishlistHandler{store: wlStore}
 
 			h.WishlistAutocomplete(t.Context(), w, i)
 

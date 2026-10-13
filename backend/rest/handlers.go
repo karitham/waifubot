@@ -17,21 +17,18 @@ import (
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/discord"
 	"github.com/karitham/waifubot/services"
-	"github.com/karitham/waifubot/wishlist"
 
 	"github.com/karitham/waifubot/rest/api"
 )
 
 type Server struct {
 	db             collection.DB
-	wishlistStore  wishlist.Store
 	discordService *services.DiscordService
 }
 
-func New(db collection.DB, ws wishlist.Store, discordService *services.DiscordService) *Server {
+func New(db collection.DB, discordService *services.DiscordService) *Server {
 	return &Server{
 		db:             db,
-		wishlistStore:  ws,
 		discordService: discordService,
 	}
 }
@@ -283,7 +280,7 @@ func (s *Server) GetWishlist(ctx context.Context, params api.GetWishlistParams) 
 		}, nil
 	}
 
-	chars, err := s.wishlistStore.GetUserCharacterWishlist(ctx, collection.UserID(id))
+	chars, err := s.db.GetUserCharacterWishlist(ctx, collection.UserID(id))
 	if err != nil {
 		return &api.GetWishlistNotFound{
 			Message:    "user not found",

@@ -35,6 +35,12 @@ type MockStore struct {
 	RemoveAllFromWishlistFunc   func(ctx context.Context, userID collection.UserID) error
 	AddCharactersToWishlistFunc func(ctx context.Context, userID collection.UserID, characterIDs []catalog.CharacterID) (int64, error)
 
+	GetUserCharacterWishlistFunc func(ctx context.Context, userID collection.UserID) ([]collection.WishlistEntry, error)
+	GetWishlistHoldersFunc       func(ctx context.Context, characterIDs []catalog.CharacterID, userID collection.UserID, guildID guild.ID) ([]collection.WishlistUserSet, error)
+	GetWantedCharactersFunc      func(ctx context.Context, userID collection.UserID, guildID guild.ID) ([]collection.WishlistUserSet, error)
+	CompareWithUserFunc          func(ctx context.Context, userID1, userID2 collection.UserID) (collection.WishlistComparison, error)
+	GetUsersWantingCharacterFunc func(ctx context.Context, charID catalog.CharacterID, guildID guild.ID, excludeUserID collection.UserID) ([]guild.MemberID, error)
+
 	SetDropFunc          func(ctx context.Context, channelID collection.ChannelID, char catalog.Character) error
 	GetDropForUpdateFunc func(ctx context.Context, channelID collection.ChannelID) (catalog.Character, error)
 	DeleteDropFunc       func(ctx context.Context, channelID collection.ChannelID) error
@@ -305,6 +311,41 @@ func (m *MockStore) GetCharacterByID(ctx context.Context, charID catalog.Charact
 func (m *MockStore) SearchGlobalCharacters(ctx context.Context, term string) ([]catalog.Character, error) {
 	if m.SearchGlobalCharactersFunc != nil {
 		return m.SearchGlobalCharactersFunc(ctx, term)
+	}
+	return nil, nil
+}
+
+func (m *MockStore) GetUserCharacterWishlist(ctx context.Context, userID collection.UserID) ([]collection.WishlistEntry, error) {
+	if m.GetUserCharacterWishlistFunc != nil {
+		return m.GetUserCharacterWishlistFunc(ctx, userID)
+	}
+	return nil, nil
+}
+
+func (m *MockStore) GetWishlistHolders(ctx context.Context, characterIDs []catalog.CharacterID, userID collection.UserID, guildID guild.ID) ([]collection.WishlistUserSet, error) {
+	if m.GetWishlistHoldersFunc != nil {
+		return m.GetWishlistHoldersFunc(ctx, characterIDs, userID, guildID)
+	}
+	return nil, nil
+}
+
+func (m *MockStore) GetWantedCharacters(ctx context.Context, userID collection.UserID, guildID guild.ID) ([]collection.WishlistUserSet, error) {
+	if m.GetWantedCharactersFunc != nil {
+		return m.GetWantedCharactersFunc(ctx, userID, guildID)
+	}
+	return nil, nil
+}
+
+func (m *MockStore) CompareWithUser(ctx context.Context, userID1, userID2 collection.UserID) (collection.WishlistComparison, error) {
+	if m.CompareWithUserFunc != nil {
+		return m.CompareWithUserFunc(ctx, userID1, userID2)
+	}
+	return collection.WishlistComparison{}, nil
+}
+
+func (m *MockStore) GetUsersWantingCharacter(ctx context.Context, charID catalog.CharacterID, guildID guild.ID, excludeUserID collection.UserID) ([]guild.MemberID, error) {
+	if m.GetUsersWantingCharacterFunc != nil {
+		return m.GetUsersWantingCharacterFunc(ctx, charID, guildID, excludeUserID)
 	}
 	return nil, nil
 }

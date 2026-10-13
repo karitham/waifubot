@@ -10,14 +10,12 @@ import (
 	"github.com/Karitham/corde"
 
 	"github.com/karitham/waifubot/collection"
-	"github.com/karitham/waifubot/wishlist"
 )
 
 // RollHandler handles the /roll command.
 type RollHandler struct {
-	store    collection.DB
-	config   collection.Config
-	wishlist wishlist.Store
+	store  collection.DB
+	config collection.Config
 }
 
 // Roll performs a character roll.
@@ -37,7 +35,7 @@ func (h *RollHandler) Roll(ctx context.Context, w corde.ResponseWriter, cmd Comm
 		return
 	}
 
-	wantingUsers, err := h.wishlist.GetUsersWantingCharacter(ctx, char.ID, cmd.GuildID(), cmd.UserID())
+	wantingUsers, err := h.store.GetUsersWantingCharacter(ctx, char.ID, cmd.GuildID(), cmd.UserID())
 	if err != nil {
 		logger.Error("error getting users wanting character", "error", err)
 	}

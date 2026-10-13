@@ -219,7 +219,6 @@ func runTestHarness(c *cli.Context) error {
 		Store:             db,
 		Catalog:           db,
 		CommandStore:      db,
-		WishlistStore:     db,
 		AnimeService:      fakeService,
 		InterStore:        db,
 		GuildIndexer:      guild.NewIndexer(pg.NewGuildDB(store), guild.NewDiscordFetcher(botToken)),

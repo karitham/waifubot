@@ -12,7 +12,6 @@ import (
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/guild"
 	"github.com/karitham/waifubot/tracker"
-	"github.com/karitham/waifubot/wishlist"
 )
 
 // formatCharacter formats a character as "Name (ID)"
@@ -21,7 +20,7 @@ func formatCharacter(name string, id catalog.CharacterID) string {
 }
 
 // buildCharacterList builds a comma-separated list of characters, limited to maxItems
-func buildCharacterList(chars []wishlist.Entry, maxItems int) string {
+func buildCharacterList(chars []collection.WishlistEntry, maxItems int) string {
 	var b strings.Builder
 	for i, c := range chars {
 		if i > 0 {
@@ -56,7 +55,6 @@ func formatUser(userID collection.UserID) string {
 
 // WishlistHandler handles the /wishlist command and its subcommands.
 type WishlistHandler struct {
-	wishlist     wishlist.Store
 	store        collection.DB
 	animeService TrackingService
 	catalog      catalog.Reader
@@ -146,7 +144,7 @@ func (h *WishlistHandler) CharacterRemove(ctx context.Context, w corde.ResponseW
 func (h *WishlistHandler) CharacterList(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
 	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
 
-	chars, err := h.wishlist.GetUserCharacterWishlist(ctx, cmd.UserID())
+	chars, err := h.store.GetUserCharacterWishlist(ctx, cmd.UserID())
 	if err != nil {
 		logger.Error("error getting user wishlist", "error", err)
 		w.Respond(rspErr("Unable to retrieve your wishlist. Please try again."))
@@ -198,7 +196,7 @@ func (h *WishlistHandler) MediaAdd(ctx context.Context, w corde.ResponseWriter, 
 
 	opts := parseWishlistMediaOptions(cmd)
 
-	count, err := wishlist.AddMediaToWishlist(ctx, h.animeService, h.store, cmd.UserID(), opts.mediaID)
+	count, err := collection.AddMediaToWishlist(ctx, h.store, h.animeService, cmd.UserID(), opts.mediaID)
 	if err != nil {
 		logger.Error("error adding media to wishlist", "error", err, "media_id", opts.mediaID)
 		w.Respond(rspErr("Unable to add characters from this media to your wishlist. Please try again."))
@@ -217,7 +215,7 @@ func (h *WishlistHandler) MediaAdd(ctx context.Context, w corde.ResponseWriter, 
 func (h *WishlistHandler) Holders(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
 	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
 
-	wl, err := h.wishlist.GetUserCharacterWishlist(ctx, cmd.UserID())
+	wl, err := h.store.GetUserCharacterWishlist(ctx, cmd.UserID())
 	if err != nil {
 		logger.Error("error getting user wishlist", "error", err)
 		w.Respond(rspErr("Unable to retrieve your wishlist. Please try again."))
@@ -234,7 +232,7 @@ func (h *WishlistHandler) Holders(ctx context.Context, w corde.ResponseWriter, c
 		characterIDs[j] = c.ID
 	}
 
-	holders, err := h.wishlist.GetWishlistHolders(ctx, characterIDs, cmd.UserID(), cmd.GuildID())
+	holders, err := h.store.GetWishlistHolders(ctx, characterIDs, cmd.UserID(), cmd.GuildID())
 	if err != nil {
 		logger.Error("error getting wishlist holders", "error", err)
 		w.Respond(rspErr("Unable to retrieve wishlist holders. Please try again."))
@@ -268,7 +266,7 @@ func (h *WishlistHandler) Holders(ctx context.Context, w corde.ResponseWriter, c
 func (h *WishlistHandler) Wanted(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
 	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
 
-	wanted, err := h.wishlist.GetWantedCharacters(ctx, cmd.UserID(), cmd.GuildID())
+	wanted, err := h.store.GetWantedCharacters(ctx, cmd.UserID(), cmd.GuildID())
 	if err != nil {
 		logger.Error("error getting wanted characters", "error", err)
 		w.Respond(rspErr("Unable to retrieve wanted characters. Please try again."))
@@ -321,7 +319,7 @@ func (h *WishlistHandler) Compare(ctx context.Context, w corde.ResponseWriter, c
 		return
 	}
 
-	comparison, err := h.wishlist.CompareWithUser(ctx, cmd.UserID(), opts.targetUserID)
+	comparison, err := h.store.CompareWithUser(ctx, cmd.UserID(), opts.targetUserID)
 	if err != nil {
 		logger.Error("error comparing wishlists", "error", err, "other_user_id", opts.targetUserID)
 		w.Respond(rspErr("Unable to compare wishlists. Please try again."))
@@ -368,7 +366,7 @@ func (h *WishlistHandler) WishlistAutocomplete(ctx context.Context, w corde.Resp
 		}
 	}
 
-	chars, err := h.wishlist.GetUserCharacterWishlist(ctx, collection.UserID(i.Member.User.ID))
+	chars, err := h.store.GetUserCharacterWishlist(ctx, collection.UserID(i.Member.User.ID))
 	if err != nil {
 		slog.Error("Error getting user's wishlist", "error", err, "user", collection.UserID(i.Member.User.ID))
 		return

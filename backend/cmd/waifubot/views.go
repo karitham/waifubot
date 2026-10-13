@@ -6,7 +6,6 @@ import (
 	"github.com/karitham/waifubot/catalog"
 	"github.com/karitham/waifubot/collection"
 	"github.com/karitham/waifubot/tracker"
-	"github.com/karitham/waifubot/wishlist"
 )
 
 // CLI JSON views. Commands encode these instead of domain types so that
@@ -52,7 +51,7 @@ type cliWishlistEntry struct {
 	AddedAt time.Time `json:"added_at"`
 }
 
-func wishlistEntryView(e wishlist.Entry) cliWishlistEntry {
+func wishlistEntryView(e collection.WishlistEntry) cliWishlistEntry {
 	return cliWishlistEntry{
 		cliCharacter: characterView(e.Character),
 		AddedAt:      e.AddedAt,
@@ -64,7 +63,7 @@ type cliUserCharacterSet struct {
 	Characters []cliWishlistEntry `json:"characters"`
 }
 
-func userCharacterSetView(s wishlist.UserCharacterSet) cliUserCharacterSet {
+func userCharacterSetView(s collection.WishlistUserSet) cliUserCharacterSet {
 	chars := make([]cliWishlistEntry, len(s.Characters))
 	for i, c := range s.Characters {
 		chars[i] = wishlistEntryView(c)
@@ -148,7 +147,7 @@ func ownedCharacterViews(chars []collection.OwnedCharacter) []cliOwnedCharacter 
 	return views
 }
 
-func wishlistEntryViews(entries []wishlist.Entry) []cliWishlistEntry {
+func wishlistEntryViews(entries []collection.WishlistEntry) []cliWishlistEntry {
 	views := make([]cliWishlistEntry, len(entries))
 	for i, e := range entries {
 		views[i] = wishlistEntryView(e)
@@ -156,7 +155,7 @@ func wishlistEntryViews(entries []wishlist.Entry) []cliWishlistEntry {
 	return views
 }
 
-func userCharacterSetViews(sets []wishlist.UserCharacterSet) []cliUserCharacterSet {
+func userCharacterSetViews(sets []collection.WishlistUserSet) []cliUserCharacterSet {
 	views := make([]cliUserCharacterSet, len(sets))
 	for i, s := range sets {
 		views[i] = userCharacterSetView(s)

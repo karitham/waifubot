@@ -13,14 +13,12 @@ import (
 	"github.com/karitham/waifubot/collection/collectiontest"
 	"github.com/karitham/waifubot/discord/cordetest"
 	"github.com/karitham/waifubot/guild"
-	"github.com/karitham/waifubot/wishlist/wishlisttest"
 )
 
 func TestRollHandler_Roll(t *testing.T) {
 	tests := []struct {
 		name           string
 		store          *collectiontest.MockStore
-		wishlist       *wishlisttest.MockStore
 		cmd            CommandContext
 		config         collection.Config
 		wantContent    string
@@ -38,7 +36,6 @@ func TestRollHandler_Roll(t *testing.T) {
 					}, nil
 				},
 			},
-			wishlist: &wishlisttest.MockStore{},
 			cmd: &MockCommandContext{
 				UserIDVal:  1,
 				GuildIDVal: 2,
@@ -54,7 +51,6 @@ func TestRollHandler_Roll(t *testing.T) {
 					return collection.User{}, errors.New("database on fire")
 				},
 			},
-			wishlist: &wishlisttest.MockStore{},
 			cmd: &MockCommandContext{
 				UserIDVal:  1,
 				GuildIDVal: 2,
@@ -87,8 +83,6 @@ func TestRollHandler_Roll(t *testing.T) {
 					return nil
 				},
 				CommitFunc: func(ctx context.Context) error { return nil },
-			},
-			wishlist: &wishlisttest.MockStore{
 				GetUsersWantingCharacterFunc: func(ctx context.Context, charID catalog.CharacterID, guildID guild.ID, excludeUserID collection.UserID) ([]guild.MemberID, error) {
 					return nil, nil
 				},
@@ -125,8 +119,6 @@ func TestRollHandler_Roll(t *testing.T) {
 					return nil
 				},
 				CommitFunc: func(ctx context.Context) error { return nil },
-			},
-			wishlist: &wishlisttest.MockStore{
 				GetUsersWantingCharacterFunc: func(ctx context.Context, charID catalog.CharacterID, guildID guild.ID, excludeUserID collection.UserID) ([]guild.MemberID, error) {
 					return []guild.MemberID{10, 20, 30}, nil
 				},
@@ -146,9 +138,8 @@ func TestRollHandler_Roll(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
 			h := &RollHandler{
-				store:    tt.store,
-				config:   tt.config,
-				wishlist: tt.wishlist,
+				store:  tt.store,
+				config: tt.config,
 			}
 
 			h.Roll(t.Context(), w, tt.cmd)

@@ -103,7 +103,6 @@ var RunCommand = &cli.Command{
 			Store:             db,
 			Catalog:           db,
 			CommandStore:      db,
-			WishlistStore:     db,
 			AnimeService:      anilistClient,
 			InterStore:        db,
 			GuildIndexer:      guild.NewIndexer(pg.NewGuildDB(store), guild.NewDiscordFetcher(c.String(botTokenFlag.Name))),
@@ -152,7 +151,7 @@ var RunCommand = &cli.Command{
 				discordService = services.NewDiscordService(discordToken)
 			}
 
-			restServer := rest.New(db, db, discordService)
+			restServer := rest.New(db, discordService)
 
 			telemetry, err := rest.SetupTelemetry(prometheus.DefaultRegisterer)
 			if err != nil {
