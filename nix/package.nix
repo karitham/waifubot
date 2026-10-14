@@ -1,6 +1,6 @@
 { lib, buildGo127Module }:
 let
-  version = "1.4.7";
+  version = "1.4.8";
 in
 buildGo127Module {
   pname = "waifubot";
