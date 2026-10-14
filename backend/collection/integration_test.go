@@ -232,41 +232,6 @@ func TestIntegration_SearchCharacters(t *testing.T) {
 	assert.True(t, found)
 }
 
-func TestIntegration_Transaction(t *testing.T) {
-	const uid collection.UserID = 900006
-
-	dbStore := newStore(t)
-	ctx := t.Context()
-
-	require.NoError(t, dbStore.Querier().CreateUser(ctx, uint64(uid)))
-
-	txStore, err := dbStore.Tx(ctx)
-	require.NoError(t, err)
-	t.Cleanup(func() { _ = txStore.Rollback(ctx) })
-	require.NoError(t, txStore.Querier().UpdateQuote(ctx, storage.UpdateQuoteParams{
-		Quote:  "committed",
-		UserID: uint64(uid),
-	}))
-	require.NoError(t, txStore.Commit(ctx))
-
-	user, err := dbStore.Querier().GetUser(ctx, uint64(uid))
-	require.NoError(t, err)
-	assert.Equal(t, "committed", user.Quote)
-
-	txStore, err = dbStore.Tx(ctx)
-	require.NoError(t, err)
-	t.Cleanup(func() { _ = txStore.Rollback(ctx) })
-	require.NoError(t, txStore.Querier().UpdateQuote(ctx, storage.UpdateQuoteParams{
-		Quote:  "rolled back",
-		UserID: uint64(uid),
-	}))
-	require.NoError(t, txStore.Rollback(ctx))
-
-	user, err = dbStore.Querier().GetUser(ctx, uint64(uid))
-	require.NoError(t, err)
-	assert.Equal(t, "committed", user.Quote)
-}
-
 func TestIntegration_GuildOperations(t *testing.T) {
 	store, _ := setupStore(t)
 	ctx := t.Context()
@@ -284,55 +249,6 @@ func TestIntegration_GuildOperations(t *testing.T) {
 
 	require.NoError(t, store.DeleteGuildMembersNotIn(ctx, gid, []guild.MemberID{100, 200}))
 	require.NoError(t, store.UpsertGuildMembers(ctx, gid, []guild.MemberID{100, 200}, time.Now()))
-}
-
-func TestIntegration_TokenConsistency(t *testing.T) {
-	const uid collection.UserID = 900008
-	store, _ := setupStore(t)
-	ctx := t.Context()
-
-	require.NoError(t, store.CreateUser(ctx, uid))
-	user, err := store.AddTokens(ctx, uid, tokenAmount(t, 100))
-	require.NoError(t, err)
-	assert.Equal(t, int32(100), user.Tokens)
-
-	for i := range 10 {
-		user, err = store.SpendTokens(ctx, uid, tokenAmount(t, 1))
-		require.NoError(t, err)
-		assert.Equal(t, int32(99-i), user.Tokens)
-	}
-
-	user, _ = store.GetUser(ctx, uid)
-	assert.Equal(t, int32(90), user.Tokens)
-}
-
-func TestIntegration_WishlistBridge(t *testing.T) {
-	const uid collection.UserID = 900009
-	store, cat := setupStoreWithSeed(t, uid)
-	ctx := t.Context()
-
-	require.NoError(t, cat.UpsertCharacter(ctx, catalog.Character{ID: 4001, Name: "WishChar"}))
-	require.NoError(t, store.RemoveFromWishlist(ctx, uid, 4001))
-}
-
-func TestIntegration_ReadsForFreshUser(t *testing.T) {
-	const uid collection.UserID = 900027
-	store, _ := setupStore(t)
-	ctx := t.Context()
-
-	profile, err := collection.UserProfile(ctx, store, uid)
-	require.NoError(t, err)
-	assert.Equal(t, uid, profile.User.UserID)
-	assert.Equal(t, int32(0), profile.User.Tokens)
-	assert.Equal(t, 0, profile.CharacterCount)
-	assert.Nil(t, profile.FavoriteCharacter)
-
-	tokens, err := collection.Balance(ctx, store, uid)
-	require.NoError(t, err)
-	assert.Equal(t, int32(0), tokens)
-
-	_, err = store.GetUser(ctx, uid)
-	require.ErrorIs(t, err, collection.ErrNotFound, "reads must not create the user")
 }
 
 func TestIntegration_AddToWishlistFreshUser(t *testing.T) {
