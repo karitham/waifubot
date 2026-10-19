@@ -105,6 +105,8 @@ CREATE INDEX collection_character_user_idx ON public.collection USING btree (cha
 CREATE INDEX collection_user_idx ON public.collection USING btree (user_id, acquired_at DESC);
 CREATE INDEX idx_characters_active_favorites ON public.characters USING btree (is_active, favorites DESC) WHERE (is_active = true);
 CREATE INDEX idx_characters_updated_at_id ON public.characters USING btree (updated_at, id);
+CREATE INDEX users_anilist_url_lower_idx ON public.users USING btree (lower((anilist_url)::text));
+CREATE INDEX users_discord_username_idx ON public.users USING btree (discord_username) WHERE ((discord_username)::text <> ''::text);
 CREATE INDEX users_user_id_idx ON public.users USING btree (user_id);
 ALTER TABLE ONLY public.channel_drops
     ADD CONSTRAINT channel_drops_character_id_fkey FOREIGN KEY (character_id) REFERENCES public.characters(id) ON DELETE CASCADE;

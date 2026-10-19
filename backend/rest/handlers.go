@@ -215,6 +215,13 @@ func (s *Server) FindUser(ctx context.Context, params api.FindUserParams) (api.F
 				StatusCode: 404,
 			}, nil
 		}
+		if errors.Is(err, errQueryTooLong) {
+			return &api.FindUserBadRequest{
+				Message:    "query parameter too long",
+				ErrorCode:  "invalid_query_param",
+				StatusCode: 400,
+			}, nil
+		}
 		return nil, fmt.Errorf("failed to find user: %w", err)
 	}
 
@@ -242,21 +249,43 @@ func (s *Server) FindUserV1(ctx context.Context, params api.FindUserV1Params) (a
 				StatusCode: 404,
 			}, nil
 		}
+		if errors.Is(err, errQueryTooLong) {
+			return &api.FindUserV1BadRequest{
+				Message:    "query parameter too long",
+				ErrorCode:  "invalid_query_param",
+				StatusCode: 400,
+			}, nil
+		}
 		return nil, fmt.Errorf("failed to find user: %w", err)
 	}
 
 	return resp, nil
 }
 
-var errUserNotFound = errors.New("user not found")
+var (
+	errUserNotFound = errors.New("user not found")
+	errQueryTooLong = errors.New("query too long")
+)
+
+const maxFindQueryLen = 255
 
 func (s *Server) findUserByQuery(ctx context.Context, anilist, discord string, useAnilist bool) (*api.UserIdResponse, error) {
 	var user collection.User
 	var err error
 
 	if useAnilist {
-		user, err = s.db.GetUserByAnilist(ctx, normalizeAnilistURL(anilist))
+		if len(anilist) > maxFindQueryLen {
+			return nil, errQueryTooLong
+		}
+		lookup := anilistLookupValue(anilist)
+		if len(lookup) > maxFindQueryLen {
+			return nil, errQueryTooLong
+		}
+		user, err = s.db.GetUserByAnilist(ctx, lookup)
 	} else {
+		if len(discord) > maxFindQueryLen {
+			return nil, errQueryTooLong
+		}
 		user, err = s.db.GetUserByDiscordUsername(ctx, discord)
 	}
 
@@ -342,10 +371,14 @@ func (s *Server) mapUser(u collection.User, list []collection.OwnedCharacter) *a
 	}
 }
 
-func normalizeAnilistURL(input string) string {
+func anilistLookupValue(input string) string {
 	input = strings.TrimSpace(input)
-	if strings.HasPrefix(input, "https://anilist.co/user/") || strings.HasPrefix(input, "http://anilist.co/user/") {
-		return input
+	if strings.HasPrefix(input, "http://anilist.co/") {
+		input = "https://anilist.co/" + strings.TrimPrefix(input, "http://anilist.co/")
+	}
+
+	if normalized, ok := collection.NormalizeAnilistURL(input); ok {
+		return normalized
 	}
 
 	return fmt.Sprintf("https://anilist.co/user/%s", input)
