@@ -26,6 +26,35 @@ import (
 	"github.com/karitham/waifubot/sync"
 )
 
+const (
+	maxDiscordInteractionBytes = 1 << 20
+	serverReadHeaderTimeout    = 5 * time.Second
+	serverReadTimeout          = 15 * time.Second
+	serverWriteTimeout         = 30 * time.Second
+	serverIdleTimeout          = 60 * time.Second
+	serverMaxHeaderBytes       = 64 << 10
+)
+
+// limitDiscordBody bounds the interaction body before corde buffers it for
+// signature verification.
+func limitDiscordBody(next http.Handler) http.Handler {
+	return http.MaxBytesHandler(next, maxDiscordInteractionBytes)
+}
+
+// newHTTPServer owns transport deadlines so slow or idle clients cannot hold
+// connections and goroutines indefinitely.
+func newHTTPServer(addr string, handler http.Handler) *http.Server {
+	return &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		ReadHeaderTimeout: serverReadHeaderTimeout,
+		ReadTimeout:       serverReadTimeout,
+		WriteTimeout:      serverWriteTimeout,
+		IdleTimeout:       serverIdleTimeout,
+		MaxHeaderBytes:    serverMaxHeaderBytes,
+	}
+}
+
 var RunCommand = &cli.Command{
 	Name:  "run",
 	Usage: "Run the Discord bot and REST API server",
@@ -141,7 +170,7 @@ var RunCommand = &cli.Command{
 		}))
 
 		r.Handle("/metrics", promhttp.Handler())
-		r.Handle("/", mux)
+		r.Handle("/", limitDiscordBody(mux))
 
 		if c.Bool(apiFlag.Name) {
 			discordToken := c.String(botTokenFlag.Name)
@@ -176,7 +205,8 @@ var RunCommand = &cli.Command{
 
 		slog.Info("Discord bot started", "port", port)
 
-		if err := http.ListenAndServe(":"+strconv.Itoa(port), r); err != nil {
+		srv := newHTTPServer(":"+strconv.Itoa(port), r)
+		if err := srv.ListenAndServe(); err != nil {
 			slog.Error("Server crashed", "error", err, "port", port)
 			return err
 		}
