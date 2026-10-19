@@ -13,6 +13,15 @@ import (
 	"github.com/karitham/waifubot/collection/collectiontest"
 )
 
+func TestWritesRejectZeroUserID(t *testing.T) {
+	store := &collectiontest.MockStore{}
+
+	err := collection.SetQuote(t.Context(), store, 0, "hi")
+
+	require.ErrorIs(t, err, collection.ErrInvalidUserID)
+	assert.Zero(t, store.CommitCalls)
+}
+
 func TestProfileEdits(t *testing.T) {
 	tests := []struct {
 		name  string

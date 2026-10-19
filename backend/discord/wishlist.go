@@ -365,9 +365,10 @@ func (h *WishlistHandler) WishlistAutocomplete(ctx context.Context, w corde.Resp
 		}
 	}
 
-	chars, err := h.store.GetUserCharacterWishlist(ctx, collection.UserID(i.Member.User.ID))
+	userID := callerUserID(i.Member, i.User)
+	chars, err := h.store.GetUserCharacterWishlist(ctx, userID)
 	if err != nil {
-		slog.Error("Error getting user's wishlist", "error", err, "user", collection.UserID(i.Member.User.ID))
+		slog.Error("Error getting user's wishlist", "error", err, "user", userID)
 		return
 	}
 

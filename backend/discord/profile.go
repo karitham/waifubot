@@ -162,6 +162,6 @@ func (h *ProfileHandler) EditAnilistURL(ctx context.Context, w corde.ResponseWri
 // Autocomplete provides character suggestions for the profile edit favorite command.
 func (h *ProfileHandler) Autocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
 	autocomplete(ctx, w, i, "id", func(ctx context.Context, input string) ([]catalog.Character, error) {
-		return h.store.SearchCharacters(ctx, collection.UserID(i.Member.User.ID), input)
+		return h.store.SearchCharacters(ctx, callerUserID(i.Member, i.User), input)
 	}, formatCharacterChoice)
 }

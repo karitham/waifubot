@@ -212,6 +212,6 @@ func (h *TokenHandler) SeriesAutocomplete(ctx context.Context, w corde.ResponseW
 // userCollectionAutocomplete provides character suggestions for the token sell command.
 func (h *TokenHandler) userCollectionAutocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
 	autocomplete(ctx, w, i, "id", func(ctx context.Context, input string) ([]catalog.Character, error) {
-		return h.store.SearchCharacters(ctx, collection.UserID(i.Member.User.ID), input)
+		return h.store.SearchCharacters(ctx, callerUserID(i.Member, i.User), input)
 	}, formatCharacterChoice)
 }

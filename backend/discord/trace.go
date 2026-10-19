@@ -15,7 +15,7 @@ func trace[T corde.InteractionDataConstraint](next func(ctx context.Context, w c
 			"route", i.Route,
 			"guild", i.GuildID,
 			"channel", i.ChannelID,
-			"user", i.Member.User.ID,
+			"user", callerUserID(i.Member, i.User),
 		)
 
 		ctx = context.WithValue(ctx, slog.Default().Handler(), l)

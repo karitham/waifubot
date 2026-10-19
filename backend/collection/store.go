@@ -22,6 +22,10 @@ const RollWeightExponent = 1.0
 // UserID identifies a collection user.
 type UserID uint64
 
+// Valid reports whether the ID can identify a user. Discord user 0 is not a
+// real user and must never be materialized or read.
+func (u UserID) Valid() bool { return u != 0 }
+
 // User holds user profile data.
 type User struct {
 	UserID              UserID

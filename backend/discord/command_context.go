@@ -25,20 +25,40 @@ type CommandContext interface {
 }
 
 type slashCommandCtx struct {
-	i *corde.Interaction[corde.SlashCommandInteractionData]
+	i    *corde.Interaction[corde.SlashCommandInteractionData]
+	user corde.User
 }
 
 func newSlashCommandCtx(i *corde.Interaction[corde.SlashCommandInteractionData]) *slashCommandCtx {
-	return &slashCommandCtx{i: i}
+	return &slashCommandCtx{i: i, user: callerUser(i.Member, i.User)}
 }
 
-func (c *slashCommandCtx) UserID() collection.UserID { return collection.UserID(c.i.Member.User.ID) }
-func (c *slashCommandCtx) Username() string          { return c.i.Member.User.Username }
+// callerUser resolves the invoking user. Discord sends member in guilds and
+// user in DMs; a DM has no member, so reading Member.User alone would collapse
+// every DM caller to user 0.
+func callerUser(member corde.Member, user *corde.User) corde.User {
+	if member.User.ID != 0 {
+		return member.User
+	}
+	if user != nil {
+		return *user
+	}
+	return corde.User{}
+}
+
+// callerUserID is the caller identity for interaction types that do not use
+// CommandContext, such as autocomplete.
+func callerUserID(member corde.Member, user *corde.User) collection.UserID {
+	return collection.UserID(callerUser(member, user).ID)
+}
+
+func (c *slashCommandCtx) UserID() collection.UserID { return collection.UserID(c.user.ID) }
+func (c *slashCommandCtx) Username() string          { return c.user.Username }
 func (c *slashCommandCtx) GuildID() guild.ID         { return guild.ID(c.i.GuildID) }
 func (c *slashCommandCtx) ChannelID() drops.ChannelID {
 	return drops.ChannelID(c.i.ChannelID)
 }
-func (c *slashCommandCtx) AvatarPNG() string { return c.i.Member.User.AvatarPNG() }
+func (c *slashCommandCtx) AvatarPNG() string { return c.user.AvatarPNG() }
 func (c *slashCommandCtx) FirstResolvedUser() (corde.User, bool) {
 	if len(c.i.Data.Resolved.Users) == 0 {
 		return corde.User{}, false
@@ -59,7 +79,12 @@ func wrapCtx(
 	handler func(ctx context.Context, w corde.ResponseWriter, cmd CommandContext),
 ) func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
 	return func(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.SlashCommandInteractionData]) {
-		handler(ctx, w, newSlashCommandCtx(i))
+		cmd := newSlashCommandCtx(i)
+		if !cmd.UserID().Valid() {
+			w.Respond(Privf("Could not identify your Discord user."))
+			return
+		}
+		handler(ctx, w, cmd)
 	}
 }
 

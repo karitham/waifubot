@@ -82,6 +82,6 @@ func (h *GiveHandler) Give(ctx context.Context, w corde.ResponseWriter, cmd Comm
 // Autocomplete provides character suggestions for the give command.
 func (h *GiveHandler) Autocomplete(ctx context.Context, w corde.ResponseWriter, i *corde.Interaction[corde.AutocompleteInteractionData]) {
 	autocomplete(ctx, w, i, "id", func(ctx context.Context, input string) ([]catalog.Character, error) {
-		return h.store.SearchCharacters(ctx, collection.UserID(i.Member.User.ID), input)
+		return h.store.SearchCharacters(ctx, callerUserID(i.Member, i.User), input)
 	}, formatCharacterChoice)
 }

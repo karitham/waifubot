@@ -38,6 +38,12 @@ func withTx(ctx context.Context, store DB, fn func(tx Tx) error) error {
 // operations acquire the locks in the same order; closures must act only on
 // the users passed here for that order to hold.
 func withUsers(ctx context.Context, store DB, userIDs []UserID, fn func(tx Tx) error) error {
+	for _, userID := range userIDs {
+		if !userID.Valid() {
+			return ErrInvalidUserID
+		}
+	}
+
 	users := slices.Clone(userIDs)
 	slices.Sort(users)
 	users = slices.Compact(users)

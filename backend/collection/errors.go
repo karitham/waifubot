@@ -5,6 +5,9 @@ import "errors"
 // ErrInsufficientTokens is returned when a user has insufficient tokens.
 var ErrInsufficientTokens = errors.New("insufficient tokens")
 
+// ErrInvalidUserID is returned when an operation names user 0.
+var ErrInvalidUserID = errors.New("invalid user id")
+
 // ErrInvalidAmount is returned when a token amount is not positive.
 var ErrInvalidAmount = errors.New("amount must be positive")
 
