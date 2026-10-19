@@ -4,12 +4,14 @@ import type { CollectionResponse, UserProfile } from "../api/generated";
 import { getCollectionV1, getProfileV1 } from "../api/generated";
 import { getUserID } from "./useUserSearch";
 
+export const MAX_COMPARE_USERS = 10;
+
 export type CompareUser = {
   profile: UserProfile;
   characters: CollectionResponse;
 };
 
-export type CompareAddResult = "added" | "not_found" | "self" | "duplicate" | "error";
+export type CompareAddResult = "added" | "not_found" | "self" | "duplicate" | "limit" | "error";
 
 /** Per-user compare state for the chip list. */
 export type CompareUserListItem = {
@@ -33,7 +35,7 @@ const parseCompareIds = (param: string | undefined): string[] => {
         .map((s) => s.trim())
         .filter(Boolean),
     ),
-  );
+  ).slice(0, MAX_COMPARE_USERS);
 };
 
 /**
@@ -109,6 +111,8 @@ export function useCompareUsers(userId?: string) {
   );
 
   const onCompareAdd = async (input: string): Promise<CompareAddResult> => {
+    if (compareIds().length >= MAX_COMPARE_USERS) return "limit";
+
     try {
       const id = await getUserID(input.trim());
       if (!id) return "not_found";

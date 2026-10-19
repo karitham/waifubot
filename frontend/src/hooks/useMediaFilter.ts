@@ -1,6 +1,7 @@
 import { useSearchParams } from "@solidjs/router";
 import { createMemo } from "solid-js";
 import type { MediaOption } from "../types";
+import { safeAniListImageURL } from "../utils/anilist";
 
 /**
  * The label and image ride along in the URL because the filter renders them as
@@ -19,7 +20,7 @@ export function useMediaFilter() {
       ? {
           label: sp.media_label,
           value: sp.media_id,
-          image: sp.media_image || undefined,
+          image: safeAniListImageURL(sp.media_image),
         }
       : null,
   );

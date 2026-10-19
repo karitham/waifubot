@@ -1,7 +1,7 @@
 import { createRoot } from "solid-js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { __resetSearchParams, __setSearchParams } from "./router-mock";
-import { useCompareUsers } from "./useCompareUsers";
+import { MAX_COMPARE_USERS, useCompareUsers } from "./useCompareUsers";
 
 vi.mock("@solidjs/router", () => import("./router-mock"));
 
@@ -167,6 +167,29 @@ describe("useCompareUsers", () => {
     expect(await state.onCompareAdd("bob")).toBe("duplicate");
 
     expect(vi.mocked(getUserID)).toHaveBeenCalledTimes(4);
+    dispose();
+  });
+
+  it("caps the compare list from the URL", async () => {
+    const ids = Array.from({ length: MAX_COMPARE_USERS + 5 }, (_, i) => `u${i}`);
+    __setSearchParams({ compare: ids.join(",") });
+    const { state, dispose } = mount();
+
+    expect(state.compareIds()).toHaveLength(MAX_COMPARE_USERS);
+    await flush();
+    expect(getProfileV1).toHaveBeenCalledTimes(MAX_COMPARE_USERS);
+    dispose();
+  });
+
+  it("refuses additions once the compare list is full", async () => {
+    const ids = Array.from({ length: MAX_COMPARE_USERS }, (_, i) => `u${i}`);
+    __setSearchParams({ compare: ids.join(",") });
+    const { state, dispose } = mount();
+    await flush();
+    vi.mocked(getUserID).mockClear();
+
+    expect(await state.onCompareAdd("extra")).toBe("limit");
+    expect(getUserID).not.toHaveBeenCalled();
     dispose();
   });
 

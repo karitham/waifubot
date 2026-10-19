@@ -1,7 +1,7 @@
 import { TextField } from "@kobalte/core/text-field";
 import { createSignal, For, Show } from "solid-js";
 import { useCollectionFilters } from "../../context/CollectionFiltersContext";
-import type { CompareUserListItem } from "../../hooks/useCompareUsers";
+import { MAX_COMPARE_USERS, type CompareUserListItem } from "../../hooks/useCompareUsers";
 
 type Feedback = { kind: "error" | "success"; text: string };
 
@@ -126,6 +126,9 @@ export default () => {
           break;
         case "duplicate":
           showFeedback("error", "Already comparing with this user");
+          break;
+        case "limit":
+          showFeedback("error", `Compare limit is ${MAX_COMPARE_USERS} users`);
           break;
         case "error":
           showFeedback("error", "Something went wrong");
