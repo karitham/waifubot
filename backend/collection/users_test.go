@@ -13,6 +13,32 @@ import (
 	"github.com/karitham/waifubot/collection/collectiontest"
 )
 
+func TestNormalizeAnilistURL(t *testing.T) {
+	tests := []struct {
+		name string
+		raw  string
+		want string
+		ok   bool
+	}{
+		{name: "canonical", raw: "https://anilist.co/user/testuser", want: "https://anilist.co/user/testuser", ok: true},
+		{name: "trailing slash", raw: "https://anilist.co/user/testuser/", want: "https://anilist.co/user/testuser/", ok: true},
+		{name: "http", raw: "http://anilist.co/user/testuser", ok: false},
+		{name: "foreign host", raw: "https://example.com/user/testuser", ok: false},
+		{name: "query", raw: "https://anilist.co/user/testuser?x=1", ok: false},
+		{name: "fragment", raw: "https://anilist.co/user/testuser#x", ok: false},
+		{name: "markdown injection", raw: "https://anilist.co/user/x) [Click](https://evil.example)", ok: false},
+		{name: "javascript scheme", raw: "javascript://anilist.co/user/testuser", ok: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, ok := collection.NormalizeAnilistURL(tt.raw)
+			assert.Equal(t, tt.ok, ok)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestWritesRejectZeroUserID(t *testing.T) {
 	store := &collectiontest.MockStore{}
 

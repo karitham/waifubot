@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net/url"
-	"strings"
 	"time"
 
 	"github.com/Karitham/corde"
@@ -65,8 +63,8 @@ func (h *ProfileHandler) View(ctx context.Context, w corde.ResponseWriter, cmd C
 	}
 
 	anilistURLDesc := ""
-	if data.AnilistURL != "" {
-		anilistURLDesc = fmt.Sprintf("Find them on [Anilist](%s)", data.AnilistURL)
+	if anilistURL, ok := collection.NormalizeAnilistURL(data.AnilistURL); ok {
+		anilistURLDesc = fmt.Sprintf("Find them on [Anilist](%s)", anilistURL)
 	}
 
 	favoriteName := ""
@@ -134,29 +132,20 @@ func (h *ProfileHandler) EditQuote(ctx context.Context, w corde.ResponseWriter, 
 
 // EditAnilistURL sets the user's Anilist profile URL.
 func (h *ProfileHandler) EditAnilistURL(ctx context.Context, w corde.ResponseWriter, cmd CommandContext) {
+	logger := slog.With("user_id", cmd.UserID(), "guild_id", cmd.GuildID())
 	anilistURL, _ := cmd.OptString("url")
-	parsedURL, err := url.Parse(anilistURL)
-	if err != nil {
-		w.Respond(corde.NewResp().Content("invalid URL").Ephemeral())
-		return
-	}
-
-	if parsedURL.Host != "anilist.co" {
-		w.Respond(corde.NewResp().Content("invalid Anilist URL").Ephemeral())
-		return
-	}
-
-	if !strings.HasPrefix(parsedURL.Path, "/user/") {
-		w.Respond(corde.NewResp().Content("invalid Anilist URL").Ephemeral())
-		return
-	}
 
 	if err := collection.SetAnilistURL(ctx, h.store, cmd.UserID(), anilistURL); err != nil {
-		w.Respond(corde.NewResp().Content(err.Error()).Ephemeral())
+		if errors.Is(err, collection.ErrInvalidAnilistURL) {
+			w.Respond(corde.NewResp().Content("invalid Anilist URL").Ephemeral())
+			return
+		}
+		logger.Error("error setting AniList URL", "error", err)
+		w.Respond(corde.NewResp().Content("Failed to update your profile").Ephemeral())
 		return
 	}
 
-	w.Respond(corde.NewResp().Contentf("Anilist URL set as %s", anilistURL).Ephemeral())
+	w.Respond(corde.NewResp().Content("Anilist URL set").Ephemeral())
 }
 
 // Autocomplete provides character suggestions for the profile edit favorite command.

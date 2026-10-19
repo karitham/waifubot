@@ -118,11 +118,13 @@ func (s *Server) GetProfileV1(ctx context.Context, params api.GetProfileV1Params
 		}
 	}
 
+	anilistURL, _ := collection.NormalizeAnilistURL(u.AnilistURL)
+
 	return &api.UserProfile{
 		ID:              fmt.Sprintf("%d", u.UserID),
 		Quote:           api.NewOptString(u.Quote),
 		Tokens:          u.Tokens,
-		AnilistURL:      api.NewOptString(u.AnilistURL),
+		AnilistURL:      api.NewOptString(anilistURL),
 		DiscordUsername: u.DiscordUsername,
 		DiscordAvatar:   api.NewOptString(discord.DiscordAvatarURL(uint64(u.UserID), u.DiscordAvatar)),
 		Favorite:        fav,
@@ -359,12 +361,14 @@ func (s *Server) mapUser(u collection.User, list []collection.OwnedCharacter) *a
 		waifus = append(waifus, c)
 	}
 
+	anilistURL, _ := collection.NormalizeAnilistURL(u.AnilistURL)
+
 	return &api.Profile{
 		ID:              fmt.Sprintf("%d", u.UserID),
 		Quote:           api.NewOptString(u.Quote),
 		Tokens:          u.Tokens,
 		Favorite:        fav,
-		AnilistURL:      api.NewOptString(u.AnilistURL),
+		AnilistURL:      api.NewOptString(anilistURL),
 		DiscordUsername: u.DiscordUsername,
 		DiscordAvatar:   api.NewOptString(discord.DiscordAvatarURL(uint64(u.UserID), u.DiscordAvatar)),
 		Waifus:          waifus,

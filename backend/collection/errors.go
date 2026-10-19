@@ -8,6 +8,9 @@ var ErrInsufficientTokens = errors.New("insufficient tokens")
 // ErrInvalidUserID is returned when an operation names user 0.
 var ErrInvalidUserID = errors.New("invalid user id")
 
+// ErrInvalidAnilistURL is returned when a profile URL is not an AniList user URL.
+var ErrInvalidAnilistURL = errors.New("invalid AniList URL")
+
 // ErrInvalidAmount is returned when a token amount is not positive.
 var ErrInvalidAmount = errors.New("amount must be positive")
 

@@ -1,7 +1,6 @@
-import DOMPurify from "dompurify";
-import { marked } from "marked";
 import { Show } from "solid-js";
 import type { Character } from "../../api/generated";
+import { anilistProfileURL, renderProfileMarkdown } from "../../utils/profileContent";
 import CharacterDetails from "../character/CharacterDetails";
 
 const getDisplayName = (discordUsername?: string, anilistURL?: string, user?: string) =>
@@ -21,7 +20,8 @@ export default (props: {
     label: string;
   };
 }) => {
-  const displayName = getDisplayName(props.discordUsername, props.anilistURL, props.user);
+  const anilistURL = () => anilistProfileURL(props.anilistURL);
+  const displayName = getDisplayName(props.discordUsername, anilistURL(), props.user);
 
   const favorite = () =>
     props.favorite && props.favorite.name !== "" ? props.favorite : undefined;
@@ -47,12 +47,12 @@ export default (props: {
             </Show>
             <div class="flex flex-col gap-1">
               <h2 class="font-display text-[--text-h2] leading-tight text-text">{displayName}</h2>
-              <Show when={props.anilistURL}>
+              <Show when={anilistURL()}>
                 <a
                   class="inline-flex items-center gap-2 text-sm text-mauve/80 hover:text-pink transition-colors group"
                   target="_blank"
                   rel="noopener noreferrer"
-                  href={props.anilistURL}
+                  href={anilistURL()}
                 >
                   <img
                     src="https://anilist.co/img/icons/favicon-32x32.png"
@@ -103,11 +103,7 @@ export default (props: {
                   <div
                     id="about"
                     class="font-sans text-[--text-body] leading-relaxed text-text/90 [&_p]:mb-4 [&_p]:last:mb-0 [&_a]:text-mauve [&_a]:hover:text-pink [&_a]:border-b [&_a]:border-mauve/30 [&_a]:hover:border-pink/50 [&_a]:transition-colors"
-                    innerHTML={DOMPurify.sanitize(
-                      marked.parse(text().replaceAll("\n", "\n\n") ?? "", {
-                        async: false,
-                      }) as string,
-                    )}
+                    innerHTML={renderProfileMarkdown(text())}
                   />
                 </div>
               </section>

@@ -254,7 +254,7 @@ func TestProfileHandler_EditAnilistURL(t *testing.T) {
 					return nil
 				},
 			},
-			wantContent: "Anilist URL set as https://anilist.co/user/testuser",
+			wantContent: "Anilist URL set",
 		},
 		{
 			name: "invalid url bad host",
@@ -288,7 +288,27 @@ func TestProfileHandler_EditAnilistURL(t *testing.T) {
 					return errors.New("db error")
 				},
 			},
-			wantContent: "db error",
+			wantContent: "Failed to update your profile",
+		},
+		{
+			name: "invalid url scheme",
+			cmd: &MockCommandContext{
+				UserIDVal:     1,
+				UsernameVal:   "testuser",
+				OptStringVals: map[string]string{"url": "javascript://anilist.co/user/testuser"},
+			},
+			store:       &collectiontest.MockStore{},
+			wantContent: "invalid Anilist URL",
+		},
+		{
+			name: "invalid url markdown injection",
+			cmd: &MockCommandContext{
+				UserIDVal:     1,
+				UsernameVal:   "testuser",
+				OptStringVals: map[string]string{"url": "https://anilist.co/user/x) [Click](https://evil.example)"},
+			},
+			store:       &collectiontest.MockStore{},
+			wantContent: "invalid Anilist URL",
 		},
 	}
 

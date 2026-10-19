@@ -2,7 +2,10 @@ package collection
 
 import (
 	"context"
+	"net/url"
+	"regexp"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/karitham/waifubot/catalog"
@@ -68,8 +71,30 @@ func SetQuote(ctx context.Context, store DB, userID UserID, quote string) error 
 	})
 }
 
+var anilistUserPath = regexp.MustCompile(`^/user/[A-Za-z0-9_-]+/?$`)
+
+// NormalizeAnilistURL parses an AniList user URL and returns the accepted
+// https form. Only https://anilist.co/user/<name> is accepted; a trailing
+// slash is preserved because the stored value is matched exactly.
+func NormalizeAnilistURL(raw string) (string, bool) {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return "", false
+	}
+	if u.Scheme != "https" || u.Host != "anilist.co" || u.User != nil ||
+		u.RawQuery != "" || u.Fragment != "" || !anilistUserPath.MatchString(u.Path) {
+		return "", false
+	}
+	return "https://anilist.co" + u.Path, true
+}
+
 // SetAnilistURL sets the user's AniList URL, materializing the user first.
-func SetAnilistURL(ctx context.Context, store DB, userID UserID, url string) error {
+func SetAnilistURL(ctx context.Context, store DB, userID UserID, raw string) error {
+	url, ok := NormalizeAnilistURL(raw)
+	if !ok {
+		return ErrInvalidAnilistURL
+	}
+
 	return withUsers(ctx, store, []UserID{userID}, func(tx Tx) error {
 		return tx.UpdateAnilistURL(ctx, userID, url)
 	})
