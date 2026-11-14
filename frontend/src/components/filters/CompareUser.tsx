@@ -1,7 +1,8 @@
 import { TextField } from "@kobalte/core/text-field";
-import { createSignal, For, Show } from "solid-js";
+import { createSignal, For, onCleanup, Show } from "solid-js";
 import { useCollectionFilters } from "../../context/CollectionFiltersContext";
 import { MAX_COMPARE_USERS, type CompareUserListItem } from "../../hooks/useCompareUsers";
+import { isSubmitEnter } from "../../utils/keys";
 
 type Feedback = { kind: "error" | "success"; text: string };
 
@@ -98,6 +99,12 @@ export default () => {
   const [busy, setBusy] = createSignal(false);
   const [feedback, setFeedback] = createSignal<Feedback | null>(null);
   let feedbackTimeout: ReturnType<typeof setTimeout> | undefined;
+  let inputEl: HTMLInputElement | undefined;
+  let chipsEl: HTMLDivElement | undefined;
+
+  // The success message clears itself; without this the timer would fire into a
+  // disposed signal when the filter bar unmounts inside those 2.5s.
+  onCleanup(() => clearTimeout(feedbackTimeout));
 
   const showFeedback = (kind: Feedback["kind"], text: string) => {
     setFeedback({ kind, text });
@@ -105,6 +112,25 @@ export default () => {
     if (kind === "success") {
       feedbackTimeout = setTimeout(() => setFeedback(null), 2500);
     }
+  };
+
+  /**
+   * Removing a chip must leave focus somewhere: the button it was on is gone.
+   *
+   * The re-render replaces every chip node, so a remembered element reference
+   * would point at a detached button and focusing it would silently send focus
+   * to the body. Read the survivors out of the DOM after the update instead.
+   */
+  const removeUser = (id: string) => {
+    const index = filters.compareUserList().findIndex((item) => item.id === id);
+
+    filters.onCompareRemove(id);
+
+    queueMicrotask(() => {
+      const buttons = chipsEl?.querySelectorAll<HTMLButtonElement>('button[aria-label^="Remove "]');
+      const target = buttons?.[index] ?? buttons?.[index - 1] ?? inputEl;
+      target?.focus();
+    });
   };
 
   const addUser = async () => {
@@ -146,13 +172,27 @@ export default () => {
           <TextField.Input
             class="control-base"
             value={input()}
+            ref={(el) => (inputEl = el)}
             onInput={(e) => {
               setInput(e.currentTarget.value);
               setFeedback(null);
             }}
-            onKeyDown={(e) => e.key === "Enter" && addUser()}
+            onKeyDown={(e) => {
+              if (isSubmitEnter(e)) {
+                e.preventDefault();
+                void addUser();
+              }
+            }}
             placeholder="Add user by Discord or AniList username"
             aria-label="Add user to compare"
+            aria-describedby={
+              feedback()
+                ? "compare-feedback"
+                : filters.compareUserList().length > 0
+                  ? undefined
+                  : "compare-hint"
+            }
+            aria-invalid={feedback()?.kind === "error"}
           />
         </TextField>
         <button
@@ -167,15 +207,9 @@ export default () => {
       </div>
 
       <Show when={filters.compareUserList().length > 0}>
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-2" ref={(el) => (chipsEl = el)}>
           <For each={filters.compareUserList()}>
-            {(item) => (
-              <Chip
-                item={item}
-                onRemove={filters.onCompareRemove}
-                onRetry={filters.onCompareRetry}
-              />
-            )}
+            {(item) => <Chip item={item} onRemove={removeUser} onRetry={filters.onCompareRetry} />}
           </For>
         </div>
       </Show>
@@ -184,7 +218,7 @@ export default () => {
         when={feedback()}
         fallback={
           <Show when={filters.compareUserList().length === 0}>
-            <p class="text-xs text-subtextA">
+            <p id="compare-hint" class="text-xs text-subtextA">
               Add users to highlight characters shared with your collection.
             </p>
           </Show>
@@ -192,6 +226,7 @@ export default () => {
       >
         {(fb) => (
           <p
+            id="compare-feedback"
             class={`text-xs ${fb().kind === "error" ? "text-red" : "text-green"}`}
             role={fb().kind === "error" ? "alert" : "status"}
           >

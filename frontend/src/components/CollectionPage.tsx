@@ -28,7 +28,9 @@ export default (props: CollectionPageProps) => {
 
   const searchParams = () => getSearchParams(sp);
 
-  const filters = usePageFilters(props.user.status === "ready" ? props.user.value.id : undefined);
+  const filters = usePageFilters(() =>
+    props.user.status === "ready" ? props.user.value.id : undefined,
+  );
 
   const mediaCharacters = useMediaCharacters(filters.media);
 

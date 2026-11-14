@@ -70,7 +70,7 @@ describe("CharGrid lane count", () => {
 
     dispose = render(
       () => (
-        <CollectionFiltersProvider value={usePageFilters("me")}>
+        <CollectionFiltersProvider value={usePageFilters(() => "me")}>
           <CharGrid characters={characters} mediaCharacters={undefined} mainUser={mainUser} />
         </CollectionFiltersProvider>
       ),
@@ -166,7 +166,7 @@ describe("CharGrid lane count", () => {
     try {
       dispose = render(
         () => (
-          <CollectionFiltersProvider value={usePageFilters("me")}>
+          <CollectionFiltersProvider value={usePageFilters(() => "me")}>
             <CharGrid characters={characters} mediaCharacters={undefined} mainUser={mainUser} />
           </CollectionFiltersProvider>
         ),

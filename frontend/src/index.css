@@ -53,6 +53,10 @@
  */
 
 :root {
+  /* The palette is a dark one. Without this the browser still paints its own
+     UI light: scrollbars, the select popup, autofill and text-field highlights. */
+  color-scheme: dark;
+
   --text-display: clamp(2.5rem, 5vw, 4rem);
   --text-h1: clamp(2rem, 4vw, 3rem);
   --text-h2: clamp(1.5rem, 3vw, 2rem);
@@ -133,6 +137,12 @@ h6 {
     "features";
   /* Page-level sections, per the spacing scale above. */
   gap: var(--space-2xl);
+  /*
+   * The footer below is fixed, so it floats over the last card as the page
+   * scrolls to its end. Reserving its height keeps content from coming to rest
+   * underneath it: 6rem of section spacing plus the 5.75rem the footer occupies.
+   */
+  padding-bottom: calc(var(--space-3xl) + 5.75rem);
 }
 
 .home-hero {

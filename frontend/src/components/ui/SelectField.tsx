@@ -18,6 +18,9 @@ export type SelectFieldProps<T extends Record<string, unknown>> = {
 const defaultItemComponent = (props: any): JSX.Element => (
   <Select.Item item={props.item} class="select-item">
     <Select.ItemLabel>{props.item.rawValue[props.optionTextValue] as string}</Select.ItemLabel>
+    <Select.ItemIndicator class="text-mauve" aria-hidden="true">
+      <span class="i-ph-check text-sm" />
+    </Select.ItemIndicator>
   </Select.Item>
 );
 
@@ -50,7 +53,8 @@ export default function <T extends Record<string, unknown>>(props: SelectFieldPr
       class={props.class || "w-full"}
       sameWidth={true}
     >
-      <Select.Label />
+      {/* No <Select.Label />: it would render an empty label element. The
+          trigger carries the accessible name from ariaLabel instead. */}
       <Select.Trigger class="select-trigger" aria-label={props.ariaLabel}>
         <Select.Value<T>>
           {(state) => {

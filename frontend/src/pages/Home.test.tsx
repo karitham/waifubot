@@ -63,6 +63,43 @@ describe("Home search", () => {
     expect(input.value).toBe("karitham");
   });
 
+  it("does not submit an empty search", async () => {
+    container
+      .querySelector<HTMLButtonElement>("button[type=button]")
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await settle();
+
+    expect(vi.mocked(findUserV1)).not.toHaveBeenCalled();
+  });
+
+  it("ignores the Enter that confirms an IME composition", async () => {
+    const input = searchInputs(container)[0];
+    fireInput(input, "karitham");
+
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", isComposing: true, bubbles: true }),
+    );
+    await settle();
+
+    expect(vi.mocked(findUserV1)).not.toHaveBeenCalled();
+  });
+
+  it("keeps a single lookup in flight", async () => {
+    vi.mocked(findUserV1).mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve({ id: "1" }), 10)),
+    );
+
+    const input = searchInputs(container)[0];
+    fireInput(input, "karitham");
+
+    // Enter repeats: a second submit must not race the first.
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await new Promise((r) => setTimeout(r, 40));
+
+    expect(vi.mocked(findUserV1)).toHaveBeenCalledTimes(1);
+  });
+
   it("resolves a user and navigates on submit", async () => {
     const input = searchInputs(container)[0];
     fireInput(input, "karitham");

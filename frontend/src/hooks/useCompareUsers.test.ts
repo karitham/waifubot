@@ -1,4 +1,4 @@
-import { createRoot } from "solid-js";
+import { createRoot, createSignal } from "solid-js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { __resetSearchParams, __setSearchParams } from "./router-mock";
 import { MAX_COMPARE_USERS, useCompareUsers } from "./useCompareUsers";
@@ -28,7 +28,7 @@ const flush = async () => {
 
 const mount = (userId?: string) =>
   createRoot((dispose) => {
-    const state = useCompareUsers(userId);
+    const state = useCompareUsers(() => userId);
     return { state, dispose };
   });
 
@@ -60,6 +60,23 @@ describe("useCompareUsers", () => {
 
     expect(getProfileV1).toHaveBeenCalledTimes(2);
     expect(loadedIds(state)).toEqual(["b", "a"]);
+    dispose();
+  });
+
+  // The page's profile arrives from a resource after this hook is created. A
+  // captured id would still be undefined when the first add runs, which let a
+  // user compare the page's own collection with itself.
+  it("rejects the page's own user when its id resolves after mount", async () => {
+    const [uid, setUid] = createSignal<string | undefined>(undefined);
+    const { state, dispose } = createRoot((dispose) => ({
+      state: useCompareUsers(() => uid()),
+      dispose,
+    }));
+
+    expect(state.compareIds()).toEqual([]);
+
+    setUid("me");
+    expect(await state.onCompareAdd("me")).toBe("self");
     dispose();
   });
 

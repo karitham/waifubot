@@ -1,7 +1,7 @@
 import { render } from "solid-js/web";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { UserProfile } from "../../api/generated";
-import { getProfileV1 } from "../../api/generated";
+import { findUserV1, getProfileV1 } from "../../api/generated";
 import { CollectionFiltersProvider } from "../../context/CollectionFiltersContext";
 import { __resetSearchParams, __setSearchParams } from "../../hooks/router-mock";
 import { usePageFilters } from "../../hooks/usePageFilters";
@@ -14,6 +14,7 @@ vi.mock("../../api/generated", async (importOriginal) => ({
   getCollectionV1: vi.fn(async (id: string) => ({ characters: [], total: 0, id })),
   getProfileV1: vi.fn(async (id: string) => ({ id, discord_username: `name-${id}` })),
   getWishlist: vi.fn(async () => ({ characters: [], total: 0 })),
+  findUserV1: vi.fn(async () => ({ id: "resolved" })),
 }));
 
 vi.mock("../../api/anilist", () => ({
@@ -36,7 +37,7 @@ describe("CompareUser chips", () => {
     __setSearchParams({ compare });
     dispose = render(
       () => (
-        <CollectionFiltersProvider value={usePageFilters("main-user")}>
+        <CollectionFiltersProvider value={usePageFilters(() => "main-user")}>
           <CompareUser />
         </CollectionFiltersProvider>
       ),
@@ -128,6 +129,79 @@ describe("CompareUser chips", () => {
     await settle();
 
     expect(vi.mocked(getProfileV1).mock.calls.length).toBe(callsBefore);
+  });
+
+  it("adds a user on Enter", async () => {
+    renderWith("");
+    await settle();
+
+    const input = container.querySelector<HTMLInputElement>(
+      'input[aria-label="Add user to compare"]',
+    )!;
+    input.value = "someone";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await settle();
+
+    expect(vi.mocked(findUserV1)).toHaveBeenCalledTimes(1);
+    // The field is controlled; adding must clear it, not leave the old name.
+    expect(input.value).toBe("");
+  });
+
+  it("ignores the Enter that confirms an IME composition", async () => {
+    renderWith("");
+    await settle();
+
+    const input = container.querySelector<HTMLInputElement>(
+      'input[aria-label="Add user to compare"]',
+    )!;
+    input.value = "someone";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", isComposing: true, bubbles: true }),
+    );
+    await settle();
+
+    expect(vi.mocked(findUserV1)).not.toHaveBeenCalled();
+  });
+
+  it("describes the field with the error it is showing", async () => {
+    vi.mocked(findUserV1).mockResolvedValueOnce({ id: "main-user" } as never);
+
+    renderWith("");
+    await settle();
+
+    const input = container.querySelector<HTMLInputElement>(
+      'input[aria-label="Add user to compare"]',
+    )!;
+    input.value = "main-user";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await settle();
+
+    // role=alert announces it once; the description keeps it reachable after.
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    const described = input.getAttribute("aria-describedby");
+    expect(described).toBe("compare-feedback");
+    expect(document.getElementById(described!)?.textContent).toContain("That's you");
+  });
+
+  it("hands focus to the next chip when one is removed", async () => {
+    renderWith("a,b");
+    await settle();
+
+    const removes = () =>
+      Array.from(container.querySelectorAll<HTMLButtonElement>('button[aria-label^="Remove "]'));
+    expect(removes()).toHaveLength(2);
+
+    removes()[0].focus();
+    click(removes()[0]);
+    await settle();
+    await settle();
+
+    expect(removes()).toHaveLength(1);
+    // Not the body: the button that had focus is gone.
+    expect(document.activeElement).toBe(removes()[0]);
   });
 
   it("prompts with an empty state when nobody is compared", async () => {

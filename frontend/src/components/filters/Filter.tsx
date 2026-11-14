@@ -16,7 +16,10 @@ export default function (props: CharacterFilterProps) {
         placeholder="Search characters..."
         aria-label="Search characters"
       />
-      <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-subtextB">
+      <div
+        class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-subtextB"
+        aria-hidden="true"
+      >
         <span class="i-ph-magnifying-glass text-lg" />
       </div>
     </TextField>
