@@ -127,7 +127,7 @@ describe("CharGrid remeasures its geometry", () => {
   const mount = () => {
     dispose = render(
       () => (
-        <CollectionFiltersProvider value={usePageFilters("me")}>
+        <CollectionFiltersProvider value={usePageFilters(() => "me")}>
           <CharGrid characters={characters} mediaCharacters={undefined} mainUser={mainUser} />
         </CollectionFiltersProvider>
       ),
@@ -141,7 +141,7 @@ describe("CharGrid remeasures its geometry", () => {
     const [media, setMedia] = createSignal<Character[] | undefined>(undefined);
     dispose = render(
       () => (
-        <CollectionFiltersProvider value={usePageFilters("me")}>
+        <CollectionFiltersProvider value={usePageFilters(() => "me")}>
           <CharGrid characters={characters} mediaCharacters={media()} mainUser={mainUser} />
         </CollectionFiltersProvider>
       ),

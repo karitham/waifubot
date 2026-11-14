@@ -7,11 +7,11 @@ import { useSort } from "./useSort";
  * Sort and search are local view state; the media filter and compare-user list
  * are mirrored into the URL so they can be shared.
  */
-export function usePageFilters(userId?: string) {
+export function usePageFilters(mainUserId: () => string | undefined = () => undefined) {
   return {
     ...useSort(),
     ...useCharSearch(),
     ...useMediaFilter(),
-    ...useCompareUsers(userId),
+    ...useCompareUsers(mainUserId),
   };
 }

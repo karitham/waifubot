@@ -42,7 +42,7 @@ const parseCompareIds = (param: string | undefined): string[] => {
  * Per-id cache with in-flight dedup: loading one user never refetches the
  * others, and entries for removed users are dropped so re-adding them refetches.
  */
-export function useCompareUsers(userId?: string) {
+export function useCompareUsers(mainUserId: () => string | undefined = () => undefined) {
   const [sp, setSp] = useSearchParams<{ compare: string }>();
 
   const compareIds = createMemo(() => parseCompareIds(sp.compare));
@@ -116,7 +116,10 @@ export function useCompareUsers(userId?: string) {
     try {
       const id = await getUserID(input.trim());
       if (!id) return "not_found";
-      if (id === userId) return "self";
+      // Read at submit time, not at setup: the profile resource resolves after
+      // this hook is created, so a captured id would still be undefined here and
+      // comparing with yourself would slip through.
+      if (id === mainUserId()) return "self";
       if (compareIds().includes(id)) return "duplicate";
       setSp({ compare: [...compareIds(), id].join(",") }, { replace: true });
       return "added";

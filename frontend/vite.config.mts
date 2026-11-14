@@ -87,8 +87,11 @@ export default defineConfig({
           "h-[40px] w-full px-3.5 text-sm rounded-lg border border-surfaceB/40 hover:border-surfaceB/70 placeholder:font-sans placeholder:text-overlayC text-text bg-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-mauve/60",
         "select-trigger":
           "control-base flex items-center justify-between gap-2 hover:cursor-pointer",
+        /* Kobalte marks the arrow-key position with data-highlighted, not
+           :focus. Without a rule for it, keyboard navigation through a menu is
+           invisible: the highlight only ever follows the mouse. */
         "select-item":
-          "px-3 py-2 w-full text-text text-sm cursor-pointer hover:bg-surfaceC transition-colors focus:ring-0 focus:outline-none",
+          "px-3 py-2 w-full flex items-center justify-between gap-2 text-text text-sm cursor-pointer transition-colors focus:ring-0 focus:outline-none hover:bg-surfaceC data-[highlighted]:bg-surfaceC data-[selected]:text-mauve data-[disabled]:opacity-40 data-[disabled]:cursor-not-allowed",
         "popover-surface":
           "bg-surfaceA border border-surfaceB/60 rounded-xl shadow-xl shadow-black/40 animate-[pop-in_150ms_ease-out]",
         "select-listbox":
@@ -98,7 +101,8 @@ export default defineConfig({
         "search-control":
           "relative flex w-full h-[40px] flex-row items-center rounded-lg overflow-clip border border-surfaceB/40 hover:border-surfaceB/70 transition-colors focus-within:outline-none focus-within:ring-2 focus-within:ring-mauve/60",
         "search-item":
-          "flex flex-row items-center justify-between px-4 py-2 gap-4 hover:bg-surfaceC cursor-pointer text-text w-full transition-colors duration-200 focus:ring-0 focus:outline-none data-[selected]:bg-mauve/20",
+          "flex flex-row items-center justify-between px-4 py-2 gap-4 hover:bg-surfaceC cursor-pointer text-text w-full transition-colors duration-200 focus:ring-0 focus:outline-none data-[highlighted]:bg-surfaceC data-[selected]:bg-mauve/20 data-[disabled]:opacity-40",
+
         "search-listbox":
           "popover-surface overflow-y-auto max-h-80 p-0 m-0 list-none flex w-full items-start flex-col text-sm",
         "search-content": "focus:outline-none",

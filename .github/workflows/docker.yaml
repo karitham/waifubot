@@ -115,7 +115,9 @@ jobs:
           build-args: VERSION=${{ needs.version.outputs.version }}
           outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' }},oci-mediatypes=true
           cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache-${{ matrix.suffix }}
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache-${{ matrix.suffix }}
+          # PR builds skip the registry login above and push nothing, so exporting
+          # the cache would ask BuildKit for a push token anonymously: 403.
+          cache-to: ${{ github.event_name != 'pull_request' && format('type=registry,ref=ghcr.io/{0}:buildcache-{1}', github.repository, matrix.suffix) || '' }}
 
       - name: Export digest
         if: github.event_name != 'pull_request'

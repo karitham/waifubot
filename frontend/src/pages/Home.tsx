@@ -1,6 +1,7 @@
 import { Button } from "@kobalte/core/button";
 import { TextField } from "@kobalte/core/text-field";
 import { createSignal, onMount, Show } from "solid-js";
+import { isSubmitEnter } from "../utils/keys";
 import Icon from "/src/assets/icon.png";
 
 import { useUserSearch } from "../hooks/useUserSearch";
@@ -36,7 +37,9 @@ export default () => {
   });
 
   return (
-    <main class="bg-base min-h-screen w-screen font-sans selection:bg-overlayC overflow-hidden">
+    // min-h-dvh, not min-h-screen: 100vh is the desktop viewport on mobile, so
+    // the page is taller than the screen and the fixed footer sits over content.
+    <main class="bg-base min-h-dvh w-full font-sans selection:bg-overlayC">
       {/* Floating background orbs - ambient decoration */}
       <div class="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
         {/* Large mauve orb - top right */}
@@ -76,7 +79,7 @@ export default () => {
       </div>
 
       {/* Main content - grid areas place one search field per breakpoint */}
-      <div class="home-grid content-width min-h-screen py-[--space-3xl]">
+      <div class="home-grid content-width min-h-dvh pt-[--space-3xl]">
         {/* Hero content */}
         <div class="home-hero lg:max-w-xl space-y-[--space-lg]">
           {/* Icon */}
@@ -187,10 +190,24 @@ const SearchSection = (props: {
   setValue: (v: string) => void;
 }) => {
   const [error, setError] = createSignal<string | null>(null);
+  const [busy, setBusy] = createSignal(false);
 
+  /**
+   * Single-flight: the lookup is two round trips when the first guess misses,
+   * and Enter repeats, so a second submit while one is running would race and
+   * leave whichever answer landed last on screen.
+   */
   const submit = async () => {
-    const ok = await props.searchUser(props.value());
-    if (!ok) setError("User not found — check the username or ID");
+    const value = props.value().trim();
+    if (!value || busy()) return;
+
+    setBusy(true);
+    try {
+      const ok = await props.searchUser(value);
+      if (!ok) setError("User not found — check the username or ID");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -209,21 +226,32 @@ const SearchSection = (props: {
           </span>
           <TextField.Input
             class="h-full w-full flex-1 min-w-0 bg-transparent pl-10 pr-4 text-base placeholder:font-sans placeholder:text-overlayC text-text focus:outline-none focus:ring-0"
-            onKeyDown={(e) => e.key === "Enter" && submit()}
+            onKeyDown={(e) => {
+              if (isSubmitEnter(e)) {
+                e.preventDefault();
+                void submit();
+              }
+            }}
             onInput={() => setError(null)}
             placeholder="karitham"
+            aria-invalid={error() !== null}
+            aria-describedby={error() ? "home-search-error" : undefined}
           />
           <Button
-            class="h-full px-6 font-sans bg-mauve hover:bg-pink text-base font-medium transition duration-200 active:scale-[0.96] cursor-pointer border-none flex items-center justify-center focus:outline-none"
+            class="h-full px-6 font-sans bg-mauve hover:bg-pink disabled:opacity-60 disabled:cursor-not-allowed text-base font-medium transition duration-200 active:scale-[0.96] cursor-pointer border-none flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-mauve/60"
             onClick={submit}
+            disabled={busy()}
             type="button"
           >
-            Search
+            <Show when={busy()}>
+              <span class="i-ph-circle-notch animate-spin" aria-hidden="true" />
+            </Show>
+            {busy() ? "Searching" : "Search"}
           </Button>
         </div>
         <Show when={error()}>
           {(msg) => (
-            <p class="text-xs text-red" role="alert">
+            <p id="home-search-error" class="text-xs text-red" role="alert">
               {msg()}
             </p>
           )}

@@ -53,7 +53,7 @@ describe("FilterBar", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     dispose = render(() => {
-      const filters = usePageFilters("main-user");
+      const filters = usePageFilters(() => "main-user");
       return (
         <CollectionFiltersProvider value={filters}>
           <FilterBar />
@@ -124,12 +124,15 @@ describe("FilterBar", () => {
   });
 
   it("toggles sort direction", async () => {
-    const toggle = container.querySelector<HTMLButtonElement>('button[aria-label="Ascending"]');
+    // The name states the action, not the current direction.
+    const toggle = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Sort descending"]',
+    );
     expect(toggle).not.toBeNull();
 
     toggle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(container.querySelector('button[aria-label="Descending"]')).not.toBeNull();
+    expect(container.querySelector('button[aria-label="Sort ascending"]')).not.toBeNull();
   });
 });

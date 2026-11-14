@@ -131,7 +131,7 @@ describe("CharGrid scroll behaviour", () => {
     host.appendChild(container);
     dispose = render(
       () => (
-        <CollectionFiltersProvider value={usePageFilters("me")}>
+        <CollectionFiltersProvider value={usePageFilters(() => "me")}>
           <CharGrid characters={characters} mediaCharacters={undefined} mainUser={mainUser} />
         </CollectionFiltersProvider>
       ),
