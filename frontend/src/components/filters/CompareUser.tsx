@@ -1,5 +1,5 @@
 import { TextField } from "@kobalte/core/text-field";
-import { createSignal, For, onCleanup, Show } from "solid-js";
+import { createSignal, For, onCleanup, onSettled, Show } from "solid-js";
 import { useCollectionFilters } from "../../context/CollectionFiltersContext";
 import { MAX_COMPARE_USERS, type CompareUserListItem } from "../../hooks/useCompareUsers";
 import { isSubmitEnter } from "../../utils/keys";
@@ -86,6 +86,7 @@ const Chip = (props: {
         class="flex items-center justify-center w-9 self-stretch rounded-full text-subtextA hover:text-text hover:bg-surfaceC transition active:scale-[0.96] shrink-0 focus-visible:ring-2 focus-visible:ring-mauve/60 focus-visible:outline-none"
         onClick={() => props.onRemove(props.item.id)}
         aria-label={`Remove ${name() || "user"} from comparison`}
+        data-compare-id={props.item.id}
       >
         <span class="i-ph-x text-sm" aria-hidden="true" />
       </button>
@@ -100,7 +101,6 @@ export default () => {
   const [feedback, setFeedback] = createSignal<Feedback | null>(null);
   let feedbackTimeout: ReturnType<typeof setTimeout> | undefined;
   let inputEl: HTMLInputElement | undefined;
-  let chipsEl: HTMLDivElement | undefined;
 
   // The success message clears itself; without this the timer would fire into a
   // disposed signal when the filter bar unmounts inside those 2.5s.
@@ -122,14 +122,18 @@ export default () => {
    * to the body. Read the survivors out of the DOM after the update instead.
    */
   const removeUser = (id: string) => {
-    const index = filters.compareUserList().findIndex((item) => item.id === id);
+    const remaining = new Set(filters.compareIds().filter((item) => item !== id));
 
     filters.onCompareRemove(id);
 
-    queueMicrotask(() => {
-      const buttons = chipsEl?.querySelectorAll<HTMLButtonElement>('button[aria-label^="Remove "]');
-      const target = buttons?.[index] ?? buttons?.[index - 1] ?? inputEl;
-      target?.focus();
+    // Solid 2 batches the URL write. Wait for the settled DOM before reading
+    // the surviving chips; a microtask sees the button being removed, and a
+    // flush can still precede the controlled input's own update.
+    onSettled(() => {
+      const next = Array.from(
+        document.querySelectorAll<HTMLButtonElement>("button[data-compare-id]"),
+      ).find((button) => remaining.has(button.dataset.compareId ?? ""));
+      (next ?? inputEl)?.focus();
     });
   };
 
@@ -207,7 +211,7 @@ export default () => {
       </div>
 
       <Show when={filters.compareUserList().length > 0}>
-        <div class="flex flex-wrap gap-2" ref={(el) => (chipsEl = el)}>
+        <div class="flex flex-wrap gap-2">
           <For each={filters.compareUserList()}>
             {(item) => <Chip item={item} onRemove={removeUser} onRetry={filters.onCompareRetry} />}
           </For>
