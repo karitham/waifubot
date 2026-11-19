@@ -106,12 +106,10 @@ const MediaSearch = (props: {
     if (props.autoFocus) inputEl?.focus();
   });
 
+  // The initial empty box is not a search; defer skips that first pass.
   createEffect(
-    (previous: string | undefined) => search(),
-    (value, previous) => {
-      // The first pass is the initial empty box, not a keystroke.
-      if (previous === undefined) return;
-
+    () => search(),
+    (value) => {
       const seq = ++requestSeq;
       if (!value) {
         setOptions([]);
@@ -135,6 +133,7 @@ const MediaSearch = (props: {
         }
       })();
     },
+    { defer: true },
   );
 
   /**

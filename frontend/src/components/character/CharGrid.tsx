@@ -1,5 +1,5 @@
 import { createWindowVirtualizer } from "../../utils/windowVirtualizer";
-import { createMemo, createSignal, For, onCleanup, Show } from "solid-js";
+import { createMemo, createSignal, For, onCleanup, onSettled, Show } from "solid-js";
 import type { MediaCharacter } from "../../api/anilist";
 import type { Character, UserProfile } from "../../api/generated";
 import { useCollectionFilters } from "../../context/CollectionFiltersContext";
@@ -110,29 +110,28 @@ export default (props: {
   const [containerWidth, setContainerWidth] = createSignal(0);
 
   /**
-   * Measures the container, and keeps the measurement current.
+   * Measures the container after mount, then keeps the measurement current.
    *
-   * Runs from a ref callback rather than onSettled because onSettled fires after
-   * the first reactive pass, by which point the lane count has already been
-   * derived from a width of zero and the grid has been laid out at it. Nothing
-   * downstream re-derives that on its own, so the width has to be known before
-   * the first layout rather than corrected afterwards. A ref callback runs
-   * during the first render, with the element in hand.
-   *
-   * Later measurements do propagate on their own: the virtualizer reads these
-   * values through getters, and reads them inside a reactive scope, so a
-   * resize or a moved grid reaches it without help.
+   * A ref runs before Solid attaches the element, so layout reads there see a
+   * zero width and no document offset. onSettled runs after attachment. The
+   * measured() gate keeps the grid empty until a real width is known, and the
+   * observers below catch resizes and content moving above the grid.
    */
+  let container: HTMLDivElement | undefined;
   let releaseObservers: (() => void) | undefined;
   onCleanup(() => releaseObservers?.());
 
-  const observeContainer = (element: HTMLDivElement) => {
-    const measure = () => {
-      setContainerWidth(element.offsetWidth);
-      setScrollMargin(element.getBoundingClientRect().top + window.scrollY);
-    };
+  const measure = () => {
+    if (!container) return;
+    setContainerWidth(container.offsetWidth);
+    setScrollMargin(container.getBoundingClientRect().top + window.scrollY);
+  };
 
-    measure();
+  onSettled(measure);
+
+  const observeContainer = (element: HTMLDivElement) => {
+    releaseObservers?.();
+    container = element;
 
     const widthRO = new ResizeObserver(measure);
     widthRO.observe(element);
@@ -262,12 +261,11 @@ export default (props: {
             "min-width": "100%",
           }}
         >
-          {/* For, not Index. For diffs by value, so it keys these nodes to the
-              characters they show: scrolling a row advances the window by a
-              whole row, and a positional mapping would hand every card still
-              in view a different character, re-requesting every card image on
-              every row scrolled. Each card reads its own placement from the
-              placement memo above, so moving does not mean remounting. */}
+          {/* For diffs by value, so a node stays with its list index while that
+              index is in the window. A row scroll advances the window by a
+              whole row; only the newly visible indices mount, so cards that
+              remain visible keep their loaded images. Each card reads its own
+              placement from the memo above, so moving does not remount it. */}
           <For each={mounted()}>
             {(key) => {
               const item = createMemo(() => list()[key]);
