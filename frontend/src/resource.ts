@@ -13,7 +13,10 @@ export type AsyncState<T> =
 
 /** Read `load()` reactively, tracking the newest request and its outcome. */
 export function createAsyncState<T>(load: () => Promise<T>): Accessor<AsyncState<T>> {
-  const [state, setState] = createSignal<AsyncState<T>>({ status: "loading" }, { ownedWrite: true });
+  const [state, setState] = createSignal<AsyncState<T>>(
+    { status: "loading" },
+    { ownedWrite: true },
+  );
   let requestId = 0;
 
   createEffect(

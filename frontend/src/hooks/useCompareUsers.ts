@@ -47,8 +47,14 @@ export function useCompareUsers(mainUserId: () => string | undefined = () => und
 
   const compareIds = createMemo(() => parseCompareIds(sp.compare));
 
-  const [compareData, setCompareData] = createSignal<Record<string, CompareUser>>({}, { ownedWrite: true });
-  const [compareUserErrors, setCompareUserErrors] = createSignal<Record<string, boolean>>({}, { ownedWrite: true });
+  const [compareData, setCompareData] = createSignal<Record<string, CompareUser>>(
+    {},
+    { ownedWrite: true },
+  );
+  const [compareUserErrors, setCompareUserErrors] = createSignal<Record<string, boolean>>(
+    {},
+    { ownedWrite: true },
+  );
   const inflight = new Map<string, Promise<void>>();
 
   const loadUser = async (id: string) => {

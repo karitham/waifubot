@@ -5,7 +5,15 @@ import {
   windowScroll,
   type VirtualItem,
 } from "@tanstack/virtual-core";
-import { createEffect, createSignal, createStore, merge, onSettled, reconcile, untrack } from "solid-js";
+import {
+  createEffect,
+  createSignal,
+  createStore,
+  merge,
+  onSettled,
+  reconcile,
+  untrack,
+} from "solid-js";
 
 type Options = Record<string, unknown>;
 

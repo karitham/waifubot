@@ -17,7 +17,9 @@ export const useMediaCharacters = (media: () => MediaOption | null) => {
     const selected = media();
     return selected ? fetchCharacters(selected) : undefined;
   });
-  const [last, setLast] = createSignal<MediaCharacter[] | undefined>(undefined, { ownedWrite: true });
+  const [last, setLast] = createSignal<MediaCharacter[] | undefined>(undefined, {
+    ownedWrite: true,
+  });
 
   createEffect(
     () => state(),

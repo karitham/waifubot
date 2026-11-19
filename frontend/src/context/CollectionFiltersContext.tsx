@@ -10,9 +10,7 @@ export type CollectionFilters = ReturnType<typeof usePageFilters>;
 const CollectionFiltersContext = createContext<CollectionFilters>();
 
 export function CollectionFiltersProvider(props: ParentProps<{ value: CollectionFilters }>) {
-  return (
-    <CollectionFiltersContext value={props.value}>{props.children}</CollectionFiltersContext>
-  );
+  return <CollectionFiltersContext value={props.value}>{props.children}</CollectionFiltersContext>;
 }
 
 export function useCollectionFilters(): CollectionFilters {

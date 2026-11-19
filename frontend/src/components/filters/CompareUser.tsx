@@ -67,7 +67,10 @@ const Chip = (props: {
       <Show
         when={props.item.error()}
         fallback={
-          <span class="inline-flex items-center gap-2 pr-1" aria-busy={props.item.loading() ? "true" : "false"}>
+          <span
+            class="inline-flex items-center gap-2 pr-1"
+            aria-busy={props.item.loading() ? "true" : "false"}
+          >
             <ChipBody item={props.item} />
           </span>
         }
