@@ -13,17 +13,19 @@
     "generate:api": "oazapfts ../openapi.yaml --optimistic --useEnumType --optimistic --futureStripLegacyMethods > ./src/api/generated.ts"
   },
   "dependencies": {
-    "@kobalte/core": "^0.13.10",
+    "@kobalte/core": "2.0.0-alpha.4",
     "@oazapfts/runtime": "^1.2.0",
-    "@tanstack/solid-virtual": "^3.13.23",
+    "@solidjs/web": "^2.0.3",
+    "@tanstack/virtual-core": "3.13.23",
     "dompurify": "^3.3.3",
     "marked": "^15.0.12",
     "oazapfts": "^7.4.0",
-    "solid-js": "^1.8.17"
+    "solid-js": "^2.0.3"
   },
   "devDependencies": {
     "@iconify-json/ph": "^1.2.2",
-    "@solidjs/router": "^0.15.3",
+    "@solidjs/router": "^2.0.0",
+    "@solidjs/vite-plugin": "^3.0.1",
     "@types/node": "^25.3.3",
     "@unocss/preset-icons": "^66.5.10",
     "@unocss/preset-wind4": "^66.5.10",
@@ -32,7 +34,6 @@
     "typescript": "^5.8.3",
     "unocss": "^66.5.10",
     "vite": "^8.0.0",
-    "vite-plugin-solid": "^2.10.0",
     "vitest": "^4.0.0"
   }
 }

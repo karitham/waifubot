@@ -1,4 +1,4 @@
-import { render } from "solid-js/web";
+import { render } from "@solidjs/web";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Character, UserProfile } from "../../api/generated";
 import { CollectionFiltersProvider } from "../../context/CollectionFiltersContext";

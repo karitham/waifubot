@@ -29,6 +29,9 @@ export const __resetSearchParams = () => setQuery({});
 /** Present so modules importing useNavigate under this mock still resolve. */
 export const useNavigate = () => (_to: string) => {};
 
+/** Mirrors hashHistory's adapter: hrefs carry the "#" prefix. */
+export const useHref = (to: () => string) => () => `#${to()}`;
+
 /** Fixed params: tests drive routing through __setSearchParams, not path params. */
 export const useParams = () => ({ id: "test-user" });
 

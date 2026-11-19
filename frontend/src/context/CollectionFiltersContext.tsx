@@ -11,9 +11,7 @@ const CollectionFiltersContext = createContext<CollectionFilters>();
 
 export function CollectionFiltersProvider(props: ParentProps<{ value: CollectionFilters }>) {
   return (
-    <CollectionFiltersContext.Provider value={props.value}>
-      {props.children}
-    </CollectionFiltersContext.Provider>
+    <CollectionFiltersContext value={props.value}>{props.children}</CollectionFiltersContext>
   );
 }
 

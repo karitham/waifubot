@@ -1,6 +1,6 @@
 import { Button } from "@kobalte/core/button";
 import { TextField } from "@kobalte/core/text-field";
-import { createSignal, onMount, Show } from "solid-js";
+import { createSignal, onSettled, Show } from "solid-js";
 import { isSubmitEnter } from "../utils/keys";
 import Icon from "/src/assets/icon.png";
 
@@ -31,7 +31,7 @@ export default () => {
   const [value, setValue] = createSignal("");
   const [mounted, setMounted] = createSignal(false);
 
-  onMount(() => {
+  onSettled(() => {
     // Trigger entrance animations after mount
     requestAnimationFrame(() => setMounted(true));
   });
@@ -191,21 +191,25 @@ const SearchSection = (props: {
 }) => {
   const [error, setError] = createSignal<string | null>(null);
   const [busy, setBusy] = createSignal(false);
+  let submitting = false;
 
   /**
    * Single-flight: the lookup is two round trips when the first guess misses,
    * and Enter repeats, so a second submit while one is running would race and
-   * leave whichever answer landed last on screen.
+   * leave whichever answer landed last on screen. The local flag closes the
+   * window between two submits in the same batch, before `busy()` can update.
    */
   const submit = async () => {
     const value = props.value().trim();
-    if (!value || busy()) return;
+    if (!value || submitting) return;
 
+    submitting = true;
     setBusy(true);
     try {
       const ok = await props.searchUser(value);
       if (!ok) setError("User not found — check the username or ID");
     } finally {
+      submitting = false;
       setBusy(false);
     }
   };
@@ -234,7 +238,7 @@ const SearchSection = (props: {
             }}
             onInput={() => setError(null)}
             placeholder="karitham"
-            aria-invalid={error() !== null}
+            aria-invalid={error() !== null ? "true" : "false"}
             aria-describedby={error() ? "home-search-error" : undefined}
           />
           <Button

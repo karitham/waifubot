@@ -1,4 +1,5 @@
-import { render } from "solid-js/web";
+import { render } from "@solidjs/web";
+import { flush } from "solid-js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Home from "./Home";
 
@@ -13,11 +14,15 @@ vi.mock("../api/generated", async (importOriginal) => ({
 
 import { findUserV1 } from "../api/generated";
 
-const settle = () => new Promise((r) => setTimeout(r, 0));
+const settle = async () => {
+  await new Promise((r) => setTimeout(r, 0));
+  flush();
+};
 
 const fireInput = (el: HTMLInputElement, value: string) => {
   el.value = value;
   el.dispatchEvent(new Event("input", { bubbles: true }));
+  flush();
 };
 
 const searchInputs = (root: HTMLElement) =>

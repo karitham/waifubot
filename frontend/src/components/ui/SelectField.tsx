@@ -1,5 +1,6 @@
 import { Select } from "@kobalte/core/select";
-import type { Component, JSX } from "solid-js";
+import type { Component } from "solid-js";
+import type { JSX } from "@solidjs/web";
 import type { Setter } from "solid-js";
 
 export type SelectFieldProps<T extends Record<string, unknown>> = {

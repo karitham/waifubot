@@ -9,12 +9,12 @@ import Notice from "../components/ui/Notice";
 import { CollectionFiltersProvider } from "../context/CollectionFiltersContext";
 import { useMediaCharacters } from "../hooks/useMediaCharacters";
 import { usePageFilters } from "../hooks/usePageFilters";
-import type { ResourceState } from "../resource";
+import type { AsyncState } from "../resource";
 import { getSearchParams } from "../utils/format";
 
 interface CollectionPageProps {
-  user: ResourceState<UserProfile>;
-  characters: ResourceState<Character[]>;
+  user: AsyncState<UserProfile>;
+  characters: AsyncState<Character[]>;
   allowEmpty: boolean;
   profileTitle: string;
   navbarLink: {

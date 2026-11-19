@@ -1,5 +1,5 @@
-import { HashRouter, Route } from "@solidjs/router";
-import { ErrorBoundary, render, Suspense } from "solid-js/web";
+import { createRouter, hashHistory } from "@solidjs/router";
+import { Errored, Loading, render } from "@solidjs/web";
 import "./index.css";
 import { lazy, type Component } from "solid-js";
 import "virtual:uno.css";
@@ -12,10 +12,9 @@ const List = lazy(() => import("./pages/List"));
 const Wishlist = lazy(() => import("./pages/Wishlist"));
 const Page404 = lazy(() => import("./404"));
 
-// HashRouter, not BrowserRouter: the site is served as static files with no
-// rewrite rule, so a deep link like /list/123 would 404 on refresh. The hash
-// keeps the path client-side. Switching to BrowserRouter requires adding a
-// fallback to the host first.
+// Hash history, not browser history: the site is static with no rewrite rule,
+// so a deep link like /list/123 would 404 on refresh. Switching to browser
+// history requires a fallback route on the host first.
 const ErrorFallback = (props: { error: unknown }) => (
   <div class="bg-base min-h-screen flex items-center justify-center text-text p-8">
     <div class="text-center">
@@ -25,42 +24,36 @@ const ErrorFallback = (props: { error: unknown }) => (
   </div>
 );
 
-const Loading = () => (
+const LoadingScreen = () => (
   <div class="bg-base min-h-screen flex items-center justify-center text-text">Loading...</div>
 );
 
 /**
- * Suspense and ErrorBoundary sit inside each route rather than around the
- * router: a single outer boundary blanks the whole screen while any lazy chunk
- * loads, including on ordinary navigation between pages.
+ * Boundaries sit on each route rather than around the router: one outer
+ * boundary would blank the whole screen while any lazy chunk loads, including
+ * on ordinary navigation between pages.
  */
 const withBoundary =
   (Page: Component): Component =>
   () => (
-    <ErrorBoundary fallback={(e) => <ErrorFallback error={e} />}>
-      <Suspense fallback={<Loading />}>
+    <Errored fallback={(error) => <ErrorFallback error={error()} />}>
+      <Loading fallback={<LoadingScreen />}>
         <Page />
-      </Suspense>
-    </ErrorBoundary>
+      </Loading>
+    </Errored>
   );
 
-const routes: Array<{ path: string; component: Component }> = [
-  { path: "/list/:id", component: withBoundary(List) },
-  { path: "/wishlist/:id", component: withBoundary(Wishlist) },
-  { path: "/", component: withBoundary(Home) },
-  { path: "*", component: withBoundary(Page404) },
-];
+const Router = createRouter({
+  history: hashHistory(),
+  routes: [
+    { path: "/list/:id", component: withBoundary(List) },
+    { path: "/wishlist/:id", component: withBoundary(Wishlist) },
+    { path: "/", component: withBoundary(Home) },
+    { path: "*404", component: withBoundary(Page404) },
+  ],
+});
 
 const app = document.getElementById("app");
 if (app) {
-  render(
-    () => (
-      <HashRouter>
-        {routes.map((route) => (
-          <Route path={route.path} component={route.component} />
-        ))}
-      </HashRouter>
-    ),
-    app,
-  );
+  render(() => <Router />, app);
 }

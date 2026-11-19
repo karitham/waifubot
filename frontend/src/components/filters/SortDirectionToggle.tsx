@@ -21,11 +21,13 @@ export default function (props: SortDirectionToggleProps) {
       aria-label={props.direction > 0 ? "Sort descending" : "Sort ascending"}
     >
       <span
-        class="text-lg transition"
-        classList={{
-          "i-ph-arrow-up text-mauve": props.direction > 0,
-          "i-ph-arrow-down text-mauve": props.direction <= 0,
-        }}
+        class={[
+          "text-lg transition",
+          {
+            "i-ph-arrow-up text-mauve": props.direction > 0,
+            "i-ph-arrow-down text-mauve": props.direction <= 0,
+          },
+        ]}
       />
     </button>
   );

@@ -1,6 +1,5 @@
-import { createWindowVirtualizer } from "@tanstack/solid-virtual";
-import { createComputed, createMemo, createSignal, For, onCleanup, Show } from "solid-js";
-import { createStore, reconcile } from "solid-js/store";
+import { createWindowVirtualizer } from "../../utils/windowVirtualizer";
+import { createMemo, createSignal, For, onCleanup, Show } from "solid-js";
 import type { MediaCharacter } from "../../api/anilist";
 import type { Character, UserProfile } from "../../api/generated";
 import { useCollectionFilters } from "../../context/CollectionFiltersContext";
@@ -113,7 +112,7 @@ export default (props: {
   /**
    * Measures the container, and keeps the measurement current.
    *
-   * Runs from a ref callback rather than onMount because onMount fires after
+   * Runs from a ref callback rather than onSettled because onSettled fires after
    * the first reactive pass, by which point the lane count has already been
    * derived from a width of zero and the grid has been laid out at it. Nothing
    * downstream re-derives that on its own, so the width has to be known before
@@ -124,6 +123,9 @@ export default (props: {
    * values through getters, and reads them inside a reactive scope, so a
    * resize or a moved grid reaches it without help.
    */
+  let releaseObservers: (() => void) | undefined;
+  onCleanup(() => releaseObservers?.());
+
   const observeContainer = (element: HTMLDivElement) => {
     const measure = () => {
       setContainerWidth(element.offsetWidth);
@@ -146,11 +148,13 @@ export default (props: {
 
     window.addEventListener("resize", measure);
 
-    onCleanup(() => {
+    // Ref callbacks are unowned in Solid 2, so cleanup is registered in the
+    // component body and released when the grid is disposed.
+    releaseObservers = () => {
       widthRO.disconnect();
       marginRO.disconnect();
       window.removeEventListener("resize", measure);
-    });
+    };
   };
 
   const columns = createMemo(() => {
@@ -199,14 +203,12 @@ export default (props: {
    * shows does not. Keeping position here rather than in the card means a card
    * can be told which character it is without also being handed a fresh one.
    */
-  const [placements, setPlacements] = createStore<Record<number, Slot>>({});
-
-  createComputed(() => {
+  const placements = createMemo((): Record<number, Slot> => {
     const next: Record<number, Slot> = {};
     for (const item of virtualizer.getVirtualItems()) {
       next[item.index] = { lane: item.lane, start: item.start };
     }
-    setPlacements(reconcile(next));
+    return next;
   });
 
   /**
@@ -265,7 +267,7 @@ export default (props: {
               whole row, and a positional mapping would hand every card still
               in view a different character, re-requesting every card image on
               every row scrolled. Each card reads its own placement from the
-              store above, so moving does not mean remounting. */}
+              placement memo above, so moving does not mean remounting. */}
           <For each={mounted()}>
             {(key) => {
               const item = createMemo(() => list()[key]);
@@ -302,14 +304,14 @@ export default (props: {
                       style={{
                         position: "absolute",
                         top: 0,
-                        left: `${(placements[key]?.lane ?? 0) * (columnWidth() + GAP)}px`,
+                        left: `${(placements()[key]?.lane ?? 0) * (columnWidth() + GAP)}px`,
                         width: `${columnWidth()}px`,
                         height: `${CARD_HEIGHT}px`,
                         // start is measured from the scroll margin, which is the
                         // grid's offset from the top of the document. Cards are
                         // positioned within the container, so that offset comes
                         // off.
-                        transform: `translateY(${(placements[key]?.start ?? 0) - scrollMargin()}px)`,
+                        transform: `translateY(${(placements()[key]?.start ?? 0) - scrollMargin()}px)`,
                       }}
                     >
                       <CharCard

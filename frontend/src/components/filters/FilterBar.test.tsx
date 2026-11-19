@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render } from "solid-js/web";
+import { render } from "@solidjs/web";
+import { flush } from "solid-js";
 import { CollectionFiltersProvider } from "../../context/CollectionFiltersContext";
 import { usePageFilters } from "../../hooks/usePageFilters";
 import FilterBar from "./FilterBar";
@@ -21,6 +22,7 @@ vi.mock("../../api/anilist", () => ({
 const fireInput = (el: HTMLInputElement, value: string) => {
   el.value = value;
   el.dispatchEvent(new Event("input", { bubbles: true }));
+  flush();
 };
 
 const pressItem = (el: Element) => {
@@ -119,6 +121,7 @@ describe("FilterBar", () => {
     const options = Array.from(document.body.querySelectorAll('[role="option"]'));
     pressItem(options[1]);
     await vi.advanceTimersByTimeAsync(0);
+    flush();
 
     expect(sortTrigger()?.textContent).toContain("Name");
   });

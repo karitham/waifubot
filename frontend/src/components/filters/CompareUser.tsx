@@ -67,7 +67,7 @@ const Chip = (props: {
       <Show
         when={props.item.error()}
         fallback={
-          <span class="inline-flex items-center gap-2 pr-1" aria-busy={props.item.loading()}>
+          <span class="inline-flex items-center gap-2 pr-1" aria-busy={props.item.loading() ? "true" : "false"}>
             <ChipBody item={props.item} />
           </span>
         }
@@ -192,7 +192,7 @@ export default () => {
                   ? undefined
                   : "compare-hint"
             }
-            aria-invalid={feedback()?.kind === "error"}
+            aria-invalid={feedback()?.kind === "error" ? "true" : "false"}
           />
         </TextField>
         <button

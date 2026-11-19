@@ -1,5 +1,5 @@
 import { Search, type SearchRootItemComponentProps } from "@kobalte/core/search";
-import { type Component, createEffect, createSignal, on, onCleanup, onMount, Show } from "solid-js";
+import { type Component, createEffect, createSignal, onCleanup, onSettled, Show } from "solid-js";
 import { type Media, searchMedia } from "../../api/anilist";
 
 import type { MediaOption } from "../../types";
@@ -42,11 +42,11 @@ const SearchItem: Component<SearchRootItemComponentProps<MediaOption>> = (props)
 /** Selected media as a chip — same visual language as compare user chips. */
 const MediaChip = (props: { media: MediaOption; onClear: () => void; autoFocus?: boolean }) => {
   // Snapshot at creation: the parent resets its flag as soon as this chip exists,
-  // so reading it inside onMount would see the cleared value and never focus.
+  // so reading it inside onSettled would see the cleared value and never focus.
   const autoFocus = props.autoFocus;
   let clearEl: HTMLButtonElement | undefined;
 
-  onMount(() => {
+  onSettled(() => {
     if (autoFocus) clearEl?.focus();
   });
 
@@ -89,8 +89,8 @@ const MediaSearch = (props: {
   autoFocus?: boolean;
 }) => {
   const [search, setSearch] = createSignal("");
-  const [options, setOptions] = createSignal<MediaOption[]>([]);
-  const [status, setStatus] = createSignal<SearchStatus>({ kind: "idle" });
+  const [options, setOptions] = createSignal<MediaOption[]>([], { ownedWrite: true });
+  const [status, setStatus] = createSignal<SearchStatus>({ kind: "idle" }, { ownedWrite: true });
   let requestSeq = 0;
   let inputEl: HTMLInputElement | undefined;
 
@@ -102,22 +102,25 @@ const MediaSearch = (props: {
 
   // Only after a clear: a page that loads with no media filter must not steal
   // focus away from the top of the page.
-  onMount(() => {
+  onSettled(() => {
     if (props.autoFocus) inputEl?.focus();
   });
 
   createEffect(
-    on(
-      search,
-      async (value) => {
-        const seq = ++requestSeq;
-        if (!value) {
-          setOptions([]);
-          setStatus({ kind: "idle" });
-          return;
-        }
+    (previous: string | undefined) => search(),
+    (value, previous) => {
+      // The first pass is the initial empty box, not a keystroke.
+      if (previous === undefined) return;
 
-        setStatus({ kind: "searching" });
+      const seq = ++requestSeq;
+      if (!value) {
+        setOptions([]);
+        setStatus({ kind: "idle" });
+        return;
+      }
+
+      setStatus({ kind: "searching" });
+      void (async () => {
         try {
           const media = await searchMedia(value, 10);
           if (seq !== requestSeq) return; // superseded by a newer search
@@ -130,9 +133,8 @@ const MediaSearch = (props: {
           setOptions([]);
           setStatus({ kind: "error" });
         }
-      },
-      { defer: true },
-    ),
+      })();
+    },
   );
 
   /**
@@ -171,7 +173,7 @@ const MediaSearch = (props: {
             changes. This copy is for sight, that one for speech. */}
         <span
           aria-hidden="true"
-          classList={{
+          class={{
             "text-subtextA": status().kind !== "error",
             "text-red": status().kind === "error",
           }}

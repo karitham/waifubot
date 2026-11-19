@@ -11,8 +11,7 @@ export default (props: {
 }) => {
   return (
     <article
-      class="rounded-lg relative flex h-48 w-full overflow-clip"
-      classList={{ "opacity-60": props.char.missing }}
+      class={["rounded-lg relative flex h-48 w-full overflow-clip", { "opacity-60": props.char.missing }]}
       style={{
         border: `1px solid ${getRarityHex(props.char.favorites)}`,
       }}

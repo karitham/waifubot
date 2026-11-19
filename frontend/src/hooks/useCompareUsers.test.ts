@@ -1,4 +1,4 @@
-import { createRoot, createSignal } from "solid-js";
+import { createRoot, createSignal, flush as flushReactive } from "solid-js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { __resetSearchParams, __setSearchParams } from "./router-mock";
 import { MAX_COMPARE_USERS, useCompareUsers } from "./useCompareUsers";
@@ -24,13 +24,19 @@ import { getUserID } from "./useUserSearch";
 /** Let the per-user fetches settle through their microtask chains. */
 const flush = async () => {
   for (let i = 0; i < 10; i++) await Promise.resolve();
+  flushReactive();
 };
 
-const mount = (userId?: string) =>
-  createRoot((dispose) => {
+const mount = (userId?: string) => {
+  // The router mock batches its writes like the real router does.
+  flushReactive();
+  const mounted = createRoot((dispose) => {
     const state = useCompareUsers(() => userId);
     return { state, dispose };
   });
+  flushReactive();
+  return mounted;
+};
 
 const loadedIds = (state: ReturnType<typeof mount>["state"]) =>
   state.compareUsers().map((u) => u.profile.id);

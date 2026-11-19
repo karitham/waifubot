@@ -1,5 +1,5 @@
 import { useSearchParams } from "@solidjs/router";
-import { createEffect, createMemo, createSignal } from "solid-js";
+import { createEffect, createMemo, createSignal, untrack } from "solid-js";
 import type { CollectionResponse, UserProfile } from "../api/generated";
 import { getCollectionV1, getProfileV1 } from "../api/generated";
 import { getUserID } from "./useUserSearch";
@@ -47,8 +47,8 @@ export function useCompareUsers(mainUserId: () => string | undefined = () => und
 
   const compareIds = createMemo(() => parseCompareIds(sp.compare));
 
-  const [compareData, setCompareData] = createSignal<Record<string, CompareUser>>({});
-  const [compareUserErrors, setCompareUserErrors] = createSignal<Record<string, boolean>>({});
+  const [compareData, setCompareData] = createSignal<Record<string, CompareUser>>({}, { ownedWrite: true });
+  const [compareUserErrors, setCompareUserErrors] = createSignal<Record<string, boolean>>({}, { ownedWrite: true });
   const inflight = new Map<string, Promise<void>>();
 
   const loadUser = async (id: string) => {
@@ -67,31 +67,39 @@ export function useCompareUsers(mainUserId: () => string | undefined = () => und
     inflight.set(id, promise);
   };
 
-  createEffect(() => {
-    const ids = compareIds();
-    const idSet = new Set(ids);
+  createEffect(
+    () => compareIds(),
+    (ids) => {
+      const idSet = new Set(ids);
+      // This effect is driven only by the URL; reads of cached results are
+      // deliberately outside tracking so a cache write cannot restart it.
+      const cached = untrack(() => ({
+        data: compareData(),
+        errors: compareUserErrors(),
+      }));
 
-    // Prune state for removed users
-    setCompareData((prev) => {
-      const removed = Object.keys(prev).filter((k) => !idSet.has(k));
-      if (removed.length === 0) return prev;
-      const next = { ...prev };
-      for (const k of removed) delete next[k];
-      return next;
-    });
-    setCompareUserErrors((prev) => {
-      const removed = Object.keys(prev).filter((k) => !idSet.has(k));
-      if (removed.length === 0) return prev;
-      const next = { ...prev };
-      for (const k of removed) delete next[k];
-      return next;
-    });
+      // Prune state for removed users
+      setCompareData((prev) => {
+        const removed = Object.keys(prev).filter((k) => !idSet.has(k));
+        if (removed.length === 0) return prev;
+        const next = { ...prev };
+        for (const k of removed) delete next[k];
+        return next;
+      });
+      setCompareUserErrors((prev) => {
+        const removed = Object.keys(prev).filter((k) => !idSet.has(k));
+        if (removed.length === 0) return prev;
+        const next = { ...prev };
+        for (const k of removed) delete next[k];
+        return next;
+      });
 
-    for (const id of ids) {
-      if (compareData()[id] || compareUserErrors()[id]) continue;
-      void loadUser(id);
-    }
-  });
+      for (const id of ids) {
+        if (cached.data[id] || cached.errors[id]) continue;
+        void loadUser(id);
+      }
+    },
+  );
 
   /** Loaded compare users, in URL order — what the grid consumes. */
   const compareUsers = createMemo(() =>
