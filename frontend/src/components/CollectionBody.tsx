@@ -4,10 +4,10 @@ import CollectionNav from "../components/CollectionNav";
 import CharGrid from "../components/character/CharGrid";
 import FilterBar from "../components/filters/FilterBar";
 import Notice from "../components/ui/Notice";
-import type { ResourceState } from "../resource";
+import type { AsyncState } from "../resource";
 
 interface CollectionBodyProps {
-  characters: ResourceState<Character[]>;
+  characters: AsyncState<Character[]>;
   mediaCharacters: Character[] | undefined;
   mainUser: UserProfile;
   profileTitle: string;

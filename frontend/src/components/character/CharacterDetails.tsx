@@ -58,20 +58,24 @@ export default (props: { char: CardCharacter; class?: string }) => {
         >
           <span class="relative inline-flex w-4 h-4">
             <span
-              class={iconSwap}
-              classList={{
-                "scale-100 opacity-100 blur-0": !copied(),
-                "scale-[0.25] opacity-0 blur-[4px]": copied(),
-              }}
+              class={[
+                iconSwap,
+                {
+                  "scale-100 opacity-100 blur-0": !copied(),
+                  "scale-[0.25] opacity-0 blur-[4px]": copied(),
+                },
+              ]}
             >
               <span class="i-ph-fingerprint text-subtextA" />
             </span>
             <span
-              class={iconSwap}
-              classList={{
-                "scale-100 opacity-100 blur-0": copied(),
-                "scale-[0.25] opacity-0 blur-[4px]": !copied(),
-              }}
+              class={[
+                iconSwap,
+                {
+                  "scale-100 opacity-100 blur-0": copied(),
+                  "scale-[0.25] opacity-0 blur-[4px]": !copied(),
+                },
+              ]}
             >
               <span class="i-ph-check text-green" />
             </span>

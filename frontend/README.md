@@ -28,6 +28,16 @@ npm run build
 
 This produces a static site in the `dist/` directory.
 
+## Dependency notes
+
+The frontend uses Solid 2. Two packages are pinned deliberately:
+
+- `@kobalte/core` is on the Solid 2 alpha; its peer range still names an RC, so
+  `frontend/.npmrc` enables `legacy-peer-deps` to keep installs working.
+- `@tanstack/virtual-core` stays at 3.13.23, the version the previous adapter
+  used. `frontend/src/utils/windowVirtualizer.ts` is the Solid 2 bridge; newer
+  core versions change the mounted-window size.
+
 ## API Configuration
 
 The frontend fetches data from the waifubot API. The API URL is set at build time:

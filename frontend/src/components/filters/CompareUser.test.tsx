@@ -1,4 +1,5 @@
-import { render } from "solid-js/web";
+import { render } from "@solidjs/web";
+import { flush } from "solid-js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { UserProfile } from "../../api/generated";
 import { findUserV1, getProfileV1 } from "../../api/generated";
@@ -22,7 +23,10 @@ vi.mock("../../api/anilist", () => ({
   getMediaCharacters: vi.fn(async () => []),
 }));
 
-const settle = () => new Promise((r) => setTimeout(r, 0));
+const settle = async () => {
+  await new Promise((r) => setTimeout(r, 0));
+  flush();
+};
 
 const click = (el: Element) => el.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
@@ -35,6 +39,7 @@ describe("CompareUser chips", () => {
 
   const renderWith = (compare: string) => {
     __setSearchParams({ compare });
+    flush();
     dispose = render(
       () => (
         <CollectionFiltersProvider value={usePageFilters(() => "main-user")}>
@@ -140,6 +145,7 @@ describe("CompareUser chips", () => {
     )!;
     input.value = "someone";
     input.dispatchEvent(new Event("input", { bubbles: true }));
+    flush();
     input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
     await settle();
 
@@ -176,6 +182,7 @@ describe("CompareUser chips", () => {
     )!;
     input.value = "main-user";
     input.dispatchEvent(new Event("input", { bubbles: true }));
+    flush();
     input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
     await settle();
 

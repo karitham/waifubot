@@ -2,7 +2,7 @@ import presetWind4 from "@unocss/preset-wind4";
 import { presetIcons, presetWebFonts } from "unocss";
 import UnoCSS from "unocss/vite";
 import { defineConfig } from "vite";
-import solidPlugin from "vite-plugin-solid";
+import solidPlugin from "@solidjs/vite-plugin";
 
 export default defineConfig({
   build: {

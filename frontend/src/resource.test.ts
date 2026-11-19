@@ -1,103 +1,98 @@
-import { createResource, createRoot } from "solid-js";
+import { createRoot, createSignal, flush } from "solid-js";
 import { describe, expect, it } from "vitest";
-import { resourceState } from "./resource";
+import { createAsyncState } from "./resource";
 
-/** Drive a resource through its states and record what resourceState reports. */
-const observe = async (
-  fetcher: () => Promise<string>,
-  settle: () => Promise<void>,
-): Promise<{ loading: boolean; ready?: string; error?: unknown }> => {
-  return createRoot((dispose) => {
-    const [resource] = createResource(fetcher);
-    const seen: { loading: boolean; ready?: string; error?: unknown } = { loading: false };
-
-    const sample = () => {
-      const state = resourceState(resource);
-      if (state.status === "loading") seen.loading = true;
-      if (state.status === "ready") seen.ready = state.value;
-      if (state.status === "error") seen.error = state.error;
-    };
-
-    sample();
-    return settle().then(() => {
-      sample();
-      dispose();
-      return seen;
-    });
-  });
+const settle = async () => {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  flush();
 };
 
-const tick = () => Promise.resolve().then(() => Promise.resolve());
-
-describe("resourceState", () => {
-  it("reports loading before the fetcher settles", async () => {
-    let resolve: (v: string) => void = () => {};
+describe("createAsyncState", () => {
+  it("reports loading before the request settles", async () => {
+    let resolve!: (value: string) => void;
     const pending = new Promise<string>((r) => (resolve = r));
+    const { state, dispose } = createRoot((dispose) => ({
+      state: createAsyncState(() => pending),
+      dispose,
+    }));
 
-    const seen = await observe(
-      () => pending,
-      async () => {
-        resolve("value");
-        await tick();
-      },
-    );
+    flush();
+    expect(state()).toEqual({ status: "loading" });
 
-    expect(seen.loading).toBe(true);
-    expect(seen.ready).toBe("value");
-    expect(seen.error).toBeUndefined();
+    resolve("value");
+    await settle();
+    expect(state()).toEqual({ status: "ready", value: "value" });
+    dispose();
   });
 
-  it("reports the value once resolved", async () => {
-    const seen = await observe(
-      async () => "value",
-      async () => {
-        await tick();
-      },
-    );
+  it("reports the resolved value", async () => {
+    const { state, dispose } = createRoot((dispose) => ({
+      state: createAsyncState(async () => "value"),
+      dispose,
+    }));
 
-    expect(seen.ready).toBe("value");
-    expect(seen.error).toBeUndefined();
+    await settle();
+    expect(state()).toEqual({ status: "ready", value: "value" });
+    dispose();
   });
 
-  it("reports the rejection reason once failed", async () => {
+  it("reports the rejection reason", async () => {
     const failure = new Error("boom");
-    const seen = await observe(
-      async () => {
+    const { state, dispose } = createRoot((dispose) => ({
+      state: createAsyncState(async () => {
         throw failure;
-      },
-      async () => {
-        await tick();
-      },
-    );
+      }),
+      dispose,
+    }));
 
-    expect(seen.error).toBe(failure);
-    expect(seen.ready).toBeUndefined();
+    await settle();
+    expect(state()).toEqual({ status: "error", error: failure });
+    dispose();
   });
 
-  it("prefers the error over a still-set loading flag", async () => {
-    const failure = new Error("boom");
-    const seen = await observe(
-      async () => {
-        throw failure;
-      },
-      async () => {
-        await tick();
-      },
-    );
+  it("reloads when a tracked input changes", async () => {
+    const { state, setId, dispose } = createRoot((dispose) => {
+      const [id, setId] = createSignal(1, { ownedWrite: true });
+      return { state: createAsyncState(async () => `user-${id()}`), setId, dispose };
+    });
 
-    // A failed resource is no longer loading, and must not read as loading.
-    expect(seen.error).toBe(failure);
+    await settle();
+    expect(state()).toEqual({ status: "ready", value: "user-1" });
+
+    setId(2);
+    flush();
+    expect(state()).toEqual({ status: "loading" });
+    await settle();
+    expect(state()).toEqual({ status: "ready", value: "user-2" });
+    dispose();
   });
 
-  it("treats a falsy error value as no error", async () => {
-    const seen = await observe(
-      async () => "value",
-      async () => {
-        await tick();
-      },
-    );
+  it("ignores a stale response after a newer request starts", async () => {
+    const pending = new Map<number, (value: string) => void>();
+    const { state, setId, dispose } = createRoot((dispose) => {
+      const [id, setId] = createSignal(1, { ownedWrite: true });
+      return {
+        state: createAsyncState(
+          () =>
+            new Promise<string>((resolve) => {
+              pending.set(id(), resolve);
+            }),
+        ),
+        setId,
+        dispose,
+      };
+    });
+    flush();
 
-    expect(seen.ready).toBe("value");
-    expect(seen.error).toBeUndefined();
+    setId(2);
+    flush();
+    pending.get(2)?.("new");
+    await settle();
+    expect(state()).toEqual({ status: "ready", value: "new" });
+
+    pending.get(1)?.("old");
+    await settle();
+    expect(state()).toEqual({ status: "ready", value: "new" });
+    dispose();
   });
 });

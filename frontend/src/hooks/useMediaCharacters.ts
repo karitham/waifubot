@@ -1,6 +1,7 @@
-import { createEffect, createResource, on } from "solid-js";
+import { createEffect, createMemo, createSignal } from "solid-js";
 import type { MediaCharacter } from "../api/anilist";
 import { getMediaCharacters } from "../api/anilist";
+import { createAsyncState } from "../resource";
 import type { MediaOption } from "../types";
 
 const fetchCharacters = async (media: MediaOption): Promise<MediaCharacter[]> =>
@@ -8,17 +9,28 @@ const fetchCharacters = async (media: MediaOption): Promise<MediaCharacter[]> =>
 
 /**
  * Characters of the selected media, for the grid's owned/missing split.
- * Returns the resource accessor.
- *
- * createResource keeps its previous value when the source turns null, so
- * the effect clears it explicitly when the media filter is removed.
+ * Keeps the last result while a new media loads so the grid does not flash the
+ * whole collection, and clears it when the filter is removed.
  */
 export const useMediaCharacters = (media: () => MediaOption | null) => {
-  const [characters, { mutate }] = createResource(media, fetchCharacters);
+  const state = createAsyncState(async () => {
+    const selected = media();
+    return selected ? fetchCharacters(selected) : undefined;
+  });
+  const [last, setLast] = createSignal<MediaCharacter[] | undefined>(undefined, {
+    ownedWrite: true,
+  });
+
   createEffect(
-    on(media, (selected) => {
-      if (!selected) mutate(undefined);
-    }),
+    () => state(),
+    (current) => {
+      if (current.status === "ready") setLast(current.value);
+    },
   );
-  return characters;
+
+  return createMemo(() => {
+    const current = state();
+    if (current.status === "ready") return current.value;
+    return media() ? last() : undefined;
+  });
 };

@@ -1,4 +1,4 @@
-import { A, useLocation } from "@solidjs/router";
+import { useHref, useLocation } from "@solidjs/router";
 
 interface CollectionNavProps {
   navbarLink: {
@@ -11,14 +11,20 @@ interface CollectionNavProps {
 export default (props: CollectionNavProps) => {
   const location = useLocation();
 
-  const href = () => props.navbarLink.href + (props.searchParams ? `?${props.searchParams}` : "");
+  const linkHref = () =>
+    props.navbarLink.href + (props.searchParams ? `?${props.searchParams}` : "");
+
+  // Hash history: only the router adapter prefixes the path with "#". A raw
+  // href would render "/list/123" and break refresh, bookmarks and new tabs.
+  const homeHref = useHref(() => "/");
+  const otherHref = useHref(linkHref);
 
   const isActive = (path: string) => location.pathname === path;
 
   return (
     <nav class="flex items-center justify-between w-full">
-      <A
-        href="/"
+      <a
+        href={homeHref()}
         class={`
 					group inline-flex items-center gap-2 px-4 py-2 rounded-lg
 					transition duration-200
@@ -43,9 +49,9 @@ export default (props: CollectionNavProps) => {
           />
         </svg>
         <span>Back to Home</span>
-      </A>
-      <A
-        href={href()}
+      </a>
+      <a
+        href={otherHref()}
         class={`
 					group inline-flex items-center gap-2 px-4 py-2 rounded-lg
 					transition duration-200
@@ -57,7 +63,7 @@ export default (props: CollectionNavProps) => {
 				`}
       >
         {props.navbarLink.text}
-      </A>
+      </a>
     </nav>
   );
 };

@@ -1,28 +1,39 @@
-import type { Resource } from "solid-js";
+import { createEffect, createSignal, type Accessor } from "solid-js";
 
 /**
- * A resource's outcome as a single value.
- *
- * Reading `resource()` alone cannot distinguish "still loading" from "loaded
- * with nothing" from "failed", which is how callers end up rendering an error
- * for data that has not arrived yet. Callers switch on `status` instead.
+ * An async read as one value. Solid 2 routes loading and error UI through
+ * boundaries, but these pages show inline notices and keep a valid profile on
+ * screen when a second read fails. This state machine keeps those branches
+ * explicit and lets a superseded request be ignored.
  */
-export type ResourceState<T> =
+export type AsyncState<T> =
   | { status: "loading" }
   | { status: "error"; error: unknown }
   | { status: "ready"; value: T };
 
-/**
- * Read a resource as a discriminated union. Call inside a memo or a reactive
- * scope: it reads `loading`, `error` and the value, so all three stay tracked.
- */
-export function resourceState<T>(resource: Resource<T>): ResourceState<T> {
-  const error = resource.error;
-  if (error !== undefined && error !== null) {
-    return { status: "error", error };
-  }
-  if (resource.loading) {
-    return { status: "loading" };
-  }
-  return { status: "ready", value: resource() as T };
+/** Read `load()` reactively, tracking the newest request and its outcome. */
+export function createAsyncState<T>(load: () => Promise<T>): Accessor<AsyncState<T>> {
+  const [state, setState] = createSignal<AsyncState<T>>(
+    { status: "loading" },
+    { ownedWrite: true },
+  );
+  let requestId = 0;
+
+  createEffect(
+    () => ({ promise: load() }),
+    ({ promise }) => {
+      const id = ++requestId;
+      setState({ status: "loading" });
+      promise.then(
+        (value) => {
+          if (id === requestId) setState({ status: "ready", value });
+        },
+        (error: unknown) => {
+          if (id === requestId) setState({ status: "error", error });
+        },
+      );
+    },
+  );
+
+  return state;
 }

@@ -1,4 +1,4 @@
-import { createRoot } from "solid-js";
+import { createRoot, flush } from "solid-js";
 import { describe, expect, it } from "vitest";
 import type { Character } from "../api/generated";
 import { sortOptions, useSort } from "./useSort";
@@ -17,9 +17,11 @@ describe("useSort", () => {
     const sort = mount();
 
     sort.toggleCharSortAsc();
+    flush();
     expect(sort.charSortAsc()).toBe(-1);
 
     sort.toggleCharSortAsc();
+    flush();
     expect(sort.charSortAsc()).toBe(1);
   });
 
@@ -29,6 +31,7 @@ describe("useSort", () => {
     for (let i = 0; i < 5; i++) {
       expect([1, -1]).toContain(sort.charSortAsc());
       sort.toggleCharSortAsc();
+      flush();
     }
   });
 
@@ -36,6 +39,7 @@ describe("useSort", () => {
     const sort = mount();
 
     sort.setCharSort(sortOptions[1]);
+    flush();
 
     expect(sort.charSort().label).toBe("Name");
   });
