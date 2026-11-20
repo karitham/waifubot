@@ -98,8 +98,10 @@ func New(ctx context.Context, cfg Config, deps Deps) (*corde.Mux, error) {
 	}
 	holdersHandler := &HoldersHandler{store: deps.Store, guildIndexer: deps.GuildIndexer}
 	rollHandler := &RollHandler{
-		store:  deps.Store,
-		config: cfg.RollConfig,
+		store:    deps.Store,
+		config:   cfg.RollConfig,
+		followUp: mux,
+		cleaner:  newDiscordMessageCleaner(mux),
 	}
 	tokenHandler := &TokenHandler{
 		store:        deps.Store,
@@ -121,6 +123,7 @@ func New(ctx context.Context, cfg Config, deps Deps) (*corde.Mux, error) {
 	mux.Route("search", searchHandler.Register)
 	mux.Route("holders", holdersHandler.Register)
 	mux.SlashCommand("roll", wrap(wrapCtx(rollHandler.Roll), t, i, idx))
+	mux.ButtonComponent("exchange", rollHandler.Exchange)
 	mux.Route("token", tokenHandler.Register)
 	mux.Route("wishlist", wishlistHandler.Register)
 

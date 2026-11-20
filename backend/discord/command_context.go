@@ -14,6 +14,7 @@ import (
 type CommandContext interface {
 	UserID() collection.UserID
 	Username() string
+	Token() string
 	GuildID() guild.ID
 	ChannelID() drops.ChannelID
 	AvatarPNG() string
@@ -53,6 +54,7 @@ func callerUserID(member corde.Member, user *corde.User) collection.UserID {
 }
 
 func (c *slashCommandCtx) UserID() collection.UserID { return collection.UserID(c.user.ID) }
+func (c *slashCommandCtx) Token() string             { return c.i.Token }
 func (c *slashCommandCtx) Username() string          { return c.user.Username }
 func (c *slashCommandCtx) GuildID() guild.ID         { return guild.ID(c.i.GuildID) }
 func (c *slashCommandCtx) ChannelID() drops.ChannelID {
@@ -91,6 +93,7 @@ func wrapCtx(
 // MockCommandContext is a test double for CommandContext.
 type MockCommandContext struct {
 	UserIDVal            collection.UserID
+	TokenVal             string
 	UsernameVal          string
 	GuildIDVal           guild.ID
 	ChannelIDVal         drops.ChannelID
@@ -105,6 +108,7 @@ type MockCommandContext struct {
 }
 
 func (m *MockCommandContext) UserID() collection.UserID { return m.UserIDVal }
+func (m *MockCommandContext) Token() string             { return m.TokenVal }
 func (m *MockCommandContext) Username() string          { return m.UsernameVal }
 func (m *MockCommandContext) GuildID() guild.ID         { return m.GuildIDVal }
 func (m *MockCommandContext) ChannelID() drops.ChannelID {

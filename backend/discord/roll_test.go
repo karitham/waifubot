@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Karitham/corde"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/karitham/waifubot/catalog"
@@ -17,14 +18,15 @@ import (
 
 func TestRollHandler_Roll(t *testing.T) {
 	tests := []struct {
-		name           string
-		store          *collectiontest.MockStore
-		cmd            CommandContext
-		config         collection.Config
-		wantContent    string
-		wantEmbedTitle string
-		wantEmbedDesc  string
-		wantResponded  bool
+		name               string
+		store              *collectiontest.MockStore
+		cmd                CommandContext
+		config             collection.Config
+		wantContent        string
+		wantEmbedTitle     string
+		wantEmbedDesc      string
+		wantResponded      bool
+		wantExchangePrompt bool
 	}{
 		{
 			name: "roll cooldown",
@@ -89,11 +91,13 @@ func TestRollHandler_Roll(t *testing.T) {
 			},
 			cmd: &MockCommandContext{
 				UserIDVal:  1,
+				TokenVal:   "roll-token",
 				GuildIDVal: 2,
 			},
-			config:         collection.Config{RollCooldown: time.Hour},
-			wantEmbedTitle: "Rem",
-			wantResponded:  true,
+			config:             collection.Config{RollCooldown: time.Hour},
+			wantEmbedTitle:     "Rem",
+			wantResponded:      true,
+			wantExchangePrompt: true,
 		},
 		{
 			name: "success with wishlist",
@@ -125,26 +129,37 @@ func TestRollHandler_Roll(t *testing.T) {
 			},
 			cmd: &MockCommandContext{
 				UserIDVal:  1,
+				TokenVal:   "roll-token",
 				GuildIDVal: 2,
 			},
-			config:         collection.Config{RollCooldown: time.Hour},
-			wantEmbedTitle: "Rem",
-			wantEmbedDesc:  "<@10> <@20> <@30>",
-			wantResponded:  true,
+			config:             collection.Config{RollCooldown: time.Hour},
+			wantEmbedTitle:     "Rem",
+			wantEmbedDesc:      "<@10> <@20> <@30>",
+			wantResponded:      true,
+			wantExchangePrompt: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &cordetest.MockResponseWriter{}
+			followUp := &recordingFollowUp{called: make(chan struct{})}
 			h := &RollHandler{
-				store:  tt.store,
-				config: tt.config,
+				store:    tt.store,
+				config:   tt.config,
+				followUp: followUp,
 			}
 
 			h.Roll(t.Context(), w, tt.cmd)
 
 			assert.Equal(t, tt.wantResponded, w.RespondCalled)
+			if !tt.wantExchangePrompt {
+				select {
+				case <-followUp.called:
+					t.Fatal("exchange prompt sent for a failed roll")
+				default:
+				}
+			}
 			if tt.wantContent != "" {
 				w.AssertContains(t, tt.wantContent)
 			}
@@ -160,6 +175,39 @@ func TestRollHandler_Roll(t *testing.T) {
 					assert.Contains(t, data.Embeds[0].Description, tt.wantEmbedDesc)
 				}
 			}
+			if tt.wantExchangePrompt {
+				select {
+				case <-followUp.called:
+				case <-time.After(time.Second):
+					t.Fatal("exchange prompt was not sent")
+				}
+				assert.Equal(t, tt.cmd.Token(), followUp.token)
+				if assert.NotNil(t, followUp.data) {
+					data := followUp.data.InteractionRespData()
+					assert.Equal(t, corde.RESPONSE_FLAGS_EPHEMERAL, data.Flags)
+					if assert.Len(t, data.Components, 1) {
+						row := data.Components[0]
+						assert.Equal(t, corde.COMPONENT_ACTION_ROW, row.Type)
+						if assert.Len(t, row.Components, 1) {
+							assert.Equal(t, exchangeCustomID(tt.cmd.UserID(), 42), row.Components[0].CustomID)
+						}
+					}
+				}
+			}
 		})
 	}
+}
+
+// recordingFollowUp captures the ephemeral exchange prompt sent after a roll.
+type recordingFollowUp struct {
+	called chan struct{}
+	token  string
+	data   corde.InteractionResponder
+}
+
+func (f *recordingFollowUp) FollowUpInteraction(token string, data corde.InteractionResponder) error {
+	f.token = token
+	f.data = data
+	close(f.called)
+	return nil
 }
