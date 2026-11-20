@@ -14,8 +14,10 @@ import (
 
 // RollHandler handles the /roll command.
 type RollHandler struct {
-	store  collection.DB
-	config collection.Config
+	store    collection.DB
+	config   collection.Config
+	followUp followUpSender
+	cleaner  messageCleaner
 }
 
 // Roll performs a character roll.
@@ -41,4 +43,16 @@ func (h *RollHandler) Roll(ctx context.Context, w corde.ResponseWriter, cmd Comm
 	}
 
 	w.Respond(rollEmbed(char, formatUsersWantingCharacter(wantingUsers, cmd.UserID())))
+
+	prompt := exchangePrompt(char, cmd.UserID())
+
+	token := cmd.Token()
+	go func() {
+		start := time.Now()
+		if err := h.followUp.FollowUpInteraction(token, prompt); err != nil {
+			logger.Warn("error sending exchange prompt", "error", err)
+			return
+		}
+		logger.Debug("exchange prompt sent", "took", time.Since(start))
+	}()
 }
